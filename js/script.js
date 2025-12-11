@@ -57,12 +57,12 @@
         ];
 
         let products = [
-            { id: 1, name: 'JUUL Starter Kit', category: 'Vape Devices', quantity: 24, arrivalDate: '2025-12-10', store: 'Miramar', status: 'pending', supplier: 'JUUL Labs', price: 34.99 },
-            { id: 2, name: 'VUSE Alto Pods - Menthol', category: 'Vape Pods', quantity: 48, arrivalDate: '2025-12-08', store: 'Morena', status: 'arrived', supplier: 'VUSE', price: 12.99 },
-            { id: 3, name: 'Elf Bar BC5000 - Mixed Flavors', category: 'Disposables', quantity: 120, arrivalDate: '2025-12-15', store: 'Kearny Mesa', status: 'pending', supplier: 'Elf Bar', price: 15.99 },
-            { id: 4, name: 'Marlboro Red Box', category: 'Cigarettes', quantity: 200, arrivalDate: '2025-12-12', store: 'Chula Vista', status: 'pending', supplier: 'Philip Morris', price: 8.99 },
-            { id: 5, name: 'Puff Bar Plus', category: 'Disposables', quantity: 80, arrivalDate: '2025-12-07', store: 'Miramar', status: 'arrived', supplier: 'Puff Bar', price: 13.99 },
-            { id: 6, name: 'SMOK Nord 4 Kit', category: 'Vape Devices', quantity: 15, arrivalDate: '2025-12-20', store: 'Morena', status: 'pending', supplier: 'SMOK', price: 42.99 }
+            { id: 1, name: 'JUUL Starter Kit', category: 'Vape Devices', quantity: 24, arrivalDate: '2025-12-10', store: 'Miramar', status: 'pending', supplier: 'JUUL Labs', price: 34.99, image: 'https://images.unsplash.com/photo-1560913210-fd4c0e4c3f75?w=400&h=300&fit=crop' },
+            { id: 2, name: 'VUSE Alto Pods - Menthol', category: 'Vape Pods', quantity: 48, arrivalDate: '2025-12-08', store: 'Morena', status: 'arrived', supplier: 'VUSE', price: 12.99, image: 'https://images.unsplash.com/photo-1567922045116-2a00fae2ed03?w=400&h=300&fit=crop' },
+            { id: 3, name: 'Elf Bar BC5000 - Mixed Flavors', category: 'Disposables', quantity: 120, arrivalDate: '2025-12-15', store: 'Kearny Mesa', status: 'pending', supplier: 'Elf Bar', price: 15.99, image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=300&fit=crop' },
+            { id: 4, name: 'Marlboro Red Box', category: 'Cigarettes', quantity: 200, arrivalDate: '2025-12-12', store: 'Chula Vista', status: 'pending', supplier: 'Philip Morris', price: 8.99, image: 'https://images.unsplash.com/photo-1571941736487-969c8e1d8e9f?w=400&h=300&fit=crop' },
+            { id: 5, name: 'Puff Bar Plus', category: 'Disposables', quantity: 80, arrivalDate: '2025-12-07', store: 'Miramar', status: 'arrived', supplier: 'Puff Bar', price: 13.99, image: 'https://images.unsplash.com/photo-1606235727737-4c2b7a0ecab7?w=400&h=300&fit=crop' },
+            { id: 6, name: 'SMOK Nord 4 Kit', category: 'Vape Devices', quantity: 15, arrivalDate: '2025-12-20', store: 'Morena', status: 'pending', supplier: 'SMOK', price: 42.99, image: 'https://images.unsplash.com/photo-1559813114-caa66ac94942?w=400&h=300&fit=crop' }
         ];
 
         let inventory = [
@@ -705,6 +705,7 @@
                         <option value="Morena">VSU Morena</option>
                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                         <option value="Chula Vista">VSU Chula Vista</option>
+                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                     </select>
                     <select class="filter-select" id="status-filter" onchange="filterEmployees()">
                         <option value="">All Status</option>
@@ -878,28 +879,6 @@
                     </button>
                 </div>
 
-                <div class="training-stats">
-                    <div class="training-stat-card">
-                        <div class="training-stat-icon"><i class="fas fa-video"></i></div>
-                        <div class="training-stat-value">${trainings.filter(t => t.type === 'video').length}</div>
-                        <div class="training-stat-label">Video Courses</div>
-                    </div>
-                    <div class="training-stat-card">
-                        <div class="training-stat-icon"><i class="fas fa-file-pdf"></i></div>
-                        <div class="training-stat-value">${trainings.filter(t => t.type === 'document').length}</div>
-                        <div class="training-stat-label">Documents</div>
-                    </div>
-                    <div class="training-stat-card">
-                        <div class="training-stat-icon"><i class="fas fa-check-circle"></i></div>
-                        <div class="training-stat-value">${Math.round(trainings.reduce((acc, t) => acc + t.completion, 0) / trainings.length)}%</div>
-                        <div class="training-stat-label">Avg. Completion</div>
-                    </div>
-                    <div class="training-stat-card">
-                        <div class="training-stat-icon"><i class="fas fa-users"></i></div>
-                        <div class="training-stat-value">${employees.length}</div>
-                        <div class="training-stat-label">Enrolled</div>
-                    </div>
-                </div>
 
                 <div class="training-grid">
                     ${trainings.map(t => `
@@ -932,7 +911,7 @@
         }
 
         function renderLicenses() {
-            const stores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista'];
+            const stores = ['Miramar', 'Miramar Wine & Liquor', 'Morena', 'Kearny Mesa', 'Chula Vista'];
 
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
@@ -1538,7 +1517,7 @@
             if (modal) modal.remove();
         }
 
-        function submitClockAction() {
+        async function submitClockAction() {
             const employeeId = parseInt(document.getElementById('employeeSelect').value);
             const store = document.getElementById('storeSelect').value;
             const time = document.getElementById('clockTime').value;
@@ -1561,8 +1540,12 @@
                 return;
             }
 
-            const today = new Date().toDateString();
-            let record = clockinAttendanceRecords.find(r => r.employeeId === employeeId && r.date === today);
+            // Format date as YYYY-MM-DD for consistency
+            const today = new Date();
+            const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const dateDisplayString = today.toDateString();
+
+            let record = clockinAttendanceRecords.find(r => r.employeeId === employeeId && r.date === dateDisplayString);
 
             // Create new record if doesn't exist
             if (!record) {
@@ -1573,7 +1556,7 @@
                     employeeRole: employee.role,
                     employeeInitials: employee.initials,
                     store: store,
-                    date: today,
+                    date: dateDisplayString,
                     clockIn: null,
                     lunchStart: null,
                     lunchEnd: null,
@@ -1644,6 +1627,36 @@
             // Save to localStorage
             localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
 
+            // Save to Firebase
+            try {
+                // Initialize Firebase Clock In Manager if not already done
+                if (!firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.initialize();
+                }
+
+                // Prepare clock record for Firebase
+                const firebaseRecord = {
+                    employeeId: employeeId,
+                    employeeName: employee.name,
+                    employeeRole: employee.role,
+                    store: store,
+                    date: dateString, // YYYY-MM-DD format
+                    clockIn: record.clockIn,
+                    lunchStart: record.lunchStart,
+                    lunchEnd: record.lunchEnd,
+                    clockOut: record.clockOut,
+                    notes: record.notes || notes
+                };
+
+                // Save to Firebase
+                await firebaseClockInManager.saveClockRecord(firebaseRecord);
+                console.log('✅ Clock record saved to Firebase successfully');
+            } catch (error) {
+                console.error('⚠️ Error saving to Firebase:', error);
+                // Don't prevent saving to localStorage if Firebase fails
+                // The user will still see success message but data is local only
+            }
+
             // Show success message
             messageDiv.className = 'alert success';
             messageDiv.textContent = 'Clock action recorded successfully!';
@@ -1656,10 +1669,10 @@
             }, 1000);
         }
 
-        function loadAttendanceData() {
+        async function loadAttendanceData() {
             const today = new Date().toDateString();
-            const todayRecords = clockinAttendanceRecords.filter(r => r.date === today);
-
+            const dateString = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            
             const loadingDiv = document.getElementById('loadingAttendance');
             const tableContainer = document.getElementById('attendanceTableContainer');
             const emptyState = document.getElementById('emptyAttendanceState');
@@ -1670,6 +1683,49 @@
             loadingDiv.style.display = 'flex';
             tableContainer.style.display = 'none';
             emptyState.style.display = 'none';
+
+            try {
+                // Initialize Firebase Clock In Manager if not already done
+                if (!firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.initialize();
+                }
+
+                // Try to load from Firebase first
+                let firebaseRecords = [];
+                try {
+                    firebaseRecords = await firebaseClockInManager.loadClockRecordsByDate(dateString);
+                    console.log('✅ Loaded clock records from Firebase:', firebaseRecords.length);
+                    
+                    // Merge Firebase records with local records
+                    // Firebase records take precedence
+                    if (firebaseRecords.length > 0) {
+                        clockinAttendanceRecords = firebaseRecords.map(rec => ({
+                            id: rec.id || Date.now(),
+                            employeeId: rec.employeeId,
+                            employeeName: rec.employeeName,
+                            employeeRole: rec.employeeRole,
+                            employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
+                            store: rec.store,
+                            date: today, // Use display format for local tracking
+                            clockIn: rec.clockIn,
+                            lunchStart: rec.lunchStart,
+                            lunchEnd: rec.lunchEnd,
+                            clockOut: rec.clockOut,
+                            notes: rec.notes || ''
+                        }));
+                        // Save merged data to localStorage for fallback
+                        localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+                    }
+                } catch (firebaseError) {
+                    console.warn('⚠️ Could not load from Firebase, using local data:', firebaseError);
+                    // Fall back to localStorage
+                }
+            } catch (error) {
+                console.error('Error in loadAttendanceData:', error);
+            }
+
+            // Get today's records
+            const todayRecords = clockinAttendanceRecords.filter(r => r.date === today);
 
             // Simulate loading delay
             setTimeout(() => {
@@ -1872,13 +1928,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 <div class="employees-grid">
                     ${products.map(product => `
                         <div class="card">
-                            <div class="card-header" style="background: ${product.status === 'arrived' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'};">
+                            <div class="product-image-container" style="position: relative; width: 100%; height: 180px; overflow: hidden; border-radius: 12px 12px 0 0;">
+                                <img src="${product.image || 'https://via.placeholder.com/400x300?text=No+Image'}"
+                                     alt="${product.name}"
+                                     style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+                                     onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                                <span class="status-badge ${product.status === 'arrived' ? 'valid' : 'expiring'}"
+                                      style="position: absolute; top: 12px; right: 12px;">
+                                    ${product.status}
+                                </span>
+                            </div>
+                            <div class="card-header" style="background: ${product.status === 'arrived' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'}; border-radius: 0;">
                                 <h3 class="card-title" style="font-size: 16px; font-weight: 600;">
                                     ${product.name}
                                 </h3>
-                                <span class="status-badge ${product.status === 'arrived' ? 'valid' : 'expiring'}">
-                                    ${product.status}
-                                </span>
                             </div>
                             <div class="card-body">
                                 <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -1966,6 +2029,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <option value="Morena" ${selectedStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                             <option value="Kearny Mesa" ${selectedStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                             <option value="Chula Vista" ${selectedStoreFilter === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                            <option value="Miramar Wine & Liquor" ${selectedStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                         </select>
                     </div>
                     <div style="font-size: 13px; color: var(--text-muted);">
@@ -2286,6 +2350,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <option value="Morena">Morena</option>
                         <option value="Kearny Mesa">Kearny Mesa</option>
                         <option value="Chula Vista">Chula Vista</option>
+                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                     </select>
                 </div>
 
@@ -4660,6 +4725,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena" ${data.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                         <option value="Kearny Mesa" ${data.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                         <option value="Chula Vista" ${data.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor" ${data.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -4758,6 +4824,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -4843,6 +4910,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -4891,6 +4959,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="Morena">VSU Morena</option>
                                     <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                     <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                 </select>
                             </div>
                         </div>
@@ -4943,6 +5012,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -4987,6 +5057,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -5074,6 +5145,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena" ${data.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                         <option value="Kearny Mesa" ${data.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                         <option value="Chula Vista" ${data.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor" ${data.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -5233,6 +5305,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                             </div>
@@ -5309,6 +5382,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                             </div>
@@ -6007,144 +6081,50 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
 
-            // Map of data-page attribute to menu item selectors
-            const pageElementMap = {
-                'dashboard': 'a[onclick*="navigateTo(\'dashboard\')"]',
-                'employees': 'a[onclick*="navigateTo(\'employees\')"]',
-                'licenses': 'a[class*="folder-open"]',
-                'analytics': 'a[onclick*="navigateTo(\'analytics\')"]',
-                'newstuff': 'a[class*="box"][not([class*="boxes"])]',
-                'abundancecloud': 'a[href*="abundance-cloud.html"]',
-                'announcements': 'a[class*="bullhorn"]',
-                'thieves': 'a[onclick*="navigateTo(\'thieves\')"]',
-                'invoices': 'a[onclick*="navigateTo(\'invoices\')"]',
-                'vendors': 'a[onclick*="navigateTo(\'vendors\')"]',
-                'cashout': 'a[onclick*="navigateTo(\'cashout\')"]',
-                'treasury': 'a[onclick*="navigateTo(\'treasury\')"]',
-                'clockin': 'a[onclick*="navigateTo(\'clockin\')"]',
-                'schedule': 'a[onclick*="navigateTo(\'schedule\')"]',
-                'gforce': 'a[onclick*="openGForceModal"]',
-                'geconomics': 'a[onclick*="navigateTo(\'geconomics\')"]'
-            };
-
             // Hide all nav items first
             document.querySelectorAll('.nav-section a, .nav-section div').forEach(item => {
-                // Don't hide nav-label or divs that contain nav items
-                if (!item.classList.contains('nav-label') && item.tagName !== 'DIV' || item.classList.contains('nav-item')) {
+                if (!item.classList.contains('nav-label')) {
                     item.style.display = 'none';
                 }
             });
 
-            // Show only allowed pages
+            // Show only allowed pages using data-page attribute
             allowedPages.forEach(page => {
-                // Special handling for items with specific text content
-                let found = false;
-
-                // Check for nav-item with data-page attribute
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    if (item.dataset.page === page) {
-                        item.style.display = '';
-                        found = true;
+                document.querySelectorAll(`.nav-item[data-page="${page}"], .nav-dropdown-item[data-page="${page}"]`).forEach(item => {
+                    item.style.display = '';
+                    
+                    // Show parent div if it's a nav-item
+                    if (item.classList.contains('nav-item') && item.parentElement.tagName === 'DIV') {
+                        item.parentElement.style.display = '';
                     }
-                });
-
-                // If not found by data-page, try by text content
-                if (!found) {
-                    const pageLabels = {
-                        'dashboard': 'Dashboard',
-                        'employees': 'Employees',
-                        'licenses': 'Licenses & Docs',
-                        'analytics': 'Sales Analytics',
-                        'newstuff': 'New Stuff',
-                        'abundancecloud': 'Abundance Cloud Engine',
-                        'announcements': 'Announcements',
-                        'thieves': 'Thieves',
-                        'invoices': 'Invoices',
-                        'vendors': 'Vendors',
-                        'cashout': 'Cash Out',
-                        'treasury': 'Treasury',
-                        'clockin': 'Clock In/Out',
-                        'schedule': 'Schedule',
-                        'gforce': 'G Force'
-                    };
-
-                    const label = pageLabels[page];
-                    if (label) {
-                        document.querySelectorAll('.nav-item').forEach(item => {
-                            if (item.textContent.includes(label)) {
-                                item.style.display = '';
-                                // Also show parent div if it exists
-                                if (item.parentElement.tagName === 'DIV') {
-                                    item.parentElement.style.display = '';
+                    
+                    // If it's a dropdown item, show parent dropdown and parent nav-item
+                    if (item.classList.contains('nav-dropdown-item')) {
+                        const dropdownContainer = item.closest('.nav-dropdown');
+                        if (dropdownContainer) {
+                            dropdownContainer.style.display = '';
+                            // Find and show the parent nav-item that triggers this dropdown
+                            const parentNavItem = dropdownContainer.previousElementSibling;
+                            if (parentNavItem && parentNavItem.classList.contains('nav-item')) {
+                                parentNavItem.style.display = '';
+                                if (parentNavItem.parentElement.tagName === 'DIV') {
+                                    parentNavItem.parentElement.style.display = '';
                                 }
                             }
-                        });
+                        }
                     }
-                }
+                });
             });
 
-            // Show parent divs (dropdowns) if they contain visible items
+            // Show parent divs that contain visible nav-items
             document.querySelectorAll('.nav-section > div').forEach(div => {
-                const hasVisibleItems = div.querySelector('.nav-item[style=""], .nav-item:not([style*="display: none"])');
+                const hasVisibleItems = div.querySelector('.nav-item:not([style*="display: none"])');
                 if (hasVisibleItems) {
                     div.style.display = '';
                 }
             });
 
-            // Always show Clock In/Out if employee has access to clockin page
-            if (allowedPages.includes('clockin')) {
-                // Show the Clock In/Out dropdown item (using navigateTo)
-                const clockinDropdownItem = document.querySelector('.nav-dropdown-item[onclick*="navigateTo(\'clockin\')"]');
-                if (clockinDropdownItem) {
-                    clockinDropdownItem.style.display = '';
-                }
-                // Show the parent dropdown container
-                const employeesDropdown = document.getElementById('dropdown-employees');
-                if (employeesDropdown) {
-                    employeesDropdown.style.display = '';
-                }
-                // Show the Employees nav item (parent of dropdown)
-                const employeesNavItem = document.querySelector('a.nav-item.has-dropdown[onclick*="employees"]');
-                if (employeesNavItem) {
-                    employeesNavItem.style.display = '';
-                    if (employeesNavItem.parentElement.tagName === 'DIV') {
-                        employeesNavItem.parentElement.style.display = '';
-                    }
-                }
-            }
-
-            // Show All Employees dropdown item if user has access to employees page
-            if (allowedPages.includes('employees')) {
-                // Show the main Employees nav item with dropdown
-                const employeesNavItem = document.querySelector('a.nav-item.has-dropdown[onclick*="employees"]');
-                if (employeesNavItem) {
-                    employeesNavItem.style.display = '';
-                    // Show parent div
-                    if (employeesNavItem.parentElement.tagName === 'DIV') {
-                        employeesNavItem.parentElement.style.display = '';
-                    }
-                }
-                // Show the "All Employees" dropdown item
-                const allEmployeesItem = document.querySelector('.nav-dropdown-item[onclick*="navigateTo(\'employees\')"]');
-                if (allEmployeesItem) {
-                    allEmployeesItem.style.display = '';
-                }
-                // Show the dropdown container
-                const employeesDropdown = document.getElementById('dropdown-employees');
-                if (employeesDropdown) {
-                    employeesDropdown.style.display = '';
-                }
-            }
-
-            // Always show external links like Abundance Cloud
-            if (allowedPages.includes('abundancecloud')) {
-                const cloudLink = document.querySelector('a[href*="abundance-cloud.html"]');
-                if (cloudLink) {
-                    cloudLink.style.display = '';
-                }
-            }
-
-            // Show Dashboard to all users
+            // Always show Dashboard to all users
             const dashboardLink = document.querySelector('.nav-item.active');
             if (dashboardLink) {
                 dashboardLink.style.display = '';
@@ -6908,6 +6888,299 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             // Redirect to login page
             window.location.href = 'login.html';
         }
+
+        // Global Search Functionality
+        let searchTimeout = null;
+
+        function handleGlobalSearch(query) {
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            // Debounce search for better performance
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 150);
+        }
+
+        function performSearch(query) {
+            const dropdown = document.getElementById('search-results-dropdown');
+            const resultsList = document.getElementById('search-results-list');
+
+            if (!query || query.trim().length < 2) {
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            const searchTerm = query.toLowerCase().trim();
+            const results = [];
+
+            // Search Employees
+            const employeeResults = employees.filter(emp =>
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.role.toLowerCase().includes(searchTerm) ||
+                emp.store.toLowerCase().includes(searchTerm) ||
+                emp.email.toLowerCase().includes(searchTerm)
+            ).slice(0, 5);
+
+            if (employeeResults.length > 0) {
+                results.push({
+                    category: 'Employees',
+                    icon: 'fa-users',
+                    page: 'employees',
+                    items: employeeResults.map(emp => ({
+                        id: emp.id,
+                        title: emp.name,
+                        subtitle: `${emp.role} - ${emp.store}`,
+                        status: emp.status
+                    }))
+                });
+            }
+
+            // Search Thieves Database
+            const thiefResults = thieves.filter(thief =>
+                thief.name.toLowerCase().includes(searchTerm) ||
+                thief.store.toLowerCase().includes(searchTerm) ||
+                thief.crimeType.toLowerCase().includes(searchTerm) ||
+                (thief.itemsStolen && thief.itemsStolen.toLowerCase().includes(searchTerm))
+            ).slice(0, 5);
+
+            if (thiefResults.length > 0) {
+                results.push({
+                    category: 'Thieves Database',
+                    icon: 'fa-user-secret',
+                    page: 'thieves',
+                    items: thiefResults.map(thief => ({
+                        id: thief.id,
+                        title: thief.name,
+                        subtitle: `${thief.crimeType} - ${thief.store}`,
+                        status: thief.banned ? 'banned' : 'active'
+                    }))
+                });
+            }
+
+            // Search Invoices
+            const invoiceResults = invoices.filter(inv =>
+                inv.invoiceNumber.toLowerCase().includes(searchTerm) ||
+                inv.vendor.toLowerCase().includes(searchTerm) ||
+                inv.category.toLowerCase().includes(searchTerm) ||
+                inv.description.toLowerCase().includes(searchTerm)
+            ).slice(0, 5);
+
+            if (invoiceResults.length > 0) {
+                results.push({
+                    category: 'Invoices',
+                    icon: 'fa-file-invoice-dollar',
+                    page: 'invoices',
+                    items: invoiceResults.map(inv => ({
+                        id: inv.id,
+                        title: inv.invoiceNumber,
+                        subtitle: `${inv.vendor} - $${inv.amount.toFixed(2)}`,
+                        status: inv.status
+                    }))
+                });
+            }
+
+            // Search Products (New Stuff)
+            const productResults = products.filter(prod =>
+                prod.name.toLowerCase().includes(searchTerm) ||
+                prod.category.toLowerCase().includes(searchTerm) ||
+                prod.store.toLowerCase().includes(searchTerm) ||
+                prod.supplier.toLowerCase().includes(searchTerm)
+            ).slice(0, 5);
+
+            if (productResults.length > 0) {
+                results.push({
+                    category: 'New Products',
+                    icon: 'fa-box-open',
+                    page: 'newstuff',
+                    items: productResults.map(prod => ({
+                        id: prod.id,
+                        title: prod.name,
+                        subtitle: `${prod.category} - ${prod.store}`,
+                        status: prod.status
+                    }))
+                });
+            }
+
+            // Search Inventory
+            const inventoryResults = inventory.filter(item =>
+                item.brand.toLowerCase().includes(searchTerm) ||
+                item.productName.toLowerCase().includes(searchTerm) ||
+                item.flavor.toLowerCase().includes(searchTerm) ||
+                item.store.toLowerCase().includes(searchTerm)
+            ).slice(0, 5);
+
+            if (inventoryResults.length > 0) {
+                results.push({
+                    category: 'Inventory',
+                    icon: 'fa-warehouse',
+                    page: 'restock',
+                    items: inventoryResults.map(item => ({
+                        id: item.id,
+                        title: `${item.brand} ${item.productName}`,
+                        subtitle: `${item.flavor} - ${item.store} (${item.stock} in stock)`,
+                        status: item.stock <= item.minStock ? 'low' : 'ok'
+                    }))
+                });
+            }
+
+            // Search Announcements
+            const announcementResults = announcements.filter(ann =>
+                ann.title.toLowerCase().includes(searchTerm) ||
+                ann.content.toLowerCase().includes(searchTerm) ||
+                ann.author.toLowerCase().includes(searchTerm)
+            ).slice(0, 5);
+
+            if (announcementResults.length > 0) {
+                results.push({
+                    category: 'Announcements',
+                    icon: 'fa-bullhorn',
+                    page: 'announcements',
+                    items: announcementResults.map(ann => ({
+                        id: ann.id,
+                        title: ann.title,
+                        subtitle: `${ann.date} - ${ann.author}`,
+                        status: 'info'
+                    }))
+                });
+            }
+
+            // Render results
+            renderSearchResults(results, resultsList, dropdown);
+        }
+
+        function renderSearchResults(results, resultsList, dropdown) {
+            if (results.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="search-empty">
+                        <i class="fas fa-search"></i>
+                        <p>No results found</p>
+                    </div>
+                `;
+                dropdown.classList.add('show');
+                return;
+            }
+
+            let html = '';
+
+            results.forEach(category => {
+                html += `<div class="search-category">${category.category}</div>`;
+
+                category.items.forEach(item => {
+                    const statusClass = getStatusClass(item.status);
+                    html += `
+                        <div class="search-result-item" onclick="navigateToSearchResult('${category.page}', ${item.id})">
+                            <div class="search-result-icon">
+                                <i class="fas ${category.icon}"></i>
+                            </div>
+                            <div class="search-result-info">
+                                <div class="search-result-title">${escapeHtml(item.title)}</div>
+                                <div class="search-result-subtitle">${escapeHtml(item.subtitle)}</div>
+                            </div>
+                            <span class="search-result-status ${statusClass}">${item.status}</span>
+                        </div>
+                    `;
+                });
+            });
+
+            html += `
+                <div class="search-shortcut-hint">
+                    <span><kbd>↑</kbd><kbd>↓</kbd> to navigate</span>
+                    <span><kbd>Enter</kbd> to select</span>
+                    <span><kbd>Esc</kbd> to close</span>
+                </div>
+            `;
+
+            resultsList.innerHTML = html;
+            dropdown.classList.add('show');
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'active': 'status-active',
+                'inactive': 'status-inactive',
+                'banned': 'status-banned',
+                'pending': 'status-pending',
+                'paid': 'status-paid',
+                'overdue': 'status-overdue',
+                'arrived': 'status-arrived',
+                'low': 'status-low',
+                'ok': 'status-ok',
+                'info': 'status-info'
+            };
+            return statusMap[status] || 'status-default';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function navigateToSearchResult(page, itemId) {
+            // Hide search dropdown
+            hideSearchResults();
+
+            // Clear search input
+            const searchInput = document.getElementById('global-search');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+
+            // Navigate to the page
+            navigateTo(page);
+
+            // Optionally highlight or scroll to the item (future enhancement)
+            console.log(`Navigated to ${page}, item ID: ${itemId}`);
+        }
+
+        function showSearchResults() {
+            const dropdown = document.getElementById('search-results-dropdown');
+            const searchInput = document.getElementById('global-search');
+
+            if (searchInput && searchInput.value.trim().length >= 2) {
+                performSearch(searchInput.value);
+            }
+        }
+
+        function hideSearchResults() {
+            const dropdown = document.getElementById('search-results-dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        // Close search dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const searchContainer = document.querySelector('.search-bar-container');
+            if (searchContainer && !searchContainer.contains(e.target)) {
+                hideSearchResults();
+            }
+        });
+
+        // Keyboard shortcuts for search
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+K or Cmd+K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('global-search');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            }
+
+            // Escape to close search dropdown
+            if (e.key === 'Escape') {
+                hideSearchResults();
+                const searchInput = document.getElementById('global-search');
+                if (searchInput) {
+                    searchInput.blur();
+                }
+            }
+        });
 
         // Load theme on page initialization
         loadTheme();

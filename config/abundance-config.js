@@ -57,7 +57,8 @@ window.FIREBASE_COLLECTIONS = {
     employees: 'employees',     // Firestore collection for employees
     roles: 'roles',             // Firestore collection for roles
     users: 'users',             // Firestore collection for auth users
-    thieves: 'thieves'          // Firestore collection for thieves database
+    thieves: 'thieves',         // Firestore collection for thieves database
+    clockin: 'clockin'          // Firestore collection for clock in/out records
 };
 
 // Employee Roles Configuration
@@ -146,7 +147,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help']
+        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training']
     }
 };
 

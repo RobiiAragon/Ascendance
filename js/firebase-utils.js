@@ -497,3 +497,234 @@ class FirebaseThievesManager {
 
 // Initialize global Firebase Thieves manager
 const firebaseThievesManager = new FirebaseThievesManager();
+
+/**
+ * Firebase Clock In/Out Manager
+ * Handles Firebase Firestore operations for clock in/out attendance records
+ */
+class FirebaseClockInManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('✅ Firebase Clock In Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Clock In Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Clock In Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Save clock in/out record to Firestore
+     * @param {Object} clockRecord - Clock record data
+     * @returns {Promise<Object>} Saved record with ID
+     */
+    async saveClockRecord(clockRecord) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Clock In Manager not initialized.');
+                throw new Error('Firebase not initialized');
+            }
+
+            // Prepare record data
+            const recordData = {
+                employeeId: clockRecord.employeeId,
+                employeeName: clockRecord.employeeName,
+                employeeRole: clockRecord.employeeRole,
+                store: clockRecord.store,
+                date: clockRecord.date, // Store date as string (YYYY-MM-DD)
+                timestamp: new Date(), // Server timestamp for ordering
+                clockIn: clockRecord.clockIn || null,
+                lunchStart: clockRecord.lunchStart || null,
+                lunchEnd: clockRecord.lunchEnd || null,
+                clockOut: clockRecord.clockOut || null,
+                notes: clockRecord.notes || '',
+                updatedAt: new Date()
+            };
+
+            const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+            
+            // Try to find existing record for this employee on this date
+            const snapshot = await this.db.collection(clockinCollection)
+                .where('employeeId', '==', clockRecord.employeeId)
+                .where('date', '==', clockRecord.date)
+                .get();
+
+            let docRef;
+            if (snapshot.empty) {
+                // Create new record
+                recordData.createdAt = new Date();
+                docRef = await this.db.collection(clockinCollection).add(recordData);
+                console.log('✅ New clock record created with ID:', docRef.id);
+                return {
+                    id: docRef.id,
+                    ...recordData
+                };
+            } else {
+                // Update existing record
+                const existingDoc = snapshot.docs[0];
+                await existingDoc.ref.update(recordData);
+                console.log('✅ Clock record updated:', existingDoc.id);
+                return {
+                    id: existingDoc.id,
+                    ...recordData
+                };
+            }
+        } catch (error) {
+            console.error('Error saving clock record to Firebase:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load clock in/out records from Firestore for a specific date
+     * @param {string} date - Date string (YYYY-MM-DD format)
+     * @returns {Promise<Array>} Array of clock records
+     */
+    async loadClockRecordsByDate(date) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Clock In Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+            const snapshot = await this.db.collection(clockinCollection)
+                .where('date', '==', date)
+                .orderBy('updatedAt', 'desc')
+                .get();
+
+            const records = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                records.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...data
+                });
+            });
+
+            console.log(`✅ Loaded ${records.length} clock records from Firebase for date: ${date}`);
+            return records;
+        } catch (error) {
+            console.error('Error loading clock records from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Load clock in/out records for a specific employee
+     * @param {string} employeeId - Employee ID
+     * @param {string} startDate - Start date (YYYY-MM-DD format)
+     * @param {string} endDate - End date (YYYY-MM-DD format)
+     * @returns {Promise<Array>} Array of clock records
+     */
+    async loadEmployeeClockRecords(employeeId, startDate, endDate) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Clock In Manager not initialized.');
+                return [];
+            }
+
+            const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+            const snapshot = await this.db.collection(clockinCollection)
+                .where('employeeId', '==', employeeId)
+                .where('date', '>=', startDate)
+                .where('date', '<=', endDate)
+                .orderBy('date', 'desc')
+                .get();
+
+            const records = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                records.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...data
+                });
+            });
+
+            console.log(`✅ Loaded ${records.length} clock records for employee: ${employeeId}`);
+            return records;
+        } catch (error) {
+            console.error('Error loading employee clock records:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Delete clock record from Firestore
+     * @param {string} recordId - Record Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteClockRecord(recordId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Clock In Manager not initialized.');
+                return false;
+            }
+
+            const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+            await this.db.collection(clockinCollection).doc(recordId).delete();
+
+            console.log('✅ Clock record deleted:', recordId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting clock record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Set up real-time listener for clock records of a specific date
+     * @param {string} date - Date string (YYYY-MM-DD format)
+     * @param {Function} callback - Function to call when data changes
+     * @returns {Function} Unsubscribe function
+     */
+    onClockRecordsChange(date, callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Clock In Manager not initialized.');
+                return null;
+            }
+
+            const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+            return this.db.collection(clockinCollection)
+                .where('date', '==', date)
+                .onSnapshot(snapshot => {
+                    const records = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        records.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            ...data
+                        });
+                    });
+                    callback(records);
+                }, error => {
+                    console.error('Error listening to clock records:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up clock records listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Clock In Manager
+const firebaseClockInManager = new FirebaseClockInManager();

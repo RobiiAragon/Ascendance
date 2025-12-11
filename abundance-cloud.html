@@ -100,27 +100,29 @@
             </a>
             <!-- Employees with dropdown -->
             <div>
-                <a href="#" class="nav-item has-dropdown" onclick="toggleDropdown(event, 'employees'); return false;">
+                <a href="#" class="nav-item has-dropdown" data-page="employees" onclick="toggleDropdown(event, 'employees'); return false;">
                     <span class="nav-icon"><i class="fas fa-users"></i></span>
                     Employees
                     <span class="nav-badge">20</span>
                     <i class="fas fa-chevron-down dropdown-icon"></i>
                 </a>
                 <div class="nav-dropdown" id="dropdown-employees">
-                    <a href="index.html" class="nav-dropdown-item">
+                    <a href="index.html" class="nav-dropdown-item" data-page="employees">
                         <span>All Employees</span>
-                    </a>
-                    <a href="index.html" class="nav-dropdown-item">
-                        <span>Clock In/Out</span>
                     </a>
                 </div>
             </div>
 
-            <a href="index.html" class="nav-item external-link">
+            <a href="#" class="nav-item external-link" data-page="clockin" onclick="navigateTo('clockin'); return false;">
+                <span class="nav-icon"><i class="fas fa-clock"></i></span>
+                Clock In/Out
+            </a>
+
+            <a href="index.html" class="nav-item external-link" data-page="training">
                 <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
                 Training Center
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="licenses">
                 <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
                 Licenses & Docs
                 <span class="nav-badge" style="background: var(--warning);">2</span>
@@ -128,66 +130,66 @@
 
             <!-- Sales Analytics with dropdown -->
             <div>
-                <a href="#" class="nav-item has-dropdown" onclick="toggleDropdown(event, 'sales'); return false;">
+                <a href="#" class="nav-item has-dropdown" data-page="analytics" onclick="toggleDropdown(event, 'sales'); return false;">
                     <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
                     Sales Analytics
                     <i class="fas fa-chevron-down dropdown-icon"></i>
                 </a>
                 <div class="nav-dropdown" id="dropdown-sales">
-                    <a href="index.html" class="nav-dropdown-item">
+                    <a href="index.html" class="nav-dropdown-item" data-page="analytics">
                         <span>Overview</span>
                     </a>
-                    <a href="index.html" class="nav-dropdown-item">
+                    <a href="index.html" class="nav-dropdown-item" data-page="dailysales">
                         <span>Daily Sales</span>
                     </a>
                 </div>
             </div>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="newstuff">
                 <span class="nav-icon"><i class="fas fa-box"></i></span>
                 New Stuff
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="restock">
                 <span class="nav-icon"><i class="fas fa-boxes"></i></span>
                 Restock Requests
             </a>
-            <a href="abundance-cloud.html" class="nav-item active">
+            <a href="abundance-cloud.html" class="nav-item active" data-page="abundancecloud">
                 <span class="nav-icon"><i class="fas fa-cloud"></i></span>
                 Abundance Cloud Engine
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="announcements">
                 <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
                 Announcements
                 <span class="nav-badge">3</span>
             </a>
-            <a href="#" class="nav-item" onclick="openThiefReportModal(); return false;">
+            <a href="#" class="nav-item" data-page="thieves" onclick="openThiefReportModal(); return false;">
                 <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
                 Thieves
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="invoices">
                 <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 Invoices
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="issues">
                 <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
                 Issues
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="gsuite">
                 <span class="nav-icon"><i class="fas fa-briefcase"></i></span>
                 G Suite
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="vendors">
                 <span class="nav-icon"><i class="fas fa-truck"></i></span>
                 Vendors
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="cashout">
                 <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
                 Cash Out
             </a>
-            <a href="index.html" class="nav-item external-link">
+            <a href="index.html" class="nav-item external-link" data-page="schedule">
                 <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
                 Schedule
             </a>
-            <a href="#" class="nav-item" onclick="openGForceModal(); return false;">
+            <a href="#" class="nav-item" data-page="gforce" onclick="openGForceModal(); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
                 G Force
             </a>
@@ -581,97 +583,46 @@
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
 
-            // Page labels for matching
-            const pageLabels = {
-                'dashboard': 'Dashboard',
-                'employees': 'Employees',
-                'licenses': 'Licenses & Docs',
-                'analytics': 'Sales Analytics',
-                'newstuff': 'New Stuff',
-                'abundancecloud': 'Abundance Cloud Engine',
-                'announcements': 'Announcements',
-                'thieves': 'Thieves',
-                'invoices': 'Invoices',
-                'vendors': 'Vendors',
-                'cashout': 'Cash Out',
-                'treasury': 'Treasury',
-                'clockin': 'Clock In/Out',
-                'schedule': 'Schedule',
-                'gforce': 'G Force',
-                'training': 'Training Center',
-                'restock': 'Restock Requests',
-                'stores': 'Store Management',
-                'tasks': 'Tasks & Checklists',
-                'settings': 'Settings',
-                'help': 'Help Center',
-                'geconomics': 'Gconomics',
-                'dailysales': 'Daily Sales',
-                'issues': 'Issues'
-            };
-
-            // Hide all nav items and dropdowns first
-            document.querySelectorAll('.nav-item, .nav-dropdown').forEach(item => {
+            // Hide all nav items first
+            document.querySelectorAll('.nav-section a, .nav-section div').forEach(item => {
                 if (!item.classList.contains('nav-label')) {
                     item.style.display = 'none';
                 }
             });
 
-            // Hide all nav divs (dropdown containers)
-            document.querySelectorAll('.nav-section > div').forEach(div => {
-                div.style.display = 'none';
-            });
-
-            // Show only allowed pages
+            // Show only allowed pages using data-page attribute
             allowedPages.forEach(page => {
-                const label = pageLabels[page];
-                if (label) {
-                    // Find and show nav items by text content
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        if (item.textContent.includes(label)) {
-                            item.style.display = '';
-                            
-                            // Show parent div if exists
-                            if (item.parentElement && item.parentElement.classList.contains('nav-section')) {
-                                // Parent is nav-section, no need to show
-                            } else if (item.parentElement && item.parentElement.tagName === 'DIV') {
-                                item.parentElement.style.display = '';
-                            }
-                        }
-                    });
-
-                    // Special handling for dropdown items
-                    document.querySelectorAll('.nav-dropdown-item').forEach(item => {
-                        if (item.textContent.includes(label) || item.textContent.includes('All Employees')) {
-                            item.style.display = '';
-                            
-                            // Show parent dropdown
-                            if (item.parentElement && item.parentElement.classList.contains('nav-dropdown')) {
-                                item.parentElement.style.display = '';
-                                
-                                // Find and show the parent nav-item that triggers this dropdown
-                                const dropdownId = item.parentElement.id;
-                                if (dropdownId && dropdownId.includes('employees')) {
-                                    document.querySelectorAll('.nav-item.has-dropdown').forEach(navItem => {
-                                        if (navItem.textContent.includes('Employees')) {
-                                            navItem.style.display = '';
-                                            if (navItem.parentElement && navItem.parentElement.tagName === 'DIV') {
-                                                navItem.parentElement.style.display = '';
-                                            }
-                                        }
-                                    });
-                                } else if (dropdownId && dropdownId.includes('sales')) {
-                                    document.querySelectorAll('.nav-item.has-dropdown').forEach(navItem => {
-                                        if (navItem.textContent.includes('Sales Analytics')) {
-                                            navItem.style.display = '';
-                                            if (navItem.parentElement && navItem.parentElement.tagName === 'DIV') {
-                                                navItem.parentElement.style.display = '';
-                                            }
-                                        }
-                                    });
+                document.querySelectorAll(`.nav-item[data-page="${page}"], .nav-dropdown-item[data-page="${page}"]`).forEach(item => {
+                    item.style.display = '';
+                    
+                    // Show parent div if it's a nav-item
+                    if (item.classList.contains('nav-item') && item.parentElement.tagName === 'DIV') {
+                        item.parentElement.style.display = '';
+                    }
+                    
+                    // If it's a dropdown item, show parent dropdown and parent nav-item
+                    if (item.classList.contains('nav-dropdown-item')) {
+                        const dropdownContainer = item.closest('.nav-dropdown');
+                        if (dropdownContainer) {
+                            dropdownContainer.style.display = '';
+                            // Find and show the parent nav-item that triggers this dropdown
+                            const parentNavItem = dropdownContainer.previousElementSibling;
+                            if (parentNavItem && parentNavItem.classList.contains('nav-item')) {
+                                parentNavItem.style.display = '';
+                                if (parentNavItem.parentElement.tagName === 'DIV') {
+                                    parentNavItem.parentElement.style.display = '';
                                 }
                             }
                         }
-                    });
+                    }
+                });
+            });
+
+            // Show parent divs that contain visible nav-items
+            document.querySelectorAll('.nav-section > div').forEach(div => {
+                const hasVisibleItems = div.querySelector('.nav-item:not([style*="display: none"])');
+                if (hasVisibleItems) {
+                    div.style.display = '';
                 }
             });
 
@@ -680,14 +631,6 @@
                 item.style.display = '';
                 if (item.parentElement && item.parentElement.tagName === 'DIV') {
                     item.parentElement.style.display = '';
-                }
-            });
-
-            // Show parent divs if they contain visible items
-            document.querySelectorAll('.nav-section > div').forEach(div => {
-                const hasVisibleItems = div.querySelector('.nav-item:not([style*="display: none"]), .nav-dropdown:not([style*="display: none"])');
-                if (hasVisibleItems) {
-                    div.style.display = '';
                 }
             });
         }
