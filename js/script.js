@@ -1929,6 +1929,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <h2 class="section-title">Inventory & Restock</h2>
                         <p class="section-subtitle">Manage inventory and restock requests</p>
                     </div>
+                    <button class="btn-primary" onclick="openNewRestockRequestModal()">
+                        <i class="fas fa-plus"></i> Create Restock Request
+                    </button>
                 </div>
 
                 <div style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color);">
@@ -1983,7 +1986,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <th>Min Stock</th>
                                 <th>Stock</th>
                                 <th>Store</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2002,11 +2004,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         </span>
                                     </td>
                                     <td style="font-weight: 500; font-size: 12px;">${item.store}</td>
-                                    <td>
-                                        <button class="btn-icon" onclick="openRestockModal(${item.id})" title="Create Restock Request">
-                                            <i class="fas fa-plus-circle"></i>
-                                        </button>
-                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -2018,11 +2015,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         function renderRequestsTab() {
             return `
                 <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-                        <button class="btn-primary" onclick="openNewRestockRequestModal()" style="display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-plus"></i> New Request
-                        </button>
-                    </div>
                     ${restockRequests.map(request => `
                         <div class="card">
                             <div class="card-body">
@@ -2212,94 +2204,88 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     </button>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-database"></i>
-                            Theft Records
-                        </h3>
-                        <div style="display: flex; gap: 12px;">
-                            <select class="form-input" style="width: 150px;" onchange="filterThieves(this.value)">
-                                <option value="all">All Stores</option>
-                                <option value="Miramar">Miramar</option>
-                                <option value="Morena">Morena</option>
-                                <option value="Kearny Mesa">Kearny Mesa</option>
-                                <option value="Chula Vista">Chula Vista</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body" style="padding: 0;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 80px;">Photo</th>
-                                    <th>Name</th>
-                                    <th>Date</th>
-                                    <th>Store</th>
-                                    <th>Crime Type</th>
-                                    <th>Items Stolen</th>
-                                    <th>Value</th>
-                                    <th>Status</th>
-                                    <th style="width: 100px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="thievesTableBody">
-                                ${renderThievesTable()}
-                            </tbody>
-                        </table>
-                    </div>
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                    <select class="form-input" style="width: 180px;" id="thieves-filter" onchange="filterThieves(this.value)">
+                        <option value="all">All Stores</option>
+                        <option value="Miramar">Miramar</option>
+                        <option value="Morena">Morena</option>
+                        <option value="Kearny Mesa">Kearny Mesa</option>
+                        <option value="Chula Vista">Chula Vista</option>
+                    </select>
+                </div>
+
+                <div id="thievesCardsContainer">
+                    ${renderThievesCards()}
                 </div>
             `;
         }
 
-        function renderThievesTable(filter = 'all') {
+        function renderThievesCards(filter = 'all') {
             const filteredThieves = filter === 'all' ? thieves : thieves.filter(t => t.store === filter);
 
             if (filteredThieves.length === 0) {
                 return `
-                    <tr>
-                        <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                            No records found
-                        </td>
-                    </tr>
+                    <div class="card" style="padding: 60px; text-align: center;">
+                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; color: var(--text-muted);"></i>
+                        <p style="color: var(--text-muted);">No records found</p>
+                    </div>
                 `;
             }
 
-            return filteredThieves.map(thief => `
-                <tr>
-                    <td>
-                        <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                            ${thief.photo ? `<img src="${thief.photo}" style="width: 100%; height: 100%; object-fit: cover;" alt="${thief.name}">` : `<i class="fas fa-user" style="color: var(--text-muted);"></i>`}
+            return `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                    ${filteredThieves.map(thief => `
+                        <div class="card" style="overflow: hidden;">
+                            <div style="width: 100%; height: 200px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                ${thief.photo ? `<img src="${thief.photo}" style="width: 100%; height: 100%; object-fit: cover;" alt="${thief.name}">` : `<i class="fas fa-user" style="font-size: 64px; color: var(--text-muted);"></i>`}
+                            </div>
+                            <div class="card-body">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div>
+                                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${thief.name}</h3>
+                                        <span style="font-size: 12px; color: var(--text-muted);">${formatDate(thief.date)}</span>
+                                    </div>
+                                    ${thief.banned
+                                        ? '<span class="badge" style="background: var(--error); color: var(--text-primary);">Banned</span>'
+                                        : '<span class="badge" style="background: var(--warning); color: var(--text-primary);">Warning</span>'}
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                                        <span style="color: var(--text-muted); font-size: 13px;">Store</span>
+                                        <span style="font-weight: 600; font-size: 13px;">${thief.store}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                                        <span style="color: var(--text-muted); font-size: 13px;">Crime Type</span>
+                                        <span style="font-weight: 600; font-size: 13px;">${thief.crimeType}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                                        <span style="color: var(--text-muted); font-size: 13px;">Items Stolen</span>
+                                        <span style="font-weight: 600; font-size: 13px;">${thief.itemsStolen}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                        <span style="color: var(--text-muted); font-size: 13px;">Estimated Value</span>
+                                        <span style="font-weight: 600; font-size: 13px; color: var(--error);">$${thief.estimatedValue.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button class="btn-secondary" onclick="viewThief(${thief.id})" style="padding: 8px 16px; font-size: 13px;">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </button>
+                                    <button class="btn-icon danger" onclick="deleteThief(${thief.id})" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </td>
-                    <td><strong>${thief.name}</strong></td>
-                    <td>${formatDate(thief.date)}</td>
-                    <td>
-                        <span class="badge" style="background: var(--accent-primary);">${thief.store}</span>
-                    </td>
-                    <td>${thief.crimeType}</td>
-                    <td>${thief.itemsStolen}</td>
-                    <td>$${thief.estimatedValue.toFixed(2)}</td>
-                    <td>
-                        ${thief.banned ? '<span class="badge" style="background: var(--error);">Banned</span>' : '<span class="badge" style="background: var(--warning);">Warning</span>'}
-                    </td>
-                    <td>
-                        <button class="btn-icon" onclick="viewThief(${thief.id})" title="View Details">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-icon" onclick="deleteThief(${thief.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+                    `).join('')}
+                </div>
+            `;
         }
 
         function filterThieves(store) {
-            const tbody = document.getElementById('thievesTableBody');
-            if (tbody) {
-                tbody.innerHTML = renderThievesTable(store);
+            const container = document.getElementById('thievesCardsContainer');
+            if (container) {
+                container.innerHTML = renderThievesCards(store);
             }
         }
 
@@ -4676,7 +4662,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 case 'new-restock-request':
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-box"></i> New Purchase Request</h2>
+                            <h2><i class="fas fa-box"></i> New Restock Request</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
