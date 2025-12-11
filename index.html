@@ -165,7 +165,7 @@
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('thieves'); return false;">
                 <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
-                Thieves
+                Thieves Database
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('invoices'); return false;">
                 <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
@@ -230,13 +230,30 @@
             </div>
 
             <div class="header-right">
-                <div class="user-menu">
-                    <div class="user-avatar">CA</div>
-                    <div class="user-info">
-                        <span class="user-name">Carlos Admin</span>
-                        <span class="user-role">Super Admin</span>
+                <div class="user-menu-container">
+                    <div class="user-menu" onclick="toggleUserMenu()">
+                        <div class="user-avatar" id="header-user-avatar">--</div>
+                        <div class="user-info">
+                            <span class="user-name" id="header-user-name">Loading...</span>
+                            <span class="user-role" id="header-user-role">...</span>
+                        </div>
+                        <i class="fas fa-chevron-down user-menu-chevron" style="color: var(--text-muted); font-size: 12px;"></i>
                     </div>
-                    <i class="fas fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                    <div class="user-menu-dropdown" id="user-menu-dropdown">
+                        <a href="#" class="user-menu-item" onclick="navigateTo('profile'); closeUserMenu(); return false;">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="#" class="user-menu-item" onclick="navigateTo('settings'); closeUserMenu(); return false;">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                        <div class="user-menu-divider"></div>
+                        <a href="#" class="user-menu-item logout" onclick="logout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -561,12 +578,33 @@
             const user = authManager.getCurrentUser();
             console.log('✅ User authenticated:', user.email, '- Role:', user.role);
 
+            // Update header user info
+            try {
+                const userName = user.name || user.email.split('@')[0];
+                const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const roleLabel = window.ROLE_PERMISSIONS?.[user.role]?.label || user.role || 'User';
+
+                document.getElementById('header-user-avatar').textContent = userInitials;
+                document.getElementById('header-user-name').textContent = userName;
+                document.getElementById('header-user-role').textContent = roleLabel;
+            } catch (error) {
+                console.warn('⚠️ Failed to update header user info:', error);
+            }
+
             try {
                 // Initialize Firebase employees
                 await initializeFirebaseEmployees();
                 console.log('✅ Employee management system initialized');
             } catch (error) {
-                console.warn('⚠️ Firebase initialization failed, using local fallback data:', error);
+                console.warn('⚠️ Firebase employees initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase thieves database
+                await initializeFirebaseThieves();
+                console.log('✅ Thieves database system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase thieves initialization failed, using local fallback data:', error);
             }
             
             // Filter navigation menu based on user role

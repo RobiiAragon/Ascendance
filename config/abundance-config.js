@@ -56,7 +56,8 @@ window.FIREBASE_CONFIG = {
 window.FIREBASE_COLLECTIONS = {
     employees: 'employees',     // Firestore collection for employees
     roles: 'roles',             // Firestore collection for roles
-    users: 'users'              // Firestore collection for auth users
+    users: 'users',             // Firestore collection for auth users
+    thieves: 'thieves'          // Firestore collection for thieves database
 };
 
 // Employee Roles Configuration

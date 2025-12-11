@@ -290,9 +290,19 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
 
+            console.log('='.repeat(50));
+            console.log('LOGIN ATTEMPT');
+            console.log('='.repeat(50));
+            console.log(`Email: ${email}`);
+            console.log(`Remember Me: ${remember}`);
+            console.log('='.repeat(50));
+
             // Attempt login (handle async authentication)
             authenticateUser(email, password).then(user => {
                 if (user) {
+                    console.log('🎉 Login successful!');
+                    console.log('User:', user);
+                    
                     // Store session
                     storeUserSession(user, remember);
                     
@@ -304,13 +314,14 @@
                         window.location.href = 'index.html';
                     }, 1000);
                 } else {
+                    console.log('❌ Login failed - Invalid credentials');
                     showLoginError('Invalid email or password');
                     loginBtn.disabled = false;
                     loginBtn.innerHTML = originalText;
                 }
             }).catch(error => {
-                console.error('Login error:', error);
-                showLoginError('An error occurred during login');
+                console.error('❌ Unexpected login error:', error);
+                showLoginError('An error occurred during login. Check console for details.');
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = originalText;
             });
@@ -321,34 +332,44 @@
          */
         async function authenticateUser(email, password) {
             try {
+                // Ensure Firebase is initialized
+                console.log('🔐 Starting authentication process...');
+                
                 // First try to authenticate against Firebase employees collection
-                if (typeof firebaseEmployeeManager !== 'undefined' && firebaseEmployeeManager.isInitialized) {
+                if (typeof firebaseEmployeeManager !== 'undefined') {
+                    console.log('✓ firebaseEmployeeManager available');
+                    
                     const user = await authenticateFromFirestore(email, password);
                     if (user) {
+                        console.log('✅ Authentication successful from Firestore');
                         return user;
                     }
+                    console.log('⚠️  Firestore authentication failed, trying fallback...');
+                } else {
+                    console.warn('⚠️  firebaseEmployeeManager not available');
                 }
                 
                 // Fallback to USERS_DATABASE for backward compatibility
+                console.log('📚 Attempting USERS_DATABASE fallback...');
                 const usersDB = window.USERS_DATABASE || {};
                 const user = usersDB[email];
 
                 if (!user) {
-                    console.warn('User not found:', email);
+                    console.warn('❌ User not found in USERS_DATABASE:', email);
                     return null;
                 }
 
-                // Simple password check (in production, use bcrypt or similar)
+                // Simple password check
                 if (user.password !== password) {
-                    console.warn('Password mismatch for user:', email);
+                    console.warn('❌ Password mismatch for user in USERS_DATABASE:', email);
                     return null;
                 }
 
-                console.log('User authenticated from USERS_DATABASE:', email, 'Role:', user.role);
+                console.log('✅ User authenticated from USERS_DATABASE:', email, 'Role:', user.role);
                 return user;
             } catch (error) {
-                console.error('Authentication error:', error);
-                // Fallback to USERS_DATABASE
+                console.error('❌ Authentication error:', error);
+                // Last resort fallback to USERS_DATABASE
                 const usersDB = window.USERS_DATABASE || {};
                 const user = usersDB[email];
                 
@@ -361,53 +382,113 @@
         }
 
         /**
-         * Authenticate user against Firestore employees collection
+         * Authenticate user against Firebase Authentication
+         * Uses email and password to sign in
          */
         async function authenticateFromFirestore(email, password) {
             try {
-                // Initialize Firebase if needed
-                if (!firebaseEmployeeManager.isInitialized) {
-                    await firebaseEmployeeManager.initialize();
+                console.log('🔥 Authenticating against Firebase Authentication...');
+                
+                // Get Firebase Auth reference
+                if (typeof firebase === 'undefined' || !firebase.auth) {
+                    console.error('❌ Firebase Auth not available');
+                    return null;
                 }
 
-                // Query Firestore for employee with matching email
-                const db = firebase.firestore();
+                // Initialize Firebase if needed
+                if (!firebaseEmployeeManager.isInitialized) {
+                    console.log('⏳ Initializing Firebase...');
+                    const initialized = await firebaseEmployeeManager.initialize();
+                    if (!initialized) {
+                        console.error('❌ Failed to initialize Firebase');
+                        return null;
+                    }
+                    console.log('✅ Firebase initialized');
+                }
+
+                const auth = firebase.auth();
+                console.log(`🔐 Attempting Firebase Authentication for: ${email}`);
+
+                // Sign in with Firebase Auth
+                let userCredential;
+                try {
+                    userCredential = await auth.signInWithEmailAndPassword(email, password);
+                } catch (authError) {
+                    console.error('❌ Firebase Authentication failed:', authError.code, authError.message);
+                    
+                    if (authError.code === 'auth/user-not-found') {
+                        console.warn('❌ User not found in Firebase Authentication');
+                    } else if (authError.code === 'auth/wrong-password') {
+                        console.warn('❌ Wrong password for Firebase user');
+                    } else if (authError.code === 'auth/invalid-email') {
+                        console.warn('❌ Invalid email format');
+                    }
+                    
+                    return null;
+                }
+
+                console.log('✅ Firebase Authentication successful!');
+                console.log('   UID:', userCredential.user.uid);
+                console.log('   Email:', userCredential.user.email);
+
+                // Now fetch employee data from Firestore to get additional info
+                const db = firebaseEmployeeManager.db;
                 const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+                
+                console.log(`🔍 Fetching employee data from Firestore...`);
+                
+                // Query Firestore for employee with matching email
                 const snapshot = await db.collection(employeesCollection)
                     .where('email', '==', email)
                     .limit(1)
                     .get();
 
                 if (snapshot.empty) {
-                    console.warn('Employee not found with email:', email);
-                    return null;
+                    console.warn(`⚠️  No employee record found for authenticated user: ${email}`);
+                    console.warn('   Creating minimal user object from Firebase Auth');
+                    
+                    // Create user object from Firebase Auth only
+                    const user = {
+                        id: userCredential.user.uid,
+                        firebaseUid: userCredential.user.uid,
+                        email: userCredential.user.email,
+                        name: userCredential.user.displayName || email.split('@')[0],
+                        role: 'employee',  // Default role
+                        status: 'active'
+                    };
+                    
+                    return user;
                 }
+
+                console.log(`✅ Found employee record`);
 
                 const doc = snapshot.docs[0];
                 const employeeData = doc.data();
 
-                // Check password
-                if (employeeData.password !== password) {
-                    console.warn('Password mismatch for employee:', email);
-                    return null;
-                }
+                console.log(`✅ Employee found: ${employeeData.name}`);
+                console.log(`   Role: ${employeeData.employeeType}`);
+                console.log(`   Store: ${employeeData.store}`);
 
-                // Create user object from employee data
+                // Create user object from employee data + Firebase Auth
                 const user = {
                     id: doc.id,
                     firestoreId: doc.id,
+                    firebaseUid: userCredential.user.uid,
                     email: employeeData.email,
                     name: employeeData.name,
                     role: employeeData.employeeType || 'employee',  // Use employeeType for permission level
                     store: employeeData.store,
                     jobRole: employeeData.role,  // Store the job position separately
-                    status: employeeData.status || 'active'
+                    status: employeeData.status || 'active',
+                    phone: employeeData.phone,
+                    hireDate: employeeData.hireDate
                 };
 
-                console.log('User authenticated from Firestore:', email, 'Role:', user.role);
+                console.log('✅ User authenticated successfully:', user.name);
                 return user;
             } catch (error) {
-                console.error('Error authenticating from Firestore:', error);
+                console.error('❌ Error during authentication:', error.message);
+                console.error('   Full error:', error);
                 return null;
             }
         }

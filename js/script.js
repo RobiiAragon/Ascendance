@@ -2128,7 +2128,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div id="schedule-container" class="card" style="padding: 60px; text-align: center;">
                     <div class="loading-spinner"></div>
-                    <h2 style="color: var(--text-secondary); margin: 20px 0 10px;">Connecting to Schedule API...</h2>
+                    <h2 style="color: var(--text-secondary); margin: 20px 0 10px;">Working in progress...</h2>
                     <p style="color: var(--text-muted);">Loading schedule data</p>
                 </div>
             `;
@@ -2189,6 +2189,81 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 banned: true
             }
         ];
+
+        /**
+         * Initialize Firebase and load thieves from Firestore
+         */
+        async function initializeFirebaseThieves() {
+            console.log('Initializing Firebase for thieves database...');
+
+            const initialized = await firebaseThievesManager.initialize();
+
+            if (initialized) {
+                try {
+                    const firestoreThieves = await firebaseThievesManager.loadThieves();
+
+                    if (firestoreThieves && firestoreThieves.length > 0) {
+                        console.log('Loaded thieves from Firestore:', firestoreThieves);
+                        thieves = firestoreThieves;
+                        console.log(`Successfully loaded ${thieves.length} thief records from Firestore`);
+                        return true;
+                    } else {
+                        console.log('No thieves found in Firestore, using fallback data');
+                    }
+                } catch (error) {
+                    console.error('Error loading thieves from Firestore:', error);
+                }
+            } else {
+                console.warn('Firebase not available for thieves. Using fallback data.');
+            }
+
+            return false;
+        }
+
+        /**
+         * Save thief record to Firebase
+         */
+        async function saveThiefToFirebase(thiefData) {
+            if (!firebaseThievesManager.isInitialized) {
+                console.warn('Firebase Thieves Manager not initialized');
+                return null;
+            }
+
+            try {
+                if (thiefData.firestoreId) {
+                    // Update existing
+                    const success = await firebaseThievesManager.updateThief(
+                        thiefData.firestoreId,
+                        thiefData
+                    );
+                    return success ? thiefData.firestoreId : null;
+                } else {
+                    // Create new
+                    const newId = await firebaseThievesManager.addThief(thiefData);
+                    return newId;
+                }
+            } catch (error) {
+                console.error('Error saving thief to Firebase:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Delete thief record from Firebase
+         */
+        async function deleteThiefFromFirebase(firestoreId) {
+            if (!firebaseThievesManager.isInitialized) {
+                console.warn('Firebase Thieves Manager not initialized');
+                return false;
+            }
+
+            try {
+                return await firebaseThievesManager.deleteThief(firestoreId);
+            } catch (error) {
+                console.error('Error deleting thief from Firebase:', error);
+                return false;
+            }
+        }
 
         function renderThieves() {
             const dashboard = document.querySelector('.dashboard');
@@ -2268,10 +2343,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                    <button class="btn-secondary" onclick="viewThief(${thief.id})" style="padding: 8px 16px; font-size: 13px;">
-                                        <i class="fas fa-eye"></i> View Details
+                                    <button class="btn-secondary" onclick="viewThief('${thief.firestoreId || thief.id}')" style="padding: 8px 16px; font-size: 13px;">
+                                        <i class="fas fa-eye"></i> View
                                     </button>
-                                    <button class="btn-icon danger" onclick="deleteThief(${thief.id})" title="Delete">
+                                    <button class="btn-icon" onclick="editThief('${thief.firestoreId || thief.id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon danger" onclick="deleteThief('${thief.firestoreId || thief.id}')" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -2290,7 +2368,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function viewThief(id) {
-            const thief = thieves.find(t => t.id === id);
+            const thief = thieves.find(t => t.id === id || t.firestoreId === id);
             if (!thief) return;
 
             const modal = document.getElementById('modal');
@@ -2354,11 +2432,229 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             modal.style.display = 'flex';
         }
 
-        function deleteThief(id) {
+        async function deleteThief(id) {
             if (confirm('Are you sure you want to delete this record?')) {
-                thieves = thieves.filter(t => t.id !== id);
+                // Find the thief to get the firestoreId
+                const thief = thieves.find(t => t.id === id || t.firestoreId === id);
+
+                if (thief && thief.firestoreId) {
+                    // Delete from Firebase
+                    const deleted = await deleteThiefFromFirebase(thief.firestoreId);
+                    if (deleted) {
+                        console.log('Thief record deleted from Firebase:', thief.firestoreId);
+                    } else {
+                        console.warn('Failed to delete from Firebase, removing locally');
+                    }
+                }
+
+                // Remove from local array
+                thieves = thieves.filter(t => t.id !== id && t.firestoreId !== id);
                 renderThieves();
             }
+        }
+
+        function previewThiefPhoto(input) {
+            const preview = document.getElementById('thief-photo-preview');
+            const img = document.getElementById('thief-photo-img');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function previewEditThiefPhoto(input) {
+            const preview = document.getElementById('edit-thief-photo-preview');
+            const img = document.getElementById('edit-thief-photo-img');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        // Variable to store the thief being edited
+        let editingThiefId = null;
+
+        function editThief(id) {
+            // Find thief by id or firestoreId
+            const thief = thieves.find(t => t.id === id || t.firestoreId === id);
+            if (!thief) {
+                alert('Thief record not found');
+                return;
+            }
+
+            // Store the thief being edited
+            editingThiefId = thief.firestoreId || thief.id;
+
+            // Open modal with edit form
+            openModal('edit-thief', thief);
+        }
+
+        async function saveEditedThief() {
+            if (!editingThiefId) {
+                alert('No thief record selected for editing');
+                return;
+            }
+
+            // Get the current thief data
+            const currentThief = thieves.find(t => t.id === editingThiefId || t.firestoreId === editingThiefId);
+            if (!currentThief) {
+                alert('Thief record not found');
+                return;
+            }
+
+            // Get form values (use current values as fallback if empty)
+            const name = document.getElementById('edit-thief-name').value.trim() || currentThief.name;
+            const date = document.getElementById('edit-thief-date').value || currentThief.date;
+            const store = document.getElementById('edit-thief-store').value || currentThief.store;
+            const crimeType = document.getElementById('edit-thief-crime-type').value || currentThief.crimeType;
+            const items = document.getElementById('edit-thief-items').value.trim() || currentThief.itemsStolen;
+            const value = document.getElementById('edit-thief-value').value;
+            const description = document.getElementById('edit-thief-description').value.trim() || currentThief.description;
+            const policeReport = document.getElementById('edit-thief-police-report').value.trim();
+            const status = document.getElementById('edit-thief-status').value;
+            const photoInput = document.getElementById('edit-thief-photo');
+
+            // Get photo - use new one if uploaded, otherwise keep current
+            let photo = currentThief.photo;
+            const photoImg = document.getElementById('edit-thief-photo-img');
+            if (photoInput.files && photoInput.files.length > 0 && photoImg && photoImg.src) {
+                photo = photoImg.src;
+            }
+
+            const updatedData = {
+                name: name,
+                photo: photo,
+                date: date,
+                store: store,
+                crimeType: crimeType,
+                itemsStolen: items,
+                estimatedValue: value ? parseFloat(value) : currentThief.estimatedValue,
+                description: description,
+                policeReport: policeReport || currentThief.policeReport || null,
+                banned: status === 'banned'
+            };
+
+            // Show saving indicator
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            const originalText = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                saveBtn.disabled = true;
+            }
+
+            try {
+                // Update in Firebase
+                if (firebaseThievesManager.isInitialized && currentThief.firestoreId) {
+                    const success = await firebaseThievesManager.updateThief(currentThief.firestoreId, updatedData);
+                    if (!success) {
+                        throw new Error('Failed to update in Firebase');
+                    }
+                    console.log('Thief record updated in Firebase:', currentThief.firestoreId);
+                }
+
+                // Update local array
+                const index = thieves.findIndex(t => t.id === editingThiefId || t.firestoreId === editingThiefId);
+                if (index !== -1) {
+                    thieves[index] = {
+                        ...thieves[index],
+                        ...updatedData
+                    };
+                }
+
+                // Clear editing state
+                editingThiefId = null;
+
+                closeModal();
+                renderThieves();
+
+                // Show success notification if available
+                if (typeof showNotification === 'function') {
+                    showNotification('Thief record updated successfully!', 'success');
+                }
+            } catch (error) {
+                console.error('Error updating thief record:', error);
+                alert('Error updating thief record. Please try again.');
+
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                }
+            }
+        }
+
+        async function saveThief() {
+            const name = document.getElementById('thief-name').value.trim();
+            const date = document.getElementById('thief-date').value;
+            const store = document.getElementById('thief-store').value;
+            const crimeType = document.getElementById('thief-crime-type').value;
+            const items = document.getElementById('thief-items').value.trim();
+            const value = document.getElementById('thief-value').value;
+            const description = document.getElementById('thief-description').value.trim();
+            const policeReport = document.getElementById('thief-police-report').value.trim();
+            const status = document.getElementById('thief-status').value;
+            const photoInput = document.getElementById('thief-photo');
+
+            // Validation
+            if (!name || !date || !store || !crimeType || !items || !value || !description) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Get photo as base64 if uploaded
+            let photo = null;
+            const photoImg = document.getElementById('thief-photo-img');
+            if (photoImg && photoImg.src && photoInput.files.length > 0) {
+                photo = photoImg.src;
+            }
+
+            // Create thief data object
+            const thiefData = {
+                name: name,
+                photo: photo,
+                date: date,
+                store: store,
+                crimeType: crimeType,
+                itemsStolen: items,
+                estimatedValue: parseFloat(value),
+                description: description,
+                policeReport: policeReport || null,
+                banned: status === 'banned'
+            };
+
+            // Try to save to Firebase
+            const firestoreId = await saveThiefToFirebase(thiefData);
+
+            if (firestoreId) {
+                // Successfully saved to Firebase
+                thiefData.id = firestoreId;
+                thiefData.firestoreId = firestoreId;
+                console.log('Thief record saved to Firebase with ID:', firestoreId);
+            } else {
+                // Fallback to local ID
+                const newId = thieves.length > 0 ? Math.max(...thieves.map(t => typeof t.id === 'number' ? t.id : 0)) + 1 : 1;
+                thiefData.id = newId;
+                console.log('Thief record saved locally with ID:', newId);
+            }
+
+            // Add to local array
+            thieves.unshift(thiefData);
+
+            closeModal();
+            renderThieves();
         }
 
         // Invoices database
@@ -2424,25 +2720,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);">
-                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%); color: #fff;">
+                        <div class="stat-icon" style="color: #fff;"><i class="fas fa-clock"></i></div>
                         <div class="stat-content">
-                            <div class="stat-label">Pending</div>
-                            <div class="stat-value">$${totalPending.toFixed(2)}</div>
+                            <div class="stat-label" style="color: rgba(255,255,255,0.8);">Pending</div>
+                            <div class="stat-value" style="color: #fff;">$${totalPending.toFixed(2)}</div>
                         </div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);">
-                        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%); color: #000;">
+                        <div class="stat-icon" style="color: #000;"><i class="fas fa-exclamation-circle"></i></div>
                         <div class="stat-content">
-                            <div class="stat-label">Overdue</div>
-                            <div class="stat-value">$${totalOverdue.toFixed(2)}</div>
+                            <div class="stat-label" style="color: rgba(0,0,0,0.7);">Overdue</div>
+                            <div class="stat-value" style="color: #000;">$${totalOverdue.toFixed(2)}</div>
                         </div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--success) 0%, #10b981 100%);">
-                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--success) 0%, #10b981 100%); color: #fff;">
+                        <div class="stat-icon" style="color: #fff;"><i class="fas fa-check-circle"></i></div>
                         <div class="stat-content">
-                            <div class="stat-label">Paid This Month</div>
-                            <div class="stat-value">$${totalPaid.toFixed(2)}</div>
+                            <div class="stat-label" style="color: rgba(255,255,255,0.8);">Paid This Month</div>
+                            <div class="stat-value" style="color: #fff;">$${totalPaid.toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
@@ -2500,10 +2796,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             return filteredInvoices.map(invoice => {
-                const statusColors = {
-                    paid: 'var(--success)',
-                    pending: 'var(--warning)',
-                    overdue: 'var(--error)'
+                const statusStyles = {
+                    paid: 'background: var(--success); color: #fff;',
+                    pending: 'background: var(--warning); color: #000;',
+                    overdue: 'background: var(--error); color: #fff;'
                 };
 
                 return `
@@ -2511,13 +2807,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <td><strong>${invoice.invoiceNumber}</strong></td>
                         <td>${invoice.vendor}</td>
                         <td>
-                            <span class="badge" style="background: var(--accent-primary);">${invoice.category}</span>
+                            <span class="badge" style="background: var(--accent-primary); color: #fff;">${invoice.category}</span>
                         </td>
                         <td>${invoice.description}</td>
                         <td style="font-weight: 600;">$${invoice.amount.toFixed(2)}</td>
                         <td>${formatDate(invoice.dueDate)}</td>
                         <td>
-                            <span class="badge" style="background: ${statusColors[invoice.status]};">${invoice.status.toUpperCase()}</span>
+                            <span class="badge" style="${statusStyles[invoice.status]}">${invoice.status.toUpperCase()}</span>
                             ${invoice.recurring ? '<i class="fas fa-sync-alt" style="margin-left: 8px; color: var(--text-muted);" title="Recurring"></i>' : ''}
                         </td>
                         <td>
@@ -2628,6 +2924,45 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 invoices = invoices.filter(i => i.id !== id);
                 renderInvoices();
             }
+        }
+
+        function saveInvoice() {
+            const invoiceNumber = document.getElementById('invoice-number').value.trim();
+            const vendor = document.getElementById('invoice-vendor').value.trim();
+            const category = document.getElementById('invoice-category').value;
+            const amount = document.getElementById('invoice-amount').value;
+            const description = document.getElementById('invoice-description').value.trim();
+            const dueDate = document.getElementById('invoice-due-date').value;
+            const status = document.getElementById('invoice-status').value;
+            const recurring = document.getElementById('invoice-recurring').checked;
+            const notes = document.getElementById('invoice-notes').value.trim();
+
+            // Validation
+            if (!invoiceNumber || !vendor || !category || !amount || !description || !dueDate || !status) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Generate new ID
+            const newId = invoices.length > 0 ? Math.max(...invoices.map(i => i.id)) + 1 : 1;
+
+            // Add new invoice
+            invoices.unshift({
+                id: newId,
+                invoiceNumber: invoiceNumber,
+                vendor: vendor,
+                category: category,
+                description: description,
+                amount: parseFloat(amount),
+                dueDate: dueDate,
+                paidDate: status === 'paid' ? new Date().toISOString().split('T')[0] : null,
+                status: status,
+                recurring: recurring,
+                notes: notes
+            });
+
+            closeModal();
+            renderInvoices();
         }
 
         // Treasury Functions
@@ -4626,6 +4961,252 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                     `;
                     break;
+                case 'add-thief':
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-user-secret"></i> Add Theft Record</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Name *</label>
+                                    <input type="text" class="form-input" id="thief-name" placeholder="Enter name or description...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date of Incident *</label>
+                                    <input type="date" class="form-input" id="thief-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="thief-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Crime Type *</label>
+                                    <select class="form-input" id="thief-crime-type">
+                                        <option value="">Select type...</option>
+                                        <option value="Shoplifting">Shoplifting</option>
+                                        <option value="Attempted Theft">Attempted Theft</option>
+                                        <option value="Robbery">Robbery</option>
+                                        <option value="Fraud">Fraud</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Items Stolen *</label>
+                                    <input type="text" class="form-input" id="thief-items" placeholder="e.g., Vape devices (2x)">
+                                </div>
+                                <div class="form-group">
+                                    <label>Estimated Value ($) *</label>
+                                    <input type="number" step="0.01" class="form-input" id="thief-value" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Description *</label>
+                                <textarea class="form-input" id="thief-description" rows="3" placeholder="Describe the incident in detail..."></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Police Report #</label>
+                                    <input type="text" class="form-input" id="thief-police-report" placeholder="e.g., PR-2025-12-10-001">
+                                </div>
+                                <div class="form-group">
+                                    <label>Status *</label>
+                                    <select class="form-input" id="thief-status">
+                                        <option value="banned">Banned</option>
+                                        <option value="warning">Warning</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo (Optional)</label>
+                                <input type="file" class="form-input" id="thief-photo" accept="image/*" onchange="previewThiefPhoto(this)">
+                                <div id="thief-photo-preview" style="margin-top: 10px; display: none;">
+                                    <img id="thief-photo-img" style="max-width: 200px; max-height: 200px; border-radius: 8px; object-fit: cover;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveThief()">
+                                <i class="fas fa-plus"></i> Add Record
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'edit-thief':
+                    if (!data) {
+                        alert('No thief data provided');
+                        return;
+                    }
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-user-secret"></i> Edit Theft Record</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Name</label>
+                                    <input type="text" class="form-input" id="edit-thief-name" value="${data.name || ''}" placeholder="Enter name or description...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date of Incident</label>
+                                    <input type="date" class="form-input" id="edit-thief-date" value="${data.date || ''}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Store</label>
+                                    <select class="form-input" id="edit-thief-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar" ${data.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                        <option value="Morena" ${data.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                        <option value="Kearny Mesa" ${data.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                        <option value="Chula Vista" ${data.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Crime Type</label>
+                                    <select class="form-input" id="edit-thief-crime-type">
+                                        <option value="">Select type...</option>
+                                        <option value="Shoplifting" ${data.crimeType === 'Shoplifting' ? 'selected' : ''}>Shoplifting</option>
+                                        <option value="Attempted Theft" ${data.crimeType === 'Attempted Theft' ? 'selected' : ''}>Attempted Theft</option>
+                                        <option value="Robbery" ${data.crimeType === 'Robbery' ? 'selected' : ''}>Robbery</option>
+                                        <option value="Fraud" ${data.crimeType === 'Fraud' ? 'selected' : ''}>Fraud</option>
+                                        <option value="Other" ${data.crimeType === 'Other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Items Stolen</label>
+                                    <input type="text" class="form-input" id="edit-thief-items" value="${data.itemsStolen || ''}" placeholder="e.g., Vape devices (2x)">
+                                </div>
+                                <div class="form-group">
+                                    <label>Estimated Value ($)</label>
+                                    <input type="number" step="0.01" class="form-input" id="edit-thief-value" value="${data.estimatedValue || ''}" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-input" id="edit-thief-description" rows="3" placeholder="Describe the incident in detail...">${data.description || ''}</textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Police Report #</label>
+                                    <input type="text" class="form-input" id="edit-thief-police-report" value="${data.policeReport || ''}" placeholder="e.g., PR-2025-12-10-001">
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select class="form-input" id="edit-thief-status">
+                                        <option value="banned" ${data.banned ? 'selected' : ''}>Banned</option>
+                                        <option value="warning" ${!data.banned ? 'selected' : ''}>Warning</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo (leave empty to keep current)</label>
+                                <input type="file" class="form-input" id="edit-thief-photo" accept="image/*" onchange="previewEditThiefPhoto(this)">
+                                <div id="edit-thief-photo-preview" style="margin-top: 10px; ${data.photo ? '' : 'display: none;'}">
+                                    <img id="edit-thief-photo-img" src="${data.photo || ''}" style="max-width: 200px; max-height: 200px; border-radius: 8px; object-fit: cover;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveEditedThief()">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'add-invoice':
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-file-invoice-dollar"></i> Add Invoice</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Invoice Number *</label>
+                                    <input type="text" class="form-input" id="invoice-number" placeholder="e.g., INV-2025-004">
+                                </div>
+                                <div class="form-group">
+                                    <label>Vendor *</label>
+                                    <input type="text" class="form-input" id="invoice-vendor" placeholder="Enter vendor name...">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Category *</label>
+                                    <select class="form-input" id="invoice-category">
+                                        <option value="">Select category...</option>
+                                        <option value="Technology">Technology</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Utilities">Utilities</option>
+                                        <option value="Rent">Rent</option>
+                                        <option value="Insurance">Insurance</option>
+                                        <option value="Supplies">Supplies</option>
+                                        <option value="Services">Services</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount ($) *</label>
+                                    <input type="number" step="0.01" class="form-input" id="invoice-amount" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Description *</label>
+                                <input type="text" class="form-input" id="invoice-description" placeholder="Enter description...">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Due Date *</label>
+                                    <input type="date" class="form-input" id="invoice-due-date">
+                                </div>
+                                <div class="form-group">
+                                    <label>Status *</label>
+                                    <select class="form-input" id="invoice-status">
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="overdue">Overdue</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="invoice-recurring" style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
+                                        <span>Recurring Invoice</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes (Optional)</label>
+                                <textarea class="form-input" id="invoice-notes" rows="2" placeholder="Add any additional notes..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveInvoice()">
+                                <i class="fas fa-plus"></i> Add Invoice
+                            </button>
+                        </div>
+                    `;
+                    break;
                 case 'restock-request':
                     const itemId = modal.dataset.itemId;
                     const item = inventory.find(i => i.id == itemId);
@@ -5601,24 +6182,31 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
             const employeeId = editingEmployeeId;
 
-            const firstName = document.getElementById('edit-emp-first-name').value.trim();
-            const lastName = document.getElementById('edit-emp-last-name').value.trim();
-            const email = document.getElementById('edit-emp-email').value.trim();
-            const phone = document.getElementById('edit-emp-phone').value.trim();
-            const password = document.getElementById('edit-emp-password').value.trim();
-            const confirmPassword = document.getElementById('edit-emp-confirm-password').value.trim();
-            const role = document.getElementById('edit-emp-role').value;
-            const employeeType = document.getElementById('edit-emp-employee-type')?.value || 'employee';
-            const store = document.getElementById('edit-emp-store').value;
-            const status = document.getElementById('edit-emp-status').value;
-            const hireDate = document.getElementById('edit-emp-hire-date').value;
-            const emergency = document.getElementById('edit-emp-emergency').value.trim();
-            const allergies = document.getElementById('edit-emp-allergies').value.trim();
-
-            if (!firstName || !lastName || !email || !phone || !role || !store) {
-                alert('Please fill in all required fields');
+            // Get the current employee data
+            const currentEmployee = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+            if (!currentEmployee) {
+                alert('Employee not found');
                 return;
             }
+
+            // Get current name parts for fallback
+            const currentNameParts = (currentEmployee.name || '').split(' ');
+            const currentFirstName = currentNameParts[0] || '';
+            const currentLastName = currentNameParts.slice(1).join(' ') || '';
+
+            const firstName = document.getElementById('edit-emp-first-name').value.trim() || currentFirstName;
+            const lastName = document.getElementById('edit-emp-last-name').value.trim() || currentLastName;
+            const email = document.getElementById('edit-emp-email').value.trim() || currentEmployee.email;
+            const phone = document.getElementById('edit-emp-phone').value.trim() || currentEmployee.phone;
+            const password = document.getElementById('edit-emp-password').value.trim();
+            const confirmPassword = document.getElementById('edit-emp-confirm-password').value.trim();
+            const role = document.getElementById('edit-emp-role').value || currentEmployee.role;
+            const employeeType = document.getElementById('edit-emp-employee-type')?.value || currentEmployee.employeeType || 'employee';
+            const store = document.getElementById('edit-emp-store').value || currentEmployee.store;
+            const status = document.getElementById('edit-emp-status').value || currentEmployee.status;
+            const hireDate = document.getElementById('edit-emp-hire-date').value || currentEmployee.hireDate;
+            const emergency = document.getElementById('edit-emp-emergency').value.trim();
+            const allergies = document.getElementById('edit-emp-allergies').value.trim();
 
             // If new password is provided, validate it
             if (password && !confirmPassword) {
@@ -5646,8 +6234,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 store,
                 status,
                 hireDate: hireDate || new Date().toISOString().split('T')[0],
-                emergencyContact: emergency || 'Not provided',
-                allergies: allergies || 'None'
+                emergencyContact: emergency || currentEmployee.emergencyContact || 'Not provided',
+                allergies: allergies || currentEmployee.allergies || 'None'
             };
 
             // Only include password if it's being changed
@@ -5786,7 +6374,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 initials: `${firstName[0]}${lastName[0]}`.toUpperCase(),
                 email,
                 phone,
-                password,  // Store the password in Firebase
                 role,                                    // Job position (Store Manager, Sales Associate, etc)
                 employeeType: employeeType,              // Permission level (admin, manager, employee)
                 store,
@@ -5813,7 +6400,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                 // Save to Firebase
                 if (firebaseEmployeeManager.isInitialized) {
-                    const firestoreId = await firebaseEmployeeManager.addEmployee(newEmployee);
+                    const firestoreId = await firebaseEmployeeManager.addEmployee(newEmployee, email, password);
                     if (firestoreId) {
                         newEmployee.id = firestoreId;
                         newEmployee.firestoreId = firestoreId;
@@ -5840,7 +6427,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
             } catch (error) {
                 console.error('Error saving employee:', error);
-                alert('Error saving employee. Please try again.');
+                
+                // Show specific error message
+                let errorMessage = error.message || 'Error saving employee. Please try again.';
+                alert(errorMessage);
 
                 // Reset button
                 if (saveBtn) {
@@ -6284,18 +6874,39 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
+        // User menu dropdown functionality
+        function toggleUserMenu() {
+            const container = document.querySelector('.user-menu-container');
+            if (container) {
+                container.classList.toggle('open');
+            }
+        }
+
+        function closeUserMenu() {
+            const container = document.querySelector('.user-menu-container');
+            if (container) {
+                container.classList.remove('open');
+            }
+        }
+
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const container = document.querySelector('.user-menu-container');
+            if (container && !container.contains(e.target)) {
+                container.classList.remove('open');
+            }
+        });
+
         // Logout functionality
         function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                // Clear any saved data if needed
-                localStorage.removeItem('userSession');
-
-                // Show logout message
-                alert('You have been logged out successfully.');
-
-                // In a real app, redirect to login page
-                // window.location.href = '/login';
+            // Clear auth data
+            if (typeof authManager !== 'undefined') {
+                authManager.logout();
             }
+            localStorage.removeItem('userSession');
+
+            // Redirect to login page
+            window.location.href = 'login.html';
         }
 
         // Load theme on page initialization

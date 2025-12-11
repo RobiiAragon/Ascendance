@@ -503,8 +503,194 @@
     </button>
 
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
+    
+    <!-- Firebase Scripts (Using compat version for traditional script loading) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Environment variables (generated at build time) -->
+    <script src="config/env.js"></script>
+    <!-- Configuration (Update with your actual credentials) -->
+    <script src="config/abundance-config.js"></script>
+
+    <!-- Firebase Utilities -->
+    <script src="js/firebase-utils.js"></script>
+
+    <!-- Firebase Sync Manager -->
+    <script src="js/firebase-sync.js"></script>
+
+    <!-- Authentication Manager -->
+    <script src="js/auth-manager.js"></script>
+
+    <!-- Main Application Script -->
     <script src="js/script.js"></script>
+
+    <!-- Shopify API Client -->
     <script src="js/api-client.js"></script>
+
+    <!-- Abundance Cloud Script -->
     <script src="js/abundance-cloud.js"></script>
+
+    <!-- Initialize Application -->
+    <script>
+        // Initialize authentication and filter navigation
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check if user is authenticated
+            authManager.initialize();
+            
+            if (!authManager.isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = authManager.getCurrentUser();
+            console.log('✅ User authenticated:', user.email, '- Role:', user.role);
+
+            // Check if user has permission to access this page
+            const userRole = user.role || 'employee';
+            const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
+            const allowedPages = userPermissions.pages || [];
+            
+            if (!allowedPages.includes('abundancecloud')) {
+                alert('❌ Acceso denegado. Tu rol de ' + userPermissions.label + ' no tiene permiso para acceder a Abundance Cloud Engine.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                filterNavigationByRoleAbundance();
+                console.log(`✅ Navigation filtered for ${userPermissions.label} role`);
+            } catch (error) {
+                console.error('Error filtering navigation:', error);
+            }
+
+            // Initialize Abundance Cloud
+            try {
+                initializeAbundanceCloud();
+                console.log('✅ Abundance Cloud initialized');
+            } catch (error) {
+                console.error('Error initializing Abundance Cloud:', error);
+            }
+        });
+
+        // Function to filter navigation menu by role for abundance-cloud.html
+        function filterNavigationByRoleAbundance() {
+            const user = authManager.getCurrentUser();
+            const userRole = user.role || 'employee';
+            const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
+            const allowedPages = userPermissions.pages || [];
+
+            // Page labels for matching
+            const pageLabels = {
+                'dashboard': 'Dashboard',
+                'employees': 'Employees',
+                'licenses': 'Licenses & Docs',
+                'analytics': 'Sales Analytics',
+                'newstuff': 'New Stuff',
+                'abundancecloud': 'Abundance Cloud Engine',
+                'announcements': 'Announcements',
+                'thieves': 'Thieves',
+                'invoices': 'Invoices',
+                'vendors': 'Vendors',
+                'cashout': 'Cash Out',
+                'treasury': 'Treasury',
+                'clockin': 'Clock In/Out',
+                'schedule': 'Schedule',
+                'gforce': 'G Force',
+                'training': 'Training Center',
+                'restock': 'Restock Requests',
+                'stores': 'Store Management',
+                'tasks': 'Tasks & Checklists',
+                'settings': 'Settings',
+                'help': 'Help Center',
+                'geconomics': 'Gconomics',
+                'dailysales': 'Daily Sales',
+                'issues': 'Issues'
+            };
+
+            // Hide all nav items and dropdowns first
+            document.querySelectorAll('.nav-item, .nav-dropdown').forEach(item => {
+                if (!item.classList.contains('nav-label')) {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Hide all nav divs (dropdown containers)
+            document.querySelectorAll('.nav-section > div').forEach(div => {
+                div.style.display = 'none';
+            });
+
+            // Show only allowed pages
+            allowedPages.forEach(page => {
+                const label = pageLabels[page];
+                if (label) {
+                    // Find and show nav items by text content
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        if (item.textContent.includes(label)) {
+                            item.style.display = '';
+                            
+                            // Show parent div if exists
+                            if (item.parentElement && item.parentElement.classList.contains('nav-section')) {
+                                // Parent is nav-section, no need to show
+                            } else if (item.parentElement && item.parentElement.tagName === 'DIV') {
+                                item.parentElement.style.display = '';
+                            }
+                        }
+                    });
+
+                    // Special handling for dropdown items
+                    document.querySelectorAll('.nav-dropdown-item').forEach(item => {
+                        if (item.textContent.includes(label) || item.textContent.includes('All Employees')) {
+                            item.style.display = '';
+                            
+                            // Show parent dropdown
+                            if (item.parentElement && item.parentElement.classList.contains('nav-dropdown')) {
+                                item.parentElement.style.display = '';
+                                
+                                // Find and show the parent nav-item that triggers this dropdown
+                                const dropdownId = item.parentElement.id;
+                                if (dropdownId && dropdownId.includes('employees')) {
+                                    document.querySelectorAll('.nav-item.has-dropdown').forEach(navItem => {
+                                        if (navItem.textContent.includes('Employees')) {
+                                            navItem.style.display = '';
+                                            if (navItem.parentElement && navItem.parentElement.tagName === 'DIV') {
+                                                navItem.parentElement.style.display = '';
+                                            }
+                                        }
+                                    });
+                                } else if (dropdownId && dropdownId.includes('sales')) {
+                                    document.querySelectorAll('.nav-item.has-dropdown').forEach(navItem => {
+                                        if (navItem.textContent.includes('Sales Analytics')) {
+                                            navItem.style.display = '';
+                                            if (navItem.parentElement && navItem.parentElement.tagName === 'DIV') {
+                                                navItem.parentElement.style.display = '';
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Always show the current page (Abundance Cloud) as active
+            document.querySelectorAll('a[href*="abundance-cloud.html"]').forEach(item => {
+                item.style.display = '';
+                if (item.parentElement && item.parentElement.tagName === 'DIV') {
+                    item.parentElement.style.display = '';
+                }
+            });
+
+            // Show parent divs if they contain visible items
+            document.querySelectorAll('.nav-section > div').forEach(div => {
+                const hasVisibleItems = div.querySelector('.nav-item:not([style*="display: none"]), .nav-dropdown:not([style*="display: none"])');
+                if (hasVisibleItems) {
+                    div.style.display = '';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

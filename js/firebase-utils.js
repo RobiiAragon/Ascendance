@@ -105,7 +105,7 @@ class FirebaseEmployeeManager {
      * @param {Object} employeeData - Employee data to add
      * @returns {Promise<string>} New document ID
      */
-    async addEmployee(employeeData) {
+    async addEmployee(employeeData, email = null, password = null) {
         try {
             if (!this.isInitialized || !this.db) {
                 console.error('Firebase not initialized.');
@@ -120,6 +120,32 @@ class FirebaseEmployeeManager {
             employeeData.createdAt = new Date();
             employeeData.updatedAt = new Date();
 
+            // Create user in Firebase Authentication if email and password provided
+            if (email && password) {
+                try {
+                    console.log('Creating Firebase Authentication user for:', email);
+                    const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                    const userId = userCredential.user.uid;
+                    
+                    // Add the Firebase Auth UID to the employee data
+                    employeeData.firebaseUid = userId;
+                    employeeData.authEmail = email;
+                    
+                    console.log('Firebase Auth user created with UID:', userId);
+                } catch (authError) {
+                    // Check if email already exists or other auth errors
+                    if (authError.code === 'auth/email-already-in-use') {
+                        throw new Error('Email already registered. Please use a different email or login with existing account.');
+                    } else if (authError.code === 'auth/weak-password') {
+                        throw new Error('Password is too weak. Please use a stronger password (minimum 6 characters).');
+                    } else if (authError.code === 'auth/invalid-email') {
+                        throw new Error('Invalid email format. Please provide a valid email address.');
+                    } else {
+                        throw new Error(`Authentication error: ${authError.message}`);
+                    }
+                }
+            }
+
             const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
             const docRef = await this.db.collection(employeesCollection).add(employeeData);
             
@@ -127,7 +153,7 @@ class FirebaseEmployeeManager {
             return docRef.id;
         } catch (error) {
             console.error('Error adding employee:', error);
-            return null;
+            throw error; // Re-throw to let caller handle it
         }
     }
 
@@ -319,3 +345,155 @@ class FirebaseEmployeeManager {
 
 // Initialize global Firebase manager
 const firebaseEmployeeManager = new FirebaseEmployeeManager();
+
+/**
+ * Firebase Thieves Manager
+ * Handles Firebase Firestore operations for thieves database
+ */
+class FirebaseThievesManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Thieves Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Thieves Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Thieves Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load thieves from Firestore
+     * @returns {Promise<Array>} Array of thief records
+     */
+    async loadThieves() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Thieves Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
+            const snapshot = await this.db.collection(thievesCollection)
+                .orderBy('date', 'desc')
+                .get();
+
+            const thieves = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                thieves.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    name: data.name || '',
+                    photo: data.photo || null,
+                    date: data.date || '',
+                    store: data.store || '',
+                    crimeType: data.crimeType || '',
+                    itemsStolen: data.itemsStolen || '',
+                    estimatedValue: data.estimatedValue || 0,
+                    description: data.description || '',
+                    policeReport: data.policeReport || null,
+                    banned: data.banned !== undefined ? data.banned : true
+                });
+            });
+
+            console.log(`Loaded ${thieves.length} thief records from Firestore`);
+            return thieves;
+        } catch (error) {
+            console.error('Error loading thieves from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new thief record to Firestore
+     * @param {Object} thiefData - Thief data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addThief(thiefData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Thieves Manager not initialized.');
+                return null;
+            }
+
+            thiefData.createdAt = new Date();
+            thiefData.updatedAt = new Date();
+
+            const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
+            const docRef = await this.db.collection(thievesCollection).add(thiefData);
+
+            console.log('Thief record added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding thief record:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update thief record in Firestore
+     * @param {string} thiefId - Thief Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateThief(thiefId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Thieves Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
+            await this.db.collection(thievesCollection).doc(thiefId).update(updateData);
+
+            console.log('Thief record updated:', thiefId);
+            return true;
+        } catch (error) {
+            console.error('Error updating thief record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete thief record from Firestore
+     * @param {string} thiefId - Thief Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteThief(thiefId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Thieves Manager not initialized.');
+                return false;
+            }
+
+            const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
+            await this.db.collection(thievesCollection).doc(thiefId).delete();
+
+            console.log('Thief record deleted:', thiefId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting thief record:', error);
+            return false;
+        }
+    }
+}
+
+// Initialize global Firebase Thieves manager
+const firebaseThievesManager = new FirebaseThievesManager();
