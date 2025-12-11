@@ -129,7 +129,7 @@ class AuthenticationManager {
      */
     forceLogout() {
         this.logout();
-        window.location.href = 'Login.html';
+        window.location.href = 'login.html';
     }
 
     /**
