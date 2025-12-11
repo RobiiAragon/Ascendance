@@ -4287,6 +4287,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
+                                    <label>Password (leave blank to keep current)</label>
+                                    <input type="password" class="form-input" id="edit-emp-password" placeholder="Enter new password or leave blank">
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm Password</label>
+                                    <input type="password" class="form-input" id="edit-emp-confirm-password" placeholder="Confirm new password">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
                                     <label>Job Position/Role *</label>
                                     <select class="form-input" id="edit-emp-role">
                                         <option value="">Select role...</option>
@@ -4371,6 +4381,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <div class="form-group">
                                     <label>Phone *</label>
                                     <input type="tel" class="form-input" id="emp-phone" placeholder="(619) 555-0000">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Password *</label>
+                                    <input type="password" class="form-input" id="emp-password" placeholder="Enter a secure password">
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm Password *</label>
+                                    <input type="password" class="form-input" id="emp-confirm-password" placeholder="Confirm password">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -5585,6 +5605,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const lastName = document.getElementById('edit-emp-last-name').value.trim();
             const email = document.getElementById('edit-emp-email').value.trim();
             const phone = document.getElementById('edit-emp-phone').value.trim();
+            const password = document.getElementById('edit-emp-password').value.trim();
+            const confirmPassword = document.getElementById('edit-emp-confirm-password').value.trim();
             const role = document.getElementById('edit-emp-role').value;
             const employeeType = document.getElementById('edit-emp-employee-type')?.value || 'employee';
             const store = document.getElementById('edit-emp-store').value;
@@ -5595,6 +5617,22 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
             if (!firstName || !lastName || !email || !phone || !role || !store) {
                 alert('Please fill in all required fields');
+                return;
+            }
+
+            // If new password is provided, validate it
+            if (password && !confirmPassword) {
+                alert('Please confirm the new password');
+                return;
+            }
+
+            if (password && password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            if (password && password.length < 6) {
+                alert('Password must be at least 6 characters long');
                 return;
             }
 
@@ -5611,6 +5649,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 emergencyContact: emergency || 'Not provided',
                 allergies: allergies || 'None'
             };
+
+            // Only include password if it's being changed
+            if (password) {
+                updatedData.password = password;
+            }
 
             // Show saving indicator
             const saveBtn = document.querySelector('.modal-footer .btn-primary');
@@ -5714,6 +5757,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const lastName = document.getElementById('emp-last-name').value.trim();
             const email = document.getElementById('emp-email').value.trim();
             const phone = document.getElementById('emp-phone').value.trim();
+            const password = document.getElementById('emp-password').value.trim();
+            const confirmPassword = document.getElementById('emp-confirm-password').value.trim();
             const role = document.getElementById('emp-role').value;
             const employeeType = document.getElementById('emp-employee-type')?.value || 'employee';
             const store = document.getElementById('emp-store').value;
@@ -5721,8 +5766,18 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const emergency = document.getElementById('emp-emergency').value.trim();
             const allergies = document.getElementById('emp-allergies').value.trim();
 
-            if (!firstName || !lastName || !email || !phone || !role || !store) {
+            if (!firstName || !lastName || !email || !phone || !role || !store || !password) {
                 alert('Please fill in all required fields');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long');
                 return;
             }
 
@@ -5731,6 +5786,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 initials: `${firstName[0]}${lastName[0]}`.toUpperCase(),
                 email,
                 phone,
+                password,  // Store the password in Firebase
                 role,                                    // Job position (Store Manager, Sales Associate, etc)
                 employeeType: employeeType,              // Permission level (admin, manager, employee)
                 store,

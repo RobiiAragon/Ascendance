@@ -290,56 +290,126 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
 
-            // Attempt login
-            setTimeout(() => {
-                try {
-                    const user = authenticateUser(email, password);
+            // Attempt login (handle async authentication)
+            authenticateUser(email, password).then(user => {
+                if (user) {
+                    // Store session
+                    storeUserSession(user, remember);
                     
-                    if (user) {
-                        // Store session
-                        storeUserSession(user, remember);
-                        
-                        // Show success message
-                        showLoginSuccess('Login successful! Redirecting...');
-                        
-                        // Redirect after short delay
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 1000);
-                    } else {
-                        showLoginError('Invalid email or password');
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = originalText;
-                    }
-                } catch (error) {
-                    console.error('Login error:', error);
-                    showLoginError('An error occurred during login');
+                    // Show success message
+                    showLoginSuccess('Login successful! Redirecting...');
+                    
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                } else {
+                    showLoginError('Invalid email or password');
                     loginBtn.disabled = false;
                     loginBtn.innerHTML = originalText;
                 }
-            }, 500);
+            }).catch(error => {
+                console.error('Login error:', error);
+                showLoginError('An error occurred during login');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalText;
+            });
         }
 
         /**
-         * Authenticate user against local database
+         * Authenticate user against Firebase employees collection
          */
-        function authenticateUser(email, password) {
-            const usersDB = window.USERS_DATABASE || {};
-            const user = usersDB[email];
+        async function authenticateUser(email, password) {
+            try {
+                // First try to authenticate against Firebase employees collection
+                if (typeof firebaseEmployeeManager !== 'undefined' && firebaseEmployeeManager.isInitialized) {
+                    const user = await authenticateFromFirestore(email, password);
+                    if (user) {
+                        return user;
+                    }
+                }
+                
+                // Fallback to USERS_DATABASE for backward compatibility
+                const usersDB = window.USERS_DATABASE || {};
+                const user = usersDB[email];
 
-            if (!user) {
-                console.warn('User not found:', email);
+                if (!user) {
+                    console.warn('User not found:', email);
+                    return null;
+                }
+
+                // Simple password check (in production, use bcrypt or similar)
+                if (user.password !== password) {
+                    console.warn('Password mismatch for user:', email);
+                    return null;
+                }
+
+                console.log('User authenticated from USERS_DATABASE:', email, 'Role:', user.role);
+                return user;
+            } catch (error) {
+                console.error('Authentication error:', error);
+                // Fallback to USERS_DATABASE
+                const usersDB = window.USERS_DATABASE || {};
+                const user = usersDB[email];
+                
+                if (!user || user.password !== password) {
+                    return null;
+                }
+                
+                return user;
+            }
+        }
+
+        /**
+         * Authenticate user against Firestore employees collection
+         */
+        async function authenticateFromFirestore(email, password) {
+            try {
+                // Initialize Firebase if needed
+                if (!firebaseEmployeeManager.isInitialized) {
+                    await firebaseEmployeeManager.initialize();
+                }
+
+                // Query Firestore for employee with matching email
+                const db = firebase.firestore();
+                const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+                const snapshot = await db.collection(employeesCollection)
+                    .where('email', '==', email)
+                    .limit(1)
+                    .get();
+
+                if (snapshot.empty) {
+                    console.warn('Employee not found with email:', email);
+                    return null;
+                }
+
+                const doc = snapshot.docs[0];
+                const employeeData = doc.data();
+
+                // Check password
+                if (employeeData.password !== password) {
+                    console.warn('Password mismatch for employee:', email);
+                    return null;
+                }
+
+                // Create user object from employee data
+                const user = {
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    email: employeeData.email,
+                    name: employeeData.name,
+                    role: employeeData.employeeType || 'employee',  // Use employeeType for permission level
+                    store: employeeData.store,
+                    jobRole: employeeData.role,  // Store the job position separately
+                    status: employeeData.status || 'active'
+                };
+
+                console.log('User authenticated from Firestore:', email, 'Role:', user.role);
+                return user;
+            } catch (error) {
+                console.error('Error authenticating from Firestore:', error);
                 return null;
             }
-
-            // Simple password check (in production, use bcrypt or similar)
-            if (user.password !== password) {
-                console.warn('Password mismatch for user:', email);
-                return null;
-            }
-
-            console.log('User authenticated:', email, 'Role:', user.role);
-            return user;
         }
 
         /**
