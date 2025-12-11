@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ascendance Hub | VSU Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="light-theme">
+    <div class="bg-gradient"></div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content" id="modal-content"></div>
+    </div>
+
+    <!-- G Force Modal -->
+    <div class="modal" id="gforce-modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-bolt" style="color: var(--accent-primary);"></i>
+                    G Force - Giselle´s Daily Motivation
+                </h2>
+                <button class="modal-close" onclick="closeGForceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="gforce-body">
+                <div id="gforce-date" style="text-align: center; color: var(--text-muted); margin-bottom: 20px; font-size: 13px;"></div>
+
+                <!-- Quote Card -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-body" style="text-align: center;">
+                        <div id="gforce-quote-text" style="font-size: 1.4rem; line-height: 1.6; margin-bottom: 16px; font-weight: 300;"></div>
+                        <div id="gforce-quote-author" style="text-align: right; color: var(--accent-primary); font-size: 1rem; font-style: italic;"></div>
+                    </div>
+                </div>
+
+                <!-- Affirmations -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-sparkles"></i>
+                            Daily Affirmations
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="gforce-affirmations"></div>
+                    </div>
+                </div>
+
+                <!-- Philosophy -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-seedling"></i>
+                            Daily Philosophy
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="gforce-philosophy-text" style="font-size: 14px; line-height: 1.8; margin-bottom: 20px; color: var(--text-secondary);"></div>
+                        <div id="gforce-tips"></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-secondary" onclick="generateGForceQuote()">
+                        <i class="fas fa-sync-alt"></i> New Quote
+                    </button>
+                    <button class="btn-secondary" onclick="generateGForceAffirmations()">
+                        <i class="fas fa-sync-alt"></i> New Affirmations
+                    </button>
+                    <button class="btn-secondary" onclick="generateGForcePhilosophy()">
+                        <i class="fas fa-sync-alt"></i> New Philosophy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="img/AH.png" alt="Ascendance Hub" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+                <div class="logo-text">
+                    <h1>Ascendance</h1>
+                    <span>Hub Management</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-section">
+            <div class="nav-label">Main Menu</div>
+            <a href="#" class="nav-item active">
+                <span class="nav-icon"><i class="fas fa-th-large"></i></span>
+                Dashboard
+            </a>
+            <!-- Employees with dropdown -->
+            <div>
+                <a href="#" class="nav-item has-dropdown" onclick="toggleDropdown(event, 'employees'); return false;">
+                    <span class="nav-icon"><i class="fas fa-users"></i></span>
+                    Employees
+                    <span class="nav-badge">20</span>
+                    <i class="fas fa-chevron-down dropdown-icon"></i>
+                </a>
+                <div class="nav-dropdown" id="dropdown-employees">
+                    <a href="#" class="nav-dropdown-item" onclick="navigateTo('employees'); return false;">
+                        <span>All Employees</span>
+                    </a>
+                    <a href="#" class="nav-dropdown-item" onclick="navigateTo('clockin'); return false;">
+                        <span>Clock In/Out</span>
+                    </a>
+                </div>
+            </div>
+
+            <a href="#" class="nav-item">
+                <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
+                Training Center
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
+                Licenses & Docs
+                <span class="nav-badge" style="background: var(--warning);">2</span>
+            </a>
+
+            <!-- Sales Analytics with dropdown -->
+            <div>
+                <a href="#" class="nav-item has-dropdown" onclick="toggleDropdown(event, 'sales'); return false;">
+                    <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
+                    Sales Analytics
+                    <i class="fas fa-chevron-down dropdown-icon"></i>
+                </a>
+                <div class="nav-dropdown" id="dropdown-sales">
+                    <a href="#" class="nav-dropdown-item" onclick="navigateTo('analytics'); return false;">
+                        <span>Overview</span>
+                    </a>
+                    <a href="#" class="nav-dropdown-item" onclick="navigateTo('dailysales'); return false;">
+                        <span>Daily Sales</span>
+                    </a>
+                </div>
+            </div>
+            <a href="#" class="nav-item">
+                <span class="nav-icon"><i class="fas fa-box"></i></span>
+                New Stuff
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('restock'); return false;">
+                <span class="nav-icon"><i class="fas fa-boxes"></i></span>
+                Restock Requests
+            </a>
+            <a href="abundance-cloud.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-cloud"></i></span>
+                Abundance Cloud Engine
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
+                Announcements
+                <span class="nav-badge">3</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('thieves'); return false;">
+                <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
+                Thieves
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('invoices'); return false;">
+                <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                Invoices
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('issues'); return false;">
+                <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                Issues
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('gconomics'); return false;">
+                <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+                Gconomics
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('vendors'); return false;">
+                <span class="nav-icon"><i class="fas fa-truck"></i></span>
+                Vendors
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('cashout'); return false;">
+                <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
+                Cash Out
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('treasury'); return false;">
+                <span class="nav-icon"><i class="fas fa-vault"></i></span>
+                Treasury
+            </a>
+            <a href="#" class="nav-item" onclick="navigateTo('schedule'); return false;">
+                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
+                Schedule
+            </a>
+            <a href="#" class="nav-item" onclick="openGForceModal(); return false;">
+                <span class="nav-icon"><i class="fas fa-bolt"></i></span>
+                G Force
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="sidebar-footer-btn" onclick="logout()" title="Logout">
+                <i class="fas fa-arrow-right-from-bracket"></i>
+            </button>
+            <button class="sidebar-footer-btn" onclick="toggleTheme()" title="Toggle Theme">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="page-title">Dashboard</h1>
+                <div class="breadcrumb">
+                    <a href="#" onclick="navigateTo('dashboard'); return false;">Home</a>
+                    <i class="fas fa-chevron-right" style="font-size: 10px;"></i>
+                    <span>Overview</span>
+                </div>
+            </div>
+
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search employees, docs, trainings...">
+            </div>
+
+            <div class="header-right">
+                <div class="user-menu">
+                    <div class="user-avatar">CA</div>
+                    <div class="user-info">
+                        <span class="user-name">Carlos Admin</span>
+                        <span class="user-role">Super Admin</span>
+                    </div>
+                    <i class="fas fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            +2
+                        </div>
+                    </div>
+                    <div class="stat-value">20</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon green">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            +12.5%
+                        </div>
+                    </div>
+                    <div class="stat-value">$48.2K</div>
+                    <div class="stat-label">Monthly Revenue</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-trend down">
+                            <i class="fas fa-exclamation"></i>
+                            2 expiring
+                        </div>
+                    </div>
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Active Licenses</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <a href="#" class="quick-action" onclick="openModal('add-employee'); return false;">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <span class="quick-action-label">Add Employee</span>
+                </a>
+                <a href="#" class="quick-action" onclick="alert('Upload Training feature coming soon!'); return false;">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <span class="quick-action-label">Upload Training</span>
+                </a>
+                <a href="#" class="quick-action" onclick="openModal('add-license'); return false;">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <span class="quick-action-label">Add License</span>
+                </a>
+                <a href="#" class="quick-action" onclick="navigateTo('analytics'); return false;">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <span class="quick-action-label">View Reports</span>
+                </a>
+            </div>
+
+            <!-- Bottom Grid -->
+            <div class="bottom-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-trophy"></i>
+                            Store Performance
+                        </h3>
+                        <button class="card-action">Details</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="store-performance">
+                            <div class="store-item">
+                                <div class="store-rank first">1</div>
+                                <div class="store-details">
+                                    <div class="store-name">VSU Miramar</div>
+                                    <div class="store-sales">142 orders this week</div>
+                                </div>
+                                <div class="store-amount">$15,420</div>
+                            </div>
+                            <div class="store-item">
+                                <div class="store-rank second">2</div>
+                                <div class="store-details">
+                                    <div class="store-name">VSU Kearny Mesa</div>
+                                    <div class="store-sales">118 orders this week</div>
+                                </div>
+                                <div class="store-amount">$12,890</div>
+                            </div>
+                            <div class="store-item">
+                                <div class="store-rank third">3</div>
+                                <div class="store-details">
+                                    <div class="store-name">VSU Chula Vista</div>
+                                    <div class="store-sales">96 orders this week</div>
+                                </div>
+                                <div class="store-amount">$10,340</div>
+                            </div>
+                            <div class="store-item">
+                                <div class="store-rank fourth">4</div>
+                                <div class="store-details">
+                                    <div class="store-name">VSU Morena</div>
+                                    <div class="store-sales">87 orders this week</div>
+                                </div>
+                                <div class="store-amount">$9,550</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-file-certificate"></i>
+                            Licenses Status
+                        </h3>
+                        <button class="card-action">Upload</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="licenses-grid">
+                            <div class="license-card">
+                                <div class="license-icon valid">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="license-info">
+                                    <div class="license-name">Business License - Miramar</div>
+                                    <div class="license-meta">Expires: Dec 2025</div>
+                                </div>
+                                <span class="license-status valid">Valid</span>
+                            </div>
+                            <div class="license-card">
+                                <div class="license-icon expiring">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="license-info">
+                                    <div class="license-name">Tobacco License - Morena</div>
+                                    <div class="license-meta">Expires: Jan 2026</div>
+                                </div>
+                                <span class="license-status expiring">Expiring</span>
+                            </div>
+                            <div class="license-card">
+                                <div class="license-icon valid">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="license-info">
+                                    <div class="license-name">Health Permit - Kearny</div>
+                                    <div class="license-meta">Expires: Mar 2026</div>
+                                </div>
+                                <span class="license-status valid">Valid</span>
+                            </div>
+                            <div class="license-card">
+                                <div class="license-icon expiring">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="license-info">
+                                    <div class="license-name">Fire Safety - Chula Vista</div>
+                                    <div class="license-meta">Expires: Feb 2026</div>
+                                </div>
+                                <span class="license-status expiring">Expiring</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-bullhorn"></i>
+                            Recent Announcements
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="announcement-list">
+                            <div class="announcement-item" style="border: 2px dashed var(--border-color); background: transparent; padding: 20px; cursor: pointer; transition: all 0.2s;">
+                                <div style="text-align: center; color: var(--text-muted);">
+                                    <i class="fas fa-plus-circle" style="font-size: 24px; margin-bottom: 8px; color: var(--accent-primary);"></i>
+                                    <div style="font-size: 14px; font-weight: 500;">Click to add a new announcement</div>
+                                </div>
+                            </div>
+                            <div class="announcement-item">
+                                <div class="announcement-date">Dec 02, 2025</div>
+                                <div class="announcement-text">Holiday schedule updates have been posted. Please check your shifts for the upcoming weeks.</div>
+                            </div>
+                            <div class="announcement-item">
+                                <div class="announcement-date">Nov 28, 2025</div>
+                                <div class="announcement-text">New product line arriving next week - mandatory training session on Thursday.</div>
+                            </div>
+                            <div class="announcement-item">
+                                <div class="announcement-date">Nov 25, 2025</div>
+                                <div class="announcement-text">Congratulations to VSU Miramar for hitting Q4 sales targets! 🎉</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Employees -->
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-users"></i>
+                            Recent Employees
+                        </h3>
+                        <button class="card-action">View All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="employee-list">
+                            <div class="employee-item">
+                                <div class="employee-avatar a">MR</div>
+                                <div class="employee-info">
+                                    <div class="employee-name">Marcus Rodriguez</div>
+                                    <div class="employee-role">Store Manager</div>
+                                </div>
+                                <span class="employee-store">Miramar</span>
+                                <div class="employee-status active"></div>
+                            </div>
+                            <div class="employee-item">
+                                <div class="employee-avatar b">SK</div>
+                                <div class="employee-info">
+                                    <div class="employee-name">Sarah Kim</div>
+                                    <div class="employee-role">Sales Associate</div>
+                                </div>
+                                <span class="employee-store">Morena</span>
+                                <div class="employee-status active"></div>
+                            </div>
+                            <div class="employee-item">
+                                <div class="employee-avatar c">JT</div>
+                                <div class="employee-info">
+                                    <div class="employee-name">James Thompson</div>
+                                    <div class="employee-role">Shift Lead</div>
+                                </div>
+                                <span class="employee-store">Kearny Mesa</span>
+                                <div class="employee-status active"></div>
+                            </div>
+                            <div class="employee-item">
+                                <div class="employee-avatar d">AL</div>
+                                <div class="employee-info">
+                                    <div class="employee-name">Amanda Lopez</div>
+                                    <div class="employee-role">Sales Associate</div>
+                                </div>
+                                <span class="employee-store">Chula Vista</span>
+                                <div class="employee-status inactive"></div>
+                            </div>
+                            <div class="employee-item">
+                                <div class="employee-avatar e">DN</div>
+                                <div class="employee-info">
+                                    <div class="employee-name">David Nguyen</div>
+                                    <div class="employee-role">Inventory Specialist</div>
+                                </div>
+                                <span class="employee-store">Miramar</span>
+                                <div class="employee-status active"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Firebase Scripts (Using compat version for traditional script loading) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Environment variables (generated at build time) -->
+    <script src="config/env.js"></script>
+    <!-- Configuration (Update with your actual credentials) -->
+    <script src="config/abundance-config.js"></script>
+
+    <!-- Firebase Utilities -->
+    <script src="js/firebase-utils.js"></script>
+
+    <!-- Firebase Sync Manager -->
+    <script src="js/firebase-sync.js"></script>
+
+    <!-- Authentication Manager -->
+    <script src="js/auth-manager.js"></script>
+
+    <!-- Main Application Script -->
+    <script src="js/script.js"></script>
+
+    <!-- Shopify API Client -->
+    <script src="js/api-client.js"></script>
+
+    <!-- Initialize Application -->
+    <script>
+        // Initialize authentication first
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check if user is authenticated
+            authManager.initialize();
+            
+            if (!authManager.isAuthenticated()) {
+                // Redirect to login if not authenticated
+                console.warn('User not authenticated, redirecting to login...');
+                window.location.href = 'Login.html';
+                return;
+            }
+
+            const user = authManager.getCurrentUser();
+            console.log('✅ User authenticated:', user.email, '- Role:', user.role);
+
+            try {
+                // Initialize Firebase employees
+                await initializeFirebaseEmployees();
+                console.log('✅ Employee management system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase initialization failed, using local fallback data:', error);
+            }
+            
+            // Filter navigation menu based on user role
+            try {
+                filterNavigationByRole();
+                const roleLabel = window.ROLE_PERMISSIONS[user.role]?.label || user.role;
+                console.log(`✅ Navigation filtered for ${roleLabel} role`);
+            } catch (error) {
+                console.warn('⚠️ Navigation filtering failed:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Ascendance Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            border: 1px solid var(--border-color);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+            font-weight: 700;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .remember-me input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .remember-me label {
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .forgot-password {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .forgot-password:hover {
+            opacity: 0.8;
+        }
+
+        .login-btn {
+            padding: 12px 24px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(var(--accent-primary-rgb), 0.3);
+        }
+
+        .demo-btn {
+            padding: 8px 16px;
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .demo-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .theme-toggle-login {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle-login:hover {
+            background: var(--bg-hover);
+        }
+    </style>
+</head>
+<body class="light-theme">
+    <div class="bg-gradient"></div>
+
+    <div class="theme-toggle-login" onclick="toggleTheme()" title="Toggle Theme">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <img src="img/AH.png" alt="Ascendance Hub Logo">
+                </div>
+                <h1>Ascendance Hub</h1>
+                <p>Management System</p>
+            </div>
+
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="remember">
+                        <label for="remember" style="margin: 0;">Remember me</label>
+                    </label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>
+                    Login
+                </button>
+
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;">Demo Users Available:</p>
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="demo-btn" onclick="fillDemo('admin@vsu.com', 'Admin@123')">
+                            <i class="fas fa-crown"></i> Admin
+                        </button>
+                        <button type="button" class="demo-btn" onclick="fillDemo('manager@vsu.com', 'Manager@123')">
+                            <i class="fas fa-chart-bar"></i> Manager
+                        </button>
+                        <button type="button" class="demo-btn" onclick="fillDemo('employee@vsu.com', 'Employee@123')">
+                            <i class="fas fa-user"></i> Employee
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts (Using compat version for traditional script loading) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script src="config/env.js"></script>
+    <script src="config/abundance-config.js"></script>
+    <script src="js/firebase-utils.js"></script>
+    <script src="js/auth-manager.js"></script>
+    <script src="js/script.js"></script>
+    <script>
+        /**
+         * Fill login form with demo credentials
+         */
+        function fillDemo(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+        }
+
+        /**
+         * Handle Login Form Submission
+         */
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+
+            // Validate inputs
+            if (!email || !password) {
+                showLoginError('Please fill in all fields');
+                return;
+            }
+
+            // Show loading state
+            const loginBtn = event.target.querySelector('.login-btn');
+            const originalText = loginBtn.innerHTML;
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
+            // Attempt login
+            setTimeout(() => {
+                try {
+                    const user = authenticateUser(email, password);
+                    
+                    if (user) {
+                        // Store session
+                        storeUserSession(user, remember);
+                        
+                        // Show success message
+                        showLoginSuccess('Login successful! Redirecting...');
+                        
+                        // Redirect after short delay
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1000);
+                    } else {
+                        showLoginError('Invalid email or password');
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = originalText;
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showLoginError('An error occurred during login');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = originalText;
+                }
+            }, 500);
+        }
+
+        /**
+         * Authenticate user against local database
+         */
+        function authenticateUser(email, password) {
+            const usersDB = window.USERS_DATABASE || {};
+            const user = usersDB[email];
+
+            if (!user) {
+                console.warn('User not found:', email);
+                return null;
+            }
+
+            // Simple password check (in production, use bcrypt or similar)
+            if (user.password !== password) {
+                console.warn('Password mismatch for user:', email);
+                return null;
+            }
+
+            console.log('User authenticated:', email, 'Role:', user.role);
+            return user;
+        }
+
+        /**
+         * Store user session in localStorage
+         */
+        function storeUserSession(user, rememberMe = false) {
+            const sessionData = {
+                userId: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                store: user.store,
+                loginTime: new Date().toISOString(),
+                rememberMe: rememberMe
+            };
+
+            // Store in sessionStorage (cleared when browser closes)
+            sessionStorage.setItem('ascendance_user', JSON.stringify(sessionData));
+
+            // Store in localStorage if remember me is checked
+            if (rememberMe) {
+                localStorage.setItem('ascendance_user_remembered', JSON.stringify({
+                    email: user.email,
+                    name: user.name
+                }));
+            } else {
+                localStorage.removeItem('ascendance_user_remembered');
+            }
+
+            // Store auth token
+            const token = generateAuthToken(user);
+            sessionStorage.setItem('authToken', token);
+
+            console.log('Session stored for user:', user.email);
+        }
+
+        /**
+         * Generate a simple auth token
+         */
+        function generateAuthToken(user) {
+            const tokenData = {
+                userId: user.id,
+                email: user.email,
+                role: user.role,
+                timestamp: Date.now()
+            };
+            return btoa(JSON.stringify(tokenData));
+        }
+
+        /**
+         * Show error message
+         */
+        function showLoginError(message) {
+            // Create error element if not exists
+            let errorDiv = document.querySelector('.login-error');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'login-error';
+                document.querySelector('.login-form').insertBefore(errorDiv, document.querySelector('.form-group'));
+            }
+            
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.style.padding = '12px 16px';
+            errorDiv.style.backgroundColor = '#fee2e2';
+            errorDiv.style.color = '#dc2626';
+            errorDiv.style.borderRadius = '8px';
+            errorDiv.style.marginBottom = '20px';
+            errorDiv.style.fontSize = '14px';
+        }
+
+        /**
+         * Show success message
+         */
+        function showLoginSuccess(message) {
+            let successDiv = document.querySelector('.login-success');
+            if (!successDiv) {
+                successDiv = document.createElement('div');
+                successDiv.className = 'login-success';
+                document.querySelector('.login-form').insertBefore(successDiv, document.querySelector('.form-group'));
+            }
+            
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            successDiv.style.padding = '12px 16px';
+            successDiv.style.backgroundColor = '#dcfce7';
+            successDiv.style.color = '#16a34a';
+            successDiv.style.borderRadius = '8px';
+            successDiv.style.marginBottom = '20px';
+            successDiv.style.fontSize = '14px';
+        }
+
+        /**
+         * Check if user is already logged in
+         */
+        function checkExistingSession() {
+            const user = sessionStorage.getItem('ascendance_user');
+            if (user) {
+                // User already logged in, redirect to dashboard
+                window.location.href = 'index.html';
+            }
+
+            // Pre-fill email if remembered
+            const remembered = localStorage.getItem('ascendance_user_remembered');
+            if (remembered) {
+                const data = JSON.parse(remembered);
+                document.getElementById('email').value = data.email;
+            }
+        }
+
+        // Check existing session on page load
+        window.addEventListener('DOMContentLoaded', checkExistingSession);
+    </script>
+</body>
+</html>

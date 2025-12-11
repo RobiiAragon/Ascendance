@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abundance Cloud Engine | Ascendance Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/abundance-styles.css">
+</head>
+<body class="light-theme">
+    <div class="bg-gradient"></div>
+
+    <!-- G Force Modal -->
+    <div class="modal" id="gforce-modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-bolt" style="color: var(--accent-primary);"></i>
+                    G Force - Giselle´s Daily Motivation
+                </h2>
+                <button class="modal-close" onclick="closeGForceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="gforce-body">
+                <div id="gforce-date" style="text-align: center; color: var(--text-muted); margin-bottom: 20px; font-size: 13px;"></div>
+
+                <!-- Quote Card -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-body" style="text-align: center;">
+                        <div id="gforce-quote-text" style="font-size: 1.4rem; line-height: 1.6; margin-bottom: 16px; font-weight: 300;"></div>
+                        <div id="gforce-quote-author" style="text-align: right; color: var(--accent-primary); font-size: 1rem; font-style: italic;"></div>
+                    </div>
+                </div>
+
+                <!-- Affirmations -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-sparkles"></i>
+                            Daily Affirmations
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="gforce-affirmations"></div>
+                    </div>
+                </div>
+
+                <!-- Philosophy -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-seedling"></i>
+                            Daily Philosophy
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="gforce-philosophy-text" style="font-size: 14px; line-height: 1.8; margin-bottom: 20px; color: var(--text-secondary);"></div>
+                        <div id="gforce-tips"></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-secondary" onclick="generateGForceQuote()">
+                        <i class="fas fa-sync-alt"></i> New Quote
+                    </button>
+                    <button class="btn-secondary" onclick="generateGForceAffirmations()">
+                        <i class="fas fa-sync-alt"></i> New Affirmations
+                    </button>
+                    <button class="btn-secondary" onclick="generateGForcePhilosophy()">
+                        <i class="fas fa-sync-alt"></i> New Philosophy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="img/AH.png" alt="Ascendance Hub" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+                <div class="logo-text">
+                    <h1>Ascendance</h1>
+                    <span>Hub Management</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-section">
+            <div class="nav-label">Main Menu</div>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-th-large"></i></span>
+                Dashboard
+            </a>
+            <!-- Employees with dropdown -->
+            <div>
+                <a href="#" class="nav-item has-dropdown" onclick="toggleDropdown(event, 'employees'); return false;">
+                    <span class="nav-icon"><i class="fas fa-users"></i></span>
+                    Employees
+                    <span class="nav-badge">20</span>
+                    <i class="fas fa-chevron-down dropdown-icon"></i>
+                </a>
+                <div class="nav-dropdown" id="dropdown-employees">
+                    <a href="index.html" class="nav-dropdown-item">
+                        <span>All Employees</span>
+                    </a>
+                    <a href="index.html" class="nav-dropdown-item">
+                        <span>Clock In/Out</span>
+                    </a>
+                </div>
+            </div>
+
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
+                Training Center
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
+                Licenses & Docs
+                <span class="nav-badge" style="background: var(--warning);">2</span>
+            </a>
+
+            <!-- Sales Analytics with dropdown -->
+            <div>
+                <a href="#" class="nav-item has-dropdown" onclick="toggleDropdown(event, 'sales'); return false;">
+                    <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
+                    Sales Analytics
+                    <i class="fas fa-chevron-down dropdown-icon"></i>
+                </a>
+                <div class="nav-dropdown" id="dropdown-sales">
+                    <a href="index.html" class="nav-dropdown-item">
+                        <span>Overview</span>
+                    </a>
+                    <a href="index.html" class="nav-dropdown-item">
+                        <span>Daily Sales</span>
+                    </a>
+                </div>
+            </div>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-box"></i></span>
+                New Stuff
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-boxes"></i></span>
+                Restock Requests
+            </a>
+            <a href="abundance-cloud.html" class="nav-item active">
+                <span class="nav-icon"><i class="fas fa-cloud"></i></span>
+                Abundance Cloud Engine
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
+                Announcements
+                <span class="nav-badge">3</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openThiefReportModal(); return false;">
+                <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
+                Thieves
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                Invoices
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                Issues
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-briefcase"></i></span>
+                G Suite
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-truck"></i></span>
+                Vendors
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
+                Cash Out
+            </a>
+            <a href="index.html" class="nav-item external-link">
+                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
+                Schedule
+            </a>
+            <a href="#" class="nav-item" onclick="openGForceModal(); return false;">
+                <span class="nav-icon"><i class="fas fa-bolt"></i></span>
+                G Force
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="sidebar-footer-btn" onclick="logout()" title="Logout">
+                <i class="fas fa-arrow-right-from-bracket"></i>
+            </button>
+            <button class="sidebar-footer-btn" onclick="toggleTheme()" title="Toggle Theme">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="page-title">Abundance Cloud Engine ⚙️</h1>
+                <div class="breadcrumb">
+                    <a href="index.html">Home</a>
+                    <i class="fas fa-chevron-right" style="font-size: 10px;"></i>
+                    <span>Abundance Cloud Engine</span>
+                </div>
+            </div>
+
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="orderSearch" placeholder="Search orders...">
+            </div>
+
+            <div class="header-right">
+                <div class="user-menu">
+                    <div class="user-avatar">CA</div>
+                    <div class="user-info">
+                        <span class="user-name">Carlos Armando</span>
+                        <span class="user-role">Super Admin</span>
+                    </div>
+                    <i class="fas fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard">
+            <!-- Quick Actions -->
+            <div class="abundance-quick-actions">
+                <button class="abundance-action-btn shipping" onclick="showMarkAsSection('shipping')">
+                    <div class="action-icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <span>Mark as Prepared</span>
+                </button>
+                <button class="abundance-action-btn pickup" onclick="showMarkAsSection('pickup')">
+                    <div class="action-icon">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <span>Mark Ready for Pickup</span>
+                </button>
+                <button class="abundance-action-btn delivered" onclick="showMarkAsSection('delivered')">
+                    <div class="action-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <span>Mark Delivered</span>
+                </button>
+                <a href="https://admin.shopify.com/store/k1xm3v-v0/orders" target="_blank" rel="noopener noreferrer" class="abundance-action-btn shopify">
+                    <div class="action-icon">
+                        <i class="fab fa-shopify"></i>
+                    </div>
+                    <span>Go to Shopify Admin</span>
+                </a>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="abundance-filter-tabs">
+                <button class="filter-tab active" data-filter="all" onclick="filterOrders('all')">
+                    <i class="fas fa-border-all"></i>
+                    <span>All</span>
+                </button>
+                <button class="filter-tab" data-filter="shipping" onclick="filterOrders('shipping')">
+                    <i class="fas fa-truck"></i>
+                    <span>Shipping</span>
+                </button>
+                <button class="filter-tab" data-filter="pickup" onclick="filterOrders('pickup')">
+                    <i class="fas fa-store"></i>
+                    <span>Pickup</span>
+                </button>
+                <button class="filter-tab" data-filter="manual" onclick="filterOrders('manual')">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Manual</span>
+                </button>
+            </div>
+
+            <!-- Orders Table Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-list"></i>
+                        Orders
+                    </h3>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span id="selectedCount" class="text-muted" style="font-size: 13px; display: none;">
+                            <span id="selectedNum">0</span> selected
+                        </span>
+                        <button class="btn-secondary" id="printSelectedBtn" onclick="printSelected()" style="display: none;">
+                            <i class="fas fa-print"></i>
+                            Print Selected
+                        </button>
+                        <button class="card-action" onclick="refreshOrders()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="loadingOrders" class="loading-state">
+                        <div class="spinner"></div>
+                        <span>Loading orders...</span>
+                    </div>
+                    <div id="ordersTableContainer" style="display: none;">
+                        <table class="abundance-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th>#</th>
+                                    <th>Customer</th>
+                                    <th>Line Items</th>
+                                    <th>Status</th>
+                                    <th>Pickup / Shipping</th>
+                                    <th>Taxes</th>
+                                    <th>Total</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <!-- Orders will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="emptyState" class="empty-state" style="display: none;">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No orders found</h3>
+                        <p>Orders will appear here once they are available</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mark As Modal -->
+    <div class="modal" id="markAsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="markAsTitle">Mark Order</h2>
+                <button class="modal-close" onclick="closeMarkAsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="markAsForm">
+                    <div class="form-group">
+                        <label>Order ID or Number:</label>
+                        <input type="text" id="markAsOrderInput" class="form-input" placeholder="Enter order ID or scan barcode" required>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="button" class="btn-secondary" onclick="toggleBarcodeScanner()">
+                            <i class="fas fa-camera"></i>
+                            <span id="scannerBtnText">Scan with Camera</span>
+                        </button>
+                    </div>
+
+                    <div id="barcodeScannerContainer" style="display: none;">
+                        <video id="barcodeVideo" style="width: 100%; border-radius: 12px; margin: 16px 0;"></video>
+                        <canvas id="barcodeCanvas" style="display: none;"></canvas>
+                    </div>
+
+                    <div id="markAsMessage" class="alert" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeMarkAsModal()">Cancel</button>
+                <button type="button" class="btn-primary" id="markAsSubmitBtn" onclick="submitMarkAs()">
+                    <i class="fas fa-check"></i>
+                    <span id="markAsSubmitText">Submit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal" id="orderDetailsModal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h2 id="orderDetailsTitle">Order Details</h2>
+                <button class="modal-close" onclick="closeOrderDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="orderDetailsBody">
+                <!-- Order details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeOrderDetailsModal()">Close</button>
+                <button type="button" class="btn-primary" onclick="printOrder()">
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thief Report Modal -->
+    <div class="modal" id="thiefReportModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-user-secret" style="color: var(--danger);"></i>
+                    Report Theft Incident
+                </h2>
+                <button class="modal-close" onclick="closeThiefReportModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="thiefReportForm">
+                    <!-- Photo Upload -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-camera"></i> Photo of Suspect *
+                        </label>
+                        <div id="photoUploadArea" class="photo-upload-area" onclick="document.getElementById('thiefPhotoInput').click()">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                            <p style="color: var(--text-muted); margin: 0;">Click to upload or drag and drop</p>
+                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">PNG, JPG up to 10MB</p>
+                        </div>
+                        <input type="file" id="thiefPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)" required>
+                        <div id="photoPreview" style="display: none; margin-top: 12px;">
+                            <img id="photoPreviewImg" style="max-width: 100%; max-height: 300px; border-radius: 12px; border: 2px solid var(--border-color);">
+                            <button type="button" class="btn-secondary" onclick="removePhoto()" style="margin-top: 8px; width: 100%;">
+                                <i class="fas fa-trash"></i> Remove Photo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Store Location -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-store"></i> Store Location *
+                        </label>
+                        <select id="storeLocation" class="form-input" required>
+                            <option value="">Select store...</option>
+                            <option value="VSU Miramar">VSU Miramar</option>
+                            <option value="VSU Chulavista">VSU Chulavista</option>
+                            <option value="VSU North Park">VSU North Park</option>
+                            <option value="VSU Morena">VSU Morena</option>
+                            <option value="VSU Kearny Mesa">VSU Kearny Mesa</option>
+                            <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                        </select>
+                    </div>
+
+                    <!-- Date and Time -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                                <i class="fas fa-calendar"></i> Approximate Date *
+                            </label>
+                            <input type="date" id="incidentDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                                <i class="fas fa-clock"></i> Approximate Time *
+                            </label>
+                            <input type="time" id="incidentTime" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <!-- Identifying Characteristics -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-id-badge"></i> Identifying Characteristics
+                        </label>
+                        <textarea id="identifyingMarks" class="form-input" rows="4" placeholder="Describe any distinctive features: tattoos, scars, clothing, accessories, approximate height/build, hair color, etc." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-clipboard"></i> Additional Notes
+                        </label>
+                        <textarea id="additionalNotes" class="form-input" rows="3" placeholder="Any other relevant information about the incident..." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <div id="thiefReportMessage" class="alert" style="display: none; margin-top: 16px;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeThiefReportModal()">Cancel</button>
+                <button type="button" class="btn-primary" id="submitThiefReportBtn" onclick="submitThiefReport()">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/abundance-cloud.js"></script>
+</body>
+</html>
