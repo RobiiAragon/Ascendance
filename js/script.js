@@ -58,6 +58,67 @@
         ];
 
         /**
+         * Compress image to ensure it's under the specified max size
+         * Uses canvas to resize and reduce quality
+         * @param {string} base64String - The base64 encoded image string
+         * @param {number} maxSizeKB - Maximum size in KB (default 700KB to be safe under Firestore 1MB limit)
+         * @param {number} maxWidth - Maximum width in pixels (default 1200)
+         * @param {number} maxHeight - Maximum height in pixels (default 1200)
+         * @returns {Promise<string>} - Compressed base64 image string
+         */
+        async function compressImage(base64String, maxSizeKB = 700, maxWidth = 1200, maxHeight = 1200) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions while maintaining aspect ratio
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Start with high quality and reduce until under max size
+                    let quality = 0.9;
+                    let result = canvas.toDataURL('image/jpeg', quality);
+
+                    // Iteratively reduce quality until under max size
+                    while (result.length > maxSizeKB * 1024 * 1.37 && quality > 0.1) { // 1.37 accounts for base64 overhead
+                        quality -= 0.1;
+                        result = canvas.toDataURL('image/jpeg', quality);
+                    }
+
+                    // If still too large, reduce dimensions further
+                    if (result.length > maxSizeKB * 1024 * 1.37) {
+                        const scaleFactor = 0.7;
+                        canvas.width = Math.round(width * scaleFactor);
+                        canvas.height = Math.round(height * scaleFactor);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        result = canvas.toDataURL('image/jpeg', 0.7);
+                    }
+
+                    console.log(`Image compressed: ${Math.round(base64String.length / 1024)}KB -> ${Math.round(result.length / 1024)}KB`);
+                    resolve(result);
+                };
+
+                img.onerror = function() {
+                    reject(new Error('Failed to load image for compression'));
+                };
+
+                img.src = base64String;
+            });
+        }
+
+        /**
          * Initialize Firebase and load announcements from Firestore
          */
         async function initializeFirebaseAnnouncements() {
@@ -5687,10 +5748,17 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 // Image was explicitly removed
                 image = null;
             } else if (imageInput?.files && imageInput.files.length > 0) {
-                // New image uploaded - get from preview
-                const previewImg = document.querySelector('#treasury-image-preview img');
-                if (previewImg) {
-                    image = previewImg.src;
+                // New image uploaded - convert to base64 and compress
+                const rawBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(imageInput.files[0]);
+                });
+                try {
+                    image = await compressImage(rawBase64);
+                } catch (err) {
+                    console.error('Error compressing treasury image:', err);
+                    image = rawBase64;
                 }
             } else if (isEdit) {
                 // Keep existing image
@@ -6079,14 +6147,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            // Convert photo to base64 if provided
+            // Convert photo to base64 if provided and compress it
             let photoBase64 = null;
             if (photoInput && photoInput.files && photoInput.files[0]) {
-                photoBase64 = await new Promise((resolve) => {
+                const rawBase64 = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(photoInput.files[0]);
                 });
+                // Compress the image to ensure it's under Firestore's 1MB limit
+                try {
+                    photoBase64 = await compressImage(rawBase64);
+                } catch (err) {
+                    console.error('Error compressing image:', err);
+                    photoBase64 = rawBase64; // Fallback to original if compression fails
+                }
             }
 
             const newRecord = {
@@ -6636,14 +6711,41 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         gift.store = store;
                         gift.date = date;
                         gift.notes = notes;
+                        // Convert and compress photo if new one provided
                         if (photoInput && photoInput.files.length > 0) {
-                            gift.photo = URL.createObjectURL(photoInput.files[0]);
+                            const rawBase64 = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onload = (e) => resolve(e.target.result);
+                                reader.readAsDataURL(photoInput.files[0]);
+                            });
+                            try {
+                                gift.photo = await compressImage(rawBase64);
+                            } catch (err) {
+                                console.error('Error compressing gift image:', err);
+                                gift.photo = rawBase64;
+                            }
                         }
                     } else {
                         alert('Gift record not found');
                         return;
                     }
                 } else {
+                    // Convert and compress photo if provided
+                    let photoBase64 = null;
+                    if (photoInput && photoInput.files.length > 0) {
+                        const rawBase64 = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => resolve(e.target.result);
+                            reader.readAsDataURL(photoInput.files[0]);
+                        });
+                        try {
+                            photoBase64 = await compressImage(rawBase64);
+                        } catch (err) {
+                            console.error('Error compressing gift image:', err);
+                            photoBase64 = rawBase64;
+                        }
+                    }
+
                     const giftData = {
                         product,
                         quantity,
@@ -6654,7 +6756,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         store,
                         date,
                         notes,
-                        photo: photoInput && photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : null
+                        photo: photoBase64
                     };
 
                     // Save to Firebase
@@ -6876,14 +6978,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
             }
 
-            // Convert receipt to base64 if provided
+            // Convert receipt to base64 if provided and compress it
             let receiptBase64 = null;
             if (receiptInput && receiptInput.files && receiptInput.files[0]) {
-                receiptBase64 = await new Promise((resolve) => {
+                const rawBase64 = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(receiptInput.files[0]);
                 });
+                // Compress the image to ensure it's under Firestore's 1MB limit
+                try {
+                    receiptBase64 = await compressImage(rawBase64);
+                } catch (err) {
+                    console.error('Error compressing receipt image:', err);
+                    receiptBase64 = rawBase64;
+                }
             }
 
             const updateData = {
@@ -7800,11 +7909,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             try {
-                // Get image as base64 if uploaded
+                // Get image as base64 if uploaded and compress it
                 let image = null;
-                const previewImg = document.querySelector('#vendor-image-preview img');
-                if (previewImg && imageInput.files && imageInput.files.length > 0) {
-                    image = previewImg.src; // Base64 DataURL from preview
+                if (imageInput.files && imageInput.files.length > 0) {
+                    const rawBase64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(imageInput.files[0]);
+                    });
+                    try {
+                        image = await compressImage(rawBase64);
+                    } catch (err) {
+                        console.error('Error compressing vendor image:', err);
+                        image = rawBase64;
+                    }
                 }
 
                 const newVendor = {
@@ -8123,10 +8241,17 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     // Image was explicitly removed
                     image = null;
                 } else if (imageInput?.files && imageInput.files.length > 0) {
-                    // New image uploaded
-                    const previewImg = document.querySelector('#edit-vendor-image-preview img');
-                    if (previewImg) {
-                        image = previewImg.src;
+                    // New image uploaded - convert to base64 and compress
+                    const rawBase64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(imageInput.files[0]);
+                    });
+                    try {
+                        image = await compressImage(rawBase64);
+                    } catch (err) {
+                        console.error('Error compressing vendor image:', err);
+                        image = rawBase64;
                     }
                 } else {
                     // Keep existing image

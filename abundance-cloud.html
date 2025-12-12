@@ -103,7 +103,6 @@
                 <a href="#" class="nav-item has-dropdown" data-page="employees" onclick="toggleDropdown(event, 'employees'); return false;">
                     <span class="nav-icon"><i class="fas fa-users"></i></span>
                     Employees
-                    <span class="nav-badge">20</span>
                     <i class="fas fa-chevron-down dropdown-icon"></i>
                 </a>
                 <div class="nav-dropdown" id="dropdown-employees">
@@ -113,7 +112,7 @@
                 </div>
             </div>
 
-            <a href="#" class="nav-item external-link" data-page="clockin" onclick="navigateTo('clockin'); return false;">
+            <a href="index.html" class="nav-item external-link" data-page="clockin">
                 <span class="nav-icon"><i class="fas fa-clock"></i></span>
                 Clock In/Out
             </a>
@@ -125,25 +124,8 @@
             <a href="index.html" class="nav-item external-link" data-page="licenses">
                 <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
                 Licenses & Docs
-                <span class="nav-badge" style="background: var(--warning);">2</span>
             </a>
 
-            <!-- Sales Analytics with dropdown -->
-            <div>
-                <a href="#" class="nav-item has-dropdown" data-page="analytics" onclick="toggleDropdown(event, 'sales'); return false;">
-                    <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
-                    Sales Analytics
-                    <i class="fas fa-chevron-down dropdown-icon"></i>
-                </a>
-                <div class="nav-dropdown" id="dropdown-sales">
-                    <a href="index.html" class="nav-dropdown-item" data-page="analytics">
-                        <span>Overview</span>
-                    </a>
-                    <a href="index.html" class="nav-dropdown-item" data-page="dailysales">
-                        <span>Daily Sales</span>
-                    </a>
-                </div>
-            </div>
             <a href="index.html" class="nav-item external-link" data-page="newstuff">
                 <span class="nav-icon"><i class="fas fa-box"></i></span>
                 New Stuff
@@ -159,35 +141,46 @@
             <a href="index.html" class="nav-item external-link" data-page="announcements">
                 <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
                 Announcements
-                <span class="nav-badge">3</span>
             </a>
-            <a href="#" class="nav-item" data-page="thieves" onclick="openThiefReportModal(); return false;">
+            <a href="index.html" class="nav-item external-link" data-page="thieves">
                 <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
-                Thieves
+                Thieves Database
             </a>
             <a href="index.html" class="nav-item external-link" data-page="invoices">
                 <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                Invoices
+                Invoices & Payments
             </a>
             <a href="index.html" class="nav-item external-link" data-page="issues">
                 <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                Issues
+                Issues Registry
             </a>
-            <a href="index.html" class="nav-item external-link" data-page="gsuite">
-                <span class="nav-icon"><i class="fas fa-briefcase"></i></span>
-                G Suite
+            <a href="index.html" class="nav-item external-link" data-page="gconomics">
+                <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+                Gconomics
             </a>
             <a href="index.html" class="nav-item external-link" data-page="vendors">
                 <span class="nav-icon"><i class="fas fa-truck"></i></span>
-                Vendors
+                Vendors & Suppliers
             </a>
             <a href="index.html" class="nav-item external-link" data-page="cashout">
                 <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
                 Cash Out
             </a>
-            <a href="index.html" class="nav-item external-link" data-page="schedule">
-                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
-                Schedule
+            <a href="index.html" class="nav-item external-link" data-page="treasury">
+                <span class="nav-icon"><i class="fas fa-vault"></i></span>
+                Treasury Pieces
+            </a>
+            <a href="index.html" class="nav-item external-link" data-page="change">
+                <span class="nav-icon"><i class="fas fa-coins"></i></span>
+                Change Records
+            </a>
+            <a href="index.html" class="nav-item external-link" data-page="gifts">
+                <span class="nav-icon"><i class="fas fa-gift"></i></span>
+                Gifts
+            </a>
+            <a href="index.html" class="nav-item external-link" data-page="risknotes">
+                <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
+                Risk Notes
             </a>
             <a href="#" class="nav-item" data-page="gforce" onclick="openGForceModal(); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
