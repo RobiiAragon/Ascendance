@@ -255,14 +255,138 @@ class FirebaseSyncManager {
         try {
             // Delete all existing users
             await this.deleteAllUsers();
-            
+
             // Sync default users
             await this.syncUsersToFirestore();
-            
+
             console.log('✅ Users reset to default sample data');
             return true;
         } catch (error) {
             console.error('Error resetting users:', error);
+            return false;
+        }
+    }
+
+    // ==================== RISK NOTES ====================
+
+    /**
+     * Save a risk note to Firestore
+     */
+    async saveRiskNoteToFirestore(note) {
+        if (!this.isInitialized) {
+            console.error('Firebase not initialized');
+            return null;
+        }
+
+        try {
+            const riskNotesCollection = window.FIREBASE_COLLECTIONS?.riskNotes || 'riskNotes';
+            const noteData = {
+                ...note,
+                updatedAt: new Date()
+            };
+
+            // If note has firestoreId, update existing document
+            if (note.firestoreId) {
+                await this.db.collection(riskNotesCollection).doc(note.firestoreId).set(noteData, { merge: true });
+                console.log('✅ Risk note updated in Firestore');
+                return note.firestoreId;
+            } else {
+                // Create new document
+                noteData.createdAt = new Date();
+                const docRef = await this.db.collection(riskNotesCollection).add(noteData);
+                console.log('✅ Risk note saved to Firestore:', docRef.id);
+                return docRef.id;
+            }
+        } catch (error) {
+            console.error('Error saving risk note to Firestore:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Delete a risk note from Firestore
+     */
+    async deleteRiskNoteFromFirestore(firestoreId) {
+        if (!this.isInitialized) {
+            console.error('Firebase not initialized');
+            return false;
+        }
+
+        try {
+            const riskNotesCollection = window.FIREBASE_COLLECTIONS?.riskNotes || 'riskNotes';
+            await this.db.collection(riskNotesCollection).doc(firestoreId).delete();
+            console.log('✅ Risk note deleted from Firestore');
+            return true;
+        } catch (error) {
+            console.error('Error deleting risk note from Firestore:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load all risk notes from Firestore
+     */
+    async loadRiskNotesFromFirestore() {
+        if (!this.isInitialized) {
+            console.error('Firebase not initialized');
+            return [];
+        }
+
+        try {
+            const riskNotesCollection = window.FIREBASE_COLLECTIONS?.riskNotes || 'riskNotes';
+            const snapshot = await this.db.collection(riskNotesCollection)
+                .orderBy('date', 'desc')
+                .get();
+
+            const notes = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                notes.push({
+                    ...data,
+                    firestoreId: doc.id,
+                    // Convert Firestore timestamps to ISO strings
+                    createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+                    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt
+                });
+            });
+
+            console.log(`✅ Loaded ${notes.length} risk notes from Firestore`);
+            return notes;
+        } catch (error) {
+            console.error('Error loading risk notes from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Sync local risk notes to Firestore (for migration)
+     */
+    async syncLocalRiskNotesToFirestore(localNotes) {
+        if (!this.isInitialized) {
+            console.error('Firebase not initialized');
+            return false;
+        }
+
+        try {
+            const riskNotesCollection = window.FIREBASE_COLLECTIONS?.riskNotes || 'riskNotes';
+            const promises = [];
+
+            for (const note of localNotes) {
+                if (!note.firestoreId) {
+                    const noteData = {
+                        ...note,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    };
+                    promises.push(this.db.collection(riskNotesCollection).add(noteData));
+                }
+            }
+
+            const results = await Promise.all(promises);
+            console.log(`✅ ${results.length} local risk notes synced to Firestore`);
+            return true;
+        } catch (error) {
+            console.error('Error syncing local risk notes to Firestore:', error);
             return false;
         }
     }

@@ -341,6 +341,140 @@ class FirebaseEmployeeManager {
         };
         return colors[role] || '#6b7280';
     }
+
+    /**
+     * Upload employee paperwork file to Firebase Storage
+     * @param {string} employeeId - Employee Firestore ID
+     * @param {File} file - File to upload
+     * @param {string} documentType - Type of document (e.g., 'ID', 'Contract', 'Certificate')
+     * @returns {Promise<Object>} Upload result with URL and metadata
+     */
+    async uploadPaperwork(employeeId, file, documentType = 'Other') {
+        try {
+            if (!this.isInitialized) {
+                console.error('Firebase not initialized.');
+                return null;
+            }
+
+            // Initialize storage if not already done
+            if (!this.storage) {
+                this.storage = firebase.storage();
+            }
+
+            // Create a unique filename with timestamp
+            const timestamp = Date.now();
+            const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const storagePath = `employee-paperwork/${employeeId}/${timestamp}_${sanitizedFileName}`;
+
+            // Upload file to Firebase Storage
+            const storageRef = this.storage.ref(storagePath);
+            const uploadTask = await storageRef.put(file);
+
+            // Get download URL
+            const downloadURL = await uploadTask.ref.getDownloadURL();
+
+            // Create paperwork metadata
+            const paperworkData = {
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                documentType: documentType,
+                storagePath: storagePath,
+                downloadURL: downloadURL,
+                uploadedAt: new Date(),
+                uploadedBy: this.currentUser?.uid || 'unknown'
+            };
+
+            // Add paperwork metadata to employee document
+            const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+            const employeeDoc = await this.db.collection(employeesCollection).doc(employeeId).get();
+
+            if (employeeDoc.exists) {
+                const currentPaperwork = employeeDoc.data().paperwork || [];
+                currentPaperwork.push(paperworkData);
+
+                await this.db.collection(employeesCollection).doc(employeeId).update({
+                    paperwork: currentPaperwork,
+                    updatedAt: new Date()
+                });
+            }
+
+            console.log('Paperwork uploaded successfully:', downloadURL);
+            return paperworkData;
+        } catch (error) {
+            console.error('Error uploading paperwork:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete employee paperwork file from Firebase Storage
+     * @param {string} employeeId - Employee Firestore ID
+     * @param {string} storagePath - Storage path of the file to delete
+     * @returns {Promise<boolean>} Success status
+     */
+    async deletePaperwork(employeeId, storagePath) {
+        try {
+            if (!this.isInitialized) {
+                console.error('Firebase not initialized.');
+                return false;
+            }
+
+            // Initialize storage if not already done
+            if (!this.storage) {
+                this.storage = firebase.storage();
+            }
+
+            // Delete file from Firebase Storage
+            const storageRef = this.storage.ref(storagePath);
+            await storageRef.delete();
+
+            // Remove paperwork metadata from employee document
+            const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+            const employeeDoc = await this.db.collection(employeesCollection).doc(employeeId).get();
+
+            if (employeeDoc.exists) {
+                const currentPaperwork = employeeDoc.data().paperwork || [];
+                const updatedPaperwork = currentPaperwork.filter(p => p.storagePath !== storagePath);
+
+                await this.db.collection(employeesCollection).doc(employeeId).update({
+                    paperwork: updatedPaperwork,
+                    updatedAt: new Date()
+                });
+            }
+
+            console.log('Paperwork deleted successfully:', storagePath);
+            return true;
+        } catch (error) {
+            console.error('Error deleting paperwork:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get all paperwork for an employee
+     * @param {string} employeeId - Employee Firestore ID
+     * @returns {Promise<Array>} Array of paperwork metadata
+     */
+    async getPaperwork(employeeId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized.');
+                return [];
+            }
+
+            const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+            const employeeDoc = await this.db.collection(employeesCollection).doc(employeeId).get();
+
+            if (employeeDoc.exists) {
+                return employeeDoc.data().paperwork || [];
+            }
+            return [];
+        } catch (error) {
+            console.error('Error getting paperwork:', error);
+            return [];
+        }
+    }
 }
 
 // Initialize global Firebase manager
@@ -1095,8 +1229,9 @@ class FirebaseTrainingManager {
                     fileSize: data.fileSize || null,
                     duration: data.duration || '30 min',
                     completion: data.completion || 0,
-                    required: data.required !== undefined ? data.required : true,
+                    required: data.required !== undefined ? data.required : false,
                     description: data.description || '',
+                    completions: data.completions || [],
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt
                 });
@@ -1127,10 +1262,21 @@ class FirebaseTrainingManager {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
             const path = `trainings/${trainingId || 'temp'}/${timestamp}_${safeName}`;
 
+            console.log('📤 Starting upload to:', path);
+
             const storageRef = this.storage.ref(path);
 
+            // Set custom metadata
+            const metadata = {
+                contentType: file.type,
+                customMetadata: {
+                    'uploadedAt': new Date().toISOString(),
+                    'originalName': file.name
+                }
+            };
+
             // Upload file with progress tracking
-            const uploadTask = storageRef.put(file);
+            const uploadTask = storageRef.put(file, metadata);
 
             return new Promise((resolve, reject) => {
                 uploadTask.on('state_changed',
@@ -1145,24 +1291,43 @@ class FirebaseTrainingManager {
                         }));
                     },
                     (error) => {
-                        console.error('Upload error:', error);
-                        reject(error);
+                        console.error('❌ Upload error:', error);
+                        console.error('Error code:', error.code);
+                        console.error('Error message:', error.message);
+
+                        // Provide more detailed error info
+                        if (error.code === 'storage/unauthorized') {
+                            reject(new Error('Storage permission denied. Please check Firebase Storage rules.'));
+                        } else if (error.code === 'storage/canceled') {
+                            reject(new Error('Upload was canceled.'));
+                        } else if (error.code === 'storage/unknown') {
+                            reject(new Error('Unknown error occurred. Firebase Storage might not be enabled.'));
+                        } else {
+                            reject(error);
+                        }
                     },
                     async () => {
-                        // Get download URL
-                        const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
-                        resolve({
-                            url: downloadUrl,
-                            path: path,
-                            fileName: file.name,
-                            fileSize: file.size,
-                            fileType: file.type
-                        });
+                        try {
+                            // Get download URL
+                            const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
+                            console.log('✅ Upload successful! URL:', downloadUrl);
+
+                            resolve({
+                                url: downloadUrl,
+                                path: path,
+                                fileName: file.name,
+                                fileSize: file.size,
+                                fileType: file.type
+                            });
+                        } catch (urlError) {
+                            console.error('❌ Error getting download URL:', urlError);
+                            reject(urlError);
+                        }
                     }
                 );
             });
         } catch (error) {
-            console.error('Error uploading file:', error);
+            console.error('❌ Error uploading file:', error);
             throw error;
         }
     }
@@ -1371,6 +1536,166 @@ class FirebaseTrainingManager {
         } catch (error) {
             console.error('Error setting up trainings listener:', error);
             return null;
+        }
+    }
+
+    /**
+     * Mark employee as completed for a training
+     * @param {string} trainingId - Training ID
+     * @param {string} employeeId - Employee ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async markEmployeeCompleted(trainingId, employeeId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized');
+                return false;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const trainingRef = this.db.collection(trainingsCollection).doc(trainingId);
+
+            // Get current training data
+            const trainingDoc = await trainingRef.get();
+            if (!trainingDoc.exists) {
+                console.error('Training not found');
+                return false;
+            }
+
+            const completions = trainingDoc.data().completions || [];
+
+            // Check if employee already completed
+            const existingIndex = completions.findIndex(c => c.employeeId === employeeId);
+
+            if (existingIndex >= 0) {
+                // Update existing completion
+                completions[existingIndex].completedAt = new Date();
+            } else {
+                // Add new completion
+                completions.push({
+                    employeeId: employeeId,
+                    completedAt: new Date()
+                });
+            }
+
+            await trainingRef.update({
+                completions: completions,
+                updatedAt: new Date()
+            });
+
+            console.log('Employee marked as completed for training:', trainingId);
+            return true;
+        } catch (error) {
+            console.error('Error marking employee as completed:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Remove employee completion for a training
+     * @param {string} trainingId - Training ID
+     * @param {string} employeeId - Employee ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async removeEmployeeCompletion(trainingId, employeeId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized');
+                return false;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const trainingRef = this.db.collection(trainingsCollection).doc(trainingId);
+
+            // Get current training data
+            const trainingDoc = await trainingRef.get();
+            if (!trainingDoc.exists) {
+                console.error('Training not found');
+                return false;
+            }
+
+            const completions = trainingDoc.data().completions || [];
+            const updatedCompletions = completions.filter(c => c.employeeId !== employeeId);
+
+            await trainingRef.update({
+                completions: updatedCompletions,
+                updatedAt: new Date()
+            });
+
+            console.log('Employee completion removed for training:', trainingId);
+            return true;
+        } catch (error) {
+            console.error('Error removing employee completion:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get completion stats for a training
+     * @param {string} trainingId - Training ID
+     * @returns {Promise<Object>} Completion stats
+     */
+    async getCompletionStats(trainingId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized');
+                return null;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const trainingDoc = await this.db.collection(trainingsCollection).doc(trainingId).get();
+
+            if (!trainingDoc.exists) {
+                return null;
+            }
+
+            const completions = trainingDoc.data().completions || [];
+
+            return {
+                totalCompleted: completions.length,
+                completions: completions
+            };
+        } catch (error) {
+            console.error('Error getting completion stats:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get all mandatory trainings with completion status
+     * @returns {Promise<Array>} Array of mandatory trainings with completion data
+     */
+    async getMandatoryTrainings() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Training Manager not initialized');
+                return [];
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const snapshot = await this.db.collection(trainingsCollection)
+                .where('required', '==', true)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const trainings = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                trainings.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    title: data.title || '',
+                    type: data.type || 'video',
+                    required: data.required !== undefined ? data.required : true,
+                    completions: data.completions || [],
+                    createdAt: data.createdAt
+                });
+            });
+
+            return trainings;
+        } catch (error) {
+            console.error('Error loading mandatory trainings:', error);
+            return [];
         }
     }
 }
@@ -1772,6 +2097,7 @@ class FirebaseInvoiceManager {
                     dueDate: data.dueDate || '',
                     paidDate: data.paidDate || null,
                     status: data.status || 'pending',
+                    paymentAccount: data.paymentAccount || '',
                     recurring: data.recurring || false,
                     notes: data.notes || '',
                     photo: data.photo || null,
@@ -2186,6 +2512,7 @@ class FirebaseRestockRequestsManager {
                     id: doc.id,
                     firestoreId: doc.id,
                     productName: data.productName || '',
+                    itemType: data.itemType || 'product',
                     quantity: data.quantity || 0,
                     store: data.store || '',
                     requestedBy: data.requestedBy || '',
@@ -3078,3 +3405,436 @@ class FirebaseIssuesManager {
 
 // Initialize global Firebase Issues Manager
 const firebaseIssuesManager = new FirebaseIssuesManager();
+
+/**
+ * Firebase Licenses Manager
+ * Handles Firestore operations for licenses and documents with PDF support
+ */
+class FirebaseLicensesManager {
+    constructor() {
+        this.db = null;
+        this.storage = null;
+        this.isInitialized = false;
+        this.collectionName = 'licenses';
+    }
+
+    /**
+     * Initialize Firebase connection
+     */
+    async initialize() {
+        try {
+            if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+                console.error('Firebase SDK not loaded');
+                return false;
+            }
+
+            if (firebase.apps && firebase.apps.length > 0) {
+                this.db = firebase.firestore();
+                this.storage = firebase.storage();
+                this.isInitialized = true;
+                console.log('✅ Firebase Licenses Manager initialized');
+                return true;
+            }
+
+            const config = window.FIREBASE_CONFIG;
+            if (!config) {
+                console.error('Firebase config not found');
+                return false;
+            }
+
+            firebase.initializeApp(config);
+            this.db = firebase.firestore();
+            this.storage = firebase.storage();
+            this.isInitialized = true;
+            console.log('✅ Firebase Licenses Manager initialized');
+            return true;
+        } catch (error) {
+            console.error('Error initializing Firebase Licenses Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Upload PDF file to Firebase Storage
+     * @param {File} file - PDF file to upload
+     * @param {string} licenseId - License ID for path organization
+     * @returns {Promise<Object>} Upload result with URL and metadata
+     */
+    async uploadFile(file, licenseId = null) {
+        try {
+            if (!this.isInitialized || !this.storage) {
+                throw new Error('Firebase Storage not initialized');
+            }
+
+            // Generate unique filename
+            const timestamp = Date.now();
+            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const path = `licenses/${licenseId || timestamp}/${timestamp}_${safeName}`;
+
+            console.log('📤 Uploading license to:', path);
+
+            const storageRef = this.storage.ref(path);
+
+            // Set custom metadata
+            const metadata = {
+                contentType: file.type,
+                customMetadata: {
+                    'uploadedAt': new Date().toISOString(),
+                    'originalName': file.name
+                }
+            };
+
+            // Upload file with progress tracking
+            const uploadTask = storageRef.put(file, metadata);
+
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Progress tracking
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log(`License upload progress: ${progress.toFixed(1)}%`);
+
+                        // Dispatch custom event for progress UI
+                        window.dispatchEvent(new CustomEvent('licenseUploadProgress', {
+                            detail: { progress, fileName: file.name }
+                        }));
+                    },
+                    (error) => {
+                        console.error('❌ License upload error:', error);
+                        console.error('Error code:', error.code);
+                        console.error('Error message:', error.message);
+
+                        if (error.code === 'storage/unauthorized') {
+                            reject(new Error('Storage permission denied. Please check Firebase Storage rules.'));
+                        } else if (error.code === 'storage/canceled') {
+                            reject(new Error('Upload was canceled.'));
+                        } else if (error.code === 'storage/unknown') {
+                            reject(new Error('Unknown error occurred. Firebase Storage might not be enabled.'));
+                        } else {
+                            reject(error);
+                        }
+                    },
+                    async () => {
+                        try {
+                            // Get download URL
+                            const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
+                            console.log('✅ License upload successful! URL:', downloadUrl);
+
+                            resolve({
+                                url: downloadUrl,
+                                path: path,
+                                fileName: file.name,
+                                fileSize: file.size,
+                                fileType: file.type
+                            });
+                        } catch (urlError) {
+                            console.error('❌ Error getting download URL:', urlError);
+                            reject(urlError);
+                        }
+                    }
+                );
+            });
+        } catch (error) {
+            console.error('❌ Error uploading license file:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load all licenses from Firestore
+     */
+    async loadLicenses() {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return [];
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+            const snapshot = await this.db.collection(collectionName).orderBy('createdAt', 'desc').get();
+
+            const licenses = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                licenses.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    name: data.name || '',
+                    store: data.store || '',
+                    expires: data.expires || '',
+                    status: data.status || 'valid',
+                    file: data.file || null,
+                    // Support both legacy base64 and new Storage URL
+                    fileData: data.fileData || null,
+                    fileUrl: data.fileUrl || null,
+                    filePath: data.filePath || null,
+                    fileName: data.fileName || null,
+                    fileType: data.fileType || null,
+                    fileSize: data.fileSize || null,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt,
+                    uploadedBy: data.uploadedBy || null
+                });
+            });
+
+            console.log(`✅ Loaded ${licenses.length} licenses from Firestore`);
+            return licenses;
+        } catch (error) {
+            console.error('Error loading licenses:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add a new license to Firestore with optional file upload
+     * @param {Object} licenseData - License metadata
+     * @param {File} file - Optional PDF file to upload to Storage
+     * @returns {Promise<string>} Document ID
+     */
+    async addLicense(licenseData, file = null) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return null;
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+
+            // If there's a file, upload it to Storage first
+            if (file) {
+                const tempId = Date.now().toString();
+                const uploadResult = await this.uploadFile(file, tempId);
+
+                // Update licenseData with Storage info
+                licenseData.fileUrl = uploadResult.url;
+                licenseData.filePath = uploadResult.path;
+                licenseData.fileName = uploadResult.fileName;
+                licenseData.fileSize = uploadResult.fileSize;
+                licenseData.fileType = uploadResult.fileType;
+                // Don't save base64 fileData if using Storage
+                delete licenseData.fileData;
+            }
+
+            const dataToSave = {
+                name: licenseData.name,
+                store: licenseData.store,
+                expires: licenseData.expires,
+                status: licenseData.status,
+                file: licenseData.file || null,
+                fileName: licenseData.fileName || null,
+                fileType: licenseData.fileType || null,
+                fileUrl: licenseData.fileUrl || null,
+                filePath: licenseData.filePath || null,
+                fileSize: licenseData.fileSize || null,
+                fileData: licenseData.fileData || null, // Legacy support for base64
+                uploadedBy: licenseData.uploadedBy || null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Remove undefined values
+            Object.keys(dataToSave).forEach(key => {
+                if (dataToSave[key] === undefined) {
+                    delete dataToSave[key];
+                }
+            });
+
+            const docRef = await this.db.collection(collectionName).add(dataToSave);
+            console.log('✅ License added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding license:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update an existing license
+     */
+    async updateLicense(licenseId, updates) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return false;
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+
+            const dataToUpdate = {
+                ...updates,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Remove undefined values
+            Object.keys(dataToUpdate).forEach(key => {
+                if (dataToUpdate[key] === undefined) {
+                    delete dataToUpdate[key];
+                }
+            });
+
+            await this.db.collection(collectionName).doc(licenseId).update(dataToUpdate);
+            console.log('✅ License updated:', licenseId);
+            return true;
+        } catch (error) {
+            console.error('Error updating license:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete a license from Firestore
+     */
+    async deleteLicense(licenseId) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return false;
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+            await this.db.collection(collectionName).doc(licenseId).delete();
+            console.log('✅ License deleted:', licenseId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting license:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get a single license by ID
+     */
+    async getLicense(licenseId) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return null;
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+            const doc = await this.db.collection(collectionName).doc(licenseId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...data
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting license:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Listen to real-time updates for licenses
+     */
+    listenToLicenses(callback) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return null;
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+
+            return this.db.collection(collectionName)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(snapshot => {
+                    const licenses = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        licenses.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            name: data.name || '',
+                            store: data.store || '',
+                            expires: data.expires || '',
+                            status: data.status || 'valid',
+                            file: data.file || null,
+                            fileData: data.fileData || null,
+                            fileName: data.fileName || null,
+                            fileType: data.fileType || null,
+                            createdAt: data.createdAt,
+                            updatedAt: data.updatedAt,
+                            uploadedBy: data.uploadedBy || null
+                        });
+                    });
+                    callback(licenses);
+                }, error => {
+                    console.error('Error listening to licenses:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up licenses listener:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get licenses by store
+     */
+    async getLicensesByStore(store) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return [];
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+            const snapshot = await this.db.collection(collectionName)
+                .where('store', '==', store)
+                .get();
+
+            const licenses = [];
+            snapshot.forEach(doc => {
+                licenses.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...doc.data()
+                });
+            });
+
+            return licenses;
+        } catch (error) {
+            console.error('Error getting licenses by store:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get licenses by status
+     */
+    async getLicensesByStatus(status) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Licenses not initialized');
+            return [];
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
+            const snapshot = await this.db.collection(collectionName)
+                .where('status', '==', status)
+                .get();
+
+            const licenses = [];
+            snapshot.forEach(doc => {
+                licenses.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...doc.data()
+                });
+            });
+
+            return licenses;
+        } catch (error) {
+            console.error('Error getting licenses by status:', error);
+            return [];
+        }
+    }
+}
+
+// Initialize global Firebase Licenses Manager
+const firebaseLicensesManager = new FirebaseLicensesManager();

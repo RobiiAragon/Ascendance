@@ -67,7 +67,10 @@ window.FIREBASE_COLLECTIONS = {
     changeRecords: 'changeRecords', // Firestore collection for change records
     cashOut: 'cashOut', // Firestore collection for cash out records
     gifts: 'gifts',             // Firestore collection for gifts (Control de Regalos en Especie)
-    issues: 'issues'            // Firestore collection for issues registry
+    issues: 'issues',           // Firestore collection for issues registry
+    gconomics: 'gconomics',     // Firestore collection for personal expense tracking
+    licenses: 'licenses',       // Firestore collection for licenses and documents
+    passwords: 'passwords'      // Firestore collection for password manager
 };
 
 // Employee Roles Configuration
@@ -128,7 +131,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce']
+        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords']
     },
     'manager': {
         // Action Permissions
@@ -142,7 +145,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'change', 'gifts', 'risknotes', 'gforce']
+        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'change', 'gifts', 'risknotes', 'gforce', 'passwords']
     },
     'employee': {
         // Action Permissions

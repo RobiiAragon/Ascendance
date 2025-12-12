@@ -1,6 +1,7 @@
 /**
  * Gconomics Firebase Integration
  * Handles synchronization of expenses with Firebase Firestore
+ * Uses top-level 'gconomics' collection for easy visibility
  */
 
 class GconomicsFirebaseManager {
@@ -8,7 +9,7 @@ class GconomicsFirebaseManager {
         this.db = null;
         this.currentUser = null;
         this.isInitialized = false;
-        this.collectionName = 'gconomics_expenses';
+        this.collectionName = 'gconomics';
         this.syncInProgress = false;
     }
 
@@ -74,23 +75,28 @@ class GconomicsFirebaseManager {
         this.syncInProgress = true;
 
         try {
-            const userExpensesRef = this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName);
-
             const promises = [];
 
             for (const expense of expenses) {
                 const expenseData = {
                     ...expense,
-                    userId: this.currentUser.id,
+                    odooId: expense.id,
+                    odooUserId: this.currentUser.id,
                     userEmail: this.currentUser.email,
-                    syncedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    localId: expense.id
+                    syncedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
+                // Remove undefined values
+                Object.keys(expenseData).forEach(key => {
+                    if (expenseData[key] === undefined) {
+                        delete expenseData[key];
+                    }
+                });
+
                 promises.push(
-                    userExpensesRef.doc(expense.id).set(expenseData, { merge: true })
+                    this.db.collection(this.collectionName)
+                        .doc(expense.id)
+                        .set(expenseData, { merge: true })
                 );
             }
 
@@ -117,15 +123,20 @@ class GconomicsFirebaseManager {
         try {
             const expenseData = {
                 ...expense,
-                userId: this.currentUser.id,
+                odooId: expense.id,
+                odooUserId: this.currentUser.id,
                 userEmail: this.currentUser.email,
-                syncedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                localId: expense.id
+                syncedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            await this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName)
+            // Remove undefined values
+            Object.keys(expenseData).forEach(key => {
+                if (expenseData[key] === undefined) {
+                    delete expenseData[key];
+                }
+            });
+
+            await this.db.collection(this.collectionName)
                 .doc(expense.id)
                 .set(expenseData, { merge: true });
 
@@ -141,15 +152,13 @@ class GconomicsFirebaseManager {
      * Delete expense from Firestore
      */
     async deleteExpenseFromFirestore(expenseId) {
-        if (!this.isInitialized || !this.currentUser) {
-            console.warn('Firebase not initialized or user not set');
+        if (!this.isInitialized) {
+            console.warn('Firebase not initialized');
             return false;
         }
 
         try {
-            await this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName)
+            await this.db.collection(this.collectionName)
                 .doc(expenseId)
                 .delete();
 
@@ -162,7 +171,7 @@ class GconomicsFirebaseManager {
     }
 
     /**
-     * Load expenses from Firestore
+     * Load expenses from Firestore for current user
      */
     async loadExpensesFromFirestore() {
         if (!this.isInitialized || !this.currentUser) {
@@ -171,16 +180,16 @@ class GconomicsFirebaseManager {
         }
 
         try {
-            const snapshot = await this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName)
+            const snapshot = await this.db.collection(this.collectionName)
+                .where('odooUserId', '==', this.currentUser.id)
                 .get();
 
             const expenses = [];
             snapshot.forEach(doc => {
                 expenses.push({
                     ...doc.data(),
-                    id: doc.id
+                    id: doc.id,
+                    firestoreId: doc.id
                 });
             });
 
@@ -202,9 +211,8 @@ class GconomicsFirebaseManager {
         }
 
         try {
-            const snapshot = await this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName)
+            const snapshot = await this.db.collection(this.collectionName)
+                .where('odooUserId', '==', this.currentUser.id)
                 .where('date', '>=', monthString)
                 .where('date', '<', this.getNextMonth(monthString))
                 .get();
@@ -213,7 +221,8 @@ class GconomicsFirebaseManager {
             snapshot.forEach(doc => {
                 expenses.push({
                     ...doc.data(),
-                    id: doc.id
+                    id: doc.id,
+                    firestoreId: doc.id
                 });
             });
 
@@ -244,16 +253,16 @@ class GconomicsFirebaseManager {
             return null;
         }
 
-        const unsubscribe = this.db.collection('users')
-            .doc(this.currentUser.id)
-            .collection(this.collectionName)
+        const unsubscribe = this.db.collection(this.collectionName)
+            .where('odooUserId', '==', this.currentUser.id)
             .orderBy('date', 'desc')
             .onSnapshot(snapshot => {
                 const expenses = [];
                 snapshot.forEach(doc => {
                     expenses.push({
                         ...doc.data(),
-                        id: doc.id
+                        id: doc.id,
+                        firestoreId: doc.id
                     });
                 });
                 callback(expenses);
@@ -275,7 +284,7 @@ class GconomicsFirebaseManager {
 
         try {
             const expenses = await this.loadExpensesForMonth(monthString);
-            
+
             const stats = {
                 total: 0,
                 byCategory: {},
@@ -307,7 +316,7 @@ class GconomicsFirebaseManager {
         try {
             // Get all Firebase expenses
             const firebaseExpenses = await this.loadExpensesFromFirestore();
-            
+
             // Create maps for easier comparison
             const localMap = new Map(localExpenses.map(e => [e.id, e]));
             const firebaseMap = new Map(firebaseExpenses.map(e => [e.id, e]));
@@ -351,9 +360,8 @@ class GconomicsFirebaseManager {
         }
 
         try {
-            const snapshot = await this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName)
+            const snapshot = await this.db.collection(this.collectionName)
+                .where('odooUserId', '==', this.currentUser.id)
                 .limit(1)
                 .get();
 
@@ -397,9 +405,8 @@ class GconomicsFirebaseManager {
         }
 
         try {
-            const snapshot = await this.db.collection('users')
-                .doc(this.currentUser.id)
-                .collection(this.collectionName)
+            const snapshot = await this.db.collection(this.collectionName)
+                .where('odooUserId', '==', this.currentUser.id)
                 .get();
 
             const batch = this.db.batch();
@@ -418,4 +425,4 @@ class GconomicsFirebaseManager {
 }
 
 // Create global instance
-const gconomicsFirebase = new GconomicsFirebaseManager();
+window.gconomicsFirebase = new GconomicsFirebaseManager();

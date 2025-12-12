@@ -241,11 +241,15 @@
             </a>
             <a href="#" class="nav-item" data-page="gifts" onclick="navigateTo('gifts'); return false;">
                 <span class="nav-icon"><i class="fas fa-gift"></i></span>
-                Gifts
+                Customer Care
             </a>
             <a href="#" class="nav-item" data-page="risknotes" onclick="navigateTo('risknotes'); return false;">
                 <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
                 Risk Notes
+            </a>
+            <a href="#" class="nav-item" data-page="passwords" onclick="navigateTo('passwords'); return false;">
+                <span class="nav-icon"><i class="fas fa-key"></i></span>
+                Password Manager
             </a>
             <a href="#" class="nav-item" data-page="gforce" onclick="navigateTo('gforce'); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
@@ -726,6 +730,31 @@
                 console.log('✅ Issues Registry system initialized');
             } catch (error) {
                 console.warn('⚠️ Firebase Issues initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Gconomics
+                await initializeGconomicsFirebase(user.userId || user.id, user.email);
+                await loadGconomicsFromFirebase();
+                console.log('✅ Gconomics expense system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Gconomics initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Licenses
+                await initializeFirebaseLicenses();
+                console.log('✅ Licenses & Documents system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Licenses initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Password Manager
+                await initializeFirebasePasswords();
+                console.log('✅ Password Manager system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Password Manager initialization failed, using local fallback data:', error);
             }
 
             // Filter navigation menu based on user role

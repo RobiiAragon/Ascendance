@@ -10,7 +10,8 @@
       "Bash(open:*)",
       "Bash(cat:*)",
       "Bash(node --check:*)",
-      "Bash(npx http-server -p 5500 -o)"
+      "Bash(npx http-server -p 5500 -o)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

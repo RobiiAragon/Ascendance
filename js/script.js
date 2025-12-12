@@ -58,6 +58,183 @@
         ];
 
         /**
+         * Show a confirmation modal dialog
+         * @param {Object} options - Configuration options
+         * @param {string} options.title - Modal title
+         * @param {string} options.message - Confirmation message
+         * @param {string} options.confirmText - Text for confirm button (default: 'Delete')
+         * @param {string} options.cancelText - Text for cancel button (default: 'Cancel')
+         * @param {string} options.type - Type of modal: 'danger', 'warning', 'info' (default: 'danger')
+         * @param {Function} options.onConfirm - Callback function when confirmed
+         * @param {Function} options.onCancel - Callback function when cancelled (optional)
+         */
+        function showConfirmModal(options) {
+            const {
+                title = 'Confirm Action',
+                message = 'Are you sure you want to proceed?',
+                confirmText = 'Delete',
+                cancelText = 'Cancel',
+                type = 'danger',
+                onConfirm,
+                onCancel
+            } = options;
+
+            // Define colors based on type
+            const typeColors = {
+                danger: { bg: '#ef4444', icon: 'fa-trash-alt' },
+                warning: { bg: '#f59e0b', icon: 'fa-exclamation-triangle' },
+                info: { bg: '#3b82f6', icon: 'fa-info-circle' }
+            };
+            const colors = typeColors[type] || typeColors.danger;
+
+            // Create modal HTML
+            const modalHtml = `
+                <div id="confirm-modal-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    animation: fadeIn 0.2s ease;
+                ">
+                    <div id="confirm-modal-content" style="
+                        background: var(--bg-primary);
+                        border-radius: 16px;
+                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                        max-width: 420px;
+                        width: 90%;
+                        overflow: hidden;
+                        animation: slideUp 0.3s ease;
+                    ">
+                        <div style="
+                            background: ${colors.bg};
+                            padding: 24px;
+                            text-align: center;
+                        ">
+                            <div style="
+                                width: 64px;
+                                height: 64px;
+                                background: rgba(255,255,255,0.2);
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin: 0 auto 16px;
+                            ">
+                                <i class="fas ${colors.icon}" style="font-size: 28px; color: white;"></i>
+                            </div>
+                            <h3 style="color: white; margin: 0; font-size: 20px; font-weight: 600;">${title}</h3>
+                        </div>
+                        <div style="padding: 24px;">
+                            <p style="
+                                color: var(--text-secondary);
+                                text-align: center;
+                                margin: 0 0 24px 0;
+                                font-size: 15px;
+                                line-height: 1.6;
+                            ">${message}</p>
+                            <div style="display: flex; gap: 12px;">
+                                <button id="confirm-modal-cancel" style="
+                                    flex: 1;
+                                    padding: 12px 20px;
+                                    border: 1px solid var(--border-color);
+                                    background: var(--bg-secondary);
+                                    color: var(--text-primary);
+                                    border-radius: 8px;
+                                    font-size: 14px;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                ">${cancelText}</button>
+                                <button id="confirm-modal-confirm" style="
+                                    flex: 1;
+                                    padding: 12px 20px;
+                                    border: none;
+                                    background: ${colors.bg};
+                                    color: white;
+                                    border-radius: 8px;
+                                    font-size: 14px;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                ">${confirmText}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes slideUp {
+                        from { transform: translateY(20px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                    #confirm-modal-cancel:hover {
+                        background: var(--bg-tertiary) !important;
+                    }
+                    #confirm-modal-confirm:hover {
+                        filter: brightness(1.1);
+                    }
+                </style>
+            `;
+
+            // Remove any existing confirm modal
+            const existingModal = document.getElementById('confirm-modal-overlay');
+            if (existingModal) existingModal.remove();
+
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Get references
+            const overlay = document.getElementById('confirm-modal-overlay');
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+            const confirmBtn = document.getElementById('confirm-modal-confirm');
+
+            // Close modal function
+            const closeConfirmModal = () => {
+                overlay.style.animation = 'fadeIn 0.2s ease reverse';
+                setTimeout(() => overlay.remove(), 150);
+            };
+
+            // Event listeners
+            cancelBtn.addEventListener('click', () => {
+                closeConfirmModal();
+                if (onCancel) onCancel();
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                closeConfirmModal();
+                if (onConfirm) onConfirm();
+            });
+
+            // Close on overlay click
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    closeConfirmModal();
+                    if (onCancel) onCancel();
+                }
+            });
+
+            // Close on Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeConfirmModal();
+                    if (onCancel) onCancel();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }
+
+        /**
          * Compress image to ensure it's under the specified max size
          * Uses canvas to resize and reduce quality
          * @param {string} base64String - The base64 encoded image string
@@ -158,7 +335,86 @@
             } else {
                 console.warn('Firebase not initialized, using fallback announcement data');
             }
+
+            // Update badges after loading announcements
+            updateAnnouncementsBadge();
+            populateAnnouncementsDropdown();
         }
+
+        // Update announcement badge counts in sidebar and header
+        function updateAnnouncementsBadge() {
+            const count = announcements.length;
+
+            // Update sidebar badge
+            const sidebarBadge = document.getElementById('announcements-badge');
+            if (sidebarBadge) {
+                sidebarBadge.textContent = count;
+                sidebarBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
+
+            // Update header bell badge
+            const headerBadge = document.getElementById('header-announcements-badge');
+            if (headerBadge) {
+                headerBadge.textContent = count > 99 ? '99+' : count;
+                headerBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
+        }
+
+        // Populate the announcements dropdown in the header
+        function populateAnnouncementsDropdown() {
+            const dropdownList = document.getElementById('announcements-dropdown-list');
+            if (!dropdownList) return;
+
+            if (announcements.length === 0) {
+                dropdownList.innerHTML = `
+                    <div style="padding: 24px; text-align: center; color: var(--text-muted);">
+                        <i class="fas fa-bell-slash" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <p style="margin: 0;">No announcements</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show latest 5 announcements
+            const recentAnnouncements = announcements.slice(0, 5);
+
+            dropdownList.innerHTML = recentAnnouncements.map(ann => `
+                <div class="announcement-dropdown-item" style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); cursor: pointer;" onclick="navigateTo('announcements'); closeAnnouncementsDropdown();">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 4px;">
+                        <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${ann.title}</span>
+                        <span style="font-size: 11px; color: var(--text-muted); white-space: nowrap; margin-left: 8px;">${formatDate(ann.date)}</span>
+                    </div>
+                    <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                        ${ann.content}
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        // Toggle announcements dropdown visibility
+        function toggleAnnouncementsDropdown() {
+            const dropdown = document.getElementById('announcements-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+            }
+        }
+
+        // Close announcements dropdown
+        function closeAnnouncementsDropdown() {
+            const dropdown = document.getElementById('announcements-dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('active');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('announcements-dropdown');
+            const btn = document.querySelector('.header-notification-btn');
+            if (dropdown && btn && !dropdown.contains(event.target) && !btn.contains(event.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
 
         async function initializeFirebaseRestockRequests() {
             console.log('Initializing Firebase for restock requests...');
@@ -752,8 +1008,9 @@
                 abundancecloud: 'Abundance Cloud',
                 newstuff: 'New Stuff',
                 change: 'Change',
-                gifts: 'Gifts',
-                risknotes: 'Risk Notes'
+                gifts: 'Customer Care',
+                risknotes: 'Risk Notes',
+                passwords: 'Password Manager'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
@@ -764,6 +1021,11 @@
         function renderPage(page) {
             console.log('renderPage called with:', page);
             const dashboard = document.querySelector('.dashboard');
+
+            // Stop clock in polling when navigating away from clockin page
+            if (page !== 'clockin' && typeof stopClockInPolling === 'function') {
+                stopClockInPolling();
+            }
 
             switch(page) {
                 case 'dashboard':
@@ -838,6 +1100,9 @@
                 case 'risknotes':
                     renderRiskNotes();
                     break;
+                case 'passwords':
+                    renderPasswordManager();
+                    break;
                 default:
                     renderDashboard();
             }
@@ -905,7 +1170,7 @@
                         <div class="card-body">
                             <div class="employee-list">
                                 ${employees.slice(0, 5).map(emp => `
-                                    <div class="employee-item" onclick="viewEmployee(${emp.id})">
+                                    <div class="employee-item" onclick="viewEmployee('${emp.id}')">
                                         <div class="employee-avatar ${emp.color}">${emp.initials}</div>
                                         <div class="employee-info">
                                             <div class="employee-name">${emp.name}</div>
@@ -1036,6 +1301,7 @@
                         <option value="Morena">VSU Morena</option>
                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                         <option value="Chula Vista">VSU Chula Vista</option>
+                        <option value="North Park">VSU North Park</option>
                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                     </select>
                     <select class="filter-select" id="status-filter" onchange="filterEmployees()">
@@ -1220,6 +1486,17 @@
             // Load trainings from Firebase
             await loadTrainingsFromFirebase();
 
+            // Calculate mandatory training compliance
+            const mandatoryTrainings = trainings.filter(t => t.required);
+            const totalEmployees = employees.length;
+            const employeesCompliantCount = employees.filter(emp => {
+                return mandatoryTrainings.every(training => {
+                    const completions = training.completions || [];
+                    return completions.some(c => c.employeeId === (emp.firestoreId || emp.id));
+                });
+            }).length;
+            const compliancePercentage = totalEmployees > 0 ? Math.round((employeesCompliantCount / totalEmployees) * 100) : 0;
+
             // Render the trainings grid
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -1231,6 +1508,29 @@
                         <i class="fas fa-plus"></i> Add Training
                     </button>
                 </div>
+
+                ${mandatoryTrainings.length > 0 ? `
+                    <!-- Mandatory Training Compliance -->
+                    <div class="card" style="margin-bottom: 24px; border-left: 4px solid ${compliancePercentage === 100 ? '#10b981' : '#ef4444'};">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">
+                                    <i class="fas fa-exclamation-circle" style="color: ${compliancePercentage === 100 ? '#10b981' : '#ef4444'};"></i>
+                                    Mandatory Training Compliance
+                                </h3>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
+                                    ${mandatoryTrainings.length} mandatory course${mandatoryTrainings.length !== 1 ? 's' : ''} • ${employeesCompliantCount} of ${totalEmployees} employees fully compliant
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 32px; font-weight: 700; color: ${compliancePercentage === 100 ? '#10b981' : '#ef4444'};">${compliancePercentage}%</div>
+                                <button class="btn-secondary" style="margin-top: 8px;" onclick="viewMandatoryTrainingCompliance()">
+                                    <i class="fas fa-chart-bar"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
 
                 ${trainings.length === 0 ? `
                     <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
@@ -1257,12 +1557,6 @@
                                             <i class="fas fa-file-pdf"></i> ${t.fileName}
                                         </div>
                                     ` : ''}
-                                    <div class="training-card-progress">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: ${t.completion || 0}%;"></div>
-                                        </div>
-                                        <span>${t.completion || 0}% completed</span>
-                                    </div>
                                 </div>
                                 <div class="training-card-footer">
                                     <button class="btn-secondary" onclick="event.stopPropagation(); viewTraining('${t.id}')">View Details</button>
@@ -1349,7 +1643,7 @@
                                         <div class="license-item"
                                              draggable="${licensesEditMode ? 'true' : 'false'}"
                                              data-license-id="${lic.id}"
-                                             ondragstart="handleLicenseDragStart(event, ${lic.id})"
+                                             ondragstart="handleLicenseDragStart(event, '${lic.id}')"
                                              style="cursor: ${licensesEditMode ? 'grab' : 'default'}; opacity: ${licensesEditMode ? '1' : '0.85'}; ${!licensesEditMode ? 'pointer-events: none;' : ''}">
                                             <div class="license-item-header">
                                                 <div class="license-item-name">
@@ -1366,10 +1660,10 @@
                                                     ${formatDate(lic.expires)}
                                                 </span>
                                                 <div class="license-item-actions">
-                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); viewLicense(${lic.id})" title="View">
-                                                        <i class="fas fa-eye"></i>
+                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); viewLicense('${lic.id}')" title="View${lic.fileData ? ' PDF' : ''}">
+                                                        <i class="fas ${lic.fileData ? 'fa-file-pdf' : 'fa-eye'}"></i>
                                                     </button>
-                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLicense(${lic.id})" title="Delete">
+                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLicense('${lic.id}')" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -1644,30 +1938,38 @@
         /**
          * Delete announcement from Firebase
          */
-        async function deleteAnnouncement(announcementId) {
-            if (!confirm('Are you sure you want to delete this announcement?')) {
-                return;
-            }
+        function deleteAnnouncement(announcementId) {
+            const announcement = announcements.find(a => a.id === announcementId || a.firestoreId === announcementId);
+            const title = announcement?.title || 'this announcement';
 
-            try {
-                if (firebaseAnnouncementsManager.isInitialized) {
-                    const success = await firebaseAnnouncementsManager.deleteAnnouncement(announcementId);
-                    if (success) {
-                        // Reload announcements from Firebase
-                        const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
-                        announcements = updatedAnnouncements || [];
-                        console.log('Announcement deleted from Firebase');
+            showConfirmModal({
+                title: 'Delete Announcement',
+                message: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        if (firebaseAnnouncementsManager.isInitialized) {
+                            const success = await firebaseAnnouncementsManager.deleteAnnouncement(announcementId);
+                            if (success) {
+                                // Reload announcements from Firebase
+                                const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+                                announcements = updatedAnnouncements || [];
+                                console.log('Announcement deleted from Firebase');
+                            }
+                        } else {
+                            // Fallback to local deletion
+                            announcements = announcements.filter(a => a.id !== announcementId && a.firestoreId !== announcementId);
+                        }
+
+                        renderAnnouncements();
+                        updateAnnouncementsBadge();
+                        populateAnnouncementsDropdown();
+                    } catch (error) {
+                        console.error('Error deleting announcement:', error);
                     }
-                } else {
-                    // Fallback to local deletion
-                    announcements = announcements.filter(a => a.id !== announcementId && a.firestoreId !== announcementId);
                 }
-
-                renderAnnouncements();
-            } catch (error) {
-                console.error('Error deleting announcement:', error);
-                alert('Failed to delete announcement. Please try again.');
-            }
+            });
         }
 
         /**
@@ -1706,6 +2008,7 @@
                             <option value="Morena" ${announcement.targetStores === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                             <option value="Kearny Mesa" ${announcement.targetStores === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                             <option value="Chula Vista" ${announcement.targetStores === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                            <option value="North Park" ${announcement.targetStores === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                             <option value="Santee" ${announcement.targetStores === 'Santee' ? 'selected' : ''}>VSU Santee</option>
                         </select>
                     </div>
@@ -1757,6 +2060,8 @@
 
                 closeModal();
                 renderAnnouncements();
+                updateAnnouncementsBadge();
+                populateAnnouncementsDropdown();
             } catch (error) {
                 console.error('Error updating announcement:', error);
                 alert('Failed to update announcement. Please try again.');
@@ -1771,14 +2076,41 @@
         let clockinAttendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
         let currentClockAction = '';
         let clockInterval = null;
+        let clockPollingInterval = null; // For real-time AJAX polling
 
         function renderClockIn() {
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Clock In/Out</h2>
-                        <p class="section-subtitle">Manage employee attendance</p>
+                        <h2 class="section-title">
+                            Clock In/Out
+                            <span style="
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 6px;
+                                padding: 4px 12px;
+                                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                                border-radius: 20px;
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: white;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-left: 12px;
+                                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                            ">
+                                <span style="
+                                    width: 8px;
+                                    height: 8px;
+                                    background: white;
+                                    border-radius: 50%;
+                                    animation: pulse-live 2s infinite;
+                                "></span>
+                                Live
+                            </span>
+                        </h2>
+                        <p class="section-subtitle">Real-time employee attendance tracking</p>
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <div class="search-filter">
@@ -1787,6 +2119,18 @@
                         </div>
                     </div>
                 </div>
+                <style>
+                    @keyframes pulse-live {
+                        0%, 100% {
+                            opacity: 1;
+                            transform: scale(1);
+                        }
+                        50% {
+                            opacity: 0.5;
+                            transform: scale(1.2);
+                        }
+                    }
+                </style>
 
                 <!-- Current Time Display -->
                 <div class="time-display-card">
@@ -1925,10 +2269,170 @@
 
         function initializeClockIn() {
             updateClockDisplay();
-            // Clear any existing interval
+            // Clear any existing intervals
             if (clockInterval) clearInterval(clockInterval);
+            if (clockPollingInterval) clearInterval(clockPollingInterval);
+
+            // Update clock display every second
             clockInterval = setInterval(updateClockDisplay, 1000);
+
+            // Load initial data
             loadAttendanceData();
+
+            // Start real-time polling for clock records (every 5 seconds)
+            startClockInPolling();
+        }
+
+        /**
+         * Start real-time AJAX polling to check for new clock in/out records
+         */
+        function startClockInPolling() {
+            // Clear any existing polling interval
+            if (clockPollingInterval) {
+                clearInterval(clockPollingInterval);
+            }
+
+            // Poll every 5 seconds for real-time updates
+            clockPollingInterval = setInterval(async () => {
+                await pollForClockUpdates();
+            }, 5000);
+
+            console.log('✅ Real-time clock in/out polling started');
+        }
+
+        /**
+         * Stop real-time polling
+         */
+        function stopClockInPolling() {
+            if (clockPollingInterval) {
+                clearInterval(clockPollingInterval);
+                clockPollingInterval = null;
+                console.log('⏹️ Real-time clock in/out polling stopped');
+            }
+        }
+
+        /**
+         * Poll Firebase for clock record updates
+         */
+        async function pollForClockUpdates() {
+            try {
+                const dateString = new Date().toISOString().split('T')[0];
+
+                // Initialize Firebase if needed
+                if (!firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.initialize();
+                }
+
+                // Load latest records from Firebase
+                const firebaseRecords = await firebaseClockInManager.loadClockRecordsByDate(dateString);
+
+                if (firebaseRecords.length > 0) {
+                    const today = new Date().toDateString();
+                    let hasUpdates = false;
+
+                    // Check if there are any new or updated records
+                    firebaseRecords.forEach(fbRecord => {
+                        const localRecord = clockinAttendanceRecords.find(r =>
+                            r.employeeName === fbRecord.employeeName && r.date === today
+                        );
+
+                        // Check if record is new or has been updated
+                        if (!localRecord ||
+                            localRecord.clockIn !== fbRecord.clockIn ||
+                            localRecord.lunchStart !== fbRecord.lunchStart ||
+                            localRecord.lunchEnd !== fbRecord.lunchEnd ||
+                            localRecord.clockOut !== fbRecord.clockOut) {
+                            hasUpdates = true;
+                        }
+                    });
+
+                    // If updates detected, refresh the display
+                    if (hasUpdates) {
+                        console.log('🔄 New clock in/out updates detected, refreshing...');
+
+                        // Update local records
+                        const updatedRecords = [];
+                        const processedNames = new Set();
+
+                        firebaseRecords.forEach(rec => {
+                            processedNames.add(rec.employeeName);
+                            updatedRecords.push({
+                                id: rec.id || Date.now(),
+                                employeeId: rec.employeeId,
+                                employeeName: rec.employeeName,
+                                employeeRole: rec.employeeRole,
+                                employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
+                                store: rec.store,
+                                date: today,
+                                clockIn: rec.clockIn || null,
+                                lunchStart: rec.lunchStart || null,
+                                lunchEnd: rec.lunchEnd || null,
+                                clockOut: rec.clockOut || null,
+                                notes: rec.notes || ''
+                            });
+                        });
+
+                        // Add any local-only records
+                        clockinAttendanceRecords.forEach(localRec => {
+                            if (!processedNames.has(localRec.employeeName) && localRec.date === today) {
+                                updatedRecords.push(localRec);
+                            }
+                        });
+
+                        clockinAttendanceRecords = updatedRecords;
+                        localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+
+                        // Update UI with visual feedback
+                        showRealtimeUpdateNotification();
+                        updateClockInUI();
+                    }
+                }
+            } catch (error) {
+                // Silently fail to avoid console spam
+                console.debug('Polling update check failed:', error);
+            }
+        }
+
+        /**
+         * Update Clock In UI elements
+         */
+        function updateClockInUI() {
+            const today = new Date().toDateString();
+            const todayRecords = clockinAttendanceRecords.filter(r => r.date === today);
+
+            const tableContainer = document.getElementById('attendanceTableContainer');
+            const emptyState = document.getElementById('emptyAttendanceState');
+
+            if (todayRecords.length === 0) {
+                if (tableContainer) tableContainer.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'flex';
+            } else {
+                if (tableContainer) tableContainer.style.display = 'block';
+                if (emptyState) emptyState.style.display = 'none';
+                renderAttendanceTableRows(todayRecords);
+            }
+
+            updateAttendanceStats(todayRecords);
+        }
+
+        /**
+         * Show real-time update notification
+         */
+        function showRealtimeUpdateNotification() {
+            // Create a subtle notification indicator
+            const refreshBtn = document.querySelector('.card-action');
+            if (refreshBtn && refreshBtn.innerHTML.includes('Refresh')) {
+                // Add a pulsing dot to indicate new data
+                const originalHTML = refreshBtn.innerHTML;
+                refreshBtn.innerHTML = '<i class="fas fa-sync" style="color: var(--accent-primary);"></i> Updated';
+                refreshBtn.style.color = 'var(--accent-primary)';
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    refreshBtn.innerHTML = originalHTML;
+                    refreshBtn.style.color = '';
+                }, 2000);
+            }
         }
 
         function updateClockDisplay() {
@@ -2323,7 +2827,7 @@
                         <td><span class="total-hours">${totalHours}</span></td>
                         <td><span class="status-badge ${status.class}">${status.text}</span></td>
                         <td>
-                            <button class="table-action-btn" onclick="viewAttendanceDetails(${record.id})">
+                            <button class="table-action-btn" onclick="viewAttendanceDetails('${record.id}')">
                                 <i class="fas fa-eye"></i> View
                             </button>
                         </td>
@@ -2492,7 +2996,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     <div class="page-header">
                         <div class="page-header-left">
                             <h2 class="section-title">New Stuff</h2>
-                            <p class="section-subtitle">Incoming products and inventory</p>
+                            <p class="section-subtitle">Incoming products</p>
                         </div>
                         <button class="btn-primary" onclick="openModal('add-product')">
                             <i class="fas fa-plus"></i> Add Product
@@ -2512,13 +3016,15 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div class="employees-grid">
                             ${products.map(product => `
                                 <div class="card" onclick="viewProductDetails('${product.id}')" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';">
-                                    <div class="product-image-container" style="position: relative; width: 100%; height: 180px; overflow: hidden; border-radius: 12px 12px 0 0;">
-                                        <img src="${product.image || 'https://via.placeholder.com/400x300?text=No+Image'}"
-                                             alt="${product.name}"
-                                             style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
-                                             onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
-                                    </div>
-                                    <div class="card-header" style="background: rgba(139, 92, 246, 0.1); border-radius: 0;">
+                                    ${product.image ? `
+                                        <div class="product-image-container" style="position: relative; width: 100%; height: 180px; overflow: hidden; border-radius: 12px 12px 0 0;">
+                                            <img src="${product.image}"
+                                                 alt="${product.name}"
+                                                 style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+                                                 onerror="this.parentElement.style.display='none'">
+                                        </div>
+                                    ` : ''}
+                                    <div class="card-header" style="background: rgba(139, 92, 246, 0.1); border-radius: ${product.image ? '0' : '12px 12px 0 0'};">
                                         <h3 class="card-title" style="font-size: 16px; font-weight: 600;">
                                             ${product.name}
                                         </h3>
@@ -2530,17 +3036,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                                 <span style="font-weight: 600; font-size: 13px;">${product.category || '-'}</span>
                                             </div>
                                             <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
-                                                <span style="color: var(--text-muted); font-size: 13px;">Quantity:</span>
-                                                <span style="font-weight: 600; font-size: 13px; color: var(--accent-primary);">${product.quantity || 0} units</span>
-                                            </div>
-                                            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
-                                                <span style="color: var(--text-muted); font-size: 13px;">Price:</span>
+                                                <span style="color: var(--text-muted); font-size: 13px;">Est. Price:</span>
                                                 <span style="font-weight: 600; font-size: 13px; color: var(--success);">$${product.price || 0}</span>
                                             </div>
-                                            <div style="display: flex; justify-content: space-between; padding: 6px 0;">
-                                                <span style="color: var(--text-muted); font-size: 13px;">Store:</span>
-                                                <span style="font-weight: 600; font-size: 13px;">${product.store || '-'}</span>
+                                            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+                                                <span style="color: var(--text-muted); font-size: 13px;">Est. Arrival:</span>
+                                                <span style="font-weight: 600; font-size: 13px;">${product.arrivalDate ? formatDate(product.arrivalDate) : '-'}</span>
                                             </div>
+                                            ${product.url ? `
+                                                <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                                                    <span style="color: var(--text-muted); font-size: 13px;">More Info:</span>
+                                                    <a href="${product.url}" target="_blank" onclick="event.stopPropagation();" style="font-weight: 600; font-size: 13px; color: var(--accent-primary); text-decoration: none;">
+                                                        <i class="fas fa-external-link-alt"></i> View
+                                                    </a>
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     </div>
                                     <div class="card-footer" style="padding: 12px 16px; border-top: 1px solid var(--border-color); text-align: center;">
@@ -2651,7 +3161,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             ">${product.category || '-'}</div>
                         </div>
 
-                        <!-- Quantity -->
+                        <!-- Estimated Price -->
                         <div style="
                             background: var(--bg-secondary);
                             border: 1px solid var(--border-color);
@@ -2666,30 +3176,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 text-transform: uppercase;
                                 letter-spacing: 0.5px;
                                 margin-bottom: 8px;
-                            ">Quantity</div>
-                            <div style="
-                                font-weight: 600;
-                                font-size: 18px;
-                                color: var(--accent-primary);
-                            ">${product.quantity || 0} <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">units</span></div>
-                        </div>
-
-                        <!-- Price -->
-                        <div style="
-                            background: var(--bg-secondary);
-                            border: 1px solid var(--border-color);
-                            border-radius: 14px;
-                            padding: 16px;
-                            transition: all 0.2s ease;
-                        ">
-                            <div style="
-                                color: var(--text-muted);
-                                font-size: 11px;
-                                font-weight: 600;
-                                text-transform: uppercase;
-                                letter-spacing: 0.5px;
-                                margin-bottom: 8px;
-                            ">Unit Price</div>
+                            ">Estimated Price</div>
                             <div style="
                                 font-weight: 600;
                                 font-size: 18px;
@@ -2697,37 +3184,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             ">$${(product.price || 0).toFixed(2)}</div>
                         </div>
 
-                        <!-- Store -->
-                        <div style="
-                            background: var(--bg-secondary);
-                            border: 1px solid var(--border-color);
-                            border-radius: 14px;
-                            padding: 16px;
-                            transition: all 0.2s ease;
-                        ">
-                            <div style="
-                                color: var(--text-muted);
-                                font-size: 11px;
-                                font-weight: 600;
-                                text-transform: uppercase;
-                                letter-spacing: 0.5px;
-                                margin-bottom: 8px;
-                            ">Store Location</div>
-                            <div style="
-                                font-weight: 600;
-                                font-size: 15px;
-                                color: var(--text-primary);
-                            ">${product.store || '-'}</div>
-                        </div>
-                    </div>
-
-                    <div style="
-                        display: grid;
-                        grid-template-columns: repeat(2, 1fr);
-                        gap: 16px;
-                        margin-bottom: 24px;
-                    ">
-                        <!-- Arrival Date -->
+                        <!-- Estimated Arrival -->
                         <div style="
                             background: var(--bg-secondary);
                             border: 1px solid var(--border-color);
@@ -2742,7 +3199,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 letter-spacing: 0.5px;
                                 margin-bottom: 8px;
                             ">
-                                <i class="fas fa-calendar" style="margin-right: 6px; font-size: 12px;"></i>Arrival Date
+                                <i class="fas fa-calendar" style="margin-right: 6px; font-size: 12px;"></i>Estimated Arrival
                             </div>
                             <div style="
                                 font-weight: 600;
@@ -2775,6 +3232,34 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             ">${product.supplier || '-'}</div>
                         </div>
                     </div>
+
+                    ${product.url ? `
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                            margin-bottom: 24px;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">
+                                <i class="fas fa-link" style="margin-right: 6px; font-size: 12px;"></i>Product URL
+                            </div>
+                            <a href="${product.url}" target="_blank" style="
+                                font-weight: 600;
+                                font-size: 14px;
+                                color: var(--accent-primary);
+                                text-decoration: none;
+                                word-break: break-all;
+                            ">${product.url} <i class="fas fa-external-link-alt" style="margin-left: 6px; font-size: 12px;"></i></a>
+                        </div>
+                    ` : ''}
 
                     ${product.description ? `
                         <div style="
@@ -2832,7 +3317,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             justify-content: center;
                             gap: 8px;
                             transition: all 0.2s ease;
-                        " onclick="if(confirm('Are you sure you want to delete this product?')) { deleteProductFromFirebase('${product.id}'); closeModal(); }" onhover="this.style.opacity='0.9'">
+                        " onclick="deleteProductFromFirebase('${product.id}'); closeModal();" onhover="this.style.opacity='0.9'">
                             <i class="fas fa-trash"></i>
                             Delete
                         </button>
@@ -2845,6 +3330,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         let currentRestockTab = 'inventory';
         let selectedStoreFilter = 'all';
+        let selectedRestockTypeFilter = 'all'; // 'all', 'product', 'supply'
 
         function renderRestockRequests() {
             const dashboard = document.querySelector('.dashboard');
@@ -2891,6 +3377,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <option value="Morena" ${selectedStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                             <option value="Kearny Mesa" ${selectedStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                             <option value="Chula Vista" ${selectedStoreFilter === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                            <option value="North Park" ${selectedStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                             <option value="Miramar Wine & Liquor" ${selectedStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                         </select>
                     </div>
@@ -2935,22 +3422,60 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function renderRequestsTab() {
+            // Filter requests by type
+            const filteredRequests = selectedRestockTypeFilter === 'all'
+                ? restockRequests
+                : restockRequests.filter(r => (r.itemType || 'product') === selectedRestockTypeFilter);
+
+            // Type filter buttons
+            const typeFilterButtons = `
+                <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                    <button onclick="filterRestockByType('all')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'transparent'}; color: ${selectedRestockTypeFilter === 'all' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-layer-group" style="margin-right: 6px;"></i>All
+                    </button>
+                    <button onclick="filterRestockByType('product')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'transparent'}; color: ${selectedRestockTypeFilter === 'product' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-box" style="margin-right: 6px;"></i>Products
+                    </button>
+                    <button onclick="filterRestockByType('supply')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'transparent'}; color: ${selectedRestockTypeFilter === 'supply' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-tools" style="margin-right: 6px;"></i>Supplies
+                    </button>
+                </div>
+            `;
+
+            if (filteredRequests.length === 0) {
+                return `
+                    ${typeFilterButtons}
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p style="font-size: 16px;">No ${selectedRestockTypeFilter === 'all' ? '' : selectedRestockTypeFilter + ' '}requests found</p>
+                    </div>
+                `;
+            }
+
             return `
+                ${typeFilterButtons}
                 <div style="display: flex; flex-direction: column; gap: 16px;">
-                    ${restockRequests.map(request => `
+                    ${filteredRequests.map(request => {
+                        const itemType = request.itemType || 'product';
+                        const typeLabel = itemType === 'supply' ? 'Supply' : 'Product';
+                        const typeColor = itemType === 'supply' ? '#8b5cf6' : '#10b981';
+                        const typeIcon = itemType === 'supply' ? 'fa-tools' : 'fa-box';
+                        return `
                         <div class="card">
                             <div class="card-body">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
                                     <div>
-                                        <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">${request.productName}</div>
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                                            <div style="font-weight: 700; font-size: 16px;">${request.productName}</div>
+                                            <span style="background: ${typeColor}; color: white; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="fas ${typeIcon}" style="font-size: 9px;"></i>${typeLabel}
+                                            </span>
+                                        </div>
                                         <div style="font-size: 13px; color: var(--text-muted);">
                                             Requested by ${request.requestedBy} on ${formatDate(request.requestDate)}
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 8px; align-items: center;">
-                                        <span class="status-badge ${request.status === 'approved' ? 'valid' : request.status === 'rejected' ? 'expired' : 'expiring'}">
-                                            ${request.status}
-                                        </span>
                                         ${request.status === 'approved' ? `
                                             <span class="status-badge valid" style="background: var(--success); color: white;">
                                                 <i class="fas fa-check-circle" style="margin-right: 4px;"></i>Approved
@@ -2959,7 +3484,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                             <span class="status-badge expired" style="background: var(--danger); color: white;">
                                                 <i class="fas fa-times-circle" style="margin-right: 4px;"></i>Rejected
                                             </span>
-                                        ` : ''}
+                                        ` : `
+                                            <span class="status-badge expiring">
+                                                Pending
+                                            </span>
+                                        `}
                                     </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
@@ -3000,7 +3529,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `;}).join('')}
                 </div>
             `;
         }
@@ -3012,6 +3541,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         function filterInventoryByStore(store) {
             selectedStoreFilter = store;
+            renderRestockRequests();
+        }
+
+        function filterRestockByType(type) {
+            selectedRestockTypeFilter = type;
             renderRestockRequests();
         }
 
@@ -3064,30 +3598,37 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function deleteRestockRequest(requestId) {
-            if (!confirm('Are you sure you want to delete this restock request?')) {
-                return;
-            }
+            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
+            const productName = request?.productName || 'this request';
 
-            // Remove from local array
-            const index = restockRequests.findIndex(r => r.firestoreId === requestId || r.id === requestId);
-            if (index > -1) {
-                restockRequests.splice(index, 1);
-            }
+            showConfirmModal({
+                title: 'Delete Restock Request',
+                message: `Are you sure you want to delete the restock request for "${productName}"?`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: () => {
+                    // Remove from local array
+                    const index = restockRequests.findIndex(r => r.firestoreId === requestId || r.id === requestId);
+                    if (index > -1) {
+                        restockRequests.splice(index, 1);
+                    }
 
-            // Delete from Firebase if initialized
-            if (firebaseRestockRequestsManager.isInitialized) {
-                firebaseRestockRequestsManager.deleteRestockRequest(requestId).then(success => {
-                    if (success) {
-                        console.log('Request deleted from Firebase:', requestId);
+                    // Delete from Firebase if initialized
+                    if (firebaseRestockRequestsManager.isInitialized) {
+                        firebaseRestockRequestsManager.deleteRestockRequest(requestId).then(success => {
+                            if (success) {
+                                console.log('Request deleted from Firebase:', requestId);
+                                renderRestockRequests();
+                            }
+                        }).catch(error => {
+                            console.error('Error deleting request from Firebase:', error);
+                            renderRestockRequests();
+                        });
+                    } else {
                         renderRestockRequests();
                     }
-                }).catch(error => {
-                    console.error('Error deleting request from Firebase:', error);
-                    renderRestockRequests();
-                });
-            } else {
-                renderRestockRequests();
-            }
+                }
+            });
         }
 
         let editingRestockRequestId = null;
@@ -3095,7 +3636,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         function openEditRestockRequestModal(requestId) {
             editingRestockRequestId = requestId;
             const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
-            
+
             if (!request) {
                 alert('Request not found');
                 return;
@@ -3108,7 +3649,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 const productName = request.productName;
                 // Try to parse product name (Brand ProductName - Flavor format)
                 let brand = '', flavor = '', product = '';
-                
+
                 const parts = productName.split(' - ');
                 if (parts.length === 2) {
                     flavor = parts[1];
@@ -3124,19 +3665,43 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
 
                 // Set form values
+                document.getElementById('edit-restock-item-type').value = request.itemType || 'product';
                 document.getElementById('edit-restock-product').value = product || '';
-                document.getElementById('edit-restock-brand').value = brand || '';
-                document.getElementById('edit-restock-flavor').value = flavor || '';
                 document.getElementById('edit-restock-quantity').value = request.quantity || '';
                 document.getElementById('edit-restock-priority').value = request.priority || 'medium';
                 document.getElementById('edit-restock-date').value = request.requestDate || '';
                 document.getElementById('edit-restock-store').value = request.store || '';
-                document.getElementById('edit-restock-requested-by').value = request.requestedBy || '';
                 document.getElementById('edit-restock-notes').value = request.notes || '';
+
+                // Set brand dropdown - try to match existing option or select "Other"
+                const brandSelect = document.getElementById('edit-restock-brand');
+                if (brandSelect) {
+                    const brandOption = Array.from(brandSelect.options).find(opt => opt.value === brand);
+                    if (brandOption) {
+                        brandSelect.value = brand;
+                    } else if (brand) {
+                        brandSelect.value = 'Other';
+                    }
+                }
+
+                // Set flavor dropdown - try to match existing option or select "Other"
+                const flavorSelect = document.getElementById('edit-restock-flavor');
+                if (flavorSelect) {
+                    const flavorOption = Array.from(flavorSelect.options).find(opt => opt.value === flavor);
+                    if (flavorOption) {
+                        flavorSelect.value = flavor;
+                    } else if (flavor) {
+                        flavorSelect.value = 'Other';
+                    }
+                }
+
+                // Populate and set employee dropdown
+                populateEmployeeDropdown('edit-restock-requested-by', request.requestedBy || '');
             }, 100);
         }
 
         function submitEditRestockRequest() {
+            const itemType = document.getElementById('edit-restock-item-type').value;
             const product = document.getElementById('edit-restock-product').value;
             const brand = document.getElementById('edit-restock-brand').value;
             const flavor = document.getElementById('edit-restock-flavor').value;
@@ -3167,6 +3732,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
             // Update local request
             request.productName = productName;
+            request.itemType = itemType;
             request.quantity = parseInt(quantity);
             request.priority = priority;
             request.requestDate = date;
@@ -3179,6 +3745,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             if (firebaseRestockRequestsManager.isInitialized) {
                 const updateData = {
                     productName: productName,
+                    itemType: itemType,
                     quantity: parseInt(quantity),
                     priority: priority,
                     requestDate: date,
@@ -3251,6 +3818,26 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         let currentWeekStart = getWeekStart(new Date());
         let draggedShift = null;
 
+        // Shift types configuration
+        const SHIFT_TYPES = {
+            opening: {
+                name: 'Opening',
+                icon: 'fa-sun',
+                color: '#f59e0b',
+                gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                defaultStart: '09:00',
+                defaultEnd: '17:00'
+            },
+            closing: {
+                name: 'Closing',
+                icon: 'fa-moon',
+                color: '#6366f1',
+                gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                defaultStart: '14:00',
+                defaultEnd: '22:00'
+            }
+        };
+
         function getWeekStart(date) {
             const d = new Date(date);
             const day = d.getDay();
@@ -3279,248 +3866,1248 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
             dashboard.innerHTML = `
                 <style>
-                    .schedule-week-grid {
-                        display: grid;
-                        grid-template-columns: 180px repeat(7, 1fr);
-                        gap: 1px;
-                        background: var(--border-color);
-                        border-radius: 12px;
-                        overflow: hidden;
-                    }
-                    .schedule-header-cell {
-                        background: var(--bg-hover);
-                        padding: 12px 8px;
-                        text-align: center;
-                        font-weight: 600;
-                        color: var(--text-primary);
-                    }
-                    .schedule-header-cell.today {
-                        background: var(--primary);
-                        color: white;
-                    }
-                    .schedule-header-cell .day-name {
-                        font-size: 11px;
-                        text-transform: uppercase;
-                        opacity: 0.7;
-                    }
-                    .schedule-header-cell .day-number {
-                        font-size: 18px;
-                        margin-top: 2px;
-                    }
-                    .schedule-employee-cell {
-                        background: var(--bg-card);
-                        padding: 10px;
+                    /* Schedule Header */
+                    .schedule-header-bar {
                         display: flex;
+                        justify-content: space-between;
                         align-items: center;
-                        gap: 10px;
-                        font-weight: 500;
-                        border-right: 2px solid var(--border-color);
+                        margin-bottom: 24px;
+                        flex-wrap: wrap;
+                        gap: 16px;
                     }
-                    .schedule-employee-avatar {
-                        width: 32px;
-                        height: 32px;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: white;
-                        flex-shrink: 0;
-                    }
-                    .schedule-employee-info {
-                        overflow: hidden;
-                    }
-                    .schedule-employee-name {
-                        font-size: 13px;
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    .schedule-employee-store {
-                        font-size: 10px;
-                        color: var(--text-muted);
-                    }
-                    .schedule-day-cell {
-                        background: var(--bg-card);
-                        min-height: 70px;
-                        padding: 6px;
-                        position: relative;
-                        transition: background 0.2s;
-                        cursor: pointer;
-                    }
-                    .schedule-day-cell:hover {
-                        background: var(--bg-hover);
-                    }
-                    .schedule-day-cell.drag-over {
-                        background: rgba(59, 130, 246, 0.1);
-                        outline: 2px dashed var(--primary);
-                    }
-                    .shift-block {
-                        background: linear-gradient(135deg, var(--primary), #6366f1);
-                        color: white;
-                        padding: 6px 8px;
-                        border-radius: 6px;
-                        font-size: 11px;
-                        cursor: grab;
+                    .schedule-title-section h2 {
+                        font-size: 24px;
+                        font-weight: 700;
                         margin-bottom: 4px;
-                        position: relative;
-                        transition: transform 0.15s, box-shadow 0.15s;
                     }
-                    .shift-block:hover {
-                        transform: scale(1.02);
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                    }
-                    .shift-block:active {
-                        cursor: grabbing;
-                    }
-                    .shift-block.dragging {
-                        opacity: 0.5;
-                        transform: scale(0.95);
-                    }
-                    .shift-block .shift-time {
-                        font-weight: 600;
-                    }
-                    .shift-block .shift-hours {
-                        font-size: 10px;
-                        opacity: 0.8;
-                    }
-                    .shift-block .shift-delete {
-                        position: absolute;
-                        top: 2px;
-                        right: 4px;
-                        opacity: 0;
-                        cursor: pointer;
-                        font-size: 10px;
-                        transition: opacity 0.2s;
-                    }
-                    .shift-block:hover .shift-delete {
-                        opacity: 1;
-                    }
-                    .add-shift-btn {
-                        width: 100%;
-                        padding: 4px;
-                        border: 1px dashed var(--border-color);
-                        border-radius: 4px;
-                        background: transparent;
+                    .schedule-title-section p {
                         color: var(--text-muted);
-                        font-size: 11px;
-                        cursor: pointer;
-                        opacity: 0;
-                        transition: opacity 0.2s;
+                        font-size: 14px;
                     }
-                    .schedule-day-cell:hover .add-shift-btn {
-                        opacity: 1;
-                    }
-                    .add-shift-btn:hover {
-                        background: var(--bg-hover);
-                        color: var(--primary);
-                        border-color: var(--primary);
+                    .schedule-controls {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
                     }
                     .week-nav {
                         display: flex;
                         align-items: center;
-                        gap: 15px;
+                        gap: 8px;
+                        background: var(--bg-card);
+                        padding: 6px;
+                        border-radius: 12px;
+                        border: 1px solid var(--border-color);
                     }
                     .week-nav-btn {
-                        background: var(--bg-hover);
+                        background: transparent;
                         border: none;
                         width: 36px;
                         height: 36px;
                         border-radius: 8px;
                         cursor: pointer;
-                        color: var(--text-primary);
+                        color: var(--text-secondary);
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         transition: all 0.2s;
                     }
                     .week-nav-btn:hover {
-                        background: var(--primary);
+                        background: var(--accent-primary);
                         color: white;
                     }
                     .week-display {
-                        font-size: 16px;
+                        font-size: 15px;
                         font-weight: 600;
-                        min-width: 200px;
+                        min-width: 180px;
                         text-align: center;
+                        color: var(--text-primary);
                     }
-                    .schedule-filters {
-                        display: flex;
-                        gap: 10px;
-                        align-items: center;
-                    }
-                    .employee-sidebar {
+                    .store-filter-select {
                         background: var(--bg-card);
-                        border-radius: 12px;
-                        padding: 15px;
-                        margin-bottom: 20px;
+                        border: 1px solid var(--border-color);
+                        border-radius: 10px;
+                        padding: 10px 16px;
+                        color: var(--text-primary);
+                        font-size: 14px;
+                        cursor: pointer;
+                        min-width: 160px;
                     }
-                    .employee-sidebar h4 {
-                        margin-bottom: 10px;
+
+                    /* Days Grid - Horizontal scroll for week */
+                    .schedule-days-container {
+                        display: flex;
+                        gap: 12px;
+                        overflow-x: auto;
+                        padding-bottom: 12px;
+                        scroll-snap-type: x mandatory;
+                    }
+                    .schedule-days-container::-webkit-scrollbar {
+                        height: 6px;
+                    }
+                    .schedule-days-container::-webkit-scrollbar-track {
+                        background: var(--bg-secondary);
+                        border-radius: 3px;
+                    }
+                    .schedule-days-container::-webkit-scrollbar-thumb {
+                        background: var(--border-color);
+                        border-radius: 3px;
+                    }
+
+                    /* Day Card */
+                    .schedule-day-card {
+                        flex: 0 0 calc(14.28% - 10px);
+                        min-width: 200px;
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        overflow: hidden;
+                        scroll-snap-align: start;
+                        transition: all 0.3s ease;
+                    }
+                    .schedule-day-card:hover {
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+                    }
+                    .schedule-day-card.today {
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 0 0 2px var(--accent-glow);
+                    }
+                    .day-card-header {
+                        padding: 16px;
+                        text-align: center;
+                        border-bottom: 1px solid var(--border-color);
+                        background: var(--bg-secondary);
+                    }
+                    .schedule-day-card.today .day-card-header {
+                        background: var(--accent-gradient);
+                    }
+                    .schedule-day-card.today .day-card-header * {
+                        color: white !important;
+                    }
+                    .day-card-header .day-name {
                         font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        color: var(--text-muted);
+                        font-weight: 600;
+                    }
+                    .day-card-header .day-number {
+                        font-size: 28px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                        line-height: 1.2;
+                    }
+                    .day-card-body {
+                        padding: 12px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+
+                    /* Shift Slot */
+                    .shift-slot {
+                        border-radius: 12px;
+                        padding: 12px;
+                        transition: all 0.2s;
+                        position: relative;
+                    }
+                    .shift-slot.opening {
+                        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%);
+                        border: 1px solid rgba(245, 158, 11, 0.2);
+                    }
+                    .shift-slot.closing {
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%);
+                        border: 1px solid rgba(99, 102, 241, 0.2);
+                    }
+                    .shift-slot-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 10px;
+                    }
+                    .shift-type-badge {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .shift-slot.opening .shift-type-badge {
+                        color: #f59e0b;
+                    }
+                    .shift-slot.closing .shift-type-badge {
+                        color: #6366f1;
+                    }
+                    .shift-time-display {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                        font-weight: 500;
+                    }
+
+                    /* Employee Drop Zone */
+                    .employee-drop-zone {
+                        min-height: 50px;
+                        border: 2px dashed var(--border-color);
+                        border-radius: 10px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        padding: 8px;
+                    }
+                    .employee-drop-zone:hover {
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.05);
+                    }
+                    .employee-drop-zone.drag-over {
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.1);
+                        border-style: solid;
+                    }
+                    .employee-drop-zone.empty {
+                        color: var(--text-muted);
+                        font-size: 13px;
+                    }
+                    .employee-drop-zone.empty i {
+                        margin-right: 6px;
+                    }
+
+                    /* Assigned Employee Card */
+                    .assigned-employee {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px 12px;
+                        background: var(--bg-secondary);
+                        border-radius: 10px;
+                        width: 100%;
+                        cursor: grab;
+                        transition: all 0.2s;
+                        position: relative;
+                    }
+                    .assigned-employee:hover {
+                        background: var(--bg-hover);
+                        transform: translateY(-1px);
+                    }
+                    .assigned-employee:active {
+                        cursor: grabbing;
+                    }
+                    .assigned-employee.dragging {
+                        opacity: 0.5;
+                        transform: scale(0.98);
+                    }
+                    .assigned-employee-avatar {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .assigned-employee-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .assigned-employee-name {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .assigned-employee-hours {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                    }
+                    .assigned-employee-remove {
+                        position: absolute;
+                        top: -6px;
+                        right: -6px;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: var(--danger);
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .assigned-employee:hover .assigned-employee-remove {
+                        opacity: 1;
+                    }
+                    .assigned-employee-clone {
+                        position: absolute;
+                        top: -6px;
+                        right: 18px;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: var(--accent-primary);
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .assigned-employee:hover .assigned-employee-clone {
+                        opacity: 1;
+                    }
+                    .assigned-employee-clone:hover {
+                        background: var(--accent-secondary);
+                        transform: scale(1.1);
+                    }
+
+                    /* Time Slider */
+                    .time-slider-container {
+                        margin-top: 8px;
+                        padding: 12px;
+                        background: var(--bg-secondary);
+                        border-radius: 10px;
+                        display: none;
+                    }
+                    .time-slider-container.active {
+                        display: block;
+                    }
+                    .time-slider-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 12px;
+                    }
+                    .time-slider-label {
+                        font-size: 11px;
+                        font-weight: 600;
                         text-transform: uppercase;
                         color: var(--text-muted);
                     }
-                    .draggable-employee {
+                    .time-slider-value {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                    }
+                    .time-slider-track {
+                        position: relative;
+                        height: 40px;
+                        background: var(--bg-card);
+                        border-radius: 8px;
+                        border: 1px solid var(--border-color);
+                        overflow: hidden;
+                    }
+                    .time-slider-hours {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 0 4px;
+                        margin-top: 6px;
+                    }
+                    .time-slider-hours span {
+                        font-size: 9px;
+                        color: var(--text-muted);
+                    }
+                    .time-slider-range {
+                        position: absolute;
+                        top: 4px;
+                        bottom: 4px;
+                        border-radius: 6px;
+                        cursor: move;
+                        transition: background 0.2s;
+                    }
+                    .shift-slot.opening .time-slider-range {
+                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    }
+                    .shift-slot.closing .time-slider-range {
+                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                    }
+                    .time-slider-handle {
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 16px;
+                        height: 28px;
+                        background: white;
+                        border-radius: 4px;
+                        cursor: ew-resize;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .time-slider-handle::after {
+                        content: '';
+                        width: 4px;
+                        height: 12px;
+                        background: var(--border-color);
+                        border-radius: 2px;
+                    }
+                    .time-slider-handle.start {
+                        left: -8px;
+                    }
+                    .time-slider-handle.end {
+                        right: -8px;
+                    }
+                    .time-slider-actions {
+                        display: flex;
+                        gap: 8px;
+                        margin-top: 12px;
+                    }
+                    .time-slider-btn {
+                        flex: 1;
+                        padding: 8px 12px;
+                        border-radius: 8px;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 12px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    }
+                    .time-slider-btn.save {
+                        background: var(--accent-primary);
+                        color: white;
+                    }
+                    .time-slider-btn.save:hover {
+                        background: var(--accent-secondary);
+                    }
+                    .time-slider-btn.cancel {
+                        background: var(--bg-card);
+                        color: var(--text-secondary);
+                        border: 1px solid var(--border-color);
+                    }
+
+                    /* Employee Picker Modal */
+                    .employee-picker-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.5);
+                        backdrop-filter: blur(4px);
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s;
+                    }
+                    .employee-picker-overlay.active {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .employee-picker {
+                        background: var(--bg-card);
+                        border-radius: 20px;
+                        width: 90%;
+                        max-width: 400px;
+                        max-height: 80vh;
+                        overflow: hidden;
+                        transform: scale(0.9);
+                        transition: transform 0.3s;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    }
+                    .employee-picker-overlay.active .employee-picker {
+                        transform: scale(1);
+                    }
+                    .employee-picker-header {
+                        padding: 20px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .employee-picker-header h3 {
+                        font-size: 18px;
+                        font-weight: 600;
+                    }
+                    .employee-picker-close {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        background: var(--bg-secondary);
+                        border: none;
+                        cursor: pointer;
+                        color: var(--text-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .employee-picker-close:hover {
+                        background: var(--danger);
+                        color: white;
+                    }
+                    .employee-picker-search {
+                        padding: 16px 20px;
+                        border-bottom: 1px solid var(--border-color);
+                    }
+                    .employee-picker-search input {
+                        width: 100%;
+                        padding: 12px 16px;
+                        border-radius: 10px;
+                        border: 1px solid var(--border-color);
+                        background: var(--bg-secondary);
+                        color: var(--text-primary);
+                        font-size: 14px;
+                    }
+                    .employee-picker-search input:focus {
+                        outline: none;
+                        border-color: var(--accent-primary);
+                    }
+                    .employee-picker-list {
+                        padding: 12px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                    }
+                    .employee-picker-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 12px;
+                        border-radius: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .employee-picker-item:hover {
+                        background: var(--bg-hover);
+                    }
+                    .employee-picker-avatar {
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: white;
+                    }
+                    .employee-picker-info {
+                        flex: 1;
+                    }
+                    .employee-picker-name {
+                        font-weight: 600;
+                        font-size: 15px;
+                    }
+                    .employee-picker-store {
+                        font-size: 13px;
+                        color: var(--text-muted);
+                    }
+
+                    /* Time Editor Modal */
+                    .time-editor-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.6);
+                        backdrop-filter: blur(8px);
+                        z-index: 1001;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s;
+                    }
+                    .time-editor-overlay.active {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .time-editor-modal {
+                        background: var(--bg-card);
+                        border-radius: 24px;
+                        width: 90%;
+                        max-width: 480px;
+                        overflow: hidden;
+                        transform: scale(0.9) translateY(20px);
+                        transition: transform 0.3s;
+                        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+                    }
+                    .time-editor-overlay.active .time-editor-modal {
+                        transform: scale(1) translateY(0);
+                    }
+                    .time-editor-header {
+                        padding: 24px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .time-editor-header h3 {
+                        font-size: 20px;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .time-editor-close {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        background: var(--bg-secondary);
+                        border: none;
+                        cursor: pointer;
+                        color: var(--text-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        transition: all 0.2s;
+                    }
+                    .time-editor-close:hover {
+                        background: var(--danger);
+                        color: white;
+                    }
+                    .time-editor-body {
+                        padding: 24px;
+                    }
+                    .time-editor-info {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                        padding: 16px;
+                        background: var(--bg-secondary);
+                        border-radius: 16px;
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-avatar {
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: white;
+                    }
+                    .time-editor-details h4 {
+                        font-size: 18px;
+                        font-weight: 600;
+                        margin-bottom: 4px;
+                    }
+                    .time-editor-details p {
+                        font-size: 14px;
+                        color: var(--text-muted);
+                    }
+                    .time-editor-current {
+                        text-align: center;
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-current-label {
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        color: var(--text-muted);
+                        margin-bottom: 8px;
+                    }
+                    .time-editor-current-value {
+                        font-size: 32px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                    }
+                    .time-editor-current-hours {
+                        font-size: 14px;
+                        color: var(--accent-primary);
+                        margin-top: 4px;
+                    }
+                    .time-editor-slider-section {
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-slider-label {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                        margin-bottom: 12px;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                    .time-editor-slider-track {
+                        position: relative;
+                        height: 56px;
+                        background: var(--bg-secondary);
+                        border-radius: 12px;
+                        border: 2px solid var(--border-color);
+                        overflow: hidden;
+                        margin-bottom: 8px;
+                    }
+                    .time-editor-slider-track:hover {
+                        border-color: var(--accent-primary);
+                    }
+                    .time-editor-slider-range {
+                        position: absolute;
+                        top: 4px;
+                        bottom: 4px;
+                        border-radius: 8px;
+                        cursor: grab;
+                    }
+                    .time-editor-slider-range:active {
+                        cursor: grabbing;
+                    }
+                    .time-editor-slider-range.opening {
+                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    }
+                    .time-editor-slider-range.closing {
+                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                    }
+                    .time-editor-handle {
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 24px;
+                        height: 44px;
+                        background: white;
+                        border-radius: 8px;
+                        cursor: ew-resize;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: box-shadow 0.2s;
+                    }
+                    .time-editor-handle:hover {
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                    }
+                    .time-editor-handle::after {
+                        content: '';
+                        width: 6px;
+                        height: 20px;
+                        background: linear-gradient(180deg, var(--border-color) 0%, var(--border-color) 33%, transparent 33%, transparent 66%, var(--border-color) 66%);
+                        border-radius: 3px;
+                    }
+                    .time-editor-handle.start {
+                        left: -12px;
+                    }
+                    .time-editor-handle.end {
+                        right: -12px;
+                    }
+                    .time-editor-hours-ruler {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 0 4px;
+                    }
+                    .time-editor-hours-ruler span {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                        font-weight: 500;
+                    }
+                    .time-editor-presets {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 10px;
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-preset {
+                        padding: 12px;
+                        border: 2px solid var(--border-color);
+                        border-radius: 12px;
+                        background: var(--bg-secondary);
+                        cursor: pointer;
+                        text-align: center;
+                        transition: all 0.2s;
+                    }
+                    .time-editor-preset:hover {
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.1);
+                    }
+                    .time-editor-preset.active {
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.15);
+                    }
+                    .time-editor-preset-time {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                    }
+                    .time-editor-preset-label {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                        margin-top: 2px;
+                    }
+                    .time-editor-footer {
+                        padding: 20px 24px;
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        gap: 12px;
+                    }
+                    .time-editor-btn {
+                        flex: 1;
+                        padding: 14px 20px;
+                        border-radius: 12px;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    }
+                    .time-editor-btn.cancel {
+                        background: var(--bg-secondary);
+                        color: var(--text-secondary);
+                        border: 1px solid var(--border-color);
+                    }
+                    .time-editor-btn.cancel:hover {
+                        background: var(--bg-hover);
+                    }
+                    .time-editor-btn.save {
+                        background: var(--accent-primary);
+                        color: white;
+                    }
+                    .time-editor-btn.save:hover {
+                        background: var(--accent-secondary);
+                        transform: translateY(-1px);
+                    }
+                    .time-editor-btn.delete {
+                        background: transparent;
+                        color: var(--danger);
+                        flex: 0;
+                        padding: 14px;
+                    }
+                    .time-editor-btn.delete:hover {
+                        background: rgba(239, 68, 68, 0.1);
+                    }
+
+                    /* Clone Modal */
+                    .clone-modal-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.6);
+                        backdrop-filter: blur(8px);
+                        z-index: 1001;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s;
+                    }
+                    .clone-modal-overlay.active {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .clone-modal {
+                        background: var(--bg-card);
+                        border-radius: 20px;
+                        width: 90%;
+                        max-width: 400px;
+                        overflow: hidden;
+                        transform: scale(0.9);
+                        transition: transform 0.3s;
+                        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+                    }
+                    .clone-modal-overlay.active .clone-modal {
+                        transform: scale(1);
+                    }
+                    .clone-modal-header {
+                        padding: 20px 24px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .clone-modal-header h3 {
+                        font-size: 18px;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .clone-modal-body {
+                        padding: 24px;
+                    }
+                    .clone-option {
+                        padding: 16px;
+                        border: 2px solid var(--border-color);
+                        border-radius: 12px;
+                        margin-bottom: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        gap: 14px;
+                    }
+                    .clone-option:hover {
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.05);
+                    }
+                    .clone-option-icon {
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 10px;
+                        background: var(--bg-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 18px;
+                        color: var(--accent-primary);
+                    }
+                    .clone-option-info h4 {
+                        font-size: 15px;
+                        font-weight: 600;
+                        margin-bottom: 2px;
+                    }
+                    .clone-option-info p {
+                        font-size: 13px;
+                        color: var(--text-muted);
+                    }
+                    .clone-modal-footer {
+                        padding: 16px 24px;
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: flex-end;
+                    }
+
+                    /* All Stores View */
+                    .stores-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                        gap: 20px;
+                        margin-top: 20px;
+                    }
+                    .store-schedule-card {
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        overflow: hidden;
+                    }
+                    .store-schedule-header {
+                        padding: 16px 20px;
+                        background: var(--bg-secondary);
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    }
+                    .store-schedule-header h4 {
+                        font-size: 16px;
+                        font-weight: 600;
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        padding: 8px 10px;
-                        background: var(--bg-hover);
+                    }
+                    .store-schedule-header .store-icon {
+                        width: 32px;
+                        height: 32px;
                         border-radius: 8px;
-                        margin-bottom: 6px;
-                        cursor: grab;
+                        background: var(--accent-gradient);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 14px;
+                    }
+                    .store-schedule-body {
+                        padding: 12px;
+                    }
+                    .store-day-row {
+                        display: flex;
+                        align-items: stretch;
+                        gap: 8px;
+                        padding: 8px 0;
+                        border-bottom: 1px solid var(--border-color);
+                    }
+                    .store-day-row:last-child {
+                        border-bottom: none;
+                    }
+                    .store-day-label {
+                        width: 36px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--text-muted);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .store-day-label.today {
+                        color: var(--accent-primary);
+                    }
+                    .store-shifts {
+                        flex: 1;
+                        display: flex;
+                        gap: 6px;
+                    }
+                    .store-shift-slot {
+                        flex: 1;
+                        min-height: 40px;
+                        border-radius: 8px;
+                        padding: 6px 8px;
+                        font-size: 11px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        cursor: pointer;
                         transition: all 0.2s;
                     }
-                    .draggable-employee:hover {
-                        background: var(--primary);
-                        color: white;
+                    .store-shift-slot.opening {
+                        background: rgba(245, 158, 11, 0.1);
+                        border: 1px solid rgba(245, 158, 11, 0.2);
                     }
-                    .draggable-employee:active {
+                    .store-shift-slot.closing {
+                        background: rgba(99, 102, 241, 0.1);
+                        border: 1px solid rgba(99, 102, 241, 0.2);
+                    }
+                    .store-shift-slot.empty {
+                        background: var(--bg-secondary);
+                        border: 1px dashed var(--border-color);
+                        align-items: center;
+                        color: var(--text-muted);
+                    }
+                    .store-shift-slot:hover {
+                        transform: scale(1.02);
+                    }
+                    .store-shift-slot.filled {
+                        cursor: grab;
+                        position: relative;
+                    }
+                    .store-shift-slot.filled:active {
                         cursor: grabbing;
                     }
-                    .total-hours {
-                        font-size: 11px;
+                    .store-shift-slot.filled.dragging {
+                        opacity: 0.5;
+                        transform: scale(0.95);
+                    }
+                    .store-shift-slot.empty.drag-over {
+                        background: rgba(99, 102, 241, 0.2);
+                        border: 2px solid var(--accent-primary);
+                        border-style: solid;
+                    }
+                    .store-shift-name {
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .store-shift-time {
                         color: var(--text-muted);
-                        text-align: right;
-                        padding: 4px 8px;
+                        font-size: 10px;
+                    }
+                    .store-shift-clone {
+                        position: absolute;
+                        top: 2px;
+                        right: 2px;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        background: rgba(255,255,255,0.9);
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        color: var(--accent-primary);
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .store-shift-slot:hover .store-shift-clone {
+                        opacity: 1;
+                    }
+                    .store-shift-clone:hover {
+                        background: var(--accent-primary);
+                        color: white;
                     }
                 </style>
 
-                <div class="page-header">
-                    <div class="page-header-left">
-                        <h2 class="section-title">Schedule</h2>
-                        <p class="section-subtitle">Drag & drop to assign shifts</p>
+                <div class="schedule-header-bar">
+                    <div class="schedule-title-section">
+                        <h2><i class="fas fa-calendar-alt" style="color: var(--accent-primary); margin-right: 10px;"></i>Schedule</h2>
+                        <p>Drag employees to Opening or Closing shifts</p>
                     </div>
-                    <div class="page-header-right" style="display: flex; gap: 15px; align-items: center;">
+                    <div class="schedule-controls">
+                        <button class="week-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid var(--border-color); margin-right: 8px;">
+                            <i class="fas fa-clone"></i>
+                        </button>
                         <div class="week-nav">
-                            <button class="week-nav-btn" onclick="changeWeek(-1)">
+                            <button class="week-nav-btn" onclick="changeWeek(-1)" title="Previous week">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <div class="week-display">${weekRangeText}</div>
-                            <button class="week-nav-btn" onclick="changeWeek(1)">
+                            <button class="week-nav-btn" onclick="changeWeek(1)" title="Next week">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                             <button class="week-nav-btn" onclick="goToToday()" title="Today">
                                 <i class="fas fa-calendar-day"></i>
                             </button>
                         </div>
-                        <select class="form-input" id="schedule-store-filter" onchange="renderScheduleGrid()" style="width: 150px;">
+                        <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
                             <option value="all">All Stores</option>
                             <option value="Miramar">VSU Miramar</option>
                             <option value="Morena">VSU Morena</option>
                             <option value="Kearny Mesa">VSU Kearny Mesa</option>
                             <option value="Chula Vista">VSU Chula Vista</option>
+                            <option value="North Park">VSU North Park</option>
                             <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                         </select>
                     </div>
                 </div>
 
-                <div id="schedule-container" class="card" style="padding: 15px;">
-                    <div style="padding: 40px; text-align: center;">
+                <div id="schedule-container">
+                    <div style="padding: 60px; text-align: center;">
                         <div class="loading-spinner"></div>
                         <p style="color: var(--text-muted); margin-top: 15px;">Loading schedules...</p>
+                    </div>
+                </div>
+
+                <!-- Employee Picker Modal -->
+                <div class="employee-picker-overlay" id="employeePickerOverlay" onclick="closeEmployeePicker(event)">
+                    <div class="employee-picker" onclick="event.stopPropagation()">
+                        <div class="employee-picker-header">
+                            <h3><i class="fas fa-user-plus" style="margin-right: 8px; color: var(--accent-primary);"></i>Assign Employee</h3>
+                            <button class="employee-picker-close" onclick="closeEmployeePicker()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="employee-picker-search">
+                            <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
+                        </div>
+                        <div class="employee-picker-list" id="employeePickerList">
+                            <!-- Employees will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Editor Modal -->
+                <div class="time-editor-overlay" id="timeEditorOverlay" onclick="closeTimeEditor(event)">
+                    <div class="time-editor-modal" onclick="event.stopPropagation()">
+                        <div class="time-editor-header">
+                            <h3 id="timeEditorTitle"><i class="fas fa-clock"></i> Edit Shift</h3>
+                            <button class="time-editor-close" onclick="closeTimeEditor()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="time-editor-body">
+                            <div class="time-editor-info" id="timeEditorInfo">
+                                <!-- Employee info will be loaded here -->
+                            </div>
+                            <div class="time-editor-current">
+                                <div class="time-editor-current-label">Current Schedule</div>
+                                <div class="time-editor-current-value" id="timeEditorCurrentValue">9:00a - 5:00p</div>
+                                <div class="time-editor-current-hours" id="timeEditorCurrentHours">8.0 hours</div>
+                            </div>
+                            <div class="time-editor-presets">
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('06:00', '14:00')">
+                                    <div class="time-editor-preset-time">6a - 2p</div>
+                                    <div class="time-editor-preset-label">Early</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('09:00', '17:00')">
+                                    <div class="time-editor-preset-time">9a - 5p</div>
+                                    <div class="time-editor-preset-label">Standard</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('10:00', '18:00')">
+                                    <div class="time-editor-preset-time">10a - 6p</div>
+                                    <div class="time-editor-preset-label">Mid</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('12:00', '20:00')">
+                                    <div class="time-editor-preset-time">12p - 8p</div>
+                                    <div class="time-editor-preset-label">Afternoon</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('14:00', '22:00')">
+                                    <div class="time-editor-preset-time">2p - 10p</div>
+                                    <div class="time-editor-preset-label">Evening</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('16:00', '00:00')">
+                                    <div class="time-editor-preset-time">4p - 12a</div>
+                                    <div class="time-editor-preset-label">Night</div>
+                                </div>
+                            </div>
+                            <div class="time-editor-slider-section">
+                                <div class="time-editor-slider-label">
+                                    <span>Drag to adjust</span>
+                                </div>
+                                <div class="time-editor-slider-track" id="timeEditorTrack">
+                                    <div class="time-editor-slider-range" id="timeEditorRange">
+                                        <div class="time-editor-handle start" id="timeEditorHandleStart"></div>
+                                        <div class="time-editor-handle end" id="timeEditorHandleEnd"></div>
+                                    </div>
+                                </div>
+                                <div class="time-editor-hours-ruler">
+                                    <span>6am</span>
+                                    <span>9am</span>
+                                    <span>12pm</span>
+                                    <span>3pm</span>
+                                    <span>6pm</span>
+                                    <span>9pm</span>
+                                    <span>12am</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="time-editor-footer">
+                            <button class="time-editor-btn delete" onclick="deleteFromTimeEditor()" title="Remove shift">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
+                            <button class="time-editor-btn save" onclick="saveTimeEditor()">
+                                <i class="fas fa-check"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clone Modal -->
+                <div class="clone-modal-overlay" id="cloneModalOverlay" onclick="closeCloneModal(event)">
+                    <div class="clone-modal" onclick="event.stopPropagation()">
+                        <div class="clone-modal-header">
+                            <h3><i class="fas fa-clone" style="color: var(--accent-primary);"></i> Clone Schedule</h3>
+                            <button class="time-editor-close" onclick="closeCloneModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="clone-modal-body">
+                            <div class="clone-option" onclick="cloneFromPreviousWeek()">
+                                <div class="clone-option-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <div class="clone-option-info">
+                                    <h4>Clone Previous Week</h4>
+                                    <p>Copy all shifts from last week to this week</p>
+                                </div>
+                            </div>
+                            <div class="clone-option" onclick="cloneToNextWeek()">
+                                <div class="clone-option-icon">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div class="clone-option-info">
+                                    <h4>Clone to Next Week</h4>
+                                    <p>Copy this week's shifts to next week</p>
+                                </div>
+                            </div>
+                            <div class="clone-option" onclick="clearCurrentWeek()">
+                                <div class="clone-option-icon" style="color: var(--danger);">
+                                    <i class="fas fa-trash-alt"></i>
+                                </div>
+                                <div class="clone-option-info">
+                                    <h4>Clear This Week</h4>
+                                    <p>Remove all shifts from current week</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clone-modal-footer">
+                            <button class="time-editor-btn cancel" onclick="closeCloneModal()">Close</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -3571,6 +5158,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const weekDates = getWeekDates(currentWeekStart);
             const today = formatDateKey(new Date());
 
+            // If "All Stores" is selected, show the stores grid view
+            if (storeFilter === 'all') {
+                renderAllStoresView(container, weekDates, today);
+                return;
+            }
+
             // Filter employees by store
             let filteredEmployees = [...employees];
             if (storeFilter !== 'all') {
@@ -3588,85 +5181,955 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            // Build grid HTML
-            let gridHTML = '<div class="schedule-week-grid">';
+            // Build day cards HTML
+            let html = '<div class="schedule-days-container">';
 
-            // Header row
-            gridHTML += '<div class="schedule-header-cell" style="background: var(--bg-card);"><i class="fas fa-users"></i> Team</div>';
             weekDates.forEach(date => {
                 const dateKey = formatDateKey(date);
                 const isToday = dateKey === today;
-                gridHTML += `
-                    <div class="schedule-header-cell ${isToday ? 'today' : ''}">
-                        <div class="day-name">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                        <div class="day-number">${date.getDate()}</div>
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNumber = date.getDate();
+
+                html += `
+                    <div class="schedule-day-card ${isToday ? 'today' : ''}" data-date="${dateKey}">
+                        <div class="day-card-header">
+                            <div class="day-name">${dayName}</div>
+                            <div class="day-number">${dayNumber}</div>
+                        </div>
+                        <div class="day-card-body">
+                `;
+
+                // Render both shift slots (Opening and Closing)
+                ['opening', 'closing'].forEach(shiftType => {
+                    const shiftConfig = SHIFT_TYPES[shiftType];
+                    // Find schedule for this day and shift type
+                    const schedule = schedules.find(s =>
+                        s.date === dateKey &&
+                        s.shiftType === shiftType &&
+                        (storeFilter === 'all' || s.store === storeFilter)
+                    );
+
+                    const emp = schedule ? employees.find(e => e.id === schedule.employeeId) : null;
+                    const startTime = schedule?.startTime || shiftConfig.defaultStart;
+                    const endTime = schedule?.endTime || shiftConfig.defaultEnd;
+                    const hours = calculateHours(startTime, endTime);
+
+                    html += `
+                        <div class="shift-slot ${shiftType}" data-date="${dateKey}" data-shift-type="${shiftType}">
+                            <div class="shift-slot-header">
+                                <div class="shift-type-badge">
+                                    <i class="fas ${shiftConfig.icon}"></i>
+                                    ${shiftConfig.name}
+                                </div>
+                                <div class="shift-time-display" id="time-display-${dateKey}-${shiftType}">
+                                    ${formatTimeShort(startTime)} - ${formatTimeShort(endTime)}
+                                </div>
+                            </div>
+                            <div class="employee-drop-zone ${schedule ? '' : 'empty'}"
+                                 data-date="${dateKey}"
+                                 data-shift-type="${shiftType}"
+                                 data-schedule-id="${schedule?.id || ''}"
+                                 onclick="openEmployeePicker('${dateKey}', '${shiftType}', '${storeFilter}')"
+                                 ondragover="handleShiftDragOver(event)"
+                                 ondragleave="handleShiftDragLeave(event)"
+                                 ondrop="handleShiftDrop(event, '${dateKey}', '${shiftType}')">
+                    `;
+
+                    if (schedule && emp) {
+                        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+                        const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                        const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                        html += `
+                            <div class="assigned-employee"
+                                 draggable="true"
+                                 data-schedule-id="${schedule.id}"
+                                 data-employee-id="${emp.id}"
+                                 ondragstart="handleEmployeeDragStart(event, '${schedule.id}')"
+                                 ondragend="handleEmployeeDragEnd(event)"
+                                 onclick="event.stopPropagation(); openTimeEditor('${schedule.id}')">
+                                <div class="assigned-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                <div class="assigned-employee-info">
+                                    <div class="assigned-employee-name">${emp.name}</div>
+                                    <div class="assigned-employee-hours">${hours}h</div>
+                                </div>
+                                <button class="assigned-employee-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
+                                    <i class="fas fa-clone"></i>
+                                </button>
+                                <button class="assigned-employee-remove" onclick="event.stopPropagation(); removeSchedule('${schedule.id}')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        html += `<i class="fas fa-plus"></i> Assign`;
+                    }
+
+                    html += `</div>`;
+
+                    html += `</div>`;
+                });
+
+                html += `
+                        </div>
                     </div>
                 `;
             });
 
-            // Employee rows
-            filteredEmployees.forEach(emp => {
-                const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
-                const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
-                const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
-                // Employee cell
-                gridHTML += `
-                    <div class="schedule-employee-cell">
-                        <div class="schedule-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
-                        <div class="schedule-employee-info">
-                            <div class="schedule-employee-name">${emp.name || 'Unknown'}</div>
-                            <div class="schedule-employee-store">${emp.store || ''}</div>
-                        </div>
+        // Time editor modal functions
+        let currentTimeEditorContext = null;
+
+        function timeToPercent(time) {
+            if (!time) return 0;
+            const [hours, minutes] = time.split(':').map(Number);
+            let totalMinutes = hours * 60 + minutes;
+            // Handle midnight (00:00) as end of day
+            if (totalMinutes < 360) totalMinutes += 1440;
+            // Range: 6am (360) to 12am (1440) = 1080 minutes
+            const minMinutes = 360; // 6am
+            const maxMinutes = 1440; // 12am (midnight)
+            return Math.max(0, Math.min(100, ((totalMinutes - minMinutes) / (maxMinutes - minMinutes)) * 100));
+        }
+
+        function percentToTime(percent) {
+            const minMinutes = 360; // 6am
+            const maxMinutes = 1440; // 12am
+            const totalMinutes = Math.round((percent / 100) * (maxMinutes - minMinutes) + minMinutes);
+            // Round to nearest 15 minutes
+            const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+            const hours = Math.floor(roundedMinutes / 60) % 24;
+            const minutes = roundedMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        function openTimeEditor(scheduleId) {
+            const schedule = schedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+
+            const emp = employees.find(e => e.id === schedule.employeeId);
+            const shiftConfig = SHIFT_TYPES[schedule.shiftType] || SHIFT_TYPES.opening;
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+            const colorIndex = emp?.name ? emp.name.charCodeAt(0) % colors.length : 0;
+            const initials = emp?.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+            currentTimeEditorContext = {
+                scheduleId,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                shiftType: schedule.shiftType
+            };
+
+            // Update modal content
+            const titleEl = document.getElementById('timeEditorTitle');
+            const infoEl = document.getElementById('timeEditorInfo');
+            const currentValueEl = document.getElementById('timeEditorCurrentValue');
+            const currentHoursEl = document.getElementById('timeEditorCurrentHours');
+            const rangeEl = document.getElementById('timeEditorRange');
+
+            if (titleEl) {
+                const icon = shiftConfig.icon;
+                titleEl.innerHTML = `<i class="fas ${icon}" style="color: ${shiftConfig.color};"></i> Edit ${shiftConfig.name} Shift`;
+            }
+
+            if (infoEl) {
+                const dateObj = new Date(schedule.date + 'T12:00:00');
+                const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                infoEl.innerHTML = `
+                    <div class="time-editor-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                    <div class="time-editor-details">
+                        <h4>${emp?.name || 'Unknown'}</h4>
+                        <p>${dateStr} &bull; ${schedule.store || ''}</p>
                     </div>
                 `;
+            }
 
-                // Day cells for this employee
-                let weekTotalHours = 0;
+            // Set initial values
+            updateTimeEditorDisplay();
+
+            // Set slider position
+            if (rangeEl) {
+                rangeEl.className = `time-editor-slider-range ${schedule.shiftType}`;
+                updateTimeEditorSlider();
+            }
+
+            // Setup slider drag handlers
+            setupTimeEditorSlider();
+
+            // Show modal
+            document.getElementById('timeEditorOverlay').classList.add('active');
+        }
+
+        function closeTimeEditor(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('timeEditorOverlay').classList.remove('active');
+            currentTimeEditorContext = null;
+        }
+
+        function updateTimeEditorDisplay() {
+            if (!currentTimeEditorContext) return;
+
+            const { startTime, endTime } = currentTimeEditorContext;
+            const currentValueEl = document.getElementById('timeEditorCurrentValue');
+            const currentHoursEl = document.getElementById('timeEditorCurrentHours');
+
+            if (currentValueEl) {
+                currentValueEl.textContent = `${formatTimeShort(startTime)} - ${formatTimeShort(endTime)}`;
+            }
+
+            if (currentHoursEl) {
+                const hours = calculateHours(startTime, endTime);
+                currentHoursEl.textContent = `${hours} hours`;
+            }
+        }
+
+        function updateTimeEditorSlider() {
+            if (!currentTimeEditorContext) return;
+
+            const { startTime, endTime } = currentTimeEditorContext;
+            const rangeEl = document.getElementById('timeEditorRange');
+
+            if (rangeEl) {
+                const startPercent = timeToPercent(startTime);
+                const endPercent = timeToPercent(endTime);
+                rangeEl.style.left = `${startPercent}%`;
+                rangeEl.style.right = `${100 - endPercent}%`;
+            }
+        }
+
+        function setupTimeEditorSlider() {
+            const track = document.getElementById('timeEditorTrack');
+            const range = document.getElementById('timeEditorRange');
+            const handleStart = document.getElementById('timeEditorHandleStart');
+            const handleEnd = document.getElementById('timeEditorHandleEnd');
+
+            if (!track || !range) return;
+
+            function startDrag(handleType) {
+                return function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const trackRect = track.getBoundingClientRect();
+
+                    function onMouseMove(e) {
+                        if (!currentTimeEditorContext) return;
+
+                        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                        const x = Math.max(0, Math.min(clientX - trackRect.left, trackRect.width));
+                        const percent = (x / trackRect.width) * 100;
+
+                        let startPercent = timeToPercent(currentTimeEditorContext.startTime);
+                        let endPercent = timeToPercent(currentTimeEditorContext.endTime);
+
+                        if (handleType === 'start') {
+                            startPercent = Math.min(percent, endPercent - 5);
+                            currentTimeEditorContext.startTime = percentToTime(startPercent);
+                        } else {
+                            endPercent = Math.max(percent, startPercent + 5);
+                            currentTimeEditorContext.endTime = percentToTime(endPercent);
+                        }
+
+                        updateTimeEditorDisplay();
+                        updateTimeEditorSlider();
+                    }
+
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                        document.removeEventListener('touchmove', onMouseMove);
+                        document.removeEventListener('touchend', onMouseUp);
+                    }
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    document.addEventListener('touchmove', onMouseMove);
+                    document.addEventListener('touchend', onMouseUp);
+                };
+            }
+
+            // Remove old listeners by cloning
+            const newHandleStart = handleStart.cloneNode(true);
+            const newHandleEnd = handleEnd.cloneNode(true);
+            handleStart.parentNode.replaceChild(newHandleStart, handleStart);
+            handleEnd.parentNode.replaceChild(newHandleEnd, handleEnd);
+
+            newHandleStart.addEventListener('mousedown', startDrag('start'));
+            newHandleStart.addEventListener('touchstart', startDrag('start'));
+            newHandleEnd.addEventListener('mousedown', startDrag('end'));
+            newHandleEnd.addEventListener('touchstart', startDrag('end'));
+        }
+
+        function setTimeEditorPreset(startTime, endTime) {
+            if (!currentTimeEditorContext) return;
+
+            currentTimeEditorContext.startTime = startTime;
+            currentTimeEditorContext.endTime = endTime;
+
+            updateTimeEditorDisplay();
+            updateTimeEditorSlider();
+
+            // Highlight active preset
+            document.querySelectorAll('.time-editor-preset').forEach(p => p.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        async function saveTimeEditor() {
+            if (!currentTimeEditorContext) return;
+
+            const { scheduleId, startTime, endTime } = currentTimeEditorContext;
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).update({
+                    startTime,
+                    endTime,
+                    updatedAt: new Date().toISOString()
+                });
+
+                // Update local data
+                const schedule = schedules.find(s => s.id === scheduleId);
+                if (schedule) {
+                    schedule.startTime = startTime;
+                    schedule.endTime = endTime;
+                }
+
+                showNotification('Schedule updated!', 'success');
+                closeTimeEditor();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error updating schedule:', error);
+                showNotification('Error updating schedule', 'error');
+            }
+        }
+
+        async function deleteFromTimeEditor() {
+            if (!currentTimeEditorContext) return;
+
+            if (!confirm('Remove this employee from the shift?')) return;
+
+            const { scheduleId } = currentTimeEditorContext;
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).delete();
+
+                schedules = schedules.filter(s => s.id !== scheduleId);
+                showNotification('Shift removed', 'success');
+                closeTimeEditor();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error removing schedule:', error);
+                showNotification('Error removing shift', 'error');
+            }
+        }
+
+        // All Stores View
+        function renderAllStoresView(container, weekDates, today) {
+            const stores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'Miramar Wine & Liquor'];
+
+            let html = '<div class="stores-grid">';
+
+            stores.forEach(store => {
+                html += `
+                    <div class="store-schedule-card">
+                        <div class="store-schedule-header">
+                            <h4>
+                                <div class="store-icon"><i class="fas fa-store"></i></div>
+                                ${store}
+                            </h4>
+                        </div>
+                        <div class="store-schedule-body">
+                `;
+
                 weekDates.forEach(date => {
                     const dateKey = formatDateKey(date);
-                    const daySchedules = schedules.filter(s => s.employeeId === emp.id && s.date === dateKey);
+                    const isToday = dateKey === today;
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
 
-                    gridHTML += `
-                        <div class="schedule-day-cell"
-                             data-employee-id="${emp.id}"
-                             data-date="${dateKey}"
-                             ondragover="handleDragOver(event)"
-                             ondragleave="handleDragLeave(event)"
-                             ondrop="handleDrop(event)">
+                    html += `
+                        <div class="store-day-row">
+                            <div class="store-day-label ${isToday ? 'today' : ''}">${dayName}</div>
+                            <div class="store-shifts">
                     `;
 
-                    daySchedules.forEach(schedule => {
-                        const hours = calculateHours(schedule.startTime, schedule.endTime);
-                        weekTotalHours += parseFloat(hours);
-                        gridHTML += `
-                            <div class="shift-block"
-                                 draggable="true"
-                                 data-schedule-id="${schedule.id}"
-                                 ondragstart="handleDragStart(event, '${schedule.id}')"
-                                 ondragend="handleDragEnd(event)"
-                                 onclick="openModal('edit-schedule', '${schedule.id}')">
-                                <div class="shift-time">${formatTimeShort(schedule.startTime)} - ${formatTimeShort(schedule.endTime)}</div>
-                                <div class="shift-hours">${hours}h</div>
-                                <span class="shift-delete" onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')">
-                                    <i class="fas fa-times"></i>
-                                </span>
-                            </div>
-                        `;
+                    ['opening', 'closing'].forEach(shiftType => {
+                        const schedule = schedules.find(s =>
+                            s.date === dateKey &&
+                            s.shiftType === shiftType &&
+                            s.store === store
+                        );
+                        const emp = schedule ? employees.find(e => e.id === schedule.employeeId) : null;
+
+                        if (schedule && emp) {
+                            const firstName = emp.name?.split(' ')[0] || 'Unknown';
+                            html += `
+                                <div class="store-shift-slot ${shiftType} filled"
+                                     draggable="true"
+                                     data-schedule-id="${schedule.id}"
+                                     ondragstart="handleEmployeeDragStart(event, '${schedule.id}')"
+                                     ondragend="handleEmployeeDragEnd(event)"
+                                     onclick="openTimeEditor('${schedule.id}')">
+                                    <div class="store-shift-name">${firstName}</div>
+                                    <div class="store-shift-time">${formatTimeShort(schedule.startTime)}-${formatTimeShort(schedule.endTime)}</div>
+                                    <button class="store-shift-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
+                                        <i class="fas fa-clone"></i>
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="store-shift-slot empty"
+                                     data-date="${dateKey}"
+                                     data-shift-type="${shiftType}"
+                                     data-store="${store}"
+                                     ondragover="handleStoreSlotDragOver(event)"
+                                     ondragleave="handleStoreSlotDragLeave(event)"
+                                     ondrop="handleStoreSlotDrop(event, '${dateKey}', '${shiftType}', '${store}')"
+                                     onclick="openEmployeePicker('${dateKey}', '${shiftType}', '${store}')">
+                                    <i class="fas fa-plus" style="font-size: 10px;"></i>
+                                </div>
+                            `;
+                        }
                     });
 
-                    gridHTML += `
-                            <button class="add-shift-btn" onclick="quickAddShift('${emp.id}', '${dateKey}', '${emp.store}')">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
+                    html += `
+                            </div>
                         </div>
                     `;
                 });
+
+                html += `
+                        </div>
+                    </div>
+                `;
             });
 
-            gridHTML += '</div>';
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
-            container.innerHTML = gridHTML;
+        // Drag handlers for All Stores view
+        function handleStoreSlotDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleStoreSlotDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        async function handleStoreSlotDrop(event, dateKey, shiftType, store) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            if (!draggedShift) return;
+
+            const schedule = schedules.find(s => s.id === draggedShift);
+            if (!schedule) return;
+
+            const shiftConfig = SHIFT_TYPES[shiftType];
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(draggedShift).update({
+                    date: dateKey,
+                    shiftType,
+                    store,
+                    startTime: shiftConfig.defaultStart,
+                    endTime: shiftConfig.defaultEnd,
+                    updatedAt: new Date().toISOString()
+                });
+
+                schedule.date = dateKey;
+                schedule.shiftType = shiftType;
+                schedule.store = store;
+                schedule.startTime = shiftConfig.defaultStart;
+                schedule.endTime = shiftConfig.defaultEnd;
+
+                showNotification('Shift moved!', 'success');
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error moving shift:', error);
+                showNotification('Error moving shift', 'error');
+            }
+        }
+
+        // Clone individual shift
+        async function cloneShift(scheduleId) {
+            const schedule = schedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+
+            const weekDates = getWeekDates(currentWeekStart);
+            const weekKeys = weekDates.map(d => formatDateKey(d));
+            const currentDayIndex = weekKeys.indexOf(schedule.date);
+
+            // Find next available day for same shift type in same store
+            let targetDate = null;
+            for (let i = currentDayIndex + 1; i < 7; i++) {
+                const exists = schedules.find(s =>
+                    s.date === weekKeys[i] &&
+                    s.shiftType === schedule.shiftType &&
+                    s.store === schedule.store
+                );
+                if (!exists) {
+                    targetDate = weekKeys[i];
+                    break;
+                }
+            }
+
+            if (!targetDate) {
+                // Try from beginning of week
+                for (let i = 0; i < currentDayIndex; i++) {
+                    const exists = schedules.find(s =>
+                        s.date === weekKeys[i] &&
+                        s.shiftType === schedule.shiftType &&
+                        s.store === schedule.store
+                    );
+                    if (!exists) {
+                        targetDate = weekKeys[i];
+                        break;
+                    }
+                }
+            }
+
+            if (!targetDate) {
+                showNotification('No empty slots available this week', 'warning');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+
+            try {
+                const db = firebase.firestore();
+                const newSchedule = {
+                    employeeId: schedule.employeeId,
+                    employeeName: schedule.employeeName,
+                    store: schedule.store,
+                    date: targetDate,
+                    shiftType: schedule.shiftType,
+                    startTime: schedule.startTime,
+                    endTime: schedule.endTime,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUser?.name || 'Unknown',
+                    clonedFrom: scheduleId
+                };
+
+                const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(newSchedule);
+                schedules.push({ id: docRef.id, ...newSchedule });
+
+                const targetDay = new Date(targetDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+                showNotification(`Shift cloned to ${targetDay}!`, 'success');
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error cloning shift:', error);
+                showNotification('Error cloning shift', 'error');
+            }
+        }
+
+        // Clone modal functions
+        function openCloneModal() {
+            document.getElementById('cloneModalOverlay').classList.add('active');
+        }
+
+        function closeCloneModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('cloneModalOverlay').classList.remove('active');
+        }
+
+        async function cloneFromPreviousWeek() {
+            const previousWeekStart = new Date(currentWeekStart);
+            previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+            const previousWeekDates = getWeekDates(previousWeekStart);
+            const currentWeekDates = getWeekDates(currentWeekStart);
+
+            // Get schedules from previous week
+            const previousWeekKeys = previousWeekDates.map(d => formatDateKey(d));
+            const previousSchedules = schedules.filter(s => previousWeekKeys.includes(s.date));
+
+            if (previousSchedules.length === 0) {
+                showNotification('No schedules found in previous week', 'warning');
+                closeCloneModal();
+                return;
+            }
+
+            const storeFilter = document.getElementById('schedule-store-filter')?.value || 'all';
+
+            try {
+                const db = firebase.firestore();
+                const currentUser = getCurrentUser();
+                let clonedCount = 0;
+
+                for (const prevSchedule of previousSchedules) {
+                    // Skip if filtering by store and doesn't match
+                    if (storeFilter !== 'all' && prevSchedule.store !== storeFilter) continue;
+
+                    // Calculate new date (same day of week, current week)
+                    const prevDateIndex = previousWeekKeys.indexOf(prevSchedule.date);
+                    const newDate = formatDateKey(currentWeekDates[prevDateIndex]);
+
+                    // Check if schedule already exists for this slot
+                    const exists = schedules.find(s =>
+                        s.date === newDate &&
+                        s.shiftType === prevSchedule.shiftType &&
+                        s.store === prevSchedule.store
+                    );
+
+                    if (!exists) {
+                        const newSchedule = {
+                            employeeId: prevSchedule.employeeId,
+                            employeeName: prevSchedule.employeeName,
+                            store: prevSchedule.store,
+                            date: newDate,
+                            shiftType: prevSchedule.shiftType,
+                            startTime: prevSchedule.startTime,
+                            endTime: prevSchedule.endTime,
+                            createdAt: new Date().toISOString(),
+                            createdBy: currentUser?.name || 'Unknown',
+                            clonedFrom: prevSchedule.id
+                        };
+
+                        const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(newSchedule);
+                        schedules.push({ id: docRef.id, ...newSchedule });
+                        clonedCount++;
+                    }
+                }
+
+                showNotification(`Cloned ${clonedCount} shifts from previous week!`, 'success');
+                closeCloneModal();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error cloning schedules:', error);
+                showNotification('Error cloning schedules', 'error');
+            }
+        }
+
+        async function cloneToNextWeek() {
+            const nextWeekStart = new Date(currentWeekStart);
+            nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+            const nextWeekDates = getWeekDates(nextWeekStart);
+            const currentWeekDates = getWeekDates(currentWeekStart);
+
+            // Get schedules from current week
+            const currentWeekKeys = currentWeekDates.map(d => formatDateKey(d));
+            const currentSchedules = schedules.filter(s => currentWeekKeys.includes(s.date));
+
+            if (currentSchedules.length === 0) {
+                showNotification('No schedules in current week to clone', 'warning');
+                closeCloneModal();
+                return;
+            }
+
+            const storeFilter = document.getElementById('schedule-store-filter')?.value || 'all';
+
+            try {
+                const db = firebase.firestore();
+                const currentUser = getCurrentUser();
+                let clonedCount = 0;
+
+                for (const currSchedule of currentSchedules) {
+                    if (storeFilter !== 'all' && currSchedule.store !== storeFilter) continue;
+
+                    const currDateIndex = currentWeekKeys.indexOf(currSchedule.date);
+                    const newDate = formatDateKey(nextWeekDates[currDateIndex]);
+
+                    const exists = schedules.find(s =>
+                        s.date === newDate &&
+                        s.shiftType === currSchedule.shiftType &&
+                        s.store === currSchedule.store
+                    );
+
+                    if (!exists) {
+                        const newSchedule = {
+                            employeeId: currSchedule.employeeId,
+                            employeeName: currSchedule.employeeName,
+                            store: currSchedule.store,
+                            date: newDate,
+                            shiftType: currSchedule.shiftType,
+                            startTime: currSchedule.startTime,
+                            endTime: currSchedule.endTime,
+                            createdAt: new Date().toISOString(),
+                            createdBy: currentUser?.name || 'Unknown',
+                            clonedFrom: currSchedule.id
+                        };
+
+                        const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(newSchedule);
+                        schedules.push({ id: docRef.id, ...newSchedule });
+                        clonedCount++;
+                    }
+                }
+
+                showNotification(`Cloned ${clonedCount} shifts to next week!`, 'success');
+                closeCloneModal();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error cloning schedules:', error);
+                showNotification('Error cloning schedules', 'error');
+            }
+        }
+
+        async function clearCurrentWeek() {
+            if (!confirm('Are you sure you want to remove all shifts from the current week?')) return;
+
+            const currentWeekDates = getWeekDates(currentWeekStart);
+            const currentWeekKeys = currentWeekDates.map(d => formatDateKey(d));
+            const storeFilter = document.getElementById('schedule-store-filter')?.value || 'all';
+
+            const schedulesToDelete = schedules.filter(s =>
+                currentWeekKeys.includes(s.date) &&
+                (storeFilter === 'all' || s.store === storeFilter)
+            );
+
+            if (schedulesToDelete.length === 0) {
+                showNotification('No schedules to clear', 'info');
+                closeCloneModal();
+                return;
+            }
+
+            try {
+                const db = firebase.firestore();
+                const batch = db.batch();
+
+                schedulesToDelete.forEach(s => {
+                    const docRef = db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(s.id);
+                    batch.delete(docRef);
+                });
+
+                await batch.commit();
+
+                schedules = schedules.filter(s => !schedulesToDelete.find(d => d.id === s.id));
+                showNotification(`Cleared ${schedulesToDelete.length} shifts`, 'success');
+                closeCloneModal();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error clearing schedules:', error);
+                showNotification('Error clearing schedules', 'error');
+            }
+        }
+
+        // Employee picker functions
+        let currentPickerContext = null;
+
+        function openEmployeePicker(dateKey, shiftType, storeFilter) {
+            currentPickerContext = { dateKey, shiftType, storeFilter };
+
+            const overlay = document.getElementById('employeePickerOverlay');
+            const list = document.getElementById('employeePickerList');
+            const search = document.getElementById('employeePickerSearch');
+
+            if (search) search.value = '';
+            renderEmployeePickerList();
+
+            overlay.classList.add('active');
+        }
+
+        function closeEmployeePicker(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('employeePickerOverlay').classList.remove('active');
+            currentPickerContext = null;
+        }
+
+        function filterEmployeePicker() {
+            renderEmployeePickerList();
+        }
+
+        function renderEmployeePickerList() {
+            const list = document.getElementById('employeePickerList');
+            const search = document.getElementById('employeePickerSearch')?.value?.toLowerCase() || '';
+
+            if (!currentPickerContext) return;
+
+            let filteredEmployees = [...employees];
+
+            // Filter by store
+            if (currentPickerContext.storeFilter !== 'all') {
+                filteredEmployees = filteredEmployees.filter(e => e.store === currentPickerContext.storeFilter);
+            }
+
+            // Filter by search
+            if (search) {
+                filteredEmployees = filteredEmployees.filter(e =>
+                    e.name?.toLowerCase().includes(search)
+                );
+            }
+
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+            list.innerHTML = filteredEmployees.map(emp => {
+                const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                return `
+                    <div class="employee-picker-item" onclick="assignEmployee('${emp.id}')">
+                        <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                        <div class="employee-picker-info">
+                            <div class="employee-picker-name">${emp.name}</div>
+                            <div class="employee-picker-store">${emp.store || ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No employees found</div>';
+        }
+
+        async function assignEmployee(employeeId) {
+            if (!currentPickerContext) return;
+
+            const { dateKey, shiftType, storeFilter } = currentPickerContext;
+            const emp = employees.find(e => e.id === employeeId);
+            const shiftConfig = SHIFT_TYPES[shiftType];
+            const store = storeFilter !== 'all' ? storeFilter : emp?.store || '';
+
+            // Check if there's already a schedule for this slot
+            const existingSchedule = schedules.find(s =>
+                s.date === dateKey &&
+                s.shiftType === shiftType &&
+                s.store === store
+            );
+
+            const currentUser = getCurrentUser();
+
+            try {
+                const db = firebase.firestore();
+                let assignedCount = 1;
+
+                if (existingSchedule) {
+                    // Update existing
+                    await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(existingSchedule.id).update({
+                        employeeId,
+                        employeeName: emp?.name || '',
+                        updatedAt: new Date().toISOString()
+                    });
+                    existingSchedule.employeeId = employeeId;
+                    existingSchedule.employeeName = emp?.name || '';
+                } else {
+                    // Create new
+                    const scheduleData = {
+                        employeeId,
+                        employeeName: emp?.name || '',
+                        store,
+                        date: dateKey,
+                        shiftType,
+                        startTime: shiftConfig.defaultStart,
+                        endTime: shiftConfig.defaultEnd,
+                        createdAt: new Date().toISOString(),
+                        createdBy: currentUser?.name || 'Unknown'
+                    };
+                    const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(scheduleData);
+                    schedules.push({ id: docRef.id, ...scheduleData });
+
+                    // Auto-assign to closing if opening shift ends at or after 2pm (14:00)
+                    if (shiftType === 'opening' && shiftConfig.defaultEnd >= '14:00') {
+                        const closingExists = schedules.find(s =>
+                            s.date === dateKey &&
+                            s.shiftType === 'closing' &&
+                            s.store === store
+                        );
+
+                        if (!closingExists) {
+                            const closingConfig = SHIFT_TYPES.closing;
+                            const closingData = {
+                                employeeId,
+                                employeeName: emp?.name || '',
+                                store,
+                                date: dateKey,
+                                shiftType: 'closing',
+                                startTime: closingConfig.defaultStart,
+                                endTime: closingConfig.defaultEnd,
+                                createdAt: new Date().toISOString(),
+                                createdBy: currentUser?.name || 'Unknown',
+                                autoAssigned: true
+                            };
+                            const closingRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(closingData);
+                            schedules.push({ id: closingRef.id, ...closingData });
+                            assignedCount = 2;
+                        }
+                    }
+                }
+
+                showNotification(assignedCount > 1 ? 'Employee assigned to both shifts!' : 'Employee assigned!', 'success');
+                closeEmployeePicker();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error assigning employee:', error);
+                showNotification('Error assigning employee', 'error');
+            }
+        }
+
+        async function removeSchedule(scheduleId) {
+            if (!confirm('Remove this employee from the shift?')) return;
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).delete();
+
+                schedules = schedules.filter(s => s.id !== scheduleId);
+                showNotification('Shift removed', 'success');
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error removing schedule:', error);
+                showNotification('Error removing shift', 'error');
+            }
+        }
+
+        // Drag and drop for employees between shifts
+        function handleEmployeeDragStart(event, scheduleId) {
+            draggedShift = scheduleId;
+            event.target.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleEmployeeDragEnd(event) {
+            event.target.classList.remove('dragging');
+            document.querySelectorAll('.employee-drop-zone').forEach(zone => {
+                zone.classList.remove('drag-over');
+            });
+            draggedShift = null;
+        }
+
+        function handleShiftDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleShiftDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        async function handleShiftDrop(event, dateKey, shiftType) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            if (!draggedShift) return;
+
+            const schedule = schedules.find(s => s.id === draggedShift);
+            if (!schedule) return;
+
+            const shiftConfig = SHIFT_TYPES[shiftType];
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(draggedShift).update({
+                    date: dateKey,
+                    shiftType,
+                    startTime: shiftConfig.defaultStart,
+                    endTime: shiftConfig.defaultEnd,
+                    updatedAt: new Date().toISOString()
+                });
+
+                schedule.date = dateKey;
+                schedule.shiftType = shiftType;
+                schedule.startTime = shiftConfig.defaultStart;
+                schedule.endTime = shiftConfig.defaultEnd;
+
+                showNotification('Shift moved!', 'success');
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error moving shift:', error);
+                showNotification('Error moving shift', 'error');
+            }
         }
 
         function changeWeek(direction) {
@@ -3707,85 +6170,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             return `${h12}:${minutes} ${ampm}`;
         }
 
-        // Drag and Drop handlers
-        function handleDragStart(event, scheduleId) {
-            draggedShift = scheduleId;
-            event.target.classList.add('dragging');
-            event.dataTransfer.effectAllowed = 'move';
-        }
-
-        function handleDragEnd(event) {
-            event.target.classList.remove('dragging');
-            document.querySelectorAll('.schedule-day-cell').forEach(cell => {
-                cell.classList.remove('drag-over');
-            });
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.currentTarget.classList.add('drag-over');
-        }
-
-        function handleDragLeave(event) {
-            event.currentTarget.classList.remove('drag-over');
-        }
-
-        async function handleDrop(event) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('drag-over');
-
-            if (!draggedShift) return;
-
-            const newEmployeeId = event.currentTarget.dataset.employeeId;
-            const newDate = event.currentTarget.dataset.date;
-            const schedule = schedules.find(s => s.id === draggedShift);
-
-            if (!schedule) return;
-
-            // Update in Firestore
-            try {
-                const db = firebase.firestore();
-                const emp = employees.find(e => e.id === newEmployeeId);
-
-                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(draggedShift).update({
-                    employeeId: newEmployeeId,
-                    employeeName: emp ? emp.name : '',
-                    date: newDate,
-                    updatedAt: new Date().toISOString()
-                });
-
-                // Update local data
-                schedule.employeeId = newEmployeeId;
-                schedule.employeeName = emp ? emp.name : '';
-                schedule.date = newDate;
-
-                showNotification('Shift moved successfully!', 'success');
-                renderScheduleGrid();
-            } catch (error) {
-                console.error('Error moving shift:', error);
-                showNotification('Error moving shift', 'error');
-            }
-
-            draggedShift = null;
-        }
-
-        function quickAddShift(employeeId, date, store) {
-            const emp = employees.find(e => e.id === employeeId);
-            openModal('quick-add-schedule', { employeeId, date, store, employeeName: emp?.name });
-        }
-
-        function setShiftPreset(startTime, endTime) {
-            document.getElementById('schedule-start').value = startTime;
-            document.getElementById('schedule-end').value = endTime;
-            // Highlight selected preset
-            document.querySelectorAll('.shift-preset-btn').forEach(btn => {
-                btn.style.borderColor = 'var(--border-color)';
-                btn.style.background = 'var(--bg-card)';
-            });
-            event.currentTarget.style.borderColor = 'var(--primary)';
-            event.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
-        }
-
+        // Legacy function kept for modal compatibility
         async function saveSchedule(isQuick = false) {
             const employeeId = document.getElementById('schedule-employee')?.value;
             const store = document.getElementById('schedule-store')?.value;
@@ -3797,13 +6182,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
             if (!employeeId || !store || !date || !startTime || !endTime) {
                 showNotification('Please fill in all fields', 'error');
-                console.log('Missing fields:', { employeeId: !employeeId, store: !store, date: !date, startTime: !startTime, endTime: !endTime });
                 return;
             }
 
             const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
-            console.log('Found employee:', emp);
 
+            const currentUser = getCurrentUser();
             const scheduleData = {
                 employeeId,
                 employeeName: emp ? emp.name : '',
@@ -3811,6 +6195,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 date,
                 startTime,
                 endTime,
+                shiftType: startTime < '14:00' ? 'opening' : 'closing',
                 createdAt: new Date().toISOString(),
                 createdBy: currentUser?.name || 'Unknown'
             };
@@ -3867,18 +6252,24 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function deleteSchedule(scheduleId) {
-            if (!confirm('Delete this shift?')) return;
+            showConfirmModal({
+                title: 'Delete Shift',
+                message: 'Are you sure you want to delete this shift?',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        const db = firebase.firestore();
+                        await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).delete();
 
-            try {
-                const db = firebase.firestore();
-                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).delete();
-
-                showNotification('Shift deleted!', 'success');
-                loadScheduleData();
-            } catch (error) {
-                console.error('Error deleting schedule:', error);
-                showNotification('Error deleting schedule', 'error');
-            }
+                        showNotification('Shift deleted!', 'success');
+                        loadScheduleData();
+                    } catch (error) {
+                        console.error('Error deleting schedule:', error);
+                        showNotification('Error deleting schedule', 'error');
+                    }
+                }
+            });
         }
 
         // Thieves database
@@ -4007,6 +6398,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <option value="Morena">Morena</option>
                         <option value="Kearny Mesa">Kearny Mesa</option>
                         <option value="Chula Vista">Chula Vista</option>
+                        <option value="North Park">North Park</option>
                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                     </select>
                 </div>
@@ -4155,24 +6547,30 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function deleteThief(id) {
-            if (confirm('Are you sure you want to delete this record?')) {
-                // Find the thief to get the firestoreId
-                const thief = thieves.find(t => t.id === id || t.firestoreId === id);
+            showConfirmModal({
+                title: 'Delete Record',
+                message: 'Are you sure you want to delete this thief record? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    // Find the thief to get the firestoreId
+                    const thief = thieves.find(t => t.id === id || t.firestoreId === id);
 
-                if (thief && thief.firestoreId) {
-                    // Delete from Firebase
-                    const deleted = await deleteThiefFromFirebase(thief.firestoreId);
-                    if (deleted) {
-                        console.log('Thief record deleted from Firebase:', thief.firestoreId);
-                    } else {
-                        console.warn('Failed to delete from Firebase, removing locally');
+                    if (thief && thief.firestoreId) {
+                        // Delete from Firebase
+                        const deleted = await deleteThiefFromFirebase(thief.firestoreId);
+                        if (deleted) {
+                            console.log('Thief record deleted from Firebase:', thief.firestoreId);
+                        } else {
+                            console.warn('Failed to delete from Firebase, removing locally');
+                        }
                     }
-                }
 
-                // Remove from local array
-                thieves = thieves.filter(t => t.id !== id && t.firestoreId !== id);
-                renderThieves();
-            }
+                    // Remove from local array
+                    thieves = thieves.filter(t => t.id !== id && t.firestoreId !== id);
+                    renderThieves();
+                }
+            });
         }
 
         function previewThiefPhoto(input) {
@@ -4493,6 +6891,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <th>Category</th>
                                     <th>Description</th>
                                     <th>Amount</th>
+                                    <th>Account</th>
                                     <th>Due Date</th>
                                     <th>Status</th>
                                     <th style="width: 120px;">Actions</th>
@@ -4513,7 +6912,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             if (filteredInvoices.length === 0) {
                 return `
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">
                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
                             No invoices found
                         </td>
@@ -4552,6 +6951,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </td>
                         <td>${invoice.description}</td>
                         <td style="font-weight: 600;">$${invoice.amount.toFixed(2)}</td>
+                        <td>${invoice.paymentAccount || '-'}</td>
                         <td>${formatDate(invoice.dueDate)}</td>
                         <td>
                             <span class="badge" style="${statusStyles[invoice.status]}">${invoice.status.toUpperCase()}</span>
@@ -4689,15 +7089,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div style="width: 100%; height: 450px; position: relative;">
-                                                <embed src="${invoice.photo}" type="application/pdf" style="width: 100%; height: 100%;" />
-                                                <div id="pdf-fallback-${invoiceId}" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;">
-                                                    <i class="fas fa-file-pdf" style="font-size: 64px; color: #ef4444; margin-bottom: 16px;"></i>
-                                                    <p style="margin-bottom: 16px; color: var(--text-secondary);">PDF preview not available in this browser.</p>
-                                                    <button class="btn-primary" onclick="openPdfInNewTab('${invoice.photo.replace(/'/g, "\\'")}')">
-                                                        <i class="fas fa-external-link-alt"></i> Open PDF
-                                                    </button>
-                                                </div>
+                                            <div style="width: 100%; height: 600px; position: relative; background: #525659; border-radius: 0 0 8px 8px; overflow: hidden;">
+                                                <iframe
+                                                    src="${invoice.photo}#toolbar=0&navpanes=0&scrollbar=0"
+                                                    type="application/pdf"
+                                                    style="width: 100%; height: 100%; border: none; display: block;"
+                                                    frameborder="0"
+                                                    allowfullscreen>
+                                                </iframe>
                                             </div>
                                         </div>
                                     ` : `
@@ -4752,24 +7151,30 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function deleteInvoice(id) {
-            if (confirm('Are you sure you want to delete this invoice?')) {
-                const numericId = !isNaN(id) ? parseInt(id, 10) : id;
-                // Delete from Firebase
-                if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
-                    const success = await firebaseInvoiceManager.deleteInvoice(id);
-                    if (success) {
-                        // Update local state
+            showConfirmModal({
+                title: 'Delete Invoice',
+                message: 'Are you sure you want to delete this invoice? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    const numericId = !isNaN(id) ? parseInt(id, 10) : id;
+                    // Delete from Firebase
+                    if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
+                        const success = await firebaseInvoiceManager.deleteInvoice(id);
+                        if (success) {
+                            // Update local state
+                            invoices = invoices.filter(i => i.id !== id && i.id !== numericId && i.firestoreId !== id);
+                            renderInvoices();
+                        } else {
+                            showNotification('Error deleting invoice', 'error');
+                        }
+                    } else {
+                        // Fallback to local only
                         invoices = invoices.filter(i => i.id !== id && i.id !== numericId && i.firestoreId !== id);
                         renderInvoices();
-                    } else {
-                        alert('Error deleting invoice');
                     }
-                } else {
-                    // Fallback to local only
-                    invoices = invoices.filter(i => i.id !== id && i.id !== numericId && i.firestoreId !== id);
-                    renderInvoices();
                 }
-            }
+            });
         }
 
         async function saveInvoice() {
@@ -4780,6 +7185,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const description = document.getElementById('invoice-description').value.trim();
             const dueDate = document.getElementById('invoice-due-date').value;
             const status = document.getElementById('invoice-status').value;
+            const paymentAccount = document.getElementById('invoice-payment-account').value;
             const recurring = document.getElementById('invoice-recurring').checked;
             const notes = document.getElementById('invoice-notes').value.trim();
 
@@ -4818,10 +7224,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 });
             }
 
-            await createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, recurring, notes, fileData, fileType, fileName);
+            await createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, fileData, fileType, fileName);
         }
 
-        async function createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, recurring, notes, photo, fileType = null, fileName = null) {
+        async function createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null) {
             // Create invoice data object
             const invoiceData = {
                 invoiceNumber: invoiceNumber || '',
@@ -4832,6 +7238,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 dueDate: dueDate || '',
                 paidDate: status === 'paid' ? new Date().toISOString().split('T')[0] : null,
                 status: status || 'pending',
+                paymentAccount: paymentAccount || '',
                 recurring: recurring,
                 notes: notes || '',
                 photo: photo,
@@ -5171,11 +7578,26 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </select>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">
-                                <input type="checkbox" id="edit-invoice-recurring" ${invoice.recurring ? 'checked' : ''}>
-                                Recurring Invoice
-                            </label>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Payment Account</label>
+                                <select class="form-input" id="edit-invoice-payment-account">
+                                    <option value="" ${!invoice.paymentAccount ? 'selected' : ''}>Select account...</option>
+                                    <option value="Shop App" ${invoice.paymentAccount === 'Shop App' ? 'selected' : ''}>Shop App</option>
+                                    <option value="Personal Account" ${invoice.paymentAccount === 'Personal Account' ? 'selected' : ''}>Personal Account</option>
+                                    <option value="Business Account" ${invoice.paymentAccount === 'Business Account' ? 'selected' : ''}>Business Account</option>
+                                    <option value="PayPal" ${invoice.paymentAccount === 'PayPal' ? 'selected' : ''}>PayPal</option>
+                                    <option value="Credit Card" ${invoice.paymentAccount === 'Credit Card' ? 'selected' : ''}>Credit Card</option>
+                                    <option value="Cash" ${invoice.paymentAccount === 'Cash' ? 'selected' : ''}>Cash</option>
+                                    <option value="Other" ${invoice.paymentAccount === 'Other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
+                                    <input type="checkbox" id="edit-invoice-recurring" ${invoice.recurring ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
+                                    Recurring Invoice
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Notes</label>
@@ -5285,6 +7707,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const description = document.getElementById('edit-invoice-description').value.trim();
             const dueDate = document.getElementById('edit-invoice-due-date').value;
             const status = document.getElementById('edit-invoice-status').value;
+            const paymentAccount = document.getElementById('edit-invoice-payment-account').value;
             const recurring = document.getElementById('edit-invoice-recurring').checked;
             const notes = document.getElementById('edit-invoice-notes').value.trim();
 
@@ -5337,6 +7760,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 dueDate: dueDate || '',
                 paidDate: status === 'paid' ? (invoice && invoice.paidDate ? invoice.paidDate : new Date().toISOString().split('T')[0]) : null,
                 status: status || 'pending',
+                paymentAccount: paymentAccount || '',
                 recurring: recurring,
                 notes: notes || '',
                 photo: fileData,
@@ -5569,13 +7993,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <span class="badge" style="background: var(--accent-primary);">${itemLocation}</span>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="viewTreasuryItem(${item.id})" title="View Details">
+                            <button class="btn-icon" onclick="viewTreasuryItem('${item.id}')" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn-icon" onclick="editTreasuryItem(${item.id})" title="Edit">
+                            <button class="btn-icon" onclick="editTreasuryItem('${item.id}')" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-icon" onclick="deleteTreasuryItem(${item.id})" title="Delete">
+                            <button class="btn-icon" onclick="deleteTreasuryItem('${item.id}')" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -5649,11 +8073,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     </div>
 
                     <div style="display: flex; gap: 12px;">
-                        <button class="btn-secondary" style="flex: 1;" onclick="editTreasuryItem(${item.id})">
+                        <button class="btn-secondary" style="flex: 1;" onclick="editTreasuryItem('${item.id}')">
                             <i class="fas fa-edit"></i>
                             Edit Piece
                         </button>
-                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this piece?')) { deleteTreasuryItem(${item.id}); closeModal(); }">
+                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="closeModal(); deleteTreasuryItem('${item.id}');">
                             <i class="fas fa-trash"></i>
                             Delete
                         </button>
@@ -5670,29 +8094,35 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function deleteTreasuryItem(id) {
-            if (confirm('Are you sure you want to delete this piece from the collection?')) {
-                try {
-                    // Find the item to get firestoreId
-                    const item = treasuryItems.find(t => t.id === id);
-                    
-                    // Delete from Firebase if firestoreId exists
-                    if (item && item.firestoreId && typeof firebase !== 'undefined' && firebase.firestore) {
-                        const db = firebase.firestore();
-                        const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
-                        await db.collection(treasuryCollection).doc(item.firestoreId).delete();
-                        console.log('✅ Treasury item deleted from Firebase');
-                    }
+            showConfirmModal({
+                title: 'Delete Treasury Item',
+                message: 'Are you sure you want to delete this piece from the collection? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        // Find the item to get firestoreId
+                        const item = treasuryItems.find(t => t.id === id);
 
-                    // Remove from local array
-                    treasuryItems = treasuryItems.filter(t => t.id !== id);
-                    
-                    await loadTreasuryItemsFromFirebase();
-                    renderTreasuryContent();
-                } catch (error) {
-                    console.error('Error deleting treasury item:', error);
-                    alert('Error deleting item. Please try again.');
+                        // Delete from Firebase if firestoreId exists
+                        if (item && item.firestoreId && typeof firebase !== 'undefined' && firebase.firestore) {
+                            const db = firebase.firestore();
+                            const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
+                            await db.collection(treasuryCollection).doc(item.firestoreId).delete();
+                            console.log('✅ Treasury item deleted from Firebase');
+                        }
+
+                        // Remove from local array
+                        treasuryItems = treasuryItems.filter(t => t.id !== id);
+
+                        await loadTreasuryItemsFromFirebase();
+                        renderTreasuryContent();
+                    } catch (error) {
+                        console.error('Error deleting treasury item:', error);
+                        showNotification('Error deleting item. Please try again.', 'error');
+                    }
                 }
-            }
+            });
         }
 
         /**
@@ -5915,6 +8345,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <option value="Morena">VSU Morena</option>
                                 <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                 <option value="Chula Vista">VSU Chula Vista</option>
+                                <option value="North Park">VSU North Park</option>
                                 <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                             </select>
                         </div>
@@ -6054,7 +8485,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    <button class="btn-primary" style="background: var(--danger); border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this record?')) { deleteChangeRecord('${recordId}'); closeModal(); }">
+                    <button class="btn-primary" style="background: var(--danger); border-color: var(--danger);" onclick="closeModal(); deleteChangeRecord('${recordId}');">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -6084,27 +8515,33 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function deleteChangeRecord(id) {
-            if (confirm('Are you sure you want to delete this change record?')) {
-                try {
-                    // Delete from Firebase
-                    if (typeof firebaseChangeRecordsManager !== 'undefined' && firebaseChangeRecordsManager.isInitialized) {
-                        const success = await firebaseChangeRecordsManager.deleteChangeRecord(id);
-                        if (success) {
+            showConfirmModal({
+                title: 'Delete Change Record',
+                message: 'Are you sure you want to delete this change record? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        // Delete from Firebase
+                        if (typeof firebaseChangeRecordsManager !== 'undefined' && firebaseChangeRecordsManager.isInitialized) {
+                            const success = await firebaseChangeRecordsManager.deleteChangeRecord(id);
+                            if (success) {
+                                changeRecords = changeRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                                renderChange();
+                            } else {
+                                showNotification('Error deleting record from Firebase', 'error');
+                            }
+                        } else {
+                            // Fallback to local deletion
                             changeRecords = changeRecords.filter(r => r.id !== id && r.firestoreId !== id);
                             renderChange();
-                        } else {
-                            alert('Error deleting record from Firebase');
                         }
-                    } else {
-                        // Fallback to local deletion
-                        changeRecords = changeRecords.filter(r => r.id !== id && r.firestoreId !== id);
-                        renderChange();
+                    } catch (error) {
+                        console.error('Error deleting change record:', error);
+                        showNotification('Error deleting record. Please try again.', 'error');
                     }
-                } catch (error) {
-                    console.error('Error deleting change record:', error);
-                    alert('Error deleting record. Please try again.');
                 }
-            }
+            });
         }
 
         // Helper function to preview change photo
@@ -6347,6 +8784,116 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             return false;
         }
 
+        // Initialize Firebase Licenses
+        async function initializeFirebaseLicenses() {
+            try {
+                console.log('Initializing Firebase for licenses management...');
+
+                // Initialize Firebase manager
+                const initialized = await firebaseLicensesManager.initialize();
+
+                if (initialized) {
+                    try {
+                        // Load licenses from Firestore
+                        const firestoreLicenses = await firebaseLicensesManager.loadLicenses();
+
+                        if (firestoreLicenses && firestoreLicenses.length > 0) {
+                            console.log('Loaded licenses from Firestore:', firestoreLicenses.length);
+
+                            // Map Firestore data to the local licenses array
+                            licenses = firestoreLicenses.map(lic => ({
+                                id: lic.firestoreId || lic.id,
+                                firestoreId: lic.firestoreId || lic.id,
+                                name: lic.name || '',
+                                store: lic.store || '',
+                                expires: lic.expires || '',
+                                status: lic.status || 'valid',
+                                file: lic.file || lic.fileName || null,
+                                fileName: lic.fileName || null,
+                                fileType: lic.fileType || null,
+                                fileData: lic.fileData || null,
+                                uploadedBy: lic.uploadedBy || null
+                            }));
+
+                            console.log(`✅ Successfully loaded ${licenses.length} licenses from Firestore`);
+                            return true;
+                        } else {
+                            console.log('No licenses found in Firestore, using local data');
+                        }
+                    } catch (error) {
+                        console.error('Error loading licenses from Firestore:', error);
+                    }
+                } else {
+                    console.warn('Firebase Licenses not available. Using fallback data.');
+                }
+            } catch (error) {
+                console.error('Error initializing Firebase licenses:', error);
+            }
+
+            return false;
+        }
+
+        // Function to view/download a license PDF
+        function viewLicensePdf(licenseId) {
+            const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
+            if (!license) {
+                alert('License not found');
+                return;
+            }
+
+            if (!license.fileData) {
+                alert('No PDF file attached to this license');
+                return;
+            }
+
+            // Open PDF in new tab
+            const newWindow = window.open();
+            if (newWindow) {
+                newWindow.document.write(`
+                    <html>
+                    <head><title>${license.name} - ${license.store}</title></head>
+                    <body style="margin:0;padding:0;">
+                        <embed src="${license.fileData}" type="application/pdf" width="100%" height="100%" style="position:absolute;top:0;left:0;right:0;bottom:0;">
+                    </body>
+                    </html>
+                `);
+            } else {
+                // Fallback: download the file
+                const link = document.createElement('a');
+                link.href = license.fileData;
+                link.download = license.fileName || `${license.name}.pdf`;
+                link.click();
+            }
+        }
+
+        // Function to delete a license
+        function deleteLicense(licenseId) {
+            const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
+            if (!license) return;
+
+            showConfirmModal({
+                title: 'Delete License/Document',
+                message: `Are you sure you want to delete "${license.name}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    // Delete from Firebase
+                    if (firebaseLicensesManager && firebaseLicensesManager.isInitialized && license.firestoreId) {
+                        try {
+                            await firebaseLicensesManager.deleteLicense(license.firestoreId);
+                            console.log('✅ License deleted from Firebase');
+                        } catch (error) {
+                            console.error('Error deleting license from Firebase:', error);
+                        }
+                    }
+
+                    // Remove from local array
+                    licenses = licenses.filter(l => l.id !== licenseId && l.firestoreId !== licenseId);
+                    renderPage(currentPage);
+                }
+            });
+        }
+
         // Gifts Functions - Control de Regalos en Especie
         function getGiftsAvailableMonths() {
             const months = new Set();
@@ -6375,7 +8922,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Gifts</h2>
+                        <h2 class="section-title">Customer Care</h2>
                         <p class="section-subtitle">Control de Regalos en Especie</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('add-gift')">
@@ -6414,6 +8961,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="Morena">Morena</option>
                                     <option value="Kearny Mesa">Kearny Mesa</option>
                                     <option value="Chula Vista">Chula Vista</option>
+                                    <option value="North Park">North Park</option>
                                     <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                 </select>
                             </div>
@@ -6620,7 +9168,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <i class="fas fa-edit"></i>
                             Edit Gift
                         </button>
-                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this gift record?')) { deleteGift('${String(gift.id).replace(/'/g, "\\'")}'); closeModal(); }">
+                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="closeModal(); deleteGift('${String(gift.id).replace(/'/g, "\\'")}');">
                             <i class="fas fa-trash"></i>
                             Delete
                         </button>
@@ -6638,23 +9186,31 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             setTimeout(() => openModal('edit-gift', giftId), 100);
         }
 
-        async function deleteGift(id) {
+        function deleteGift(id) {
             // Convert to number if it's a numeric string
             const giftId = typeof id === 'string' && !isNaN(id) ? parseInt(id) : id;
-            if (confirm('Are you sure you want to delete this gift record?')) {
-                const gift = giftsRecords.find(r => r.id === giftId);
-                if (gift) {
-                    // Try to delete from Firebase
-                    if (gift.firestoreId) {
-                        const success = await deleteGiftFromFirebase(gift.firestoreId);
-                        if (!success) {
-                            console.warn('Failed to delete from Firebase, but deleting locally');
+            const gift = giftsRecords.find(r => r.id === giftId);
+            const productName = gift?.product || 'this gift record';
+
+            showConfirmModal({
+                title: 'Delete Gift Record',
+                message: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    if (gift) {
+                        // Try to delete from Firebase
+                        if (gift.firestoreId) {
+                            const success = await deleteGiftFromFirebase(gift.firestoreId);
+                            if (!success) {
+                                console.warn('Failed to delete from Firebase, but deleting locally');
+                            }
                         }
                     }
+                    giftsRecords = giftsRecords.filter(r => r.id !== giftId);
+                    renderGifts();
                 }
-                giftsRecords = giftsRecords.filter(r => r.id !== giftId);
-                renderGifts();
-            }
+            });
         }
 
         async function saveGift(isEdit = false, giftId = null) {
@@ -6871,29 +9427,35 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function deleteCashOut(id) {
-            if (!confirm('Are you sure you want to delete this cash out record?')) return;
-
-            try {
-                // Delete from Firebase
-                if (typeof firebaseCashOutManager !== 'undefined' && firebaseCashOutManager.isInitialized) {
-                    const success = await firebaseCashOutManager.deleteCashOutRecord(id);
-                    if (success) {
-                        cashOutRecords = cashOutRecords.filter(r => r.id !== id && r.firestoreId !== id);
-                        renderCashOut();
-                        showNotification('Cash out deleted', 'success');
-                    } else {
-                        showNotification('Error deleting from Firebase', 'error');
+            showConfirmModal({
+                title: 'Delete Cash Out',
+                message: 'Are you sure you want to delete this cash out record? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        // Delete from Firebase
+                        if (typeof firebaseCashOutManager !== 'undefined' && firebaseCashOutManager.isInitialized) {
+                            const success = await firebaseCashOutManager.deleteCashOutRecord(id);
+                            if (success) {
+                                cashOutRecords = cashOutRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                                renderCashOut();
+                                showNotification('Cash out deleted', 'success');
+                            } else {
+                                showNotification('Error deleting from Firebase', 'error');
+                            }
+                        } else {
+                            // Fallback to local deletion
+                            cashOutRecords = cashOutRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                            renderCashOut();
+                            showNotification('Cash out deleted', 'success');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting cash out:', error);
+                        showNotification('Error deleting cash out', 'error');
                     }
-                } else {
-                    // Fallback to local deletion
-                    cashOutRecords = cashOutRecords.filter(r => r.id !== id && r.firestoreId !== id);
-                    renderCashOut();
-                    showNotification('Cash out deleted', 'success');
                 }
-            } catch (error) {
-                console.error('Error deleting cash out:', error);
-                showNotification('Error deleting cash out', 'error');
-            }
+            });
         }
 
         async function createCashOut() {
@@ -6965,18 +9527,31 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const receiptInput = document.getElementById('cashout-receipt-photo');
 
             if (isNaN(amountSpent)) {
-                alert('Please enter the amount spent');
+                showNotification('Please enter the amount spent', 'error');
                 return;
             }
 
             const record = cashOutRecords.find(r => r.id === recordId || r.firestoreId === recordId);
             if (!record) return;
 
+            // Check if amount exceeds and show warning modal
             if (amountSpent > record.amount) {
-                if (!confirm(`Amount spent ($${amountSpent}) exceeds the original amount ($${record.amount}). Continue?`)) {
-                    return;
-                }
+                showConfirmModal({
+                    title: 'Amount Exceeds Original',
+                    message: `Amount spent ($${amountSpent.toFixed(2)}) exceeds the original amount ($${record.amount.toFixed(2)}). Are you sure you want to continue?`,
+                    confirmText: 'Continue',
+                    type: 'warning',
+                    onConfirm: () => {
+                        processCloseCashOut(recordId, amountSpent, hasMoneyLeft, receiptInput, record);
+                    }
+                });
+                return;
             }
+
+            processCloseCashOut(recordId, amountSpent, hasMoneyLeft, receiptInput, record);
+        }
+
+        async function processCloseCashOut(recordId, amountSpent, hasMoneyLeft, receiptInput, record) {
 
             // Convert receipt to base64 if provided and compress it
             let receiptBase64 = null;
@@ -7132,22 +9707,128 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         // Issues Functions
+        // Issue status configuration
+        const issueStatusConfig = {
+            'open': { label: 'Open', icon: 'fa-circle-exclamation', color: '#ef4444', bg: '#ef444420' },
+            'follow-up': { label: 'Need Follow Up', icon: 'fa-clock', color: '#f59e0b', bg: '#f59e0b20' },
+            'resolved': { label: 'Resolved', icon: 'fa-circle-check', color: '#10b981', bg: '#10b98120' }
+        };
+
+        // Current filter for issues
+        let currentIssueStatusFilter = 'all';
+        let currentIssueStoreFilter = 'all';
+
         function renderIssues() {
             const dashboard = document.querySelector('.dashboard');
 
+            // Filter issues based on store filter first (for accurate counts)
+            let storeFilteredIssues = [...issues];
+            if (currentIssueStoreFilter !== 'all') {
+                storeFilteredIssues = issues.filter(i => i.store === currentIssueStoreFilter);
+            }
+
+            // Count issues by status (after store filter)
+            const openCount = storeFilteredIssues.filter(i => !i.status || i.status === 'open').length;
+            const followUpCount = storeFilteredIssues.filter(i => i.status === 'follow-up').length;
+            const resolvedCount = storeFilteredIssues.filter(i => i.status === 'resolved').length;
+
+            // Filter issues based on status filter
+            let filteredIssues = [...storeFilteredIssues];
+            if (currentIssueStatusFilter !== 'all') {
+                if (currentIssueStatusFilter === 'open') {
+                    filteredIssues = storeFilteredIssues.filter(i => !i.status || i.status === 'open');
+                } else {
+                    filteredIssues = storeFilteredIssues.filter(i => i.status === currentIssueStatusFilter);
+                }
+            }
+
             // Sort issues by date, most recent first
-            const sortedIssues = [...issues].sort((a, b) => new Date(b.incidentDate) - new Date(a.incidentDate));
+            const sortedIssues = filteredIssues.sort((a, b) => new Date(b.incidentDate) - new Date(a.incidentDate));
 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Issues Registry</h2>
-                        <p class="section-subtitle">Customer incident documentation</p>
+                        <p class="section-subtitle">Customer incident documentation & follow-up tracking</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-issue')">
                         <i class="fas fa-plus"></i>
                         New Issue
                     </button>
+                </div>
+
+                <!-- Status Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="card" onclick="filterIssuesByStatus('open')" style="cursor: pointer; transition: all 0.2s; ${currentIssueStatusFilter === 'open' ? 'border: 2px solid #ef4444;' : ''}">
+                        <div class="card-body" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 50px; height: 50px; background: #ef444420; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-circle-exclamation" style="font-size: 24px; color: #ef4444;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: #ef4444;">${openCount}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Open</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" onclick="filterIssuesByStatus('follow-up')" style="cursor: pointer; transition: all 0.2s; ${currentIssueStatusFilter === 'follow-up' ? 'border: 2px solid #f59e0b;' : ''}">
+                        <div class="card-body" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 50px; height: 50px; background: #f59e0b20; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-clock" style="font-size: 24px; color: #f59e0b;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: #f59e0b;">${followUpCount}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Need Follow Up</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" onclick="filterIssuesByStatus('resolved')" style="cursor: pointer; transition: all 0.2s; ${currentIssueStatusFilter === 'resolved' ? 'border: 2px solid #10b981;' : ''}">
+                        <div class="card-body" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 50px; height: 50px; background: #10b98120; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-circle-check" style="font-size: 24px; color: #10b981;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: #10b981;">${resolvedCount}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Resolved</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" onclick="filterIssuesByStatus('all')" style="cursor: pointer; transition: all 0.2s; ${currentIssueStatusFilter === 'all' ? 'border: 2px solid var(--accent-primary);' : ''}">
+                        <div class="card-body" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 50px; height: 50px; background: var(--accent-primary)20; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-list" style="font-size: 24px; color: var(--accent-primary);"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: var(--accent-primary);">${storeFilteredIssues.length}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">All Issues</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Store Filter -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-body" style="padding: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-store" style="color: var(--text-muted);"></i>
+                                <span style="font-weight: 500; color: var(--text-secondary);">Filter by Store:</span>
+                            </div>
+                            <select id="issue-store-filter" class="form-input" onchange="filterIssuesByStore(this.value)" style="width: 220px;">
+                                <option value="all" ${currentIssueStoreFilter === 'all' ? 'selected' : ''}>All Stores</option>
+                                <option value="Miramar" ${currentIssueStoreFilter === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                <option value="Morena" ${currentIssueStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                <option value="Kearny Mesa" ${currentIssueStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                <option value="Chula Vista" ${currentIssueStoreFilter === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                <option value="North Park" ${currentIssueStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                <option value="Miramar Wine & Liquor" ${currentIssueStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                            </select>
+                            ${currentIssueStoreFilter !== 'all' ? `
+                                <button onclick="filterIssuesByStore('all')" class="btn-secondary" style="padding: 8px 12px;">
+                                    <i class="fas fa-times"></i> Clear Filter
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Customer Perception Chart -->
@@ -7169,33 +9850,52 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-list"></i>
-                            All Issues
+                            ${currentIssueStatusFilter === 'all' ? 'All Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Issues'}
                         </h3>
-                        <span class="badge" style="background: var(--accent-primary);">${issues.length} Total</span>
+                        <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
                     </div>
                     <div class="card-body" style="padding: 0;">
                         ${sortedIssues.length === 0 ? `
                             <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                                No issues recorded yet
+                                No issues ${currentIssueStatusFilter !== 'all' ? 'with this status' : 'recorded yet'}
                             </div>
                         ` : `
                             <table class="data-table">
                                 <thead>
                                     <tr>
+                                        <th>Status</th>
                                         <th>Date</th>
+                                        <th>Store</th>
                                         <th>Customer</th>
                                         <th>Phone</th>
                                         <th>Type</th>
                                         <th>Description</th>
                                         <th>Perception</th>
-                                        <th style="width: 80px;">Actions</th>
+                                        <th style="width: 180px;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${sortedIssues.map(issue => `
+                                    ${sortedIssues.map(issue => {
+                                        const status = issue.status || 'open';
+                                        const statusConfig = issueStatusConfig[status];
+                                        return `
                                         <tr>
+                                            <td>
+                                                <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: ${statusConfig.bg}; color: ${statusConfig.color}; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                                    <i class="fas ${statusConfig.icon}"></i>
+                                                    ${statusConfig.label}
+                                                </span>
+                                            </td>
                                             <td style="white-space: nowrap;">${formatDate(issue.incidentDate)}</td>
+                                            <td>
+                                                ${issue.store ? `
+                                                    <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary);">
+                                                        <i class="fas fa-store" style="color: var(--accent-primary);"></i>
+                                                        ${issue.store}
+                                                    </span>
+                                                ` : '<span style="color: var(--text-muted);">-</span>'}
+                                            </td>
                                             <td><strong>${issue.customer}</strong></td>
                                             <td>
                                                 ${issue.phone ? `<a href="tel:${issue.phone}" style="color: var(--accent-primary); text-decoration: none;"><i class="fas fa-phone"></i> ${issue.phone}</a>` : '-'}
@@ -7206,27 +9906,171 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                                     ${issue.type}
                                                 </span>
                                             </td>
-                                            <td style="max-width: 250px;">${issue.description || '-'}</td>
+                                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${issue.description || '-'}</td>
                                             <td style="text-align: center; font-size: 24px;">
                                                 ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
                                             </td>
                                             <td>
-                                                <button class="btn-icon" onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" title="View Details">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn-icon danger" onclick="deleteIssue('${issue.firestoreId || issue.id}')" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                                    ${status !== 'follow-up' ? `
+                                                        <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'follow-up')" title="Mark as Need Follow Up" style="background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b50;">
+                                                            <i class="fas fa-clock"></i>
+                                                        </button>
+                                                    ` : ''}
+                                                    ${status !== 'resolved' ? `
+                                                        <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'resolved')" title="Mark as Resolved" style="background: #10b98120; color: #10b981; border: 1px solid #10b98150;">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    ` : ''}
+                                                    ${status !== 'open' ? `
+                                                        <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'open')" title="Reopen Issue" style="background: #ef444420; color: #ef4444; border: 1px solid #ef444450;">
+                                                            <i class="fas fa-rotate-left"></i>
+                                                        </button>
+                                                    ` : ''}
+                                                    <button class="btn-icon" onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn-icon danger" onclick="deleteIssue('${issue.firestoreId || issue.id}')" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
                             </table>
                         `}
                     </div>
                 </div>
             `;
+
+            // Update sidebar badge
+            updateIssuesSidebarBadge();
         }
+
+        // Filter issues by status
+        function filterIssuesByStatus(status) {
+            currentIssueStatusFilter = status;
+            renderIssues();
+        }
+
+        // Filter issues by store
+        function filterIssuesByStore(store) {
+            currentIssueStoreFilter = store;
+            renderIssues();
+        }
+
+        // Update issue status
+        async function updateIssueStatus(issueId, newStatus) {
+            const issue = issues.find(i => i.firestoreId === issueId || i.id === issueId);
+            if (!issue) return;
+
+            try {
+                // Update locally
+                issue.status = newStatus;
+                if (!issue.statusHistory) issue.statusHistory = [];
+                issue.statusHistory.push({
+                    status: newStatus,
+                    timestamp: new Date().toISOString(),
+                    updatedBy: getCurrentUser()?.name || 'Unknown'
+                });
+
+                // Update in Firebase
+                if (firebaseIssuesManager && firebaseIssuesManager.isInitialized && issue.firestoreId) {
+                    await firebaseIssuesManager.updateIssue(issue.firestoreId, {
+                        status: newStatus,
+                        statusHistory: issue.statusHistory
+                    });
+                }
+
+                renderIssues();
+
+                const statusLabel = issueStatusConfig[newStatus]?.label || newStatus;
+                showIssueToast(`Issue marked as "${statusLabel}"`, 'success');
+            } catch (error) {
+                console.error('Error updating issue status:', error);
+                showIssueToast('Error updating status', 'error');
+            }
+        }
+
+        // Update sidebar badge for issues needing follow up
+        function updateIssuesSidebarBadge() {
+            const followUpCount = issues.filter(i => i.status === 'follow-up').length;
+            const openCount = issues.filter(i => !i.status || i.status === 'open').length;
+            const totalPending = followUpCount + openCount;
+
+            // Find the issues nav item
+            const issuesNavItem = document.querySelector('.nav-item[data-page="issues"]');
+            if (issuesNavItem) {
+                // Remove existing badge
+                const existingBadge = issuesNavItem.querySelector('.issues-badge');
+                if (existingBadge) existingBadge.remove();
+
+                // Add badge if there are pending issues
+                if (totalPending > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'issues-badge';
+                    badge.style.cssText = `
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: ${followUpCount > 0 ? '#f59e0b' : '#ef4444'};
+                        color: white;
+                        font-size: 11px;
+                        font-weight: 700;
+                        padding: 2px 6px;
+                        border-radius: 10px;
+                        min-width: 18px;
+                        text-align: center;
+                    `;
+                    badge.textContent = totalPending;
+                    issuesNavItem.style.position = 'relative';
+                    issuesNavItem.appendChild(badge);
+                }
+            }
+        }
+
+        // Toast notification for issues
+        function showIssueToast(message, type = 'info') {
+            let toastContainer = document.getElementById('issue-toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'issue-toast-container';
+                toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;';
+                document.body.appendChild(toastContainer);
+            }
+
+            const toast = document.createElement('div');
+            const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+            toast.style.cssText = `
+                padding: 14px 20px;
+                background: ${colors[type] || colors.info};
+                color: white;
+                border-radius: 10px;
+                font-weight: 500;
+                font-size: 14px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                animation: issueSlideIn 0.3s ease;
+            `;
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'issueSlideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Add CSS for issue toast animations
+        const issueToastStyles = document.createElement('style');
+        issueToastStyles.textContent = `
+            @keyframes issueSlideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes issueSlideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        `;
+        document.head.appendChild(issueToastStyles);
 
         function selectPerception(value) {
             // Update hidden input
@@ -7282,11 +10126,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function renderPerceptionGanttChart() {
-            // Get issues with perception data, sorted by date
+            // Get ALL issues with perception data (not just recent)
             const issuesWithPerception = issues
-                .filter(i => i.perception !== null && i.perception !== undefined)
-                .sort((a, b) => new Date(a.incidentDate) - new Date(b.incidentDate))
-                .slice(-15); // Last 15 issues
+                .filter(i => i.perception !== null && i.perception !== undefined);
 
             if (issuesWithPerception.length === 0) {
                 return `
@@ -7298,59 +10140,73 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 `;
             }
 
-            // Calculate perception distribution
+            // Calculate perception distribution for ALL issues
             const perceptionCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+            let totalSum = 0;
             issuesWithPerception.forEach(i => {
                 if (perceptionCounts[i.perception] !== undefined) {
                     perceptionCounts[i.perception]++;
+                    totalSum += i.perception;
                 }
             });
 
             const total = issuesWithPerception.length;
+            const average = total > 0 ? (totalSum / total) : 0;
+            const averageRounded = Math.round(average * 10) / 10; // Round to 1 decimal
+            const averageColor = getPerceptionColor(Math.round(average));
+            const averageEmoji = getPerceptionEmoji(Math.round(average));
+            const averagePercentage = (average / 5) * 100;
 
             return `
-                <!-- Perception Summary -->
-                <div style="display: flex; justify-content: space-around; margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
-                    ${[1, 2, 3, 4, 5].map(level => `
-                        <div style="text-align: center;">
-                            <div style="font-size: 28px; margin-bottom: 4px;">${getPerceptionEmoji(level)}</div>
-                            <div style="font-size: 20px; font-weight: 700; color: ${getPerceptionColor(level)};">${perceptionCounts[level]}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">${getPerceptionLabel(level)}</div>
+                <!-- Average Score Display -->
+                <div style="display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, ${averageColor}15, ${averageColor}08); border: 2px solid ${averageColor}40; border-radius: 16px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 64px; line-height: 1;">${averageEmoji}</div>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Average Score</div>
+                        <div style="font-size: 48px; font-weight: 800; color: ${averageColor}; line-height: 1;">${averageRounded}</div>
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">out of 5.0 · ${total} interactions</div>
+                    </div>
+                    <div style="flex: 1; max-width: 300px;">
+                        <div style="background: var(--bg-tertiary); border-radius: 12px; height: 24px; overflow: hidden; position: relative;">
+                            <div style="width: ${averagePercentage}%; height: 100%; background: linear-gradient(90deg, ${averageColor}88, ${averageColor}); border-radius: 12px; transition: width 0.5s ease;"></div>
                         </div>
-                    `).join('')}
+                        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                            <span>1.0</span>
+                            <span>5.0</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Gantt-style Timeline Chart -->
+                <!-- Perception Distribution -->
                 <div style="margin-bottom: 16px;">
                     <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--text-secondary);">
-                        <i class="fas fa-stream"></i> Recent Customer Experiences
+                        <i class="fas fa-chart-pie"></i> Perception Distribution
                     </h4>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    ${issuesWithPerception.map(issue => {
-                        const barWidth = (issue.perception / 5) * 100;
-                        const color = getPerceptionColor(issue.perception);
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px;">
+                    ${[1, 2, 3, 4, 5].map(level => {
+                        const count = perceptionCounts[level];
+                        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                        const barHeight = total > 0 ? Math.max((count / Math.max(...Object.values(perceptionCounts))) * 100, 5) : 5;
                         return `
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 100px; font-size: 12px; color: var(--text-muted); text-align: right; flex-shrink: 0;">
-                                    ${formatDate(issue.incidentDate)}
+                            <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="font-size: 32px; margin-bottom: 8px;">${getPerceptionEmoji(level)}</div>
+                                <div style="height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 8px;">
+                                    <div style="width: 40px; height: ${barHeight}%; background: ${getPerceptionColor(level)}; border-radius: 6px 6px 0 0; min-height: 4px;"></div>
                                 </div>
-                                <div style="flex: 1; background: var(--bg-secondary); border-radius: 8px; height: 36px; position: relative; overflow: hidden;">
-                                    <div style="width: ${barWidth}%; height: 100%; background: linear-gradient(90deg, ${color}88, ${color}); border-radius: 8px; display: flex; align-items: center; padding-left: 12px; transition: width 0.3s ease;">
-                                        <span style="font-size: 20px;">${getPerceptionEmoji(issue.perception)}</span>
-                                    </div>
-                                </div>
-                                <div style="width: 140px; font-size: 12px; color: var(--text-secondary); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${issue.customer}">
-                                    ${issue.customer}
-                                </div>
+                                <div style="font-size: 24px; font-weight: 700; color: ${getPerceptionColor(level)};">${count}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">${percentage}%</div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${getPerceptionLabel(level)}</div>
                             </div>
                         `;
                     }).join('')}
                 </div>
 
                 <!-- Perception Scale Legend -->
-                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                <div style="padding-top: 16px; border-top: 1px solid var(--border-color);">
                     <div style="display: flex; justify-content: center; gap: 24px; font-size: 12px; color: var(--text-muted);">
                         <span><span style="display: inline-block; width: 12px; height: 12px; background: #ef4444; border-radius: 3px; margin-right: 4px;"></span> Very Upset</span>
                         <span><span style="display: inline-block; width: 12px; height: 12px; background: #f97316; border-radius: 3px; margin-right: 4px;"></span> Upset</span>
@@ -7366,6 +10222,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const customer = document.getElementById('issue-customer').value.trim();
             const phone = document.getElementById('issue-phone').value.trim();
             const type = document.getElementById('issue-type').value;
+            const store = document.getElementById('issue-store').value;
             const description = document.getElementById('issue-description').value.trim();
             const incidentDate = document.getElementById('issue-incident-date').value;
             const perception = document.getElementById('issue-perception').value;
@@ -7377,6 +10234,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 customer: customer || 'Anonymous',
                 phone: phone || '',
                 type: type || 'In Store',
+                store: store || '',
                 description: description || '',
                 incidentDate: incidentDate || new Date().toISOString().split('T')[0],
                 perception: perception ? parseInt(perception) : null,
@@ -7408,22 +10266,31 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             renderIssues();
         }
 
-        async function deleteIssue(issueId) {
-            if (confirm('Are you sure you want to delete this issue?')) {
-                // Try to delete from Firebase
-                if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
-                    const success = await firebaseIssuesManager.deleteIssue(issueId);
-                    if (success) {
-                        issues = issues.filter(i => i.firestoreId !== issueId && i.id !== issueId);
-                        renderIssues();
-                        return;
-                    }
-                }
+        function deleteIssue(issueId) {
+            const issue = issues.find(i => i.firestoreId === issueId || i.id === issueId);
+            const customerName = issue?.customer || 'this issue';
 
-                // Fallback to local deletion
-                issues = issues.filter(i => i.id !== issueId && i.firestoreId !== issueId);
-                renderIssues();
-            }
+            showConfirmModal({
+                title: 'Delete Issue',
+                message: `Are you sure you want to delete the issue reported by "${customerName}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    // Try to delete from Firebase
+                    if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
+                        const success = await firebaseIssuesManager.deleteIssue(issueId);
+                        if (success) {
+                            issues = issues.filter(i => i.firestoreId !== issueId && i.id !== issueId);
+                            renderIssues();
+                            return;
+                        }
+                    }
+
+                    // Fallback to local deletion
+                    issues = issues.filter(i => i.id !== issueId && i.firestoreId !== issueId);
+                    renderIssues();
+                }
+            });
         }
 
         async function resolveIssue(issueId) {
@@ -7471,17 +10338,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
 
-            const statusColors = {
-                'open': 'var(--danger)',
-                'in_progress': 'var(--warning)',
-                'resolved': 'var(--success)'
-            };
-
-            const statusLabels = {
-                'open': 'Open',
-                'in_progress': 'In Progress',
-                'resolved': 'Resolved'
-            };
+            const status = issue.status || 'open';
+            const statusConfig = issueStatusConfig[status];
 
             modalContent.innerHTML = `
                 <div class="modal-header">
@@ -7495,15 +10353,42 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Customer Name</div>
                                 <div style="font-size: 18px; font-weight: 600;">${issue.customer}</div>
                             </div>
-                            <span class="badge" style="background: ${statusColors[issue.status] || 'var(--danger)'}; font-size: 14px; padding: 8px 16px;">
-                                ${statusLabels[issue.status] || 'Open'}
+                            <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: ${statusConfig.bg}; color: ${statusConfig.color}; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                <i class="fas ${statusConfig.icon}"></i>
+                                ${statusConfig.label}
                             </span>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                        <!-- Quick Status Actions -->
+                        <div style="display: flex; gap: 8px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                            <span style="color: var(--text-muted); font-size: 13px; display: flex; align-items: center;">Change Status:</span>
+                            ${status !== 'open' ? `
+                                <button onclick="updateIssueStatusFromModal('${issue.firestoreId || issue.id}', 'open')" style="padding: 6px 12px; background: #ef444420; color: #ef4444; border: 1px solid #ef444450; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                    <i class="fas fa-circle-exclamation"></i> Open
+                                </button>
+                            ` : ''}
+                            ${status !== 'follow-up' ? `
+                                <button onclick="updateIssueStatusFromModal('${issue.firestoreId || issue.id}', 'follow-up')" style="padding: 6px 12px; background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b50; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                    <i class="fas fa-clock"></i> Need Follow Up
+                                </button>
+                            ` : ''}
+                            ${status !== 'resolved' ? `
+                                <button onclick="updateIssueStatusFromModal('${issue.firestoreId || issue.id}', 'resolved')" style="padding: 6px 12px; background: #10b98120; color: #10b981; border: 1px solid #10b98150; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                    <i class="fas fa-circle-check"></i> Resolved
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
                             <div>
                                 <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Phone Number</div>
                                 <div style="font-weight: 500;">${issue.phone ? `<a href="tel:${issue.phone}" style="color: var(--accent-primary); text-decoration: none;"><i class="fas fa-phone"></i> ${issue.phone}</a>` : '-'}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Store</div>
+                                <div style="font-weight: 500;">
+                                    ${issue.store ? `<span style="display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-store" style="color: var(--accent-primary);"></i> ${issue.store}</span>` : '-'}
+                                </div>
                             </div>
                             <div>
                                 <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Issue Type</div>
@@ -7518,17 +10403,68 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                         </div>
 
-                        ${issue.perception ? `
-                        <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
-                            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Customer Perception</div>
-                            <div style="font-size: 48px;">${getPerceptionEmoji(issue.perception)}</div>
-                            <div style="font-size: 14px; font-weight: 500; margin-top: 4px;">${getPerceptionLabel(issue.perception)}</div>
+                        <!-- Editable Customer Perception -->
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <div style="font-size: 13px; color: var(--text-muted);">Customer Perception</div>
+                                <button onclick="togglePerceptionEdit('${issue.firestoreId || issue.id}')" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </div>
+
+                            <!-- Current Perception Display -->
+                            <div id="perception-display-${issue.firestoreId || issue.id}" style="text-align: center;">
+                                ${issue.perception ? `
+                                    <div style="font-size: 48px;">${getPerceptionEmoji(issue.perception)}</div>
+                                    <div style="font-size: 14px; font-weight: 500; margin-top: 4px;">${getPerceptionLabel(issue.perception)}</div>
+                                ` : `
+                                    <div style="color: var(--text-muted); padding: 16px;">No perception recorded</div>
+                                `}
+                            </div>
+
+                            <!-- Perception Editor (hidden by default) -->
+                            <div id="perception-edit-${issue.firestoreId || issue.id}" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; gap: 8px; margin-bottom: 12px;">
+                                    ${[1, 2, 3, 4, 5].map(level => `
+                                        <button type="button"
+                                            class="perception-edit-btn"
+                                            data-issue-id="${issue.firestoreId || issue.id}"
+                                            data-value="${level}"
+                                            onclick="selectPerceptionForEdit('${issue.firestoreId || issue.id}', ${level})"
+                                            style="flex: 1; padding: 12px 8px; border: 2px solid ${issue.perception === level ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 12px; background: ${issue.perception === level ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-tertiary)'}; cursor: pointer; transition: all 0.2s; transform: ${issue.perception === level ? 'scale(1.05)' : 'scale(1)'};">
+                                            <div style="font-size: 28px; margin-bottom: 4px;">${getPerceptionEmoji(level)}</div>
+                                            <div style="font-size: 10px; color: var(--text-muted);">${getPerceptionLabel(level)}</div>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                                <input type="hidden" id="perception-value-${issue.firestoreId || issue.id}" value="${issue.perception || ''}">
+                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                    <button onclick="savePerceptionEdit('${issue.firestoreId || issue.id}')" class="btn-primary" style="padding: 8px 16px;">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                    <button onclick="togglePerceptionEdit('${issue.firestoreId || issue.id}')" class="btn-secondary" style="padding: 8px 16px;">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        ` : ''}
 
                         <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Description</div>
                             <div style="font-size: 14px; line-height: 1.6;">${issue.description}</div>
+                        </div>
+
+                        <!-- Follow Up Notes Section -->
+                        <div style="border: 2px solid ${status === 'follow-up' ? '#f59e0b' : 'var(--border-color)'}; border-radius: 8px; padding: 16px; ${status === 'follow-up' ? 'background: #f59e0b08;' : ''}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <div style="font-size: 14px; font-weight: 600; color: ${status === 'follow-up' ? '#f59e0b' : 'var(--text-primary)'};">
+                                    <i class="fas fa-sticky-note"></i> Follow Up Notes
+                                </div>
+                            </div>
+                            <textarea id="issue-followup-notes" class="form-input" placeholder="Add notes about follow-up actions, calls made, updates..." style="min-height: 80px; resize: vertical;">${issue.followUpNotes || ''}</textarea>
+                            <button onclick="saveFollowUpNotes('${issue.firestoreId || issue.id}')" class="btn-secondary" style="margin-top: 8px;">
+                                <i class="fas fa-save"></i> Save Notes
+                            </button>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -7542,7 +10478,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                         </div>
 
-                        ${issue.status === 'resolved' ? `
+                        ${issue.status === 'resolved' && issue.solution ? `
                             <div style="border-top: 2px solid var(--border-color); padding-top: 16px; margin-top: 8px;">
                                 <h3 style="font-size: 16px; margin-bottom: 16px; color: var(--success);">
                                     <i class="fas fa-check-circle"></i> Resolution Details
@@ -7556,28 +10492,162 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                                     <div>
                                         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Resolved By</div>
-                                        <div style="font-weight: 600; color: var(--success);">${issue.resolvedBy}</div>
+                                        <div style="font-weight: 600; color: var(--success);">${issue.resolvedBy || '-'}</div>
                                     </div>
                                     <div>
                                         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Resolution Date</div>
-                                        <div style="font-weight: 600; color: var(--success);">${formatDate(issue.resolutionDate)}</div>
+                                        <div style="font-weight: 600; color: var(--success);">${issue.resolutionDate ? formatDate(issue.resolutionDate) : '-'}</div>
                                     </div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${issue.statusHistory && issue.statusHistory.length > 0 ? `
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 8px;">
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                                    <i class="fas fa-history"></i> Status History
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto;">
+                                    ${issue.statusHistory.slice().reverse().map(h => {
+                                        const hConfig = issueStatusConfig[h.status] || issueStatusConfig['open'];
+                                        return `
+                                            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 6px 10px; background: var(--bg-tertiary); border-radius: 6px;">
+                                                <span style="color: ${hConfig.color};"><i class="fas ${hConfig.icon}"></i></span>
+                                                <span style="font-weight: 500;">${hConfig.label}</span>
+                                                <span style="color: var(--text-muted);">by ${h.updatedBy}</span>
+                                                <span style="color: var(--text-muted); margin-left: auto;">${new Date(h.timestamp).toLocaleString()}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>
                         ` : ''}
                     </div>
                 </div>
                 <div class="modal-footer">
-                    ${issue.status !== 'resolved' ? `
-                        <button class="btn-primary" onclick="closeModal(); setTimeout(() => openModal('resolve-issue', '${issue.firestoreId || issue.id}'), 100);">
-                            <i class="fas fa-check"></i> Resolve Issue
-                        </button>
-                    ` : ''}
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
                 </div>
             `;
 
-            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+
+        // Update issue status from modal
+        async function updateIssueStatusFromModal(issueId, newStatus) {
+            await updateIssueStatus(issueId, newStatus);
+            viewIssueDetails(issueId); // Refresh modal
+        }
+
+        // Save follow up notes
+        async function saveFollowUpNotes(issueId) {
+            const issue = issues.find(i => i.firestoreId === issueId || i.id === issueId);
+            if (!issue) return;
+
+            const notes = document.getElementById('issue-followup-notes')?.value || '';
+
+            try {
+                issue.followUpNotes = notes;
+
+                if (firebaseIssuesManager && firebaseIssuesManager.isInitialized && issue.firestoreId) {
+                    await firebaseIssuesManager.updateIssue(issue.firestoreId, {
+                        followUpNotes: notes
+                    });
+                }
+
+                showIssueToast('Follow up notes saved!', 'success');
+            } catch (error) {
+                console.error('Error saving follow up notes:', error);
+                showIssueToast('Error saving notes', 'error');
+            }
+        }
+
+        // Toggle perception edit mode
+        function togglePerceptionEdit(issueId) {
+            const displayEl = document.getElementById(`perception-display-${issueId}`);
+            const editEl = document.getElementById(`perception-edit-${issueId}`);
+
+            if (displayEl && editEl) {
+                if (editEl.style.display === 'none') {
+                    displayEl.style.display = 'none';
+                    editEl.style.display = 'block';
+                } else {
+                    displayEl.style.display = 'block';
+                    editEl.style.display = 'none';
+                }
+            }
+        }
+
+        // Select perception value for editing
+        function selectPerceptionForEdit(issueId, value) {
+            // Update hidden input
+            const hiddenInput = document.getElementById(`perception-value-${issueId}`);
+            if (hiddenInput) {
+                hiddenInput.value = value;
+            }
+
+            // Update button styles
+            const buttons = document.querySelectorAll(`.perception-edit-btn[data-issue-id="${issueId}"]`);
+            buttons.forEach(btn => {
+                const btnValue = parseInt(btn.dataset.value);
+                if (btnValue === value) {
+                    btn.style.borderColor = 'var(--accent-primary)';
+                    btn.style.background = 'rgba(99, 102, 241, 0.1)';
+                    btn.style.transform = 'scale(1.05)';
+                } else {
+                    btn.style.borderColor = 'var(--border-color)';
+                    btn.style.background = 'var(--bg-tertiary)';
+                    btn.style.transform = 'scale(1)';
+                }
+            });
+        }
+
+        // Save perception edit
+        async function savePerceptionEdit(issueId) {
+            const issue = issues.find(i => i.firestoreId === issueId || i.id === issueId);
+            if (!issue) return;
+
+            const hiddenInput = document.getElementById(`perception-value-${issueId}`);
+            const newPerception = hiddenInput ? parseInt(hiddenInput.value) : null;
+
+            if (!newPerception || newPerception < 1 || newPerception > 5) {
+                showIssueToast('Please select a perception level', 'warning');
+                return;
+            }
+
+            try {
+                const oldPerception = issue.perception;
+                issue.perception = newPerception;
+
+                // Update in Firebase
+                if (firebaseIssuesManager && firebaseIssuesManager.isInitialized && issue.firestoreId) {
+                    await firebaseIssuesManager.updateIssue(issue.firestoreId, {
+                        perception: newPerception
+                    });
+                }
+
+                // Update the display
+                const displayEl = document.getElementById(`perception-display-${issueId}`);
+                if (displayEl) {
+                    displayEl.innerHTML = `
+                        <div style="font-size: 48px;">${getPerceptionEmoji(newPerception)}</div>
+                        <div style="font-size: 14px; font-weight: 500; margin-top: 4px;">${getPerceptionLabel(newPerception)}</div>
+                    `;
+                }
+
+                // Toggle back to display mode
+                togglePerceptionEdit(issueId);
+
+                // Re-render the issues list to update the chart
+                renderIssues();
+
+                // Re-open the modal to show updated data
+                setTimeout(() => viewIssueDetails(issueId), 100);
+
+                showIssueToast(`Perception updated: ${getPerceptionLabel(oldPerception || 0)} → ${getPerceptionLabel(newPerception)}`, 'success');
+            } catch (error) {
+                console.error('Error saving perception:', error);
+                showIssueToast('Error saving perception', 'error');
+            }
         }
 
         // Vendors Functions
@@ -7702,9 +10772,18 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 'Store Supplies': '#10b981'
             };
 
+            const typeColors = {
+                'vendor': '#10b981',
+                'service': '#8b5cf6'
+            };
+
             return `
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
-                    ${filteredVendors.map(vendor => `
+                    ${filteredVendors.map(vendor => {
+                        const vendorType = vendor.type || 'vendor';
+                        const typeLabel = vendorType === 'service' ? 'Service' : 'Vendor';
+                        const typeColor = typeColors[vendorType] || typeColors['vendor'];
+                        return `
                         <div class="card" style="cursor: pointer; transition: all 0.2s; border-left: 4px solid ${categoryColors[vendor.category] || 'var(--accent-primary)'};" onclick="viewVendorDetails('${vendor.firestoreId}')">
                             <div class="card-body">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
@@ -7720,9 +10799,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                             <h3 style="font-size: 17px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 ${vendor.name}
                                             </h3>
-                                            <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'};">
-                                                ${vendor.category}
-                                            </span>
+                                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                                <span class="badge" style="background: ${typeColor};">
+                                                    <i class="fas ${vendorType === 'service' ? 'fa-wrench' : 'fa-truck'}" style="margin-right: 4px; font-size: 10px;"></i>${typeLabel}
+                                                </span>
+                                                <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'};">
+                                                    ${vendor.category}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     <i class="fas fa-chevron-right" style="color: var(--text-muted); font-size: 14px;"></i>
@@ -7748,12 +10832,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                                     <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Products</div>
                                     <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.4;">
-                                        ${vendor.products.split(',').slice(0, 2).join(',')}${vendor.products.split(',').length > 2 ? '...' : ''}
+                                        ${vendor.products ? vendor.products.split(',').slice(0, 2).join(',') + (vendor.products.split(',').length > 2 ? '...' : '') : 'N/A'}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             `;
         }
@@ -7804,12 +10888,22 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
-                                <label class="form-label">Vendor Name *</label>
-                                <input type="text" id="vendor-name" class="form-input" placeholder="Enter vendor name" required>
+                                <label class="form-label">Vendor Name</label>
+                                <input type="text" id="vendor-name" class="form-input" placeholder="Enter vendor name">
                             </div>
                             <div>
-                                <label class="form-label">Category *</label>
-                                <select id="vendor-category" class="form-input" required>
+                                <label class="form-label">Type</label>
+                                <select id="vendor-type" class="form-input">
+                                    <option value="vendor">Vendor</option>
+                                    <option value="service">Service</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Category</label>
+                                <select id="vendor-category" class="form-input">
                                     <option value="">Select category</option>
                                     <option value="Vape Products">Vape Products</option>
                                     <option value="Tobacco Products">Tobacco Products</option>
@@ -7818,28 +10912,26 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="Store Supplies">Store Supplies</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
-                                <label class="form-label">Contact Person *</label>
-                                <input type="text" id="vendor-contact" class="form-input" placeholder="Enter contact name" required>
-                            </div>
-                            <div>
-                                <label class="form-label">Phone *</label>
-                                <input type="tel" id="vendor-phone" class="form-input" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14" required>
+                                <label class="form-label">Contact Person</label>
+                                <input type="text" id="vendor-contact" class="form-input" placeholder="Enter contact name">
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
-                                <label class="form-label">Email *</label>
-                                <input type="email" id="vendor-email" class="form-input" placeholder="contact@vendor.com" required>
+                                <label class="form-label">Phone</label>
+                                <input type="tel" id="vendor-phone" class="form-input" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                             </div>
                             <div>
-                                <label class="form-label">Website</label>
-                                <input type="url" id="vendor-website" class="form-input" placeholder="https://www.vendor.com" pattern="https?://.+">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="vendor-email" class="form-input" placeholder="contact@vendor.com">
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Website</label>
+                            <input type="url" id="vendor-website" class="form-input" placeholder="https://www.vendor.com" pattern="https?://.+">
                         </div>
 
                         <div>
@@ -7848,13 +10940,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
 
                         <div>
-                            <label class="form-label">Products/Services *</label>
-                            <textarea id="vendor-products" class="form-input" placeholder="What products/services do you buy from this vendor?" style="min-height: 80px;" required></textarea>
+                            <label class="form-label">Products/Services</label>
+                            <textarea id="vendor-products" class="form-input" placeholder="What products/services do you buy from this vendor?" style="min-height: 80px;"></textarea>
                         </div>
 
                         <div>
-                            <label class="form-label">Order Methods *</label>
-                            <textarea id="vendor-order-methods" class="form-input" placeholder="How to order (phone, email, online, etc.)" style="min-height: 80px;" required></textarea>
+                            <label class="form-label">Order Methods</label>
+                            <textarea id="vendor-order-methods" class="form-input" placeholder="How to order (phone, email, online, etc.)" style="min-height: 80px;"></textarea>
                         </div>
 
                         <div>
@@ -7892,6 +10984,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         async function createVendor() {
             const name = document.getElementById('vendor-name').value.trim();
+            const type = document.getElementById('vendor-type').value;
             const category = document.getElementById('vendor-category').value;
             const contact = document.getElementById('vendor-contact').value.trim();
             const phone = document.getElementById('vendor-phone').value.trim();
@@ -7902,11 +10995,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const orderMethods = document.getElementById('vendor-order-methods').value.trim();
             const notes = document.getElementById('vendor-notes').value.trim();
             const imageInput = document.getElementById('vendor-image');
-
-            if (!name || !category || !contact || !phone || !email || !products || !orderMethods) {
-                alert('Please fill in all required fields');
-                return;
-            }
 
             try {
                 // Get image as base64 if uploaded and compress it
@@ -7927,6 +11015,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                 const newVendor = {
                     name,
+                    type,
                     category,
                     contact,
                     phone,
@@ -7966,9 +11055,19 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 'Store Supplies': '#10b981'
             };
 
+            const typeColors = {
+                'vendor': '#10b981',
+                'service': '#8b5cf6'
+            };
+
+            const vendorType = vendor.type || 'vendor';
+            const typeLabel = vendorType === 'service' ? 'Service' : 'Vendor';
+            const typeColor = typeColors[vendorType] || typeColors['vendor'];
+            const typeIcon = vendorType === 'service' ? 'fa-wrench' : 'fa-truck';
+
             modalContent.innerHTML = `
                 <div class="modal-header">
-                    <h2><i class="fas fa-truck"></i> ${vendor.name}</h2>
+                    <h2><i class="fas ${typeIcon}"></i> ${vendor.name}</h2>
                     <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
@@ -7981,9 +11080,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     : `<i class="fas fa-building" style="font-size: 40px; color: var(--text-muted);"></i>`
                                 }
                             </div>
-                            <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'}; font-size: 14px; padding: 8px 16px;">
-                                ${vendor.category}
-                            </span>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                                <span class="badge" style="background: ${typeColor}; font-size: 14px; padding: 8px 16px;">
+                                    <i class="fas ${typeIcon}" style="margin-right: 6px;"></i>${typeLabel}
+                                </span>
+                                <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'}; font-size: 14px; padding: 8px 16px;">
+                                    ${vendor.category}
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Contact Information -->
@@ -8077,7 +11181,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-footer">
                     <button class="btn-primary" onclick="closeModal(); setTimeout(() => editVendorModal('${vendor.firestoreId}'), 100);">
-                        <i class="fas fa-edit"></i> Edit Vendor
+                        <i class="fas fa-edit"></i> Edit ${typeLabel}
                     </button>
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
                 </div>
@@ -8120,12 +11224,22 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
-                                <label class="form-label">Vendor Name *</label>
-                                <input type="text" id="edit-vendor-name" class="form-input" value="${vendor.name}" placeholder="Enter vendor name" required>
+                                <label class="form-label">Vendor Name</label>
+                                <input type="text" id="edit-vendor-name" class="form-input" value="${vendor.name}" placeholder="Enter vendor name">
                             </div>
                             <div>
-                                <label class="form-label">Category *</label>
-                                <select id="edit-vendor-category" class="form-input" required>
+                                <label class="form-label">Type</label>
+                                <select id="edit-vendor-type" class="form-input">
+                                    <option value="vendor" ${vendor.type === 'vendor' || !vendor.type ? 'selected' : ''}>Vendor</option>
+                                    <option value="service" ${vendor.type === 'service' ? 'selected' : ''}>Service</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Category</label>
+                                <select id="edit-vendor-category" class="form-input">
                                     <option value="">Select category</option>
                                     <option value="Vape Products" ${vendor.category === 'Vape Products' ? 'selected' : ''}>Vape Products</option>
                                     <option value="Tobacco Products" ${vendor.category === 'Tobacco Products' ? 'selected' : ''}>Tobacco Products</option>
@@ -8134,28 +11248,26 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="Store Supplies" ${vendor.category === 'Store Supplies' ? 'selected' : ''}>Store Supplies</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
-                                <label class="form-label">Contact Person *</label>
-                                <input type="text" id="edit-vendor-contact" class="form-input" value="${vendor.contact}" placeholder="Enter contact name" required>
-                            </div>
-                            <div>
-                                <label class="form-label">Phone *</label>
-                                <input type="tel" id="edit-vendor-phone" class="form-input" value="${vendor.phone}" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14" required>
+                                <label class="form-label">Contact Person</label>
+                                <input type="text" id="edit-vendor-contact" class="form-input" value="${vendor.contact}" placeholder="Enter contact name">
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
-                                <label class="form-label">Email *</label>
-                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="contact@vendor.com" required>
+                                <label class="form-label">Phone</label>
+                                <input type="tel" id="edit-vendor-phone" class="form-input" value="${vendor.phone}" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                             </div>
                             <div>
-                                <label class="form-label">Website</label>
-                                <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://www.vendor.com" pattern="https?://.+">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="contact@vendor.com">
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Website</label>
+                            <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://www.vendor.com" pattern="https?://.+">
                         </div>
 
                         <div>
@@ -8164,13 +11276,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
 
                         <div>
-                            <label class="form-label">Products/Services *</label>
-                            <textarea id="edit-vendor-products" class="form-input" placeholder="What products/services do you buy from this vendor?" style="min-height: 80px;" required>${vendor.products}</textarea>
+                            <label class="form-label">Products/Services</label>
+                            <textarea id="edit-vendor-products" class="form-input" placeholder="What products/services do you buy from this vendor?" style="min-height: 80px;">${vendor.products}</textarea>
                         </div>
 
                         <div>
-                            <label class="form-label">Order Methods *</label>
-                            <textarea id="edit-vendor-order-methods" class="form-input" placeholder="How to order (phone, email, online, etc.)" style="min-height: 80px;" required>${vendor.orderMethods}</textarea>
+                            <label class="form-label">Order Methods</label>
+                            <textarea id="edit-vendor-order-methods" class="form-input" placeholder="How to order (phone, email, online, etc.)" style="min-height: 80px;">${vendor.orderMethods}</textarea>
                         </div>
 
                         <div>
@@ -8215,6 +11327,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         async function saveVendorChanges(firestoreId) {
             const name = document.getElementById('edit-vendor-name').value.trim();
+            const type = document.getElementById('edit-vendor-type').value;
             const category = document.getElementById('edit-vendor-category').value;
             const contact = document.getElementById('edit-vendor-contact').value.trim();
             const phone = document.getElementById('edit-vendor-phone').value.trim();
@@ -8226,11 +11339,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const notes = document.getElementById('edit-vendor-notes').value.trim();
             const imageInput = document.getElementById('edit-vendor-image');
             const imagePreview = document.getElementById('edit-vendor-image-preview');
-
-            if (!name || !category || !contact || !phone || !email || !products || !orderMethods) {
-                alert('Please fill in all required fields');
-                return;
-            }
 
             try {
                 // Determine image value
@@ -8261,6 +11369,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                 const updateData = {
                     name,
+                    type,
                     category,
                     contact,
                     phone,
@@ -8289,22 +11398,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const vendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
             if (!vendor) return;
 
-            if (confirm(`Are you sure you want to delete "${vendor.name}"? This action cannot be undone.`)) {
-                deleteVendor(firestoreId);
-            }
+            showConfirmModal({
+                title: 'Delete Vendor',
+                message: `Are you sure you want to delete "${vendor.name}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: () => deleteVendor(firestoreId)
+            });
         }
 
         async function deleteVendor(firestoreId) {
             try {
                 await firebaseVendorsManager.deleteVendor(firestoreId);
-                
+
                 // Reload vendors
                 firebaseVendors = await firebaseVendorsManager.loadVendors();
                 closeModal();
                 renderVendors();
             } catch (error) {
                 console.error('Error deleting vendor:', error);
-                alert('Error deleting vendor: ' + error.message);
             }
         }
 
@@ -8478,7 +11590,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     $${expense.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                 </td>
                                 <td>
-                                    <button class="btn-icon" onclick="deleteExpense(${expense.id})" title="Delete">
+                                    <button class="btn-icon" onclick="deleteExpense('${expense.id}')" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -8572,10 +11684,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function deleteExpense(expenseId) {
-            if (confirm('Are you sure you want to delete this expense?')) {
-                expenses = expenses.filter(e => e.id !== expenseId);
-                renderGconomics();
-            }
+            showConfirmModal({
+                title: 'Delete Expense',
+                message: 'Are you sure you want to delete this expense? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: () => {
+                    expenses = expenses.filter(e => e.id !== expenseId);
+                    renderGconomics();
+                }
+            });
         }
 
         // Helper functions
@@ -8606,8 +11724,279 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
+        // Helper function to extract emergency contact name from combined string
+        function getEmergencyContactName(emergencyContact) {
+            if (!emergencyContact) return '';
+            // Format is typically "Name - (XXX) XXX-XXXX" or "Name - Phone"
+            const parts = emergencyContact.split(' - ');
+            return parts[0] || '';
+        }
+
+        // Helper function to extract emergency contact phone from combined string
+        function getEmergencyContactPhone(emergencyContact) {
+            if (!emergencyContact) return '';
+            // Format is typically "Name - (XXX) XXX-XXXX" or "Name - Phone"
+            const parts = emergencyContact.split(' - ');
+            return parts[1] || '';
+        }
+
+        // Helper function to combine emergency contact name and phone
+        function combineEmergencyContact(name, phone) {
+            if (!name && !phone) return 'Not provided';
+            if (!name) return phone;
+            if (!phone) return name;
+            return `${name} - ${phone}`;
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Remove any existing toast
+            const existingToast = document.querySelector('.toast-notification');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast-notification toast-${type}`;
+
+            // Determine icon based on type
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            else if (type === 'error') icon = 'fa-exclamation-circle';
+            else if (type === 'warning') icon = 'fa-exclamation-triangle';
+
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+
+            // Add to body
+            document.body.appendChild(toast);
+
+            // Show toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
         // Variable to track employee being edited
         let editingEmployeeId = null;
+
+        // Variables to store selected files for employee paperwork
+        let selectedEmployeePaperworkFiles = [];
+        let editEmployeePaperworkFiles = [];
+
+        // Helper function to render existing paperwork
+        function renderExistingPaperwork(employeeData) {
+            const paperwork = employeeData.paperwork || [];
+            if (paperwork.length === 0) {
+                return '<p style="color: var(--text-muted); font-size: 14px; padding: 12px; background: var(--surface-secondary); border-radius: 8px;">No documents uploaded yet</p>';
+            }
+
+            return `
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${paperwork.map((doc, index) => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <i class="fas ${getFileIcon(doc.fileType)}" style="color: var(--accent-primary); font-size: 18px;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; color: var(--text-primary); font-size: 14px;">${doc.fileName}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        ${doc.documentType || 'Document'} • ${formatFileSize(doc.fileSize)} • ${formatDate(doc.uploadedAt.toDate ? doc.uploadedAt.toDate() : doc.uploadedAt)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn-icon danger" onclick="deleteEmployeePaperwork('${employeeData.id || employeeData.firestoreId}', '${doc.storagePath}', ${index})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Helper function to get file icon based on file type
+        function getFileIcon(fileType) {
+            if (!fileType) return 'fa-file';
+            if (fileType.includes('pdf')) return 'fa-file-pdf';
+            if (fileType.includes('word') || fileType.includes('doc')) return 'fa-file-word';
+            if (fileType.includes('image') || fileType.includes('jpg') || fileType.includes('jpeg') || fileType.includes('png')) return 'fa-file-image';
+            return 'fa-file';
+        }
+
+        // Helper function to format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Handle file selection for add employee paperwork
+        function handleEmployeePaperworkSelect(input) {
+            const files = Array.from(input.files);
+            const maxSize = 10 * 1024 * 1024; // 10MB
+
+            // Validate files
+            const validFiles = files.filter(file => {
+                if (file.size > maxSize) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+                    return false;
+                }
+                return true;
+            });
+
+            // Add to selected files
+            selectedEmployeePaperworkFiles = [...selectedEmployeePaperworkFiles, ...validFiles];
+
+            // Update UI
+            updateEmployeePaperworkList();
+        }
+
+        // Handle file selection for edit employee paperwork
+        function handleEditEmployeePaperworkSelect(input) {
+            const files = Array.from(input.files);
+            const maxSize = 10 * 1024 * 1024; // 10MB
+
+            // Validate files
+            const validFiles = files.filter(file => {
+                if (file.size > maxSize) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+                    return false;
+                }
+                return true;
+            });
+
+            // Add to selected files
+            editEmployeePaperworkFiles = [...editEmployeePaperworkFiles, ...validFiles];
+
+            // Update UI
+            updateEditEmployeePaperworkList();
+        }
+
+        // Update paperwork list display for add employee
+        function updateEmployeePaperworkList() {
+            const listContainer = document.getElementById('emp-paperwork-list');
+            if (!listContainer) return;
+
+            if (selectedEmployeePaperworkFiles.length === 0) {
+                listContainer.innerHTML = '';
+                return;
+            }
+
+            listContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${selectedEmployeePaperworkFiles.map((file, index) => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas ${getFileIcon(file.type)}" style="color: var(--accent-primary); font-size: 18px;"></i>
+                                <div>
+                                    <div style="font-weight: 500; color: var(--text-primary); font-size: 14px;">${file.name}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">${formatFileSize(file.size)}</div>
+                                </div>
+                            </div>
+                            <button class="btn-icon danger" onclick="removeEmployeePaperwork(${index})" title="Remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Update paperwork list display for edit employee
+        function updateEditEmployeePaperworkList() {
+            const listContainer = document.getElementById('edit-emp-paperwork-list');
+            if (!listContainer) return;
+
+            if (editEmployeePaperworkFiles.length === 0) {
+                listContainer.innerHTML = '';
+                return;
+            }
+
+            listContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${editEmployeePaperworkFiles.map((file, index) => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas ${getFileIcon(file.type)}" style="color: var(--accent-primary); font-size: 18px;"></i>
+                                <div>
+                                    <div style="font-weight: 500; color: var(--text-primary); font-size: 14px;">${file.name}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">${formatFileSize(file.size)}</div>
+                                </div>
+                            </div>
+                            <button class="btn-icon danger" onclick="removeEditEmployeePaperwork(${index})" title="Remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Remove file from add employee paperwork list
+        function removeEmployeePaperwork(index) {
+            selectedEmployeePaperworkFiles.splice(index, 1);
+            updateEmployeePaperworkList();
+        }
+
+        // Remove file from edit employee paperwork list
+        function removeEditEmployeePaperwork(index) {
+            editEmployeePaperworkFiles.splice(index, 1);
+            updateEditEmployeePaperworkList();
+        }
+
+        // Delete existing employee paperwork
+        async function deleteEmployeePaperwork(employeeId, storagePath, index) {
+            if (!confirm('Are you sure you want to delete this document?')) {
+                return;
+            }
+
+            try {
+                const success = await firebaseEmployeeManager.deletePaperwork(employeeId, storagePath);
+                if (success) {
+                    showNotification('Document deleted successfully', 'success');
+                    // Refresh the modal with updated data
+                    const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+                    if (emp) {
+                        // Reload employee data from Firebase
+                        const updatedEmp = await firebaseEmployeeManager.getEmployee(employeeId);
+                        if (updatedEmp) {
+                            // Update local array
+                            const localIndex = employees.findIndex(e => e.id === employeeId || e.firestoreId === employeeId);
+                            if (localIndex !== -1) {
+                                employees[localIndex] = updatedEmp;
+                            }
+                            // Re-render the existing paperwork section
+                            const existingPaperworkDiv = document.getElementById('edit-emp-existing-paperwork');
+                            if (existingPaperworkDiv) {
+                                existingPaperworkDiv.innerHTML = renderExistingPaperwork(updatedEmp);
+                            }
+                        }
+                    }
+                } else {
+                    alert('Failed to delete document. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                alert('Error deleting document. Please try again.');
+            }
+        }
 
         function openModal(type, data = null) {
             const modal = document.getElementById('modal');
@@ -8648,7 +12037,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                                 <div class="form-group">
                                     <label>Phone *</label>
-                                    <input type="tel" class="form-input" id="edit-emp-phone" value="${data.phone || ''}" placeholder="(619) 555-0000">
+                                    <input type="tel" class="form-input" id="edit-emp-phone" value="${data.phone || ''}" placeholder="(619) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -8691,6 +12080,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena" ${data.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                         <option value="Kearny Mesa" ${data.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                         <option value="Chula Vista" ${data.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="North Park" ${data.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                         <option value="Miramar Wine & Liquor" ${data.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -8708,13 +12098,37 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-divider"></div>
                             <h3 class="form-section-title">Emergency Information</h3>
-                            <div class="form-group">
-                                <label>Emergency Contact</label>
-                                <input type="text" class="form-input" id="edit-emp-emergency" value="${data.emergencyContact || ''}" placeholder="Name - Phone">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Emergency Contact Name</label>
+                                    <input type="text" class="form-input" id="edit-emp-emergency-name" value="${getEmergencyContactName(data.emergencyContact)}" placeholder="Contact name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Emergency Contact Phone</label>
+                                    <input type="tel" class="form-input" id="edit-emp-emergency-phone" value="${getEmergencyContactPhone(data.emergencyContact)}" placeholder="(555) 555-5555" oninput="formatPhoneNumber(this)" maxlength="14">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Allergies / Medical Notes</label>
                                 <textarea class="form-input" id="edit-emp-allergies" rows="2" placeholder="Any allergies or medical conditions...">${data.allergies || ''}</textarea>
+                            </div>
+                            <div class="form-divider"></div>
+                            <h3 class="form-section-title">Employee Paperwork</h3>
+                            <div class="form-group">
+                                <label>Existing Documents</label>
+                                <div id="edit-emp-existing-paperwork" style="margin-bottom: 12px;">
+                                    ${renderExistingPaperwork(data)}
+                                </div>
+                                <label>Upload New Documents <span style="font-size: 12px; color: var(--text-muted);">(ID, contracts, certificates, etc.)</span></label>
+                                <div class="file-upload-area" id="edit-emp-paperwork-upload" onclick="document.getElementById('edit-emp-paperwork-files').click()">
+                                    <input type="file" id="edit-emp-paperwork-files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display: none;" onchange="handleEditEmployeePaperworkSelect(this)">
+                                    <div class="file-upload-content">
+                                        <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 8px;"></i>
+                                        <span style="color: var(--text-secondary);">Click to upload or drag and drop</span>
+                                        <span style="color: var(--text-muted); font-size: 12px;">PDF, DOC, DOCX, JPG, PNG files (max 10MB each)</span>
+                                    </div>
+                                </div>
+                                <div id="edit-emp-paperwork-list" style="margin-top: 12px;"></div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -8747,7 +12161,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                                 <div class="form-group">
                                     <label>Phone *</label>
-                                    <input type="tel" class="form-input" id="emp-phone" placeholder="(619) 555-0000">
+                                    <input type="tel" class="form-input" id="emp-phone" placeholder="(619) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -8790,6 +12204,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -8800,13 +12215,33 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-divider"></div>
                             <h3 class="form-section-title">Emergency Information</h3>
-                            <div class="form-group">
-                                <label>Emergency Contact</label>
-                                <input type="text" class="form-input" id="emp-emergency" placeholder="Name - Phone">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Emergency Contact Name</label>
+                                    <input type="text" class="form-input" id="emp-emergency-name" placeholder="Contact name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Emergency Contact Phone</label>
+                                    <input type="tel" class="form-input" id="emp-emergency-phone" placeholder="(555) 555-5555" oninput="formatPhoneNumber(this)" maxlength="14">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Allergies / Medical Notes</label>
                                 <textarea class="form-input" id="emp-allergies" rows="2" placeholder="Any allergies or medical conditions..."></textarea>
+                            </div>
+                            <div class="form-divider"></div>
+                            <h3 class="form-section-title">Employee Paperwork</h3>
+                            <div class="form-group">
+                                <label>Upload Documents <span style="font-size: 12px; color: var(--text-muted);">(ID, contracts, certificates, etc.)</span></label>
+                                <div class="file-upload-area" id="emp-paperwork-upload" onclick="document.getElementById('emp-paperwork-files').click()">
+                                    <input type="file" id="emp-paperwork-files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display: none;" onchange="handleEmployeePaperworkSelect(this)">
+                                    <div class="file-upload-content">
+                                        <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 8px;"></i>
+                                        <span style="color: var(--text-secondary);">Click to upload or drag and drop</span>
+                                        <span style="color: var(--text-muted); font-size: 12px;">PDF, DOC, DOCX, JPG, PNG files (max 10MB each)</span>
+                                    </div>
+                                </div>
+                                <div id="emp-paperwork-list" style="margin-top: 12px;"></div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -8833,10 +12268,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="video">Video (YouTube/Vimeo)</option>
                                         <option value="document">Document (PDF)</option>
                                     </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Duration</label>
-                                    <input type="text" class="form-input" id="training-duration" placeholder="30 min">
                                 </div>
                             </div>
                             <div class="form-group" id="training-url-group">
@@ -8883,6 +12314,127 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                     `;
                     break;
+                case 'mandatory-compliance':
+                    const mandatoryTrainings = data.mandatoryTrainings || [];
+                    const allEmployees = data.employees || [];
+
+                    // Calculate per-training compliance
+                    const trainingStats = mandatoryTrainings.map(training => {
+                        const completions = training.completions || [];
+                        const completedEmployees = allEmployees.filter(emp => {
+                            const empId = emp.firestoreId || emp.id;
+                            return completions.some(c => c.employeeId === empId);
+                        });
+                        const pendingEmployees = allEmployees.filter(emp => {
+                            const empId = emp.firestoreId || emp.id;
+                            return !completions.some(c => c.employeeId === empId);
+                        });
+
+                        return {
+                            training,
+                            completedEmployees,
+                            pendingEmployees,
+                            completionPercentage: allEmployees.length > 0 ? Math.round((completedEmployees.length / allEmployees.length) * 100) : 0
+                        };
+                    });
+
+                    // Calculate overall compliance
+                    const fullyCompliantEmployees = allEmployees.filter(emp => {
+                        return mandatoryTrainings.every(training => {
+                            const empId = emp.firestoreId || emp.id;
+                            const completions = training.completions || [];
+                            return completions.some(c => c.employeeId === empId);
+                        });
+                    });
+
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-exclamation-circle"></i> Mandatory Training Compliance Report</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Overall Compliance -->
+                            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; color: white;">
+                                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Overall Compliance</div>
+                                <div style="font-size: 36px; font-weight: 700; margin-bottom: 4px;">${fullyCompliantEmployees.length} / ${allEmployees.length}</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Employees fully compliant with all mandatory trainings</div>
+                            </div>
+
+                            <!-- Per-Training Breakdown -->
+                            <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Per-Training Compliance</h3>
+                            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                                ${trainingStats.map(stat => `
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                                <div style="flex: 1;">
+                                                    <h4 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600;">${stat.training.title}</h4>
+                                                    <div style="font-size: 12px; color: var(--text-muted);">${stat.training.type.toUpperCase()}</div>
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <div style="font-size: 24px; font-weight: 700; color: ${stat.completionPercentage === 100 ? '#10b981' : '#ef4444'};">${stat.completionPercentage}%</div>
+                                                    <div style="font-size: 12px; color: var(--text-muted);">${stat.completedEmployees.length}/${allEmployees.length} completed</div>
+                                                </div>
+                                            </div>
+                                            <div style="background: var(--bg-tertiary); border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 12px;">
+                                                <div style="background: ${stat.completionPercentage === 100 ? '#10b981' : '#6366f1'}; height: 100%; width: ${stat.completionPercentage}%; transition: width 0.3s;"></div>
+                                            </div>
+                                            ${stat.pendingEmployees.length > 0 ? `
+                                                <details style="margin-top: 12px;">
+                                                    <summary style="cursor: pointer; font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                                                        <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> ${stat.pendingEmployees.length} employee${stat.pendingEmployees.length !== 1 ? 's' : ''} pending
+                                                    </summary>
+                                                    <div style="margin-top: 8px; padding-left: 20px;">
+                                                        ${stat.pendingEmployees.slice(0, 10).map(emp => `
+                                                            <div style="padding: 4px 0; font-size: 13px; color: var(--text-secondary);">
+                                                                • ${emp.name} (${emp.role} @ ${emp.store})
+                                                            </div>
+                                                        `).join('')}
+                                                        ${stat.pendingEmployees.length > 10 ? `<div style="padding: 4px 0; font-size: 12px; color: var(--text-muted);">+${stat.pendingEmployees.length - 10} more...</div>` : ''}
+                                                    </div>
+                                                </details>
+                                            ` : '<div style="font-size: 13px; color: #10b981;"><i class="fas fa-check-circle"></i> All employees completed</div>'}
+                                            <div style="margin-top: 12px;">
+                                                <button class="btn-secondary" onclick="closeModal(); setTimeout(() => openTrainingCompletionModal('${stat.training.id}'), 100);">
+                                                    <i class="fas fa-check-circle"></i> Manage Completions
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <!-- Non-Compliant Employees -->
+                            ${fullyCompliantEmployees.length < allEmployees.length ? `
+                                <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">
+                                    <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Non-Compliant Employees
+                                </h3>
+                                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; max-height: 300px; overflow-y: auto;">
+                                    ${allEmployees.filter(emp => !fullyCompliantEmployees.includes(emp)).map(emp => {
+                                        const incompleteTrainings = mandatoryTrainings.filter(training => {
+                                            const empId = emp.firestoreId || emp.id;
+                                            const completions = training.completions || [];
+                                            return !completions.some(c => c.employeeId === empId);
+                                        });
+                                        return `
+                                            <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 8px;">
+                                                <div style="font-weight: 500; margin-bottom: 4px;">${emp.name}</div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">${emp.role} @ ${emp.store}</div>
+                                                <div style="font-size: 13px; color: #ef4444;">
+                                                    Missing ${incompleteTrainings.length} training${incompleteTrainings.length !== 1 ? 's' : ''}:
+                                                    ${incompleteTrainings.slice(0, 3).map(t => t.title).join(', ')}${incompleteTrainings.length > 3 ? ` +${incompleteTrainings.length - 3} more` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            ` : '<div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 12px;"><i class="fas fa-check-circle" style="font-size: 48px; color: #10b981; margin-bottom: 16px; display: block;"></i><div style="font-size: 16px; font-weight: 600; color: #10b981;">100% Compliance!</div><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">All employees have completed all mandatory trainings</div></div>'}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
                 case 'add-license':
                     content = `
                         <div class="modal-header">
@@ -8903,6 +12455,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -8952,6 +12505,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="Morena">VSU Morena</option>
                                     <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                     <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="North Park">VSU North Park</option>
                                     <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                 </select>
                             </div>
@@ -8971,7 +12525,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div class="modal-body">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Product Name</label>
+                                    <label>Product Name *</label>
                                     <input type="text" class="form-input" id="new-product-name" placeholder="Enter product name...">
                                 </div>
                                 <div class="form-group">
@@ -8988,41 +12542,30 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Quantity</label>
-                                    <input type="number" class="form-input" id="new-product-quantity" placeholder="0">
+                                    <label>Estimated Price</label>
+                                    <input type="number" step="0.01" class="form-input" id="new-product-price" placeholder="0.00">
                                 </div>
                                 <div class="form-group">
-                                    <label>Price</label>
-                                    <input type="number" step="0.01" class="form-input" id="new-product-price" placeholder="0.00">
+                                    <label>Estimated Arrival</label>
+                                    <input type="date" class="form-input" id="new-product-arrival">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Store</label>
-                                    <select class="form-input" id="new-product-store">
-                                        <option value="">Select store...</option>
-                                        <option value="Miramar">VSU Miramar</option>
-                                        <option value="Morena">VSU Morena</option>
-                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                        <option value="Chula Vista">VSU Chula Vista</option>
-                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                                    </select>
+                                    <label>Estimated Deals</label>
+                                    <input type="text" class="form-input" id="new-product-deals" placeholder="e.g., 2x1, 20% off, Buy 3 get 1 free...">
                                 </div>
                                 <div class="form-group">
-                                    <label>Arrival Date</label>
-                                    <input type="date" class="form-input" id="new-product-arrival">
+                                    <label>Product URL</label>
+                                    <input type="url" class="form-input" id="new-product-url" placeholder="https://example.com/product">
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label>Supplier</label>
-                                <select class="form-input" id="new-product-supplier">
-                                    <option value="">Select supplier...</option>
-                                    ${getSupplierOptions()}
-                                </select>
+                                <input type="text" class="form-input" id="new-product-supplier" placeholder="Enter supplier name...">
                             </div>
                             <div class="form-group">
-                                <label>Product Image</label>
-                                <label>Product Photo *</label>
+                                <label>Product Image (optional)</label>
                                 <div style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; background: var(--bg-hover);">
                                     <input type="file" class="form-input" id="new-product-image" accept="image/*" onchange="previewProductImage(this)" style="display: none;">
                                     <div id="product-image-preview" style="display: none; margin-bottom: 12px;">
@@ -9031,8 +12574,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <button type="button" class="btn-secondary" onclick="document.getElementById('new-product-image').click()" style="margin: 0;">
                                         <i class="fas fa-image"></i> Choose Photo
                                     </button>
-                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Click to select an image (optional)</p>
-                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Click to select an image (JPG, PNG up to 5MB)</p>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Optional - Click to select an image</p>
                                 </div>
                             </div>
                         </div>
@@ -9070,6 +12612,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -9158,6 +12701,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena" ${data.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                         <option value="Kearny Mesa" ${data.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                         <option value="Chula Vista" ${data.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="North Park" ${data.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                         <option value="Miramar Wine & Liquor" ${data.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -9273,7 +12817,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                    <label>Payment Account</label>
+                                    <select class="form-input" id="invoice-payment-account">
+                                        <option value="">Select account...</option>
+                                        <option value="Shop App">Shop App</option>
+                                        <option value="Personal Account">Personal Account</option>
+                                        <option value="Business Account">Business Account</option>
+                                        <option value="PayPal">PayPal</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
                                         <input type="checkbox" id="invoice-recurring" style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
                                         <span>Recurring Invoice</span>
                                     </label>
@@ -9340,6 +12897,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -9364,7 +12922,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="submitRestockFromModal(${itemId})">Request</button>
+                            <button class="btn-primary" onclick="submitRestockFromModal('${itemId}')">Request</button>
                         </div>
                     `;
                     break;
@@ -9375,18 +12933,61 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
-                                <label>Product Name *</label>
-                                <input type="text" class="form-input" id="new-restock-product" placeholder="Enter product name...">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Item Type *</label>
+                                    <select class="form-input" id="new-restock-item-type">
+                                        <option value="product">Product</option>
+                                        <option value="supply">Supply</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Product/Supply Name *</label>
+                                    <input type="text" class="form-input" id="new-restock-product" placeholder="Enter name...">
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Brand</label>
-                                    <input type="text" class="form-input" id="new-restock-brand" placeholder="Enter brand...">
+                                    <select class="form-input" id="new-restock-brand">
+                                        <option value="">Select brand...</option>
+                                        <option value="Elf Bar">Elf Bar</option>
+                                        <option value="Lost Mary">Lost Mary</option>
+                                        <option value="Funky Republic">Funky Republic</option>
+                                        <option value="Puff Bar">Puff Bar</option>
+                                        <option value="JUUL">JUUL</option>
+                                        <option value="SMOK">SMOK</option>
+                                        <option value="Vuse">Vuse</option>
+                                        <option value="Hyde">Hyde</option>
+                                        <option value="Breeze">Breeze</option>
+                                        <option value="Geek Bar">Geek Bar</option>
+                                        <option value="RAZ">RAZ</option>
+                                        <option value="Orion">Orion</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Flavor/Variant</label>
-                                    <input type="text" class="form-input" id="new-restock-flavor" placeholder="Enter flavor or variant...">
+                                    <select class="form-input" id="new-restock-flavor">
+                                        <option value="">Select flavor...</option>
+                                        <option value="Strawberry">Strawberry</option>
+                                        <option value="Watermelon">Watermelon</option>
+                                        <option value="Blue Razz">Blue Razz</option>
+                                        <option value="Mango">Mango</option>
+                                        <option value="Grape">Grape</option>
+                                        <option value="Mint">Mint</option>
+                                        <option value="Menthol">Menthol</option>
+                                        <option value="Tobacco">Tobacco</option>
+                                        <option value="Mixed Berry">Mixed Berry</option>
+                                        <option value="Peach">Peach</option>
+                                        <option value="Lemon">Lemon</option>
+                                        <option value="Apple">Apple</option>
+                                        <option value="Cherry">Cherry</option>
+                                        <option value="Pineapple">Pineapple</option>
+                                        <option value="Cotton Candy">Cotton Candy</option>
+                                        <option value="Vanilla">Vanilla</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -9417,6 +13018,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -9424,7 +13026,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Requested By *</label>
-                                    <input type="text" class="form-input" id="new-restock-requested-by" placeholder="Your name...">
+                                    <select class="form-input" id="new-restock-requested-by">
+                                        <option value="">Select employee...</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
@@ -9452,18 +13056,61 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
-                                <label>Product Name *</label>
-                                <input type="text" class="form-input" id="edit-restock-product" placeholder="Enter product name...">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Item Type *</label>
+                                    <select class="form-input" id="edit-restock-item-type">
+                                        <option value="product">Product</option>
+                                        <option value="supply">Supply</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Product/Supply Name *</label>
+                                    <input type="text" class="form-input" id="edit-restock-product" placeholder="Enter name...">
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Brand</label>
-                                    <input type="text" class="form-input" id="edit-restock-brand" placeholder="Enter brand...">
+                                    <select class="form-input" id="edit-restock-brand">
+                                        <option value="">Select brand...</option>
+                                        <option value="Elf Bar">Elf Bar</option>
+                                        <option value="Lost Mary">Lost Mary</option>
+                                        <option value="Funky Republic">Funky Republic</option>
+                                        <option value="Puff Bar">Puff Bar</option>
+                                        <option value="JUUL">JUUL</option>
+                                        <option value="SMOK">SMOK</option>
+                                        <option value="Vuse">Vuse</option>
+                                        <option value="Hyde">Hyde</option>
+                                        <option value="Breeze">Breeze</option>
+                                        <option value="Geek Bar">Geek Bar</option>
+                                        <option value="RAZ">RAZ</option>
+                                        <option value="Orion">Orion</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Flavor/Variant</label>
-                                    <input type="text" class="form-input" id="edit-restock-flavor" placeholder="Enter flavor or variant...">
+                                    <select class="form-input" id="edit-restock-flavor">
+                                        <option value="">Select flavor...</option>
+                                        <option value="Strawberry">Strawberry</option>
+                                        <option value="Watermelon">Watermelon</option>
+                                        <option value="Blue Razz">Blue Razz</option>
+                                        <option value="Mango">Mango</option>
+                                        <option value="Grape">Grape</option>
+                                        <option value="Mint">Mint</option>
+                                        <option value="Menthol">Menthol</option>
+                                        <option value="Tobacco">Tobacco</option>
+                                        <option value="Mixed Berry">Mixed Berry</option>
+                                        <option value="Peach">Peach</option>
+                                        <option value="Lemon">Lemon</option>
+                                        <option value="Apple">Apple</option>
+                                        <option value="Cherry">Cherry</option>
+                                        <option value="Pineapple">Pineapple</option>
+                                        <option value="Cotton Candy">Cotton Candy</option>
+                                        <option value="Vanilla">Vanilla</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -9494,13 +13141,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label>Requested By *</label>
-                                <input type="text" class="form-input" id="edit-restock-requested-by" placeholder="Your name...">
+                                <select class="form-input" id="edit-restock-requested-by">
+                                    <option value="">Select employee...</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Notes (Optional)</label>
@@ -9539,6 +13189,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -9652,9 +13303,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Incident Date</label>
-                                    <input type="date" class="form-input" id="issue-incident-date" value="${new Date().toISOString().split('T')[0]}">
+                                    <label>Store</label>
+                                    <select class="form-input" id="issue-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
                                 </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Incident Date</label>
+                                <input type="date" class="form-input" id="issue-incident-date" value="${new Date().toISOString().split('T')[0]}">
                             </div>
                             <div class="form-group">
                                 <label>Brief Description</label>
@@ -9744,7 +13407,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="resolveIssue(${issueId})">
+                            <button class="btn-primary" onclick="resolveIssue('${issueId}')">
                                 <i class="fas fa-check"></i>
                                 Mark as Resolved
                             </button>
@@ -9902,7 +13565,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="editVendor(${editVendorId})">
+                            <button class="btn-primary" onclick="editVendor('${editVendorId}')">
                                 <i class="fas fa-save"></i>
                                 Save Changes
                             </button>
@@ -10005,6 +13668,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="VSU Kearny Mesa">VSU Kearny Mesa</option>
                                     <option value="VSU North Park">VSU North Park</option>
                                     <option value="VSU Chula Vista">VSU Chula Vista</option>
+                                    <option value="VSU North Park">VSU North Park</option>
                                     <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                 </select>
                             </div>
@@ -10132,6 +13796,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -10190,6 +13855,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -10308,6 +13974,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -10397,6 +14064,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena" ${editGiftRecord.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                         <option value="Kearny Mesa" ${editGiftRecord.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                         <option value="Chula Vista" ${editGiftRecord.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="North Park" ${editGiftRecord.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                         <option value="Miramar Wine & Liquor" ${editGiftRecord.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -10458,6 +14126,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena">VSU Morena</option>
                                         <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                         <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -10568,6 +14237,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <option value="Morena" ${editSchedule.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                         <option value="Kearny Mesa" ${editSchedule.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                         <option value="Chula Vista" ${editSchedule.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="North Park" ${editSchedule.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                         <option value="Miramar Wine & Liquor" ${editSchedule.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
@@ -10665,11 +14335,33 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <span>Allergies: ${emp.allergies}</span>
                             </div>
                         </div>
+                        ${emp.paperwork && emp.paperwork.length > 0 ? `
+                        <div class="form-divider"></div>
+                        <h3 class="form-section-title">Employee Paperwork</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${emp.paperwork.map((doc, index) => `
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                        <i class="fas ${getFileIcon(doc.fileType)}" style="color: var(--accent-primary); font-size: 18px;"></i>
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 500; color: var(--text-primary); font-size: 14px;">${doc.fileName}</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">
+                                                ${doc.documentType || 'Document'} • ${formatFileSize(doc.fileSize)} • ${formatDate(doc.uploadedAt.toDate ? doc.uploadedAt.toDate() : doc.uploadedAt)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    <button class="btn-primary" onclick="editEmployee(${emp.id})"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn-primary" onclick="editEmployee('${emp.id}')"><i class="fas fa-edit"></i> Edit</button>
                 </div>
             `;
             modal.classList.add('active');
@@ -10828,7 +14520,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const store = document.getElementById('edit-emp-store').value || currentEmployee.store;
             const status = document.getElementById('edit-emp-status').value || currentEmployee.status;
             const hireDate = document.getElementById('edit-emp-hire-date').value || currentEmployee.hireDate;
-            const emergency = document.getElementById('edit-emp-emergency').value.trim();
+            const emergencyName = document.getElementById('edit-emp-emergency-name').value.trim();
+            const emergencyPhone = document.getElementById('edit-emp-emergency-phone').value.trim();
             const allergies = document.getElementById('edit-emp-allergies').value.trim();
 
             // If new password is provided, validate it
@@ -10857,7 +14550,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 store,
                 status,
                 hireDate: hireDate || new Date().toISOString().split('T')[0],
-                emergencyContact: emergency || currentEmployee.emergencyContact || 'Not provided',
+                emergencyContact: combineEmergencyContact(emergencyName, emergencyPhone) || currentEmployee.emergencyContact || 'Not provided',
                 allergies: allergies || currentEmployee.allergies || 'None'
             };
 
@@ -10881,6 +14574,32 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     if (!success) {
                         throw new Error('Failed to update in Firebase');
                     }
+
+                    // Upload new paperwork files if any
+                    if (editEmployeePaperworkFiles.length > 0) {
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading documents...';
+
+                        for (const file of editEmployeePaperworkFiles) {
+                            try {
+                                await firebaseEmployeeManager.uploadPaperwork(employeeId, file, 'Document');
+                            } catch (uploadError) {
+                                console.error('Error uploading file:', file.name, uploadError);
+                                // Continue with other files even if one fails
+                            }
+                        }
+
+                        // Clear the selected files after upload
+                        editEmployeePaperworkFiles = [];
+                    }
+                }
+
+                // Reload employee data to get latest paperwork
+                let updatedEmployee = updatedData;
+                if (firebaseEmployeeManager.isInitialized) {
+                    const freshData = await firebaseEmployeeManager.getEmployee(employeeId);
+                    if (freshData) {
+                        updatedEmployee = freshData;
+                    }
                 }
 
                 // Update local array
@@ -10888,7 +14607,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 if (index !== -1) {
                     employees[index] = {
                         ...employees[index],
-                        ...updatedData
+                        ...updatedEmployee
                     };
                 }
 
@@ -10909,7 +14628,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
-        async function deleteEmployee(id) {
+        function deleteEmployee(id) {
             // Check permission
             if (!checkPermission('canDeleteEmployees')) {
                 showPermissionDenied('delete employees');
@@ -10918,33 +14637,35 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
             // Find employee by id or firestoreId
             const emp = employees.find(e => e.id === id || e.firestoreId === id);
-            if (!emp) {
-                alert('Employee not found');
-                return;
-            }
+            if (!emp) return;
 
-            if (confirm(`Are you sure you want to delete ${emp.name}? This action cannot be undone.`)) {
-                try {
-                    // Delete from Firebase first
-                    const firestoreId = emp.firestoreId || emp.id;
-                    if (firebaseEmployeeManager.isInitialized) {
-                        const deleted = await firebaseEmployeeManager.deleteEmployee(firestoreId);
-                        if (!deleted) {
-                            throw new Error('Failed to delete from Firebase');
+            showConfirmModal({
+                title: 'Delete Employee',
+                message: `Are you sure you want to delete "${emp.name}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        // Delete from Firebase first
+                        const firestoreId = emp.firestoreId || emp.id;
+                        if (firebaseEmployeeManager.isInitialized) {
+                            const deleted = await firebaseEmployeeManager.deleteEmployee(firestoreId);
+                            if (!deleted) {
+                                throw new Error('Failed to delete from Firebase');
+                            }
                         }
+
+                        // Remove from local array
+                        employees = employees.filter(e => e.id !== id && e.firestoreId !== id);
+
+                        // Re-render page
+                        renderPage(currentPage);
+                        showNotification('Employee deleted successfully', 'success');
+                    } catch (error) {
+                        console.error('Error deleting employee:', error);
                     }
-
-                    // Remove from local array
-                    employees = employees.filter(e => e.id !== id && e.firestoreId !== id);
-
-                    // Re-render page
-                    renderPage(currentPage);
-                    showNotification('Employee deleted successfully', 'success');
-                } catch (error) {
-                    console.error('Error deleting employee:', error);
-                    alert('Error deleting employee. Please try again.');
                 }
-            }
+            });
         }
 
         function filterEmployees() {
@@ -10974,7 +14695,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const employeeType = document.getElementById('emp-employee-type')?.value || 'employee';
             const store = document.getElementById('emp-store').value;
             const hireDate = document.getElementById('emp-hire-date').value;
-            const emergency = document.getElementById('emp-emergency').value.trim();
+            const emergencyName = document.getElementById('emp-emergency-name').value.trim();
+            const emergencyPhone = document.getElementById('emp-emergency-phone').value.trim();
             const allergies = document.getElementById('emp-allergies').value.trim();
 
             if (!firstName || !lastName || !email || !phone || !role || !store || !password) {
@@ -11001,7 +14723,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 employeeType: employeeType,              // Permission level (admin, manager, employee)
                 store,
                 hireDate: hireDate || new Date().toISOString().split('T')[0],
-                emergencyContact: emergency || 'Not provided',
+                emergencyContact: combineEmergencyContact(emergencyName, emergencyPhone),
                 allergies: allergies || 'None',
                 status: 'active',
                 color: ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)]
@@ -11028,6 +14750,29 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         newEmployee.id = firestoreId;
                         newEmployee.firestoreId = firestoreId;
                         console.log('Employee saved to Firebase:', firestoreId);
+
+                        // Upload paperwork files if any
+                        if (selectedEmployeePaperworkFiles.length > 0) {
+                            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading documents...';
+
+                            for (const file of selectedEmployeePaperworkFiles) {
+                                try {
+                                    await firebaseEmployeeManager.uploadPaperwork(firestoreId, file, 'Document');
+                                } catch (uploadError) {
+                                    console.error('Error uploading file:', file.name, uploadError);
+                                    // Continue with other files even if one fails
+                                }
+                            }
+
+                            // Clear the selected files after upload
+                            selectedEmployeePaperworkFiles = [];
+
+                            // Reload employee data to get updated paperwork
+                            const updatedEmployee = await firebaseEmployeeManager.getEmployee(firestoreId);
+                            if (updatedEmployee) {
+                                newEmployee.paperwork = updatedEmployee.paperwork;
+                            }
+                        }
 
                         // Add to local array
                         employees.push(newEmployee);
@@ -11148,7 +14893,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         async function saveTraining() {
             const title = document.getElementById('training-title').value.trim();
             const type = document.getElementById('training-type').value;
-            const duration = document.getElementById('training-duration').value.trim();
             const url = document.getElementById('training-url').value.trim();
             const description = document.getElementById('training-description')?.value.trim() || '';
             const required = document.getElementById('training-required').checked;
@@ -11204,7 +14948,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         title,
                         type,
                         url: type === 'video' ? url : '',
-                        duration: duration || '30 min',
                         completion: 0,
                         required,
                         description
@@ -11245,7 +14988,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         title,
                         type,
                         url,
-                        duration: duration || '30 min',
                         completion: 0,
                         required,
                         description
@@ -11293,7 +15035,87 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
-        function saveLicense() {
+        async function saveLicense() {
+            const name = document.getElementById('license-name').value;
+            const store = document.getElementById('license-store').value;
+            const expires = document.getElementById('license-expires').value;
+            const fileInput = document.getElementById('license-file');
+
+            if (!name || !store || !expires) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const expiresDate = new Date(expires);
+            const today = new Date();
+            const daysUntilExpiry = Math.ceil((expiresDate - today) / (1000 * 60 * 60 * 24));
+
+            let status = 'valid';
+            if (daysUntilExpiry < 0) status = 'expired';
+            else if (daysUntilExpiry < 60) status = 'expiring';
+
+            // Get current user info
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            const uploadedBy = user?.name || user?.email || 'Unknown';
+
+            try {
+                // Initialize Firebase if needed
+                if (!firebaseLicensesManager.isInitialized) {
+                    await firebaseLicensesManager.initialize();
+                }
+
+                let file = null;
+                if (fileInput && fileInput.files.length > 0) {
+                    file = fileInput.files[0];
+
+                    // Validate file type
+                    if (file.type !== 'application/pdf') {
+                        showToast('Please select a PDF file', 'error');
+                        return;
+                    }
+
+                    // Check file size (max 50MB for Storage)
+                    const maxSize = 50 * 1024 * 1024; // 50MB
+                    if (file.size > maxSize) {
+                        showToast('File size exceeds 50MB limit', 'error');
+                        return;
+                    }
+                }
+
+                const licenseData = {
+                    name,
+                    store,
+                    expires,
+                    status,
+                    file: file ? file.name : null,
+                    uploadedBy: uploadedBy
+                };
+
+                // Save to Firebase (with or without file)
+                const docId = await firebaseLicensesManager.addLicense(licenseData, file);
+
+                if (docId) {
+                    showToast('License uploaded successfully!', 'success');
+
+                    // Reload licenses from Firebase
+                    const updatedLicenses = await firebaseLicensesManager.loadLicenses();
+                    if (updatedLicenses && updatedLicenses.length > 0) {
+                        licenses = updatedLicenses;
+                    }
+
+                    closeModal();
+                    renderPage(currentPage);
+                } else {
+                    throw new Error('Failed to save license');
+                }
+            } catch (error) {
+                console.error('Error saving license:', error);
+                showToast('Error saving license: ' + error.message, 'error');
+            }
+        }
+
+        // Legacy function kept for compatibility
+        async function saveLicenseOld() {
             const name = document.getElementById('license-name').value;
             const store = document.getElementById('license-store').value;
             const expires = document.getElementById('license-expires').value;
@@ -11312,17 +15134,50 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             if (daysUntilExpiry < 0) status = 'expired';
             else if (daysUntilExpiry < 60) status = 'expiring';
 
-            // Handle file - use uploaded file name or generate placeholder
-            let fileName = null;
-            if (fileInput && fileInput.files.length > 0) {
-                fileName = fileInput.files[0].name;
-            }
+            // Get current user info
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            const uploadedBy = user?.name || user?.email || 'Unknown';
 
-            licenses.push({
-                id: licenses.length + 1,
-                name, store, expires, status,
-                file: fileName
-            });
+            // No file uploaded
+            const licenseData = {
+                name,
+                store,
+                expires,
+                status,
+                file: null,
+                fileName: null,
+                fileType: null,
+                fileData: null,
+                uploadedBy: uploadedBy
+            };
+
+            // Save to Firebase
+            if (firebaseLicensesManager && firebaseLicensesManager.isInitialized) {
+                try {
+                    const docId = await firebaseLicensesManager.addLicense(licenseData);
+                    if (docId) {
+                        // Reload licenses from Firebase
+                        const updatedLicenses = await firebaseLicensesManager.loadLicenses();
+                        if (updatedLicenses && updatedLicenses.length > 0) {
+                            licenses = updatedLicenses;
+                        }
+                        console.log('✅ License saved to Firebase with ID:', docId);
+                    }
+                } catch (error) {
+                    console.error('Error saving license to Firebase:', error);
+                    // Fallback to local
+                    licenses.push({
+                        id: Date.now().toString(),
+                        ...licenseData
+                    });
+                }
+            } else {
+                // Fallback to local storage
+                licenses.push({
+                    id: Date.now().toString(),
+                    ...licenseData
+                });
+            }
 
             closeModal();
             renderPage(currentPage);
@@ -11372,6 +15227,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                 closeModal();
                 renderPage(currentPage);
+                updateAnnouncementsBadge();
+                populateAnnouncementsDropdown();
             } catch (error) {
                 console.error('Error saving announcement:', error);
                 alert('Failed to save announcement. Please try again.');
@@ -11420,6 +15277,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
 
                 renderAnnouncements();
+                updateAnnouncementsBadge();
+                populateAnnouncementsDropdown();
             } catch (error) {
                 console.error('Error saving announcement:', error);
                 alert('Failed to save announcement. Please try again.');
@@ -11429,11 +15288,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         async function saveProduct() {
             const name = document.getElementById('new-product-name').value.trim();
             const category = document.getElementById('new-product-category').value;
-            const quantity = document.getElementById('new-product-quantity').value;
             const price = document.getElementById('new-product-price').value;
-            const store = document.getElementById('new-product-store').value;
             const arrivalDate = document.getElementById('new-product-arrival').value;
-            const supplier = document.getElementById('new-product-supplier').value.trim();
+            const estimatedDeals = document.getElementById('new-product-deals')?.value || '';
+            const url = document.getElementById('new-product-url')?.value.trim() || '';
+            const supplier = document.getElementById('new-product-supplier')?.value.trim() || '';
             const imageInput = document.getElementById('new-product-image');
 
             if (!name) {
@@ -11448,10 +15307,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
             try {
-                // Get image as base64 if uploaded (same approach as thieves)
+                // Get image as base64 if uploaded (same approach as thieves) - OPTIONAL
                 let image = null;
                 const imageImg = document.getElementById('product-image-img');
-                if (imageImg && imageImg.src && imageInput.files && imageInput.files.length > 0) {
+                if (imageImg && imageImg.src && imageInput && imageInput.files && imageInput.files.length > 0) {
                     image = imageImg.src;  // Base64 DataURL from preview
                 }
 
@@ -11459,12 +15318,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 const productData = {
                     name,
                     category: category || '',
-                    quantity: parseInt(quantity) || 0,
                     price: parseFloat(price) || 0,
-                    store: store || '',
                     arrivalDate: arrivalDate || '',
+                    estimatedDeals: estimatedDeals || '',
+                    url: url || '',
                     supplier: supplier || '',
-                    image: image,  // Base64 image stored directly in Firestore
+                    image: image,  // Base64 image stored directly in Firestore (optional)
                     status: 'pending'
                 };
 
@@ -11584,34 +15443,38 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
          * Delete product from Firebase
          */
         async function deleteProductFromFirebase(productId) {
-            if (!confirm('Are you sure you want to delete this product?')) {
-                return;
-            }
+            showConfirmModal({
+                title: 'Delete Product',
+                message: 'Are you sure you want to delete this product? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        if (!firebaseProductManager.isInitialized) {
+                            const initialized = await firebaseProductManager.initialize();
+                            if (!initialized) {
+                                showNotification('Firebase not initialized', 'error');
+                                return;
+                            }
+                        }
 
-            try {
-                if (!firebaseProductManager.isInitialized) {
-                    const initialized = await firebaseProductManager.initialize();
-                    if (!initialized) {
-                        alert('Firebase not initialized');
-                        return;
+                        console.log(`🗑️ Deleting product: ${productId}`);
+                        const success = await firebaseProductManager.deleteProduct(productId);
+
+                        if (success) {
+                            console.log('✅ Product deleted successfully');
+                            // Remove from local array
+                            products = products.filter(p => p.id !== productId);
+                            renderNewStuff();
+                        } else {
+                            showNotification('Error deleting product', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting product:', error);
+                        showNotification('Error deleting product', 'error');
                     }
                 }
-
-                console.log(`🗑️ Deleting product: ${productId}`);
-                const success = await firebaseProductManager.deleteProduct(productId);
-                
-                if (success) {
-                    console.log('✅ Product deleted successfully');
-                    // Remove from local array
-                    products = products.filter(p => p.id !== productId);
-                    renderNewStuff();
-                } else {
-                    alert('Error deleting product');
-                }
-            } catch (error) {
-                console.error('Error deleting product:', error);
-                alert('Error deleting product');
-            }
+            });
         }
 
         // Variable to store the product being edited
@@ -11729,6 +15592,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <option value="Morena" ${product.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                     <option value="Kearny Mesa" ${product.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                     <option value="Chula Vista" ${product.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                    <option value="North Park" ${product.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                     <option value="Miramar Wine & Liquor" ${product.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                 </select>
                             </div>
@@ -11939,11 +15803,35 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
+        // Helper function to populate employee dropdown for restock requests
+        function populateEmployeeDropdown(selectId, selectedValue = '') {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            // Clear existing options except the first placeholder
+            select.innerHTML = '<option value="">Select employee...</option>';
+
+            // Add active employees from the employees array
+            const activeEmployees = employees.filter(emp => emp.status === 'active');
+            activeEmployees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.name;
+                option.textContent = `${emp.name} (${emp.store})`;
+                if (emp.name === selectedValue) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
         function openNewRestockRequestModal() {
             openModal('new-restock-request');
 
-            // Enable/disable customer info field based on checkbox
+            // Populate employee dropdown and enable/disable customer info field
             setTimeout(() => {
+                // Populate employee dropdown
+                populateEmployeeDropdown('new-restock-requested-by');
+
                 const checkbox = document.getElementById('new-restock-customer-request');
                 const customerInfo = document.getElementById('new-restock-customer-info');
 
@@ -11958,6 +15846,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function submitNewRestockRequest() {
+            const itemType = document.getElementById('new-restock-item-type').value;
             const product = document.getElementById('new-restock-product').value;
             const brand = document.getElementById('new-restock-brand').value;
             const flavor = document.getElementById('new-restock-flavor').value;
@@ -11994,6 +15883,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             // Create request object
             const newRequest = {
                 productName: productName,
+                itemType: itemType,
                 quantity: parseInt(quantity),
                 store,
                 requestedBy,
@@ -12063,6 +15953,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 'coins': 'change',
                 'gift': 'gifts',
                 'shield-halved': 'risknotes',
+                'key': 'passwords',
                 'bolt': 'gforce'
             };
             item.dataset.page = pageMap[page] || 'dashboard';
@@ -12143,14 +16034,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-footer" style="padding: 16px 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <span style="color: var(--text-muted); font-size: 13px;">
-                                <i class="fas fa-clock"></i> ${training.duration || '30 min'}
-                            </span>
-                            <span style="color: var(--text-muted); font-size: 13px;">
-                                <i class="fas fa-${training.required ? 'exclamation-circle' : 'check'}"></i> ${training.required ? 'Required' : 'Optional'}
-                            </span>
-                        </div>
+                        <span style="color: var(--text-muted); font-size: 13px;">
+                            <i class="fas fa-${training.required ? 'exclamation-circle' : 'check'}"></i> ${training.required ? 'Required' : 'Optional'}
+                        </span>
                         <button class="btn-primary" onclick="closeVideoPlayer()">Close</button>
                     </div>
                 </div>
@@ -12215,10 +16101,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <span style="font-weight: 500; color: var(--text-primary);">${(training.type || 'Document').toUpperCase()}</span>
                                 </div>
                                 <div>
-                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Duration</label>
-                                    <span style="font-weight: 500; color: var(--text-primary);">${training.duration || '30 min'}</span>
-                                </div>
-                                <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Status</label>
                                     <span class="badge ${training.required ? 'danger' : 'success'}">${training.required ? 'Required' : 'Optional'}</span>
                                 </div>
@@ -12244,12 +16126,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                     </div>
 
-                    <div class="training-card-progress" style="margin-bottom: 0;">
-                        <div class="progress-bar" style="height: 10px;">
-                            <div class="progress-fill" style="width: ${training.completion || 0}%;"></div>
+                    ${training.required ? `
+                        <div class="card">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <h4 style="margin: 0; color: var(--text-primary);">
+                                    <i class="fas fa-users"></i> Completion Tracking
+                                </h4>
+                                <button class="btn-primary" onclick="openTrainingCompletionModal('${training.id}')">
+                                    <i class="fas fa-check-circle"></i> Manage Completions
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                ${renderTrainingCompletionSummary(training)}
+                            </div>
                         </div>
-                        <span style="text-align: center; display: block; margin-top: 8px;">${training.completion || 0}% completed</span>
-                    </div>
+                    ` : ''}
                 </div>
                 <div class="modal-footer">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -12291,15 +16182,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <label>Title *</label>
                         <input type="text" class="form-input" id="edit-training-title" value="${training.title || ''}" placeholder="Training name...">
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Type</label>
-                            <input type="text" class="form-input" value="${(training.type || 'document').toUpperCase()}" disabled style="background: var(--bg-tertiary);">
-                        </div>
-                        <div class="form-group">
-                            <label>Duration</label>
-                            <input type="text" class="form-input" id="edit-training-duration" value="${training.duration || '30 min'}" placeholder="30 min">
-                        </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <input type="text" class="form-input" value="${(training.type || 'document').toUpperCase()}" disabled style="background: var(--bg-tertiary);">
                     </div>
                     ${training.type === 'video' ? `
                         <div class="form-group">
@@ -12343,7 +16228,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         // Update training in Firebase
         async function updateTraining(trainingId) {
             const title = document.getElementById('edit-training-title').value.trim();
-            const duration = document.getElementById('edit-training-duration').value.trim();
             const urlInput = document.getElementById('edit-training-url');
             const url = urlInput ? urlInput.value.trim() : '';
             const description = document.getElementById('edit-training-description').value.trim();
@@ -12354,6 +16238,15 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
+            // Check if this is a mock training (numeric ID like "1", "2", etc.)
+            const isMockTraining = /^\d+$/.test(String(trainingId));
+
+            if (isMockTraining) {
+                showToast('Cannot edit demo training. Please delete it and create a new one in Firebase.', 'warning');
+                closeModal();
+                return;
+            }
+
             try {
                 if (!firebaseTrainingManager.isInitialized) {
                     await firebaseTrainingManager.initialize();
@@ -12361,7 +16254,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                 const updateData = {
                     title,
-                    duration: duration || '30 min',
                     description,
                     required
                 };
@@ -12382,7 +16274,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
             } catch (error) {
                 console.error('Error updating training:', error);
-                showToast('Error updating training: ' + error.message, 'error');
+
+                // Check if error is "document not found"
+                if (error.message && error.message.includes('No document to update')) {
+                    showToast('This training does not exist in Firebase. Please create a new one.', 'warning');
+                } else {
+                    showToast('Error updating training: ' + error.message, 'error');
+                }
             }
         }
 
@@ -12403,7 +16301,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     await firebaseTrainingManager.initialize();
                 }
 
-                const success = await firebaseTrainingManager.deleteTraining(trainingId);
+                        const success = await firebaseTrainingManager.deleteTraining(trainingId);
 
                 if (success) {
                     showToast('Training deleted successfully!', 'success');
@@ -12415,6 +16313,178 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             } catch (error) {
                 console.error('Error deleting training:', error);
                 showToast('Error deleting training: ' + error.message, 'error');
+            }
+        }
+
+        // Render training completion summary
+        function renderTrainingCompletionSummary(training) {
+            const completions = training.completions || [];
+            const totalEmployees = employees.length;
+            const completedCount = completions.length;
+            const completionPercentage = totalEmployees > 0 ? Math.round((completedCount / totalEmployees) * 100) : 0;
+
+            return `
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Completion Progress</span>
+                        <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">${completedCount} / ${totalEmployees} employees (${completionPercentage}%)</span>
+                    </div>
+                    <div style="background: var(--bg-tertiary); border-radius: 8px; height: 12px; overflow: hidden;">
+                        <div style="background: ${completionPercentage === 100 ? '#10b981' : '#6366f1'}; height: 100%; width: ${completionPercentage}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+                ${completedCount > 0 ? `
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Recently Completed:</div>
+                        ${completions.slice(0, 5).map(c => {
+                            const emp = employees.find(e => (e.firestoreId || e.id) === c.employeeId);
+                            const completedDate = c.completedAt ? (c.completedAt.toDate ? c.completedAt.toDate() : new Date(c.completedAt)) : null;
+                            return `
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-primary);">
+                                        <i class="fas fa-check-circle" style="color: #10b981;"></i> ${emp ? emp.name : 'Unknown Employee'}
+                                    </span>
+                                    <span style="font-size: 12px; color: var(--text-muted);">${completedDate ? formatDate(completedDate) : 'N/A'}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                        ${completedCount > 5 ? `<div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px;">+${completedCount - 5} more</div>` : ''}
+                    </div>
+                ` : '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">No employees have completed this training yet</div>'}
+            `;
+        }
+
+        // View mandatory training compliance
+        function viewMandatoryTrainingCompliance() {
+            const mandatoryTrainings = trainings.filter(t => t.required);
+
+            openModal('mandatory-compliance', { mandatoryTrainings, employees });
+        }
+
+        // Open training completion modal
+        function openTrainingCompletionModal(trainingId) {
+            const training = trainings.find(t => t.id === trainingId || t.firestoreId === trainingId);
+            if (!training) {
+                showToast('Training not found', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            const completions = training.completions || [];
+            const employeesWithStatus = employees.map(emp => {
+                const empId = emp.firestoreId || emp.id;
+                const completion = completions.find(c => c.employeeId === empId);
+                return {
+                    ...emp,
+                    completed: !!completion,
+                    completedAt: completion ? (completion.completedAt.toDate ? completion.completedAt.toDate() : new Date(completion.completedAt)) : null
+                };
+            });
+
+            const completedEmployees = employeesWithStatus.filter(e => e.completed);
+            const pendingEmployees = employeesWithStatus.filter(e => !e.completed);
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-check-circle"></i> Manage Completions: ${training.title}</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                            <div style="flex: 1; padding: 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; color: white;">
+                                <div style="font-size: 28px; font-weight: 700;">${completedEmployees.length}</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Completed</div>
+                            </div>
+                            <div style="flex: 1; padding: 16px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; color: white;">
+                                <div style="font-size: 28px; font-weight: 700;">${pendingEmployees.length}</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <input type="text" id="completion-search" class="form-input" placeholder="Search employees..." oninput="filterCompletionList()">
+                    </div>
+
+                    <div id="completion-list" style="max-height: 400px; overflow-y: auto;">
+                        ${employeesWithStatus.map(emp => `
+                            <div class="completion-item" data-employee-name="${emp.name.toLowerCase()}">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; color: var(--text-primary);">${emp.name}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">${emp.role} • ${emp.store}</div>
+                                        ${emp.completed ? `<div style="font-size: 12px; color: #10b981; margin-top: 4px;"><i class="fas fa-check-circle"></i> Completed on ${formatDate(emp.completedAt)}</div>` : ''}
+                                    </div>
+                                    <div>
+                                        ${emp.completed ? `
+                                            <button class="btn-secondary" onclick="toggleEmployeeCompletion('${training.id}', '${emp.firestoreId || emp.id}', false)">
+                                                <i class="fas fa-times"></i> Remove
+                                            </button>
+                                        ` : `
+                                            <button class="btn-primary" onclick="toggleEmployeeCompletion('${training.id}', '${emp.firestoreId || emp.id}', true)">
+                                                <i class="fas fa-check"></i> Mark Complete
+                                            </button>
+                                        `}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Close</button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Filter completion list
+        function filterCompletionList() {
+            const search = document.getElementById('completion-search').value.toLowerCase();
+            const items = document.querySelectorAll('.completion-item');
+
+            items.forEach(item => {
+                const name = item.dataset.employeeName;
+                if (name.includes(search)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Toggle employee completion
+        async function toggleEmployeeCompletion(trainingId, employeeId, markComplete) {
+            try {
+                if (!firebaseTrainingManager.isInitialized) {
+                    await firebaseTrainingManager.initialize();
+                }
+
+                let success;
+                if (markComplete) {
+                    success = await firebaseTrainingManager.markEmployeeCompleted(trainingId, employeeId);
+                } else {
+                    success = await firebaseTrainingManager.removeEmployeeCompletion(trainingId, employeeId);
+                }
+
+                if (success) {
+                    showToast(markComplete ? 'Employee marked as completed' : 'Completion removed', 'success');
+
+                    // Reload trainings to get updated completion data
+                    await loadTrainingsFromFirebase();
+
+                    // Re-open the modal with updated data
+                    openTrainingCompletionModal(trainingId);
+                } else {
+                    throw new Error('Failed to update completion status');
+                }
+            } catch (error) {
+                console.error('Error toggling completion:', error);
+                showToast('Error updating completion status', 'error');
             }
         }
 
@@ -12899,21 +16969,19 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function viewLicense(licenseId) {
-            const license = licenses.find(l => l.id === licenseId);
+            const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
             if (!license) return;
 
-            alert(`License: ${license.name}\nStore: ${license.store}\nExpires: ${formatDate(license.expires)}\nStatus: ${license.status}`);
-        }
-
-        function deleteLicense(licenseId) {
-            if (confirm('Are you sure you want to delete this license?')) {
-                const index = licenses.findIndex(l => l.id === licenseId);
-                if (index !== -1) {
-                    licenses.splice(index, 1);
-                    renderLicenses();
-                }
+            // If license has PDF data, open it
+            if (license.fileData) {
+                viewLicensePdf(licenseId);
+            } else {
+                // Show license details in a modal/alert
+                alert(`License: ${license.name}\nStore: ${license.store}\nExpires: ${formatDate(license.expires)}\nStatus: ${license.status}\n${license.uploadedBy ? 'Uploaded by: ' + license.uploadedBy : ''}`);
             }
         }
+
+        // Note: deleteLicense is defined earlier in the file with Firebase support
 
         // RISK NOTES FUNCTIONALITY
         const RISK_BEHAVIOR_TYPES = [
@@ -13002,6 +17070,50 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             filterLevel: 'all',
             filterType: 'all'
         };
+
+        // Load risk notes from Firebase when available
+        async function loadRiskNotesFromFirebase() {
+            if (typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
+                try {
+                    const firebaseNotes = await firebaseSyncManager.loadRiskNotesFromFirestore();
+                    if (firebaseNotes && firebaseNotes.length > 0) {
+                        // Merge Firebase notes with local notes (Firebase takes priority)
+                        const localNotes = JSON.parse(localStorage.getItem('riskNotes')) || [];
+                        const mergedNotes = [...firebaseNotes];
+
+                        // Add local notes that don't have a firestoreId (not yet synced)
+                        localNotes.forEach(localNote => {
+                            if (!localNote.firestoreId && !mergedNotes.find(n => n.id === localNote.id)) {
+                                mergedNotes.push(localNote);
+                                // Sync this local note to Firebase
+                                firebaseSyncManager.saveRiskNoteToFirestore(localNote).then(firestoreId => {
+                                    if (firestoreId) {
+                                        localNote.firestoreId = firestoreId;
+                                        saveRiskNotes();
+                                    }
+                                });
+                            }
+                        });
+
+                        riskNotesState.notes = mergedNotes;
+                        saveRiskNotes();
+                        console.log('✅ Risk notes loaded from Firebase');
+
+                        // Re-render if on risknotes page
+                        if (window.currentPage === 'risknotes') {
+                            renderRiskNotes();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading risk notes from Firebase:', error);
+                }
+            }
+        }
+
+        // Initialize Firebase risk notes loading after a short delay to ensure Firebase is ready
+        setTimeout(() => {
+            loadRiskNotesFromFirebase();
+        }, 1500);
 
         function saveRiskNotes() {
             // Store notes WITHOUT photo data in localStorage (only metadata)
@@ -13242,20 +17354,36 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function deleteRiskNote(noteId) {
-            if (confirm('Are you sure you want to delete this risk note?')) {
-                const note = riskNotesState.notes.find(n => n.id === noteId);
-                riskNotesState.notes = riskNotesState.notes.filter(n => n.id !== noteId);
-                
-                // Delete photo from IndexedDB if it exists
-                if (note && note.hasPhoto) {
-                    deletePhotoFromIndexedDB(noteId).catch(err => {
-                        console.error('Error deleting photo:', err);
-                    });
+            showConfirmModal({
+                title: 'Delete Risk Note',
+                message: 'Are you sure you want to delete this risk note? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    const note = riskNotesState.notes.find(n => n.id === noteId);
+
+                    // Delete from Firebase if it has a firestoreId
+                    if (note && note.firestoreId && typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
+                        try {
+                            await firebaseSyncManager.deleteRiskNoteFromFirestore(note.firestoreId);
+                        } catch (error) {
+                            console.error('Error deleting risk note from Firebase:', error);
+                        }
+                    }
+
+                    riskNotesState.notes = riskNotesState.notes.filter(n => n.id !== noteId);
+
+                    // Delete photo from IndexedDB if it exists
+                    if (note && note.hasPhoto) {
+                        deletePhotoFromIndexedDB(noteId).catch(err => {
+                            console.error('Error deleting photo:', err);
+                        });
+                    }
+
+                    saveRiskNotes();
+                    renderRiskNotes();
                 }
-                
-                saveRiskNotes();
-                renderRiskNotes();
-            }
+            });
         }
 
         function saveRiskNote() {
@@ -13279,7 +17407,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
-        function createRiskNote(date, store, behaviorType, description, level, reportedBy, managerNote, photo) {
+        async function createRiskNote(date, store, behaviorType, description, level, reportedBy, managerNote, photo) {
             const newNote = {
                 id: Date.now().toString(),
                 date,
@@ -13293,8 +17421,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 createdAt: new Date().toISOString()
             };
 
+            // Save to Firebase first
+            if (typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
+                try {
+                    const firestoreId = await firebaseSyncManager.saveRiskNoteToFirestore(newNote);
+                    if (firestoreId) {
+                        newNote.firestoreId = firestoreId;
+                    }
+                } catch (error) {
+                    console.error('Error saving risk note to Firebase:', error);
+                }
+            }
+
             riskNotesState.notes.unshift(newNote);
-            
+
             // Save photo to IndexedDB if it exists
             if (photo) {
                 savePhotoToIndexedDB(newNote.id, photo).catch(err => {
@@ -13302,7 +17442,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     alert('Warning: Photo could not be saved, but note was created.');
                 });
             }
-            
+
             saveRiskNotes();
             closeModal();
             renderRiskNotes();
@@ -14517,19 +18657,25 @@ function editExpense(expenseId) {
 
 // Delete expense
 function deleteExpense(expenseId) {
-    if (!confirm('Are you sure you want to delete this expense?')) return;
+    showConfirmModal({
+        title: 'Delete Expense',
+        message: 'Are you sure you want to delete this expense? This action cannot be undone.',
+        confirmText: 'Delete',
+        type: 'danger',
+        onConfirm: () => {
+            gconomicsState.expenses = gconomicsState.expenses.filter(e => e.id !== expenseId);
+            saveGconomicsExpenses();
 
-    gconomicsState.expenses = gconomicsState.expenses.filter(e => e.id !== expenseId);
-    saveGconomicsExpenses();
-    
-    // Delete from Firebase if available
-    if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
-        window.gconomicsFirebase.deleteExpenseFromFirestore(expenseId).catch(error => {
-            console.warn('Expense deleted locally but not from Firebase:', error);
-        });
-    }
-    
-    renderGconomics();
+            // Delete from Firebase if available
+            if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
+                window.gconomicsFirebase.deleteExpenseFromFirestore(expenseId).catch(error => {
+                    console.warn('Expense deleted locally but not from Firebase:', error);
+                });
+            }
+
+            renderGconomics();
+        }
+    });
 }
 
 // Save expense
@@ -14561,7 +18707,18 @@ function saveExpense(event) {
     }
 }
 
-function saveExpenseWithPhoto(date, description, category, amount, photo) {
+async function saveExpenseWithPhoto(date, description, category, amount, photo) {
+    // Compress photo if provided
+    let compressedPhoto = photo;
+    if (photo && photo.startsWith('data:image')) {
+        try {
+            compressedPhoto = await compressImage(photo, 700, 1200, 1200);
+            console.log('✅ Gconomics expense photo compressed successfully');
+        } catch (error) {
+            console.warn('Photo compression failed, using original:', error);
+        }
+    }
+
     if (gconomicsState.editingExpenseId) {
         // Update existing expense
         const index = gconomicsState.expenses.findIndex(e => e.id === gconomicsState.editingExpenseId);
@@ -14572,7 +18729,7 @@ function saveExpenseWithPhoto(date, description, category, amount, photo) {
                 description: description || 'Expense',
                 category: category || 'other',
                 amount,
-                photo,
+                photo: compressedPhoto,
                 updatedAt: new Date().toISOString()
             };
         }
@@ -14584,7 +18741,7 @@ function saveExpenseWithPhoto(date, description, category, amount, photo) {
             description: description || 'Expense',
             category: category || 'other',
             amount,
-            photo,
+            photo: compressedPhoto,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -14592,20 +18749,20 @@ function saveExpenseWithPhoto(date, description, category, amount, photo) {
     }
 
     saveGconomicsExpenses();
-    
+
     // Sync to Firebase if available
     if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
-        const expenseToSync = gconomicsState.editingExpenseId 
+        const expenseToSync = gconomicsState.editingExpenseId
             ? gconomicsState.expenses.find(e => e.id === gconomicsState.editingExpenseId)
             : gconomicsState.expenses[gconomicsState.expenses.length - 1];
-        
+
         if (expenseToSync) {
             window.gconomicsFirebase.saveExpenseToFirestore(expenseToSync).catch(error => {
                 console.warn('Expense saved locally but not synced to Firebase:', error);
             });
         }
     }
-    
+
     closeExpenseModal();
 
     // Switch to the month of the expense if different
@@ -14616,3 +18773,826 @@ function saveExpenseWithPhoto(date, description, category, amount, photo) {
 
     renderGconomics();
 }
+
+// ============================================
+// PASSWORD MANAGER MODULE
+// ============================================
+
+// Firebase Password Manager
+let firebasePasswords = [];
+
+const firebasePasswordsManager = {
+    isInitialized: false,
+
+    async initialize() {
+        if (!window.db) {
+            console.warn('Firebase not available for Passwords');
+            return false;
+        }
+        this.isInitialized = true;
+        console.log('Password Manager Firebase initialized');
+        return true;
+    },
+
+    async loadPasswords() {
+        if (!this.isInitialized || !window.db) {
+            console.warn('Passwords Firebase not initialized');
+            return [];
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
+            const snapshot = await window.db.collection(collectionName)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const passwords = [];
+            snapshot.forEach(doc => {
+                passwords.push({
+                    firestoreId: doc.id,
+                    ...doc.data()
+                });
+            });
+
+            console.log(`Loaded ${passwords.length} passwords from Firebase`);
+            return passwords;
+        } catch (error) {
+            console.error('Error loading passwords:', error);
+            return [];
+        }
+    },
+
+    async addPassword(passwordData) {
+        if (!this.isInitialized || !window.db) {
+            throw new Error('Passwords Firebase not initialized');
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
+            const docRef = await window.db.collection(collectionName).add({
+                ...passwordData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            console.log('Password added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding password:', error);
+            throw error;
+        }
+    },
+
+    async updatePassword(firestoreId, updateData) {
+        if (!this.isInitialized || !window.db) {
+            throw new Error('Passwords Firebase not initialized');
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
+            await window.db.collection(collectionName).doc(firestoreId).update({
+                ...updateData,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            console.log('Password updated:', firestoreId);
+            return true;
+        } catch (error) {
+            console.error('Error updating password:', error);
+            throw error;
+        }
+    },
+
+    async deletePassword(firestoreId) {
+        if (!this.isInitialized || !window.db) {
+            throw new Error('Passwords Firebase not initialized');
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
+            await window.db.collection(collectionName).doc(firestoreId).delete();
+
+            console.log('Password deleted:', firestoreId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting password:', error);
+            throw error;
+        }
+    }
+};
+
+// Initialize Firebase Passwords
+async function initializeFirebasePasswords() {
+    try {
+        await firebasePasswordsManager.initialize();
+        firebasePasswords = await firebasePasswordsManager.loadPasswords();
+        console.log('Firebase Passwords loaded:', firebasePasswords.length);
+    } catch (error) {
+        console.error('Error initializing Firebase Passwords:', error);
+    }
+}
+
+// Password categories with icons and colors
+const passwordCategories = {
+    'gas': { label: 'Gas & Utilities', icon: 'fa-fire-flame-curved', color: '#f97316' },
+    'suppliers': { label: 'Suppliers', icon: 'fa-truck', color: '#8b5cf6' },
+    'email': { label: 'Email Accounts', icon: 'fa-envelope', color: '#3b82f6' },
+    'banking': { label: 'Banking & Finance', icon: 'fa-building-columns', color: '#10b981' },
+    'software': { label: 'Software & Apps', icon: 'fa-laptop-code', color: '#ec4899' },
+    'social': { label: 'Social Media', icon: 'fa-share-nodes', color: '#06b6d4' },
+    'pos': { label: 'POS & Sales', icon: 'fa-cash-register', color: '#eab308' },
+    'security': { label: 'Security Systems', icon: 'fa-shield-halved', color: '#ef4444' },
+    'other': { label: 'Other', icon: 'fa-ellipsis', color: '#71717a' }
+};
+
+// Generate random password
+function generateRandomPassword(length = 16) {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const allChars = uppercase + lowercase + numbers + symbols;
+
+    let password = '';
+    // Ensure at least one of each type
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+
+    // Fill the rest randomly
+    for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+// Copy to clipboard
+async function copyPasswordToClipboard(text, fieldName = 'Text') {
+    try {
+        await navigator.clipboard.writeText(text);
+        showPasswordToast(`${fieldName} copied to clipboard!`, 'success');
+    } catch (error) {
+        console.error('Failed to copy:', error);
+        // Fallback method
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showPasswordToast(`${fieldName} copied to clipboard!`, 'success');
+        } catch (err) {
+            showPasswordToast('Failed to copy to clipboard', 'error');
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+// Toggle password visibility
+function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Render Password Manager Page
+async function renderPasswordManager() {
+    const dashboard = document.querySelector('.dashboard');
+
+    // Initialize if not already done
+    if (!firebasePasswordsManager.isInitialized) {
+        await initializeFirebasePasswords();
+    }
+
+    const categoryOptions = Object.entries(passwordCategories)
+        .map(([value, cat]) => `<option value="${value}">${cat.label}</option>`)
+        .join('');
+
+    dashboard.innerHTML = `
+        <div class="page-header" style="margin-bottom: 24px;">
+            <div class="page-header-left">
+                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-key" style="color: white; font-size: 20px;"></i>
+                    </div>
+                    Password Manager
+                </h2>
+                <p class="section-subtitle">Securely store and manage all your business passwords</p>
+            </div>
+            <div class="page-header-right" style="display: flex; gap: 12px;">
+                <button class="btn-primary" onclick="openAddPasswordModal()" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-plus"></i>
+                    Add Password
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                        <i class="fas fa-key"></i>
+                    </div>
+                </div>
+                <div class="stat-value" id="total-passwords-count">${firebasePasswords.length}</div>
+                <div class="stat-label">Total Passwords</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                </div>
+                <div class="stat-value" id="categories-count">${new Set(firebasePasswords.map(p => p.category)).size}</div>
+                <div class="stat-label">Categories Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+                <div class="stat-value" id="recent-added-count">${firebasePasswords.filter(p => {
+                    const created = p.createdAt?.toDate?.() || new Date(p.createdAt);
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return created > weekAgo;
+                }).length}</div>
+                <div class="stat-label">Added This Week</div>
+            </div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-body" style="padding: 16px;">
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <div style="position: relative;">
+                            <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                            <input type="text" id="password-search" class="form-input" placeholder="Search by name, username, or URL..."
+                                style="padding-left: 42px; width: 100%;" oninput="filterPasswords()">
+                        </div>
+                    </div>
+                    <div style="min-width: 200px;">
+                        <select id="password-category-filter" class="form-input" onchange="filterPasswords()" style="width: 100%;">
+                            <option value="">All Categories</option>
+                            ${categoryOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passwords Grid -->
+        <div id="passwords-container">
+            ${renderPasswordsGrid()}
+        </div>
+    `;
+}
+
+// Render passwords in a nice grid
+function renderPasswordsGrid() {
+    if (firebasePasswords.length === 0) {
+        return `
+            <div class="card">
+                <div class="card-body" style="text-align: center; padding: 60px 20px;">
+                    <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 20px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-key" style="font-size: 32px; color: white;"></i>
+                    </div>
+                    <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Passwords Yet</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Start adding your business passwords to keep them organized and secure.</p>
+                    <button class="btn-primary" onclick="openAddPasswordModal()">
+                        <i class="fas fa-plus"></i> Add Your First Password
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Group by category
+    const grouped = {};
+    firebasePasswords.forEach(pwd => {
+        const cat = pwd.category || 'other';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(pwd);
+    });
+
+    let html = '<div style="display: flex; flex-direction: column; gap: 24px;">';
+
+    Object.entries(grouped).forEach(([category, passwords]) => {
+        const catInfo = passwordCategories[category] || passwordCategories.other;
+
+        html += `
+            <div class="card password-category-card" data-category="${category}">
+                <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
+                    <h3 class="card-title" style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 36px; height: 36px; background: ${catInfo.color}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas ${catInfo.icon}" style="color: ${catInfo.color}; font-size: 16px;"></i>
+                        </div>
+                        ${catInfo.label}
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--text-muted);">${passwords.length}</span>
+                    </h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="password-items-list">
+                        ${passwords.map(pwd => renderPasswordItem(pwd, catInfo)).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    return html;
+}
+
+// Render single password item
+function renderPasswordItem(pwd, catInfo) {
+    const maskedPassword = '••••••••••••';
+    const escapedPassword = (pwd.password || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+    return `
+        <div class="password-item" data-id="${pwd.firestoreId}" style="display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); gap: 16px; transition: background 0.2s;">
+            <!-- Icon -->
+            <div style="width: 44px; height: 44px; background: ${catInfo.color}15; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fas ${catInfo.icon}" style="color: ${catInfo.color}; font-size: 18px;"></i>
+            </div>
+
+            <!-- Info -->
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                    ${pwd.name || 'Unnamed'}
+                    ${pwd.url ? `<a href="${pwd.url}" target="_blank" style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                </div>
+                <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    ${pwd.username ? `<span><i class="fas fa-user" style="margin-right: 4px;"></i>${pwd.username}</span>` : ''}
+                    ${pwd.email ? `<span><i class="fas fa-envelope" style="margin-right: 4px;"></i>${pwd.email}</span>` : ''}
+                </div>
+            </div>
+
+            <!-- Password Display -->
+            <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); padding: 8px 12px; border-radius: 8px;">
+                <span id="pwd-display-${pwd.firestoreId}" style="font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text-secondary);">${maskedPassword}</span>
+                <button onclick="togglePasswordDisplay('${pwd.firestoreId}', '${escapedPassword}')" class="icon-btn" title="Show/Hide Password" style="background: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-muted);">
+                    <i class="fas fa-eye" id="pwd-icon-${pwd.firestoreId}"></i>
+                </button>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 8px;">
+                <button onclick="copyPasswordToClipboard('${escapedPassword}', 'Password')" class="btn-icon" title="Copy Password" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.2s;">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button onclick="openEditPasswordModal('${pwd.firestoreId}')" class="btn-icon" title="Edit" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.2s;">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deletePasswordConfirm('${pwd.firestoreId}')" class="btn-icon" title="Delete" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #ef444450; background: #ef444410; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #ef4444; transition: all 0.2s;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Toggle password display in list
+function togglePasswordDisplay(id, password) {
+    const display = document.getElementById(`pwd-display-${id}`);
+    const icon = document.getElementById(`pwd-icon-${id}`);
+
+    if (display.textContent === '••••••••••••') {
+        display.textContent = password;
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        display.textContent = '••••••••••••';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Filter passwords
+function filterPasswords() {
+    const searchTerm = document.getElementById('password-search')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('password-category-filter')?.value || '';
+
+    const cards = document.querySelectorAll('.password-category-card');
+    const items = document.querySelectorAll('.password-item');
+
+    // First hide all
+    cards.forEach(card => card.style.display = 'none');
+
+    items.forEach(item => {
+        const id = item.dataset.id;
+        const pwd = firebasePasswords.find(p => p.firestoreId === id);
+        if (!pwd) return;
+
+        const matchesSearch = !searchTerm ||
+            pwd.name?.toLowerCase().includes(searchTerm) ||
+            pwd.username?.toLowerCase().includes(searchTerm) ||
+            pwd.email?.toLowerCase().includes(searchTerm) ||
+            pwd.url?.toLowerCase().includes(searchTerm) ||
+            pwd.notes?.toLowerCase().includes(searchTerm);
+
+        const matchesCategory = !categoryFilter || pwd.category === categoryFilter;
+
+        if (matchesSearch && matchesCategory) {
+            item.style.display = 'flex';
+            // Show parent card
+            const parentCard = item.closest('.password-category-card');
+            if (parentCard) parentCard.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Open Add Password Modal
+function openAddPasswordModal() {
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modal-content');
+
+    const categoryOptions = Object.entries(passwordCategories)
+        .map(([value, cat]) => `<option value="${value}">${cat.label}</option>`)
+        .join('');
+
+    modalContent.innerHTML = `
+        <div class="modal-header">
+            <h2 style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-plus" style="color: white;"></i>
+                </div>
+                Add New Password
+            </h2>
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="add-password-form" style="display: grid; gap: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label class="form-label">Service Name</label>
+                        <input type="text" id="pwd-name" class="form-input" placeholder="e.g., AT&T Business">
+                    </div>
+                    <div>
+                        <label class="form-label">Category</label>
+                        <select id="pwd-category" class="form-input">
+                            <option value="">Select category</option>
+                            ${categoryOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label class="form-label">Username</label>
+                        <input type="text" id="pwd-username" class="form-input" placeholder="Username or account ID">
+                    </div>
+                    <div>
+                        <label class="form-label">Email</label>
+                        <input type="email" id="pwd-email" class="form-input" placeholder="Associated email">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Password</label>
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="password" id="pwd-password" class="form-input" placeholder="Enter password" style="padding-right: 44px;">
+                            <button type="button" onclick="togglePasswordVisibility('pwd-password', 'pwd-toggle-icon')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                                <i class="fas fa-eye" id="pwd-toggle-icon"></i>
+                            </button>
+                        </div>
+                        <button type="button" onclick="fillGeneratedPassword()" class="btn-secondary" style="white-space: nowrap;" title="Generate strong password">
+                            <i class="fas fa-wand-magic-sparkles"></i> Generate
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Website URL</label>
+                    <input type="url" id="pwd-url" class="form-input" placeholder="https://example.com">
+                </div>
+
+                <div>
+                    <label class="form-label">Notes</label>
+                    <textarea id="pwd-notes" class="form-input" placeholder="Additional notes, security questions, account number, etc." style="min-height: 80px; resize: vertical;"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="saveNewPassword()">
+                <i class="fas fa-save"></i> Save Password
+            </button>
+            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        </div>
+    `;
+
+    modal.classList.add('active');
+}
+
+// Fill generated password
+function fillGeneratedPassword() {
+    const password = generateRandomPassword(16);
+    const input = document.getElementById('pwd-password');
+    input.value = password;
+    input.type = 'text'; // Show the generated password
+    document.getElementById('pwd-toggle-icon').classList.remove('fa-eye');
+    document.getElementById('pwd-toggle-icon').classList.add('fa-eye-slash');
+}
+
+// Save new password
+async function saveNewPassword() {
+    const name = document.getElementById('pwd-name').value.trim();
+    const category = document.getElementById('pwd-category').value;
+    const username = document.getElementById('pwd-username').value.trim();
+    const email = document.getElementById('pwd-email').value.trim();
+    const password = document.getElementById('pwd-password').value;
+    const url = document.getElementById('pwd-url').value.trim();
+    const notes = document.getElementById('pwd-notes').value.trim();
+
+    if (!name) {
+        showPasswordToast('Please enter a service name', 'error');
+        return;
+    }
+
+    if (!password) {
+        showPasswordToast('Please enter a password', 'error');
+        return;
+    }
+
+    try {
+        const newPassword = {
+            name,
+            category: category || 'other',
+            username,
+            email,
+            password,
+            url,
+            notes
+        };
+
+        await firebasePasswordsManager.addPassword(newPassword);
+        firebasePasswords = await firebasePasswordsManager.loadPasswords();
+
+        closeModal();
+        renderPasswordManager();
+        showPasswordToast('Password saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving password:', error);
+        showPasswordToast('Error saving password. Please try again.', 'error');
+    }
+}
+
+// Open Edit Password Modal
+function openEditPasswordModal(firestoreId) {
+    const pwd = firebasePasswords.find(p => p.firestoreId === firestoreId);
+    if (!pwd) return;
+
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modal-content');
+
+    const categoryOptions = Object.entries(passwordCategories)
+        .map(([value, cat]) => `<option value="${value}" ${pwd.category === value ? 'selected' : ''}>${cat.label}</option>`)
+        .join('');
+
+    modalContent.innerHTML = `
+        <div class="modal-header">
+            <h2 style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-edit" style="color: white;"></i>
+                </div>
+                Edit Password
+            </h2>
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="edit-password-form" style="display: grid; gap: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label class="form-label">Service Name</label>
+                        <input type="text" id="edit-pwd-name" class="form-input" value="${pwd.name || ''}" placeholder="e.g., AT&T Business">
+                    </div>
+                    <div>
+                        <label class="form-label">Category</label>
+                        <select id="edit-pwd-category" class="form-input">
+                            <option value="">Select category</option>
+                            ${categoryOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label class="form-label">Username</label>
+                        <input type="text" id="edit-pwd-username" class="form-input" value="${pwd.username || ''}" placeholder="Username or account ID">
+                    </div>
+                    <div>
+                        <label class="form-label">Email</label>
+                        <input type="email" id="edit-pwd-email" class="form-input" value="${pwd.email || ''}" placeholder="Associated email">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Password</label>
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="password" id="edit-pwd-password" class="form-input" value="${pwd.password || ''}" placeholder="Enter password" style="padding-right: 44px;">
+                            <button type="button" onclick="togglePasswordVisibility('edit-pwd-password', 'edit-pwd-toggle-icon')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                                <i class="fas fa-eye" id="edit-pwd-toggle-icon"></i>
+                            </button>
+                        </div>
+                        <button type="button" onclick="fillEditGeneratedPassword()" class="btn-secondary" style="white-space: nowrap;" title="Generate strong password">
+                            <i class="fas fa-wand-magic-sparkles"></i> Generate
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Website URL</label>
+                    <input type="url" id="edit-pwd-url" class="form-input" value="${pwd.url || ''}" placeholder="https://example.com">
+                </div>
+
+                <div>
+                    <label class="form-label">Notes</label>
+                    <textarea id="edit-pwd-notes" class="form-input" placeholder="Additional notes, security questions, account number, etc." style="min-height: 80px; resize: vertical;">${pwd.notes || ''}</textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-primary" onclick="updatePassword('${firestoreId}')">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+            <button class="btn-danger" onclick="deletePasswordConfirm('${firestoreId}')" style="background: #ef4444; color: white; border: none;">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    `;
+
+    modal.classList.add('active');
+}
+
+// Fill generated password for edit form
+function fillEditGeneratedPassword() {
+    const password = generateRandomPassword(16);
+    const input = document.getElementById('edit-pwd-password');
+    input.value = password;
+    input.type = 'text';
+    document.getElementById('edit-pwd-toggle-icon').classList.remove('fa-eye');
+    document.getElementById('edit-pwd-toggle-icon').classList.add('fa-eye-slash');
+}
+
+// Update password
+async function updatePassword(firestoreId) {
+    const name = document.getElementById('edit-pwd-name').value.trim();
+    const category = document.getElementById('edit-pwd-category').value;
+    const username = document.getElementById('edit-pwd-username').value.trim();
+    const email = document.getElementById('edit-pwd-email').value.trim();
+    const password = document.getElementById('edit-pwd-password').value;
+    const url = document.getElementById('edit-pwd-url').value.trim();
+    const notes = document.getElementById('edit-pwd-notes').value.trim();
+
+    if (!name) {
+        showPasswordToast('Please enter a service name', 'error');
+        return;
+    }
+
+    if (!password) {
+        showPasswordToast('Please enter a password', 'error');
+        return;
+    }
+
+    try {
+        const updateData = {
+            name,
+            category: category || 'other',
+            username,
+            email,
+            password,
+            url,
+            notes
+        };
+
+        await firebasePasswordsManager.updatePassword(firestoreId, updateData);
+        firebasePasswords = await firebasePasswordsManager.loadPasswords();
+
+        closeModal();
+        renderPasswordManager();
+        showPasswordToast('Password updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating password:', error);
+        showPasswordToast('Error updating password. Please try again.', 'error');
+    }
+}
+
+// Delete password confirmation
+function deletePasswordConfirm(firestoreId) {
+    const pwd = firebasePasswords.find(p => p.firestoreId === firestoreId);
+    if (!pwd) return;
+
+    if (confirm(`Are you sure you want to delete "${pwd.name}"?\n\nThis action cannot be undone.`)) {
+        deletePassword(firestoreId);
+    }
+}
+
+// Delete password
+async function deletePassword(firestoreId) {
+    try {
+        await firebasePasswordsManager.deletePassword(firestoreId);
+        firebasePasswords = await firebasePasswordsManager.loadPasswords();
+
+        closeModal();
+        renderPasswordManager();
+        showPasswordToast('Password deleted successfully!', 'success');
+    } catch (error) {
+        console.error('Error deleting password:', error);
+        showPasswordToast('Error deleting password. Please try again.', 'error');
+    }
+}
+
+// Toast notification for password manager
+function showPasswordToast(message, type = 'info') {
+    // Check if toast container exists
+    let toastContainer = document.getElementById('password-toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'password-toast-container';
+        toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+
+    toast.style.cssText = `
+        padding: 14px 20px;
+        background: ${colors[type] || colors.info};
+        color: white;
+        border-radius: 10px;
+        font-weight: 500;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: pwdSlideIn 0.3s ease;
+    `;
+
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+
+    toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+    toastContainer.appendChild(toast);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'pwdSlideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS animation for password toast
+const pwdToastStyles = document.createElement('style');
+pwdToastStyles.textContent = `
+    @keyframes pwdSlideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes pwdSlideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    .password-item:hover {
+        background: var(--bg-tertiary) !important;
+    }
+    .btn-icon:hover {
+        background: var(--bg-tertiary) !important;
+        transform: translateY(-1px);
+    }
+`;
+document.head.appendChild(pwdToastStyles);
