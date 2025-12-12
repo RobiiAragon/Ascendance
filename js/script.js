@@ -57,6 +57,177 @@
             { id: 3, date: '2025-11-25', title: 'Q4 Achievement', content: 'Congratulations to VSU Miramar for hitting Q4 sales targets! 🎉', author: 'Carlos Admin' }
         ];
 
+        /**
+         * Initialize Firebase and load announcements from Firestore
+         */
+        async function initializeFirebaseAnnouncements() {
+            console.log('Initializing Firebase for announcements...');
+
+            const initialized = await firebaseAnnouncementsManager.initialize();
+
+            if (initialized) {
+                try {
+                    const firestoreAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+
+                    if (firestoreAnnouncements && firestoreAnnouncements.length > 0) {
+                        console.log('Loaded announcements from Firestore:', firestoreAnnouncements);
+                        announcements = firestoreAnnouncements;
+                    } else {
+                        console.log('No announcements in Firestore, using fallback data and migrating...');
+                        // Migrate fallback data to Firebase
+                        for (const announcement of announcements) {
+                            await firebaseAnnouncementsManager.addAnnouncement({
+                                date: announcement.date,
+                                title: announcement.title,
+                                content: announcement.content,
+                                author: announcement.author,
+                                targetStores: 'all'
+                            });
+                        }
+                        // Reload from Firestore to get IDs
+                        const migratedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+                        if (migratedAnnouncements && migratedAnnouncements.length > 0) {
+                            announcements = migratedAnnouncements;
+                        }
+                        console.log('Migrated fallback announcements to Firestore');
+                    }
+                } catch (error) {
+                    console.error('Error loading announcements from Firestore:', error);
+                }
+            } else {
+                console.warn('Firebase not initialized, using fallback announcement data');
+            }
+        }
+
+        async function initializeFirebaseRestockRequests() {
+            console.log('Initializing Firebase for restock requests...');
+
+            const initialized = await firebaseRestockRequestsManager.initialize();
+
+            if (initialized) {
+                try {
+                    const firestoreRequests = await firebaseRestockRequestsManager.loadRestockRequests();
+
+                    if (firestoreRequests && firestoreRequests.length > 0) {
+                        console.log('Loaded restock requests from Firestore:', firestoreRequests);
+                        restockRequests = firestoreRequests;
+                    } else {
+                        console.log('No restock requests in Firestore, using fallback data and migrating...');
+                        // Migrate fallback data to Firebase
+                        for (const request of restockRequests) {
+                            await firebaseRestockRequestsManager.addRestockRequest({
+                                productName: request.productName,
+                                quantity: request.quantity,
+                                store: request.store,
+                                requestedBy: request.requestedBy,
+                                requestDate: request.requestDate,
+                                status: request.status,
+                                priority: request.priority,
+                                notes: request.notes
+                            });
+                        }
+                        // Reload from Firestore to get IDs
+                        const migratedRequests = await firebaseRestockRequestsManager.loadRestockRequests();
+                        if (migratedRequests && migratedRequests.length > 0) {
+                            restockRequests = migratedRequests;
+                        }
+                        console.log('Migrated fallback restock requests to Firestore');
+                    }
+                } catch (error) {
+                    console.error('Error loading restock requests from Firestore:', error);
+                }
+            } else {
+                console.warn('Firebase not initialized, using fallback restock requests data');
+            }
+        }
+
+        async function initializeFirebaseChangeRecords() {
+            console.log('Initializing Firebase for change records...');
+
+            const initialized = await firebaseChangeRecordsManager.initialize();
+
+            if (initialized) {
+                try {
+                    const firestoreRecords = await firebaseChangeRecordsManager.loadChangeRecords();
+
+                    if (firestoreRecords && firestoreRecords.length > 0) {
+                        console.log('Loaded change records from Firestore:', firestoreRecords);
+                        changeRecords = firestoreRecords;
+                    } else {
+                        console.log('No change records in Firestore, using fallback data and migrating...');
+                        // Migrate fallback data to Firebase
+                        for (const record of changeRecords) {
+                            await firebaseChangeRecordsManager.addChangeRecord({
+                                store: record.store,
+                                amount: record.amount,
+                                date: record.date,
+                                leftBy: record.leftBy,
+                                receivedBy: record.receivedBy,
+                                notes: record.notes,
+                                photo: record.photo || null
+                            });
+                        }
+                        // Reload from Firestore to get IDs
+                        const migratedRecords = await firebaseChangeRecordsManager.loadChangeRecords();
+                        if (migratedRecords && migratedRecords.length > 0) {
+                            changeRecords = migratedRecords;
+                        }
+                        console.log('Migrated fallback change records to Firestore');
+                    }
+                } catch (error) {
+                    console.error('Error loading change records from Firestore:', error);
+                }
+            } else {
+                console.warn('Firebase not initialized, using fallback change records data');
+            }
+        }
+
+        async function initializeFirebaseCashOut() {
+            console.log('Initializing Firebase for cash out records...');
+
+            const initialized = await firebaseCashOutManager.initialize();
+
+            if (initialized) {
+                try {
+                    const firestoreRecords = await firebaseCashOutManager.loadCashOutRecords();
+
+                    if (firestoreRecords && firestoreRecords.length > 0) {
+                        console.log('Loaded cash out records from Firestore:', firestoreRecords);
+                        cashOutRecords = firestoreRecords;
+                    } else {
+                        console.log('No cash out records in Firestore, using fallback data and migrating...');
+                        // Migrate fallback data to Firebase
+                        for (const record of cashOutRecords) {
+                            await firebaseCashOutManager.addCashOutRecord({
+                                name: record.name,
+                                amount: record.amount,
+                                reason: record.reason,
+                                createdDate: record.createdDate,
+                                createdBy: record.createdBy,
+                                store: record.store || '',
+                                status: record.status || 'open',
+                                closedDate: record.closedDate || null,
+                                receiptPhoto: record.receiptPhoto || null,
+                                amountSpent: record.amountSpent || null,
+                                moneyLeft: record.moneyLeft || null,
+                                hasMoneyLeft: record.hasMoneyLeft || null
+                            });
+                        }
+                        // Reload from Firestore to get IDs
+                        const migratedRecords = await firebaseCashOutManager.loadCashOutRecords();
+                        if (migratedRecords && migratedRecords.length > 0) {
+                            cashOutRecords = migratedRecords;
+                        }
+                        console.log('Migrated fallback cash out records to Firestore');
+                    }
+                } catch (error) {
+                    console.error('Error loading cash out records from Firestore:', error);
+                }
+            } else {
+                console.warn('Firebase not initialized, using fallback cash out records data');
+            }
+        }
+
         let products = [
             { id: 1, name: 'JUUL Starter Kit', category: 'Vape Devices', quantity: 24, arrivalDate: '2025-12-10', store: 'Miramar', status: 'pending', supplier: 'JUUL Labs', price: 34.99, image: 'https://images.unsplash.com/photo-1560913210-fd4c0e4c3f75?w=400&h=300&fit=crop' },
             { id: 3, name: 'Elf Bar BC5000 - Mixed Flavors', category: 'Disposables', quantity: 120, arrivalDate: '2025-12-15', store: 'Kearny Mesa', status: 'pending', supplier: 'Elf Bar', price: 15.99, image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=300&fit=crop' },
@@ -164,9 +335,11 @@
             {
                 id: 1,
                 customer: 'John Smith',
+                phone: '5551234567',
                 type: 'In Store',
                 description: 'Customer received wrong product in their order',
                 incidentDate: '2025-12-08',
+                perception: 2,
                 status: 'open',
                 createdBy: 'Marcus Rodriguez',
                 createdDate: '2025-12-08',
@@ -177,9 +350,11 @@
             {
                 id: 2,
                 customer: 'Maria Garcia',
+                phone: '5559876543',
                 type: 'Online',
                 description: 'Payment was charged twice for the same order',
                 incidentDate: '2025-12-07',
+                perception: 1,
                 status: 'in_progress',
                 createdBy: 'Sarah Kim',
                 createdDate: '2025-12-07',
@@ -190,9 +365,11 @@
             {
                 id: 3,
                 customer: 'Robert Johnson',
+                phone: '5555551234',
                 type: 'In Store',
                 description: 'Product defective - vape device not working',
                 incidentDate: '2025-12-05',
+                perception: 4,
                 status: 'resolved',
                 createdBy: 'James Thompson',
                 createdDate: '2025-12-05',
@@ -503,8 +680,8 @@
                 help: 'Help Center',
                 thieves: 'Thieves Database',
                 invoices: 'Invoices',
-                issues: 'Issues',
-                vendors: 'Vendors',
+                issues: 'Issues Registry',
+                vendors: 'Vendors & Suppliers',
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
                 cashout: 'Cash Out',
@@ -1333,6 +1510,12 @@
 
         function renderAnnouncements() {
             const dashboard = document.querySelector('.dashboard');
+
+            // Get current user for author info
+            const user = authManager.getCurrentUser();
+            const authorName = user?.name || user?.email?.split('@')[0] || 'Unknown';
+            const authorInitials = authorName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
@@ -1350,9 +1533,9 @@
                     <div class="announcement-card" style="border: 2px dashed var(--border-color); background: var(--bg-secondary);">
                         <div class="announcement-card-header">
                             <div class="announcement-author">
-                                <div class="author-avatar">CA</div>
+                                <div class="author-avatar">${authorInitials}</div>
                                 <div class="author-info">
-                                    <span class="author-name">Carlos Admin</span>
+                                    <span class="author-name">${authorName}</span>
                                     <span class="announcement-date">New Announcement</span>
                                 </div>
                             </div>
@@ -1370,27 +1553,153 @@
                         </div>
                     </div>
 
-                    ${announcements.map(ann => `
-                        <div class="announcement-card">
+                    ${announcements.map(ann => {
+                        const annAuthorInitials = (ann.author || 'UN').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                        const annId = ann.firestoreId || ann.id;
+                        return `
+                        <div class="announcement-card" data-id="${annId}">
                             <div class="announcement-card-header">
                                 <div class="announcement-author">
-                                    <div class="author-avatar">CA</div>
+                                    <div class="author-avatar">${annAuthorInitials}</div>
                                     <div class="author-info">
                                         <span class="author-name">${ann.author}</span>
                                         <span class="announcement-date">${formatDate(ann.date)}</span>
                                     </div>
                                 </div>
                                 <div class="announcement-actions">
-                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
-                                    <button class="btn-icon danger"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-icon" onclick="editAnnouncement('${annId}')"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon danger" onclick="deleteAnnouncement('${annId}')"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                             <h3 class="announcement-title">${ann.title}</h3>
                             <p class="announcement-content">${ann.content}</p>
+                            ${ann.targetStores && ann.targetStores !== 'all' ? `<div class="announcement-stores" style="margin-top: 8px; font-size: 12px; color: var(--text-muted);"><i class="fas fa-store"></i> ${ann.targetStores}</div>` : ''}
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             `;
+        }
+
+        /**
+         * Delete announcement from Firebase
+         */
+        async function deleteAnnouncement(announcementId) {
+            if (!confirm('Are you sure you want to delete this announcement?')) {
+                return;
+            }
+
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    const success = await firebaseAnnouncementsManager.deleteAnnouncement(announcementId);
+                    if (success) {
+                        // Reload announcements from Firebase
+                        const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+                        announcements = updatedAnnouncements || [];
+                        console.log('Announcement deleted from Firebase');
+                    }
+                } else {
+                    // Fallback to local deletion
+                    announcements = announcements.filter(a => a.id !== announcementId && a.firestoreId !== announcementId);
+                }
+
+                renderAnnouncements();
+            } catch (error) {
+                console.error('Error deleting announcement:', error);
+                alert('Failed to delete announcement. Please try again.');
+            }
+        }
+
+        /**
+         * Edit announcement - opens modal with pre-filled data
+         */
+        function editAnnouncement(announcementId) {
+            const announcement = announcements.find(a => a.id === announcementId || a.firestoreId === announcementId);
+            if (!announcement) {
+                alert('Announcement not found');
+                return;
+            }
+
+            // Open modal with edit content
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2>Edit Announcement</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Title *</label>
+                        <input type="text" class="form-input" id="edit-announcement-title" value="${announcement.title}" placeholder="Announcement title...">
+                    </div>
+                    <div class="form-group">
+                        <label>Message *</label>
+                        <textarea class="form-input" id="edit-announcement-content" rows="5" placeholder="Write your announcement...">${announcement.content}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Stores</label>
+                        <select class="form-input" id="edit-announcement-stores">
+                            <option value="all" ${announcement.targetStores === 'all' ? 'selected' : ''}>All Stores</option>
+                            <option value="Miramar" ${announcement.targetStores === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                            <option value="Morena" ${announcement.targetStores === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                            <option value="Kearny Mesa" ${announcement.targetStores === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                            <option value="Chula Vista" ${announcement.targetStores === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                            <option value="Santee" ${announcement.targetStores === 'Santee' ? 'selected' : ''}>VSU Santee</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn-primary" onclick="updateAnnouncement('${announcementId}')">Update Announcement</button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        /**
+         * Update announcement in Firebase
+         */
+        async function updateAnnouncement(announcementId) {
+            const title = document.getElementById('edit-announcement-title').value;
+            const content = document.getElementById('edit-announcement-content').value;
+            const targetStores = document.getElementById('edit-announcement-stores').value;
+
+            if (!title || !content) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    const success = await firebaseAnnouncementsManager.updateAnnouncement(announcementId, {
+                        title,
+                        content,
+                        targetStores
+                    });
+                    if (success) {
+                        // Reload announcements from Firebase
+                        const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+                        if (updatedAnnouncements && updatedAnnouncements.length > 0) {
+                            announcements = updatedAnnouncements;
+                        }
+                        console.log('Announcement updated in Firebase');
+                    }
+                } else {
+                    // Fallback to local update
+                    const index = announcements.findIndex(a => a.id === announcementId || a.firestoreId === announcementId);
+                    if (index !== -1) {
+                        announcements[index] = { ...announcements[index], title, content, targetStores };
+                    }
+                }
+
+                closeModal();
+                renderAnnouncements();
+            } catch (error) {
+                console.error('Error updating announcement:', error);
+                alert('Failed to update announcement. Please try again.');
+            }
         }
 
         // ==========================================
@@ -2577,9 +2886,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                             Requested by ${request.requestedBy} on ${formatDate(request.requestDate)}
                                         </div>
                                     </div>
-                                    <span class="status-badge ${request.status === 'approved' ? 'valid' : request.status === 'rejected' ? 'expired' : 'expiring'}">
-                                        ${request.status}
-                                    </span>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <span class="status-badge ${request.status === 'approved' ? 'valid' : request.status === 'rejected' ? 'expired' : 'expiring'}">
+                                            ${request.status}
+                                        </span>
+                                        ${request.status === 'approved' ? `
+                                            <span class="status-badge valid" style="background: var(--success); color: white;">
+                                                <i class="fas fa-check-circle" style="margin-right: 4px;"></i>Approved
+                                            </span>
+                                        ` : request.status === 'rejected' ? `
+                                            <span class="status-badge expired" style="background: var(--danger); color: white;">
+                                                <i class="fas fa-times-circle" style="margin-right: 4px;"></i>Rejected
+                                            </span>
+                                        ` : ''}
+                                    </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
                                     <div>
@@ -2607,15 +2927,15 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 ` : ''}
                                 <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                                     ${request.status === 'pending' ? `
-                                        <button class="btn-secondary" style="font-size: 13px;">
+                                        <button class="btn-secondary" style="font-size: 13px;" onclick="approveRestockRequest('${request.firestoreId || request.id}')">
                                             <i class="fas fa-check"></i> Approve
                                         </button>
-                                        <button class="btn-secondary" style="font-size: 13px;">
+                                        <button class="btn-secondary" style="font-size: 13px;" onclick="rejectRestockRequest('${request.firestoreId || request.id}')">
                                             <i class="fas fa-times"></i> Reject
                                         </button>
                                     ` : ''}
-                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
-                                    <button class="btn-icon danger"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-icon" onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon danger" onclick="deleteRestockRequest('${request.firestoreId || request.id}')"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -2632,6 +2952,202 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         function filterInventoryByStore(store) {
             selectedStoreFilter = store;
             renderRestockRequests();
+        }
+
+        function approveRestockRequest(requestId) {
+            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
+            if (request) {
+                request.status = 'approved';
+                
+                // Update in Firebase if initialized
+                if (firebaseRestockRequestsManager.isInitialized) {
+                    firebaseRestockRequestsManager.updateRestockRequest(request.firestoreId || requestId, {
+                        status: 'approved'
+                    }).then(success => {
+                        if (success) {
+                            console.log('Request approved in Firebase:', requestId);
+                            renderRestockRequests();
+                        }
+                    }).catch(error => {
+                        console.error('Error approving request in Firebase:', error);
+                        renderRestockRequests();
+                    });
+                } else {
+                    renderRestockRequests();
+                }
+            }
+        }
+
+        function rejectRestockRequest(requestId) {
+            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
+            if (request) {
+                request.status = 'rejected';
+                
+                // Update in Firebase if initialized
+                if (firebaseRestockRequestsManager.isInitialized) {
+                    firebaseRestockRequestsManager.updateRestockRequest(request.firestoreId || requestId, {
+                        status: 'rejected'
+                    }).then(success => {
+                        if (success) {
+                            console.log('Request rejected in Firebase:', requestId);
+                            renderRestockRequests();
+                        }
+                    }).catch(error => {
+                        console.error('Error rejecting request in Firebase:', error);
+                        renderRestockRequests();
+                    });
+                } else {
+                    renderRestockRequests();
+                }
+            }
+        }
+
+        function deleteRestockRequest(requestId) {
+            if (!confirm('Are you sure you want to delete this restock request?')) {
+                return;
+            }
+
+            // Remove from local array
+            const index = restockRequests.findIndex(r => r.firestoreId === requestId || r.id === requestId);
+            if (index > -1) {
+                restockRequests.splice(index, 1);
+            }
+
+            // Delete from Firebase if initialized
+            if (firebaseRestockRequestsManager.isInitialized) {
+                firebaseRestockRequestsManager.deleteRestockRequest(requestId).then(success => {
+                    if (success) {
+                        console.log('Request deleted from Firebase:', requestId);
+                        renderRestockRequests();
+                    }
+                }).catch(error => {
+                    console.error('Error deleting request from Firebase:', error);
+                    renderRestockRequests();
+                });
+            } else {
+                renderRestockRequests();
+            }
+        }
+
+        let editingRestockRequestId = null;
+
+        function openEditRestockRequestModal(requestId) {
+            editingRestockRequestId = requestId;
+            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
+            
+            if (!request) {
+                alert('Request not found');
+                return;
+            }
+
+            openModal('edit-restock-request');
+
+            // Populate form with current values
+            setTimeout(() => {
+                const productName = request.productName;
+                // Try to parse product name (Brand ProductName - Flavor format)
+                let brand = '', flavor = '', product = '';
+                
+                const parts = productName.split(' - ');
+                if (parts.length === 2) {
+                    flavor = parts[1];
+                    const productParts = parts[0].split(' ');
+                    if (productParts.length > 1) {
+                        brand = productParts[0];
+                        product = productParts.slice(1).join(' ');
+                    } else {
+                        product = parts[0];
+                    }
+                } else {
+                    product = productName;
+                }
+
+                // Set form values
+                document.getElementById('edit-restock-product').value = product || '';
+                document.getElementById('edit-restock-brand').value = brand || '';
+                document.getElementById('edit-restock-flavor').value = flavor || '';
+                document.getElementById('edit-restock-quantity').value = request.quantity || '';
+                document.getElementById('edit-restock-priority').value = request.priority || 'medium';
+                document.getElementById('edit-restock-date').value = request.requestDate || '';
+                document.getElementById('edit-restock-store').value = request.store || '';
+                document.getElementById('edit-restock-requested-by').value = request.requestedBy || '';
+                document.getElementById('edit-restock-notes').value = request.notes || '';
+            }, 100);
+        }
+
+        function submitEditRestockRequest() {
+            const product = document.getElementById('edit-restock-product').value;
+            const brand = document.getElementById('edit-restock-brand').value;
+            const flavor = document.getElementById('edit-restock-flavor').value;
+            const quantity = document.getElementById('edit-restock-quantity').value;
+            const priority = document.getElementById('edit-restock-priority').value;
+            const date = document.getElementById('edit-restock-date').value;
+            const store = document.getElementById('edit-restock-store').value;
+            const requestedBy = document.getElementById('edit-restock-requested-by').value;
+            const notes = document.getElementById('edit-restock-notes').value;
+
+            // Validation
+            if (!product || !quantity || !priority || !date || !store || !requestedBy) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Find and update the request
+            const request = restockRequests.find(r => r.firestoreId === editingRestockRequestId || r.id === editingRestockRequestId);
+            if (!request) {
+                alert('Request not found');
+                return;
+            }
+
+            // Build product name
+            let productName = product;
+            if (brand) productName = `${brand} ${productName}`;
+            if (flavor) productName = `${productName} - ${flavor}`;
+
+            // Update local request
+            request.productName = productName;
+            request.quantity = parseInt(quantity);
+            request.priority = priority;
+            request.requestDate = date;
+            request.store = store;
+            request.requestedBy = requestedBy;
+            request.notes = notes;
+            request.status = 'pending';  // Automatically set to pending when edited
+
+            // Update in Firebase if initialized
+            if (firebaseRestockRequestsManager.isInitialized) {
+                const updateData = {
+                    productName: productName,
+                    quantity: parseInt(quantity),
+                    priority: priority,
+                    requestDate: date,
+                    store: store,
+                    requestedBy: requestedBy,
+                    notes: notes,
+                    status: 'pending'  // Automatically set to pending when edited
+                };
+
+                firebaseRestockRequestsManager.updateRestockRequest(editingRestockRequestId, updateData).then(success => {
+                    if (success) {
+                        console.log('Request updated in Firebase and status set to pending:', editingRestockRequestId);
+                        closeModal();
+                        currentRestockTab = 'requests';
+                        renderRestockRequests();
+                    } else {
+                        alert('Error updating request. Please try again.');
+                    }
+                }).catch(error => {
+                    console.error('Error updating request in Firebase:', error);
+                    alert('Error updating request: ' + error.message);
+                });
+            } else {
+                // Fallback to local storage only
+                closeModal();
+                currentRestockTab = 'requests';
+                renderRestockRequests();
+            }
+
+            editingRestockRequestId = null;
         }
 
         function renderAbundanceCloud() {
@@ -3875,11 +4391,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="stat-value" style="color: #fff;">$${totalPending.toFixed(2)}</div>
                         </div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%); color: #000;">
-                        <div class="stat-icon" style="color: #000;"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); color: #fff;">
+                        <div class="stat-icon" style="color: #fff;"><i class="fas fa-exclamation-circle"></i></div>
                         <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(0,0,0,0.7);">Overdue</div>
-                            <div class="stat-value" style="color: #000;">$${totalOverdue.toFixed(2)}</div>
+                            <div class="stat-label" style="color: rgba(255,255,255,0.8);">Overdue</div>
+                            <div class="stat-value" style="color: #fff;">$${totalOverdue.toFixed(2)}</div>
                         </div>
                     </div>
                     <div class="stat-card" style="background: linear-gradient(135deg, var(--success) 0%, #10b981 100%); color: #fff;">
@@ -3948,7 +4464,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 const statusStyles = {
                     paid: 'background: var(--success); color: #fff;',
                     pending: 'background: var(--warning); color: #000;',
-                    overdue: 'background: var(--error); color: #fff;'
+                    overdue: 'background: var(--danger); color: #fff;'
                 };
 
                 const invoiceId = invoice.firestoreId || invoice.id;
@@ -4965,9 +5481,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             return filteredItems.map(item => {
-                const photoDisplay = item.photos && item.photos.length > 0
-                    ? `<img src="${item.photos[0]}" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
-                    : `<i class="fas fa-image" style="color: var(--text-muted); font-size: 24px;"></i>`;
+                // Support both 'image' field and legacy 'photos' array
+                const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
+                const photoDisplay = itemImage
+                    ? `<img src="${itemImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
+                    : `<i class="fas fa-gem" style="color: var(--text-muted); font-size: 24px;"></i>`;
 
                 const itemValue = parseFloat(item.value) || 0;
                 const itemName = item.artworkName || 'Unknown';
@@ -4978,7 +5496,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return `
                     <tr>
                         <td>
-                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color);">
                                 ${photoDisplay}
                             </div>
                         </td>
@@ -5019,13 +5537,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
 
-            const photosDisplay = item.photos && item.photos.length > 0
-                ? item.photos.map(photo => `
-                    <img src="${photo}" style="width: 100%; height: auto; border-radius: 8px; margin-bottom: 12px;" alt="${item.artworkName}">
-                `).join('')
-                : `<div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 8px; color: var(--text-muted);">
-                    <i class="fas fa-image" style="font-size: 48px; margin-bottom: 12px; display: block;"></i>
-                    No photos available
+            // Support both 'image' field and legacy 'photos' array
+            const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
+            const imageDisplay = itemImage
+                ? `<img src="${itemImage}" style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px;" alt="${item.artworkName}">`
+                : `<div style="text-align: center; padding: 60px; background: var(--bg-secondary); border-radius: 12px; color: var(--text-muted);">
+                    <i class="fas fa-gem" style="font-size: 64px; margin-bottom: 16px; display: block;"></i>
+                    No image available
                 </div>`;
 
             modalContent.innerHTML = `
@@ -5034,8 +5552,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
-                    <div style="margin-bottom: 24px;">
-                        ${photosDisplay}
+                    <div style="margin-bottom: 24px; text-align: center;">
+                        ${imageDisplay}
                     </div>
 
                     <div class="card" style="margin-bottom: 16px;">
@@ -5116,6 +5634,39 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
+        /**
+         * Preview treasury image before upload
+         */
+        function previewTreasuryImage(input) {
+            const preview = document.getElementById('treasury-image-preview');
+            if (!preview) return;
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    preview.removeAttribute('data-removed');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        /**
+         * Remove treasury image from preview
+         */
+        function removeTreasuryImage() {
+            const preview = document.getElementById('treasury-image-preview');
+            const input = document.getElementById('treasury-image');
+
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-gem" style="font-size: 36px; color: var(--text-muted);"></i>`;
+                preview.setAttribute('data-removed', 'true');
+            }
+            if (input) {
+                input.value = '';
+            }
+        }
+
         async function saveTreasuryItem(isEdit = false, itemId = null) {
             const artworkName = document.getElementById('treasury-artwork-name').value.trim();
             const artist = document.getElementById('treasury-artist').value.trim();
@@ -5124,20 +5675,32 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const location = document.getElementById('treasury-location').value;
             const description = document.getElementById('treasury-description').value.trim();
 
-            const photoInput = document.getElementById('treasury-photos');
-            const existingPhotos = isEdit ? treasuryItems.find(t => t.id === itemId)?.photos || [] : [];
+            // Get the image
+            const imageInput = document.getElementById('treasury-image');
+            const imagePreview = document.getElementById('treasury-image-preview');
 
-            // Prepare photos for Firebase (convert blobs to base64)
-            let photosData = [...existingPhotos];
-            if (photoInput.files.length > 0) {
-                for (let file of photoInput.files) {
-                    const base64 = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(file);
-                    });
-                    photosData.push(base64);
+            // Determine image value
+            let image = null;
+            const wasRemoved = imagePreview?.getAttribute('data-removed') === 'true';
+
+            if (wasRemoved) {
+                // Image was explicitly removed
+                image = null;
+            } else if (imageInput?.files && imageInput.files.length > 0) {
+                // New image uploaded - get from preview
+                const previewImg = document.querySelector('#treasury-image-preview img');
+                if (previewImg) {
+                    image = previewImg.src;
                 }
+            } else if (isEdit) {
+                // Keep existing image
+                const existingItem = treasuryItems.find(t => t.id === itemId);
+                image = existingItem?.image || (existingItem?.photos && existingItem.photos.length > 0 ? existingItem.photos[0] : null);
+            }
+
+            if (!artworkName || !location) {
+                alert('Please fill in at least the artwork name and location');
+                return;
             }
 
             try {
@@ -5150,13 +5713,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         item.value = value;
                         item.location = location;
                         item.description = description;
-                        item.photos = photosData;
+                        item.image = image;
 
                         // Update in Firebase
                         if (typeof firebase !== 'undefined' && firebase.firestore) {
                             const db = firebase.firestore();
                             const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
-                            
+
                             // Use firestoreId if available, otherwise create new
                             if (item.firestoreId) {
                                 await db.collection(treasuryCollection).doc(item.firestoreId).update({
@@ -5166,7 +5729,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     value,
                                     location,
                                     description,
-                                    photos: photosData,
+                                    image,
                                     updatedAt: new Date()
                                 });
                                 console.log('✅ Treasury item updated in Firebase');
@@ -5179,7 +5742,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     value,
                                     location,
                                     description,
-                                    photos: photosData,
+                                    image,
                                     createdAt: new Date(),
                                     updatedAt: new Date()
                                 });
@@ -5197,14 +5760,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         value,
                         location,
                         description,
-                        photos: photosData
+                        image
                     };
 
                     // Save to Firebase
                     if (typeof firebase !== 'undefined' && firebase.firestore) {
                         const db = firebase.firestore();
                         const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
-                        
+
                         const docRef = await db.collection(treasuryCollection).add({
                             artworkName,
                             artist,
@@ -5212,7 +5775,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             value,
                             location,
                             description,
-                            photos: photosData,
+                            image,
                             createdAt: new Date(),
                             updatedAt: new Date()
                         });
@@ -5326,6 +5889,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             return filteredRecords.map(record => {
+                const recordId = record.firestoreId || record.id;
                 const photoDisplay = record.photo
                     ? `<img src="${record.photo}" style="width: 100%; height: 100%; object-fit: cover;" alt="Change photo">`
                     : `<i class="fas fa-image" style="color: var(--text-muted); font-size: 24px;"></i>`;
@@ -5333,7 +5897,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return `
                     <tr>
                         <td>
-                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: ${record.photo ? 'pointer' : 'default'};" ${record.photo ? `onclick="viewChangePhoto(${record.id})"` : ''}>
+                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: ${record.photo ? 'pointer' : 'default'};" ${record.photo ? `onclick="viewChangePhoto('${recordId}')"` : ''}>
                                 ${photoDisplay}
                             </div>
                         </td>
@@ -5346,10 +5910,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <td>${record.receivedBy}</td>
                         <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${record.notes || ''}">${record.notes || '-'}</td>
                         <td>
-                            <button class="btn-icon" onclick="viewChangeRecord(${record.id})" title="View Details">
+                            <button class="btn-icon" onclick="viewChangeRecord('${recordId}')" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn-icon" onclick="deleteChangeRecord(${record.id})" title="Delete">
+                            <button class="btn-icon" onclick="deleteChangeRecord('${recordId}')" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -5366,9 +5930,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function viewChangeRecord(id) {
-            const record = changeRecords.find(r => r.id === id);
+            const record = changeRecords.find(r => r.id === id || r.firestoreId === id);
             if (!record) return;
 
+            const recordId = record.firestoreId || record.id;
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
 
@@ -5421,7 +5986,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    <button class="btn-primary" style="background: var(--danger); border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this record?')) { deleteChangeRecord(${record.id}); closeModal(); }">
+                    <button class="btn-primary" style="background: var(--danger); border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this record?')) { deleteChangeRecord('${recordId}'); closeModal(); }">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -5431,7 +5996,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function viewChangePhoto(id) {
-            const record = changeRecords.find(r => r.id === id);
+            const record = changeRecords.find(r => r.id === id || r.firestoreId === id);
             if (!record || !record.photo) return;
 
             const modal = document.getElementById('modal');
@@ -5450,14 +6015,57 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             modal.classList.add('active');
         }
 
-        function deleteChangeRecord(id) {
+        async function deleteChangeRecord(id) {
             if (confirm('Are you sure you want to delete this change record?')) {
-                changeRecords = changeRecords.filter(r => r.id !== id);
-                renderChange();
+                try {
+                    // Delete from Firebase
+                    if (typeof firebaseChangeRecordsManager !== 'undefined' && firebaseChangeRecordsManager.isInitialized) {
+                        const success = await firebaseChangeRecordsManager.deleteChangeRecord(id);
+                        if (success) {
+                            changeRecords = changeRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                            renderChange();
+                        } else {
+                            alert('Error deleting record from Firebase');
+                        }
+                    } else {
+                        // Fallback to local deletion
+                        changeRecords = changeRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                        renderChange();
+                    }
+                } catch (error) {
+                    console.error('Error deleting change record:', error);
+                    alert('Error deleting record. Please try again.');
+                }
             }
         }
 
-        function saveChangeRecord() {
+        // Helper function to preview change photo
+        function previewChangePhoto(input) {
+            const preview = document.getElementById('change-photo-preview');
+            if (!preview) return;
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Helper function to remove change photo
+        function removeChangePhoto() {
+            const preview = document.getElementById('change-photo-preview');
+            const input = document.getElementById('change-photo');
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-coins" style="font-size: 36px; color: var(--text-muted);"></i>`;
+            }
+            if (input) {
+                input.value = '';
+            }
+        }
+
+        async function saveChangeRecord() {
             const store = document.getElementById('change-store').value;
             const amount = parseFloat(document.getElementById('change-amount').value);
             const date = document.getElementById('change-date').value;
@@ -5471,20 +6079,197 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
+            // Convert photo to base64 if provided
+            let photoBase64 = null;
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+                photoBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(photoInput.files[0]);
+                });
+            }
+
             const newRecord = {
-                id: Math.max(0, ...changeRecords.map(r => r.id)) + 1,
                 store,
                 amount,
                 date,
                 leftBy,
                 receivedBy,
                 notes,
-                photo: photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : null
+                photo: photoBase64
             };
 
-            changeRecords.unshift(newRecord);
-            closeModal();
-            renderChange();
+            try {
+                // Save to Firebase
+                if (typeof firebaseChangeRecordsManager !== 'undefined' && firebaseChangeRecordsManager.isInitialized) {
+                    const docId = await firebaseChangeRecordsManager.addChangeRecord(newRecord);
+                    if (docId) {
+                        newRecord.id = docId;
+                        newRecord.firestoreId = docId;
+                        changeRecords.unshift(newRecord);
+                        closeModal();
+                        renderChange();
+                    } else {
+                        alert('Error saving record to Firebase');
+                    }
+                } else {
+                    // Fallback to local storage
+                    newRecord.id = Math.max(0, ...changeRecords.map(r => r.id || 0)) + 1;
+                    changeRecords.unshift(newRecord);
+                    closeModal();
+                    renderChange();
+                }
+            } catch (error) {
+                console.error('Error saving change record:', error);
+                alert('Error saving record. Please try again.');
+            }
+        }
+
+        /**
+         * Initialize Firebase and load gifts from Firestore
+         */
+        async function initializeFirebaseGifts() {
+            try {
+                console.log('Initializing Firebase for gifts management...');
+                
+                // Initialize Firebase manager
+                const initialized = await firebaseGiftsManager.initialize();
+                
+                if (initialized) {
+                    try {
+                        // Load gifts from Firestore
+                        const firestoreGifts = await firebaseGiftsManager.loadGifts();
+                        
+                        if (firestoreGifts && firestoreGifts.length > 0) {
+                            console.log('Loaded gifts from Firestore:', firestoreGifts);
+                            
+                            // Map Firestore data to the local giftsRecords array
+                            giftsRecords = firestoreGifts.map(gift => ({
+                                id: gift.firestoreId || gift.id,
+                                firestoreId: gift.firestoreId || gift.id,
+                                product: gift.product || '',
+                                quantity: gift.quantity || 0,
+                                value: gift.value || 0,
+                                recipient: gift.recipient || '',
+                                recipientType: gift.recipientType || 'customer',
+                                reason: gift.reason || '',
+                                store: gift.store || 'Miramar',
+                                date: gift.date || new Date().toISOString().split('T')[0],
+                                notes: gift.notes || '',
+                                photo: gift.photo || null
+                            }));
+                            
+                            console.log(`Successfully loaded ${giftsRecords.length} gifts from Firestore`);
+                            return true;
+                        }
+                    } catch (error) {
+                        console.error('Error loading gifts from Firestore:', error);
+                    }
+                } else {
+                    console.warn('Firebase not available. Using fallback data.');
+                }
+            } catch (error) {
+                console.error('Error initializing Firebase gifts:', error);
+            }
+            
+            return false;
+        }
+
+        /**
+         * Save gift to Firebase
+         */
+        async function saveGiftToFirebase(giftData) {
+            if (!firebaseGiftsManager.isInitialized) {
+                console.warn('Firebase Gifts Manager not initialized');
+                return null;
+            }
+
+            try {
+                if (giftData.firestoreId) {
+                    // Update existing
+                    const success = await firebaseGiftsManager.updateGift(
+                        giftData.firestoreId,
+                        giftData
+                    );
+                    return success ? giftData.firestoreId : null;
+                } else {
+                    // Create new
+                    const newId = await firebaseGiftsManager.addGift(giftData);
+                    return newId;
+                }
+            } catch (error) {
+                console.error('Error saving gift to Firebase:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Delete gift record from Firebase
+         */
+        async function deleteGiftFromFirebase(firestoreId) {
+            if (!firebaseGiftsManager.isInitialized) {
+                console.warn('Firebase Gifts Manager not initialized');
+                return false;
+            }
+
+            try {
+                return await firebaseGiftsManager.deleteGift(firestoreId);
+            } catch (error) {
+                console.error('Error deleting gift from Firebase:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Initialize Firebase and load issues from Firestore
+         */
+        async function initializeFirebaseIssues() {
+            try {
+                console.log('Initializing Firebase for issues management...');
+
+                // Initialize Firebase manager
+                const initialized = await firebaseIssuesManager.initialize();
+
+                if (initialized) {
+                    try {
+                        // Load issues from Firestore
+                        const firestoreIssues = await firebaseIssuesManager.loadIssues();
+
+                        if (firestoreIssues && firestoreIssues.length > 0) {
+                            console.log('Loaded issues from Firestore:', firestoreIssues);
+
+                            // Map Firestore data to the local issues array
+                            issues = firestoreIssues.map(issue => ({
+                                id: issue.firestoreId || issue.id,
+                                firestoreId: issue.firestoreId || issue.id,
+                                customer: issue.customer || 'Anonymous',
+                                phone: issue.phone || '',
+                                type: issue.type || 'In Store',
+                                description: issue.description || '',
+                                incidentDate: issue.incidentDate || '',
+                                perception: issue.perception || null,
+                                status: issue.status || 'open',
+                                createdBy: issue.createdBy || '',
+                                createdDate: issue.createdDate || '',
+                                solution: issue.solution || null,
+                                resolvedBy: issue.resolvedBy || null,
+                                resolutionDate: issue.resolutionDate || null
+                            }));
+
+                            console.log(`Successfully loaded ${issues.length} issues from Firestore`);
+                            return true;
+                        }
+                    } catch (error) {
+                        console.error('Error loading issues from Firestore:', error);
+                    }
+                } else {
+                    console.warn('Firebase not available. Using fallback data.');
+                }
+            } catch (error) {
+                console.error('Error initializing Firebase issues:', error);
+            }
+
+            return false;
         }
 
         // Gifts Functions - Control de Regalos en Especie
@@ -5590,6 +6375,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                         <th>Value</th>
                                         <th>Recipient</th>
                                         <th>Type</th>
+                                        <th>Details</th>
                                         <th>Store</th>
                                         <th>Actions</th>
                                     </tr>
@@ -5622,7 +6408,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             ${gift.recipientType.charAt(0).toUpperCase() + gift.recipientType.slice(1)}
                         </span>
                     </td>
-                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${gift.reason}">${gift.reason}</td>
+                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${gift.reason}">${gift.reason}</td>
                     <td>
                         <span style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-size: 12px;">
                             ${gift.store}
@@ -5630,13 +6416,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     </td>
                     <td>
                         <div style="display: flex; gap: 8px;">
-                            <button class="btn-icon" onclick="viewGiftDetails(${gift.id})" title="View Details">
+                            <button class="btn-icon" onclick="viewGiftDetails('${String(gift.id).replace(/'/g, "\\'")}');" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn-icon" onclick="editGift(${gift.id})" title="Edit">
+                            <button class="btn-icon" onclick="editGift('${String(gift.id).replace(/'/g, "\\'")}');" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-icon" onclick="deleteGift(${gift.id})" title="Delete" style="color: var(--danger);">
+                            <button class="btn-icon" onclick="deleteGift('${String(gift.id).replace(/'/g, "\\'")}');" title="Delete" style="color: var(--danger);">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -5669,7 +6455,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function viewGiftDetails(id) {
-            const gift = giftsRecords.find(r => r.id === id);
+            // Convert to number if it's a numeric string
+            const giftId = typeof id === 'string' && !isNaN(id) ? parseInt(id) : id;
+            const gift = giftsRecords.find(r => r.id === giftId);
             if (!gift) return;
 
             const modal = document.getElementById('modal');
@@ -5753,11 +6541,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     </div>
 
                     <div style="display: flex; gap: 12px; margin-top: 20px;">
-                        <button class="btn-secondary" style="flex: 1;" onclick="editGift(${gift.id}); closeModal();">
+                        <button class="btn-secondary" style="flex: 1;" onclick="editGift('${String(gift.id).replace(/'/g, "\\'")}'); closeModal();">
                             <i class="fas fa-edit"></i>
                             Edit Gift
                         </button>
-                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this gift record?')) { deleteGift(${gift.id}); closeModal(); }">
+                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this gift record?')) { deleteGift('${String(gift.id).replace(/'/g, "\\'")}'); closeModal(); }">
                             <i class="fas fa-trash"></i>
                             Delete
                         </button>
@@ -5769,18 +6557,32 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function editGift(id) {
+            // Convert to number if it's a numeric string
+            const giftId = typeof id === 'string' && !isNaN(id) ? parseInt(id) : id;
             closeModal();
-            setTimeout(() => openModal('edit-gift', id), 100);
+            setTimeout(() => openModal('edit-gift', giftId), 100);
         }
 
-        function deleteGift(id) {
+        async function deleteGift(id) {
+            // Convert to number if it's a numeric string
+            const giftId = typeof id === 'string' && !isNaN(id) ? parseInt(id) : id;
             if (confirm('Are you sure you want to delete this gift record?')) {
-                giftsRecords = giftsRecords.filter(r => r.id !== id);
+                const gift = giftsRecords.find(r => r.id === giftId);
+                if (gift) {
+                    // Try to delete from Firebase
+                    if (gift.firestoreId) {
+                        const success = await deleteGiftFromFirebase(gift.firestoreId);
+                        if (!success) {
+                            console.warn('Failed to delete from Firebase, but deleting locally');
+                        }
+                    }
+                }
+                giftsRecords = giftsRecords.filter(r => r.id !== giftId);
                 renderGifts();
             }
         }
 
-        function saveGift(isEdit = false, giftId = null) {
+        async function saveGift(isEdit = false, giftId = null) {
             const product = document.getElementById('gift-product').value.trim();
             const quantity = parseInt(document.getElementById('gift-quantity').value);
             const value = parseFloat(document.getElementById('gift-value').value);
@@ -5797,41 +6599,81 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            if (isEdit && giftId) {
-                const gift = giftsRecords.find(r => r.id === giftId);
-                if (gift) {
-                    gift.product = product;
-                    gift.quantity = quantity;
-                    gift.value = value;
-                    gift.recipient = recipient;
-                    gift.recipientType = recipientType;
-                    gift.reason = reason;
-                    gift.store = store;
-                    gift.date = date;
-                    gift.notes = notes;
-                    if (photoInput && photoInput.files.length > 0) {
-                        gift.photo = URL.createObjectURL(photoInput.files[0]);
-                    }
-                }
-            } else {
-                const newGift = {
-                    id: Math.max(0, ...giftsRecords.map(r => r.id)) + 1,
-                    product,
-                    quantity,
-                    value,
-                    recipient,
-                    recipientType,
-                    reason,
-                    store,
-                    date,
-                    notes,
-                    photo: photoInput && photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : null
-                };
-                giftsRecords.unshift(newGift);
-            }
+            try {
+                if (isEdit && giftId) {
+                    // Convert giftId to number if it's a string
+                    const numericGiftId = typeof giftId === 'string' && !isNaN(giftId) ? parseInt(giftId) : giftId;
+                    const gift = giftsRecords.find(r => r.id === numericGiftId);
+                    if (gift) {
+                        const giftData = {
+                            product,
+                            quantity,
+                            value,
+                            recipient,
+                            recipientType,
+                            reason,
+                            store,
+                            date,
+                            notes,
+                            photo: gift.photo || null
+                        };
 
-            closeModal();
-            renderGifts();
+                        // Update Firebase if it has a firestoreId
+                        if (gift.firestoreId) {
+                            giftData.firestoreId = gift.firestoreId;
+                            const result = await saveGiftToFirebase(giftData);
+                            if (!result) {
+                                console.error('Failed to update gift in Firebase');
+                            }
+                        }
+
+                        gift.product = product;
+                        gift.quantity = quantity;
+                        gift.value = value;
+                        gift.recipient = recipient;
+                        gift.recipientType = recipientType;
+                        gift.reason = reason;
+                        gift.store = store;
+                        gift.date = date;
+                        gift.notes = notes;
+                        if (photoInput && photoInput.files.length > 0) {
+                            gift.photo = URL.createObjectURL(photoInput.files[0]);
+                        }
+                    } else {
+                        alert('Gift record not found');
+                        return;
+                    }
+                } else {
+                    const giftData = {
+                        product,
+                        quantity,
+                        value,
+                        recipient,
+                        recipientType,
+                        reason,
+                        store,
+                        date,
+                        notes,
+                        photo: photoInput && photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : null
+                    };
+
+                    // Save to Firebase
+                    const firestoreId = await saveGiftToFirebase(giftData);
+
+                    const newGift = {
+                        id: Math.max(0, ...giftsRecords.map(r => r.id)) + 1,
+                        firestoreId: firestoreId || undefined,
+                        ...giftData
+                    };
+                    giftsRecords.unshift(newGift);
+                }
+
+                closeModal();
+                renderGifts();
+            } catch (error) {
+                console.error('Error saving gift:', error);
+                alert('Error saving gift. Please try again.');
+            }
         }
 
         // Cash Out Functions
@@ -5892,7 +6734,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${cashOutRecords.map(record => `
+                                    ${cashOutRecords.map(record => {
+                                        const recordId = record.firestoreId || record.id;
+                                        return `
                                         <tr>
                                             <td>${formatDate(record.createdDate)}</td>
                                             <td>
@@ -5906,13 +6750,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                             <td>${record.createdBy}</td>
                                             <td>
                                                 <div class="action-buttons">
-                                                    <button class="btn-icon btn-danger" onclick="deleteCashOut(${record.id})" title="Delete">
+                                                    <button class="btn-icon" onclick="viewCashOutDetails('${recordId}')" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn-icon btn-danger" onclick="deleteCashOut('${recordId}')" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
                             </table>
                         `}
@@ -5921,14 +6768,33 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             `;
         }
 
-        function deleteCashOut(id) {
+        async function deleteCashOut(id) {
             if (!confirm('Are you sure you want to delete this cash out record?')) return;
-            cashOutRecords = cashOutRecords.filter(r => r.id !== id);
-            renderCashOut();
-            showNotification('Cash out deleted', 'success');
+
+            try {
+                // Delete from Firebase
+                if (typeof firebaseCashOutManager !== 'undefined' && firebaseCashOutManager.isInitialized) {
+                    const success = await firebaseCashOutManager.deleteCashOutRecord(id);
+                    if (success) {
+                        cashOutRecords = cashOutRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                        renderCashOut();
+                        showNotification('Cash out deleted', 'success');
+                    } else {
+                        showNotification('Error deleting from Firebase', 'error');
+                    }
+                } else {
+                    // Fallback to local deletion
+                    cashOutRecords = cashOutRecords.filter(r => r.id !== id && r.firestoreId !== id);
+                    renderCashOut();
+                    showNotification('Cash out deleted', 'success');
+                }
+            } catch (error) {
+                console.error('Error deleting cash out:', error);
+                showNotification('Error deleting cash out', 'error');
+            }
         }
 
-        function createCashOut() {
+        async function createCashOut() {
             const name = document.getElementById('cashout-name').value.trim();
             const amount = parseFloat(document.getElementById('cashout-amount').value);
             const store = document.getElementById('cashout-store').value;
@@ -5945,23 +6811,53 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
+            // Get current user
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+
             const newRecord = {
-                id: cashOutRecords.length > 0 ? Math.max(...cashOutRecords.map(r => r.id)) + 1 : 1,
                 name,
                 amount,
                 store,
                 reason,
                 createdDate: date || new Date().toISOString().split('T')[0],
-                createdBy: currentUser?.name || 'Unknown'
+                createdBy: user?.name || 'Unknown',
+                status: 'open',
+                closedDate: null,
+                receiptPhoto: null,
+                amountSpent: null,
+                moneyLeft: null,
+                hasMoneyLeft: null
             };
 
-            cashOutRecords.unshift(newRecord);
-            closeModal();
-            renderCashOut();
-            showNotification('Cash out added!', 'success');
+            try {
+                // Save to Firebase
+                if (typeof firebaseCashOutManager !== 'undefined' && firebaseCashOutManager.isInitialized) {
+                    const docId = await firebaseCashOutManager.addCashOutRecord(newRecord);
+                    if (docId) {
+                        newRecord.id = docId;
+                        newRecord.firestoreId = docId;
+                        cashOutRecords.unshift(newRecord);
+                        closeModal();
+                        renderCashOut();
+                        showNotification('Cash out added!', 'success');
+                    } else {
+                        showNotification('Error saving to Firebase', 'error');
+                    }
+                } else {
+                    // Fallback to local storage
+                    newRecord.id = cashOutRecords.length > 0 ? Math.max(...cashOutRecords.map(r => r.id || 0)) + 1 : 1;
+                    cashOutRecords.unshift(newRecord);
+                    closeModal();
+                    renderCashOut();
+                    showNotification('Cash out added!', 'success');
+                }
+            } catch (error) {
+                console.error('Error creating cash out:', error);
+                showNotification('Error creating cash out', 'error');
+            }
         }
 
-        function closeCashOut(recordId) {
+        async function closeCashOut(recordId) {
             const amountSpent = parseFloat(document.getElementById('cashout-amount-spent').value);
             const hasMoneyLeft = document.getElementById('cashout-money-left-yes').checked;
             const receiptInput = document.getElementById('cashout-receipt-photo');
@@ -5971,7 +6867,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            const record = cashOutRecords.find(r => r.id === recordId);
+            const record = cashOutRecords.find(r => r.id === recordId || r.firestoreId === recordId);
             if (!record) return;
 
             if (amountSpent > record.amount) {
@@ -5980,22 +6876,54 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
             }
 
-            record.status = 'closed';
-            record.closedDate = new Date().toISOString().split('T')[0];
-            record.amountSpent = amountSpent;
-            record.moneyLeft = record.amount - amountSpent;
-            record.hasMoneyLeft = hasMoneyLeft;
-
-            if (receiptInput.files.length > 0) {
-                record.receiptPhoto = URL.createObjectURL(receiptInput.files[0]);
+            // Convert receipt to base64 if provided
+            let receiptBase64 = null;
+            if (receiptInput && receiptInput.files && receiptInput.files[0]) {
+                receiptBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(receiptInput.files[0]);
+                });
             }
 
-            closeModal();
-            renderCashOut();
+            const updateData = {
+                status: 'closed',
+                closedDate: new Date().toISOString().split('T')[0],
+                amountSpent: amountSpent,
+                moneyLeft: record.amount - amountSpent,
+                hasMoneyLeft: hasMoneyLeft,
+                receiptPhoto: receiptBase64
+            };
+
+            try {
+                // Update in Firebase
+                const firestoreId = record.firestoreId || record.id;
+                if (typeof firebaseCashOutManager !== 'undefined' && firebaseCashOutManager.isInitialized) {
+                    const success = await firebaseCashOutManager.updateCashOutRecord(firestoreId, updateData);
+                    if (success) {
+                        // Update local record
+                        Object.assign(record, updateData);
+                        closeModal();
+                        renderCashOut();
+                        showNotification('Cash out closed successfully', 'success');
+                    } else {
+                        showNotification('Error updating in Firebase', 'error');
+                    }
+                } else {
+                    // Fallback to local update
+                    Object.assign(record, updateData);
+                    closeModal();
+                    renderCashOut();
+                    showNotification('Cash out closed successfully', 'success');
+                }
+            } catch (error) {
+                console.error('Error closing cash out:', error);
+                showNotification('Error closing cash out', 'error');
+            }
         }
 
         function viewCashOutDetails(recordId) {
-            const record = cashOutRecords.find(r => r.id === recordId);
+            const record = cashOutRecords.find(r => r.id === recordId || r.firestoreId === recordId);
             if (!record) return;
 
             const modal = document.getElementById('modal');
@@ -6083,7 +7011,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-footer">
                     ${record.status === 'open' ? `
-                        <button class="btn-primary" onclick="closeModal(); setTimeout(() => openModal('close-cashout', ${record.id}), 100);">
+                        <button class="btn-primary" onclick="closeModal(); setTimeout(() => openModal('close-cashout', '${record.firestoreId || record.id}'), 100);">
                             <i class="fas fa-check"></i> Close Cash Out
                         </button>
                     ` : ''}
@@ -6104,7 +7032,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Issues</h2>
+                        <h2 class="section-title">Issues Registry</h2>
                         <p class="section-subtitle">Customer incident documentation</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-issue')">
@@ -6174,10 +7102,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                                 ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
                                             </td>
                                             <td>
-                                                <button class="btn-icon" onclick="viewIssueDetails(${issue.id})" title="View Details">
+                                                <button class="btn-icon" onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn-icon danger" onclick="deleteIssue(${issue.id})" title="Delete">
+                                                <button class="btn-icon danger" onclick="deleteIssue('${issue.firestoreId || issue.id}')" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </td>
@@ -6325,7 +7253,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             `;
         }
 
-        function createIssue() {
+        async function createIssue() {
             const customer = document.getElementById('issue-customer').value.trim();
             const phone = document.getElementById('issue-phone').value.trim();
             const type = document.getElementById('issue-type').value;
@@ -6333,31 +7261,63 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const incidentDate = document.getElementById('issue-incident-date').value;
             const perception = document.getElementById('issue-perception').value;
 
+            // Get current user
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+
             const newIssue = {
-                id: issues.length > 0 ? Math.max(...issues.map(i => i.id)) + 1 : 1,
                 customer: customer || 'Anonymous',
                 phone: phone || '',
                 type: type || 'In Store',
                 description: description || '',
                 incidentDate: incidentDate || new Date().toISOString().split('T')[0],
                 perception: perception ? parseInt(perception) : null,
-                createdBy: 'Carlos Admin',
-                createdDate: new Date().toISOString().split('T')[0]
+                status: 'open',
+                createdBy: user?.name || 'Unknown',
+                createdDate: new Date().toISOString().split('T')[0],
+                solution: null,
+                resolvedBy: null,
+                resolutionDate: null
             };
 
+            // Try to save to Firebase
+            if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
+                const firestoreId = await firebaseIssuesManager.addIssue(newIssue);
+                if (firestoreId) {
+                    newIssue.id = firestoreId;
+                    newIssue.firestoreId = firestoreId;
+                    issues.unshift(newIssue);
+                    closeModal();
+                    renderIssues();
+                    return;
+                }
+            }
+
+            // Fallback to local storage
+            newIssue.id = issues.length > 0 ? Math.max(...issues.map(i => typeof i.id === 'number' ? i.id : 0)) + 1 : 1;
             issues.unshift(newIssue);
             closeModal();
             renderIssues();
         }
 
-        function deleteIssue(issueId) {
+        async function deleteIssue(issueId) {
             if (confirm('Are you sure you want to delete this issue?')) {
-                issues = issues.filter(i => i.id !== issueId);
+                // Try to delete from Firebase
+                if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
+                    const success = await firebaseIssuesManager.deleteIssue(issueId);
+                    if (success) {
+                        issues = issues.filter(i => i.firestoreId !== issueId && i.id !== issueId);
+                        renderIssues();
+                        return;
+                    }
+                }
+
+                // Fallback to local deletion
+                issues = issues.filter(i => i.id !== issueId && i.firestoreId !== issueId);
                 renderIssues();
             }
         }
 
-        function resolveIssue(issueId) {
+        async function resolveIssue(issueId) {
             const solution = document.getElementById('issue-solution').value.trim();
             const resolvedBy = document.getElementById('issue-resolved-by').value.trim();
 
@@ -6366,20 +7326,37 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            const issue = issues.find(i => i.id === issueId);
+            const issue = issues.find(i => i.id === issueId || i.firestoreId === issueId);
             if (!issue) return;
 
-            issue.status = 'resolved';
-            issue.solution = solution;
-            issue.resolvedBy = resolvedBy;
-            issue.resolutionDate = new Date().toISOString().split('T')[0];
+            const updateData = {
+                status: 'resolved',
+                solution: solution,
+                resolvedBy: resolvedBy,
+                resolutionDate: new Date().toISOString().split('T')[0]
+            };
 
+            // Try to update in Firebase
+            const firestoreId = issue.firestoreId || issueId;
+            if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized && firestoreId) {
+                const success = await firebaseIssuesManager.updateIssue(firestoreId, updateData);
+                if (success) {
+                    // Update local data
+                    Object.assign(issue, updateData);
+                    closeModal();
+                    renderIssues();
+                    return;
+                }
+            }
+
+            // Fallback to local update
+            Object.assign(issue, updateData);
             closeModal();
             renderIssues();
         }
 
         function viewIssueDetails(issueId) {
-            const issue = issues.find(i => i.id === issueId);
+            const issue = issues.find(i => i.id === issueId || i.firestoreId === issueId);
             if (!issue) return;
 
             const modal = document.getElementById('modal');
@@ -6409,12 +7386,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Customer Name</div>
                                 <div style="font-size: 18px; font-weight: 600;">${issue.customer}</div>
                             </div>
-                            <span class="badge" style="background: ${statusColors[issue.status]}; font-size: 14px; padding: 8px 16px;">
-                                ${statusLabels[issue.status]}
+                            <span class="badge" style="background: ${statusColors[issue.status] || 'var(--danger)'}; font-size: 14px; padding: 8px 16px;">
+                                ${statusLabels[issue.status] || 'Open'}
                             </span>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                            <div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Phone Number</div>
+                                <div style="font-weight: 500;">${issue.phone ? `<a href="tel:${issue.phone}" style="color: var(--accent-primary); text-decoration: none;"><i class="fas fa-phone"></i> ${issue.phone}</a>` : '-'}</div>
+                            </div>
                             <div>
                                 <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Issue Type</div>
                                 <span class="badge" style="background: ${issue.type === 'In Store' ? 'var(--accent-primary)' : 'var(--info)'};">
@@ -6427,6 +7408,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <div style="font-weight: 500;">${formatDate(issue.incidentDate)}</div>
                             </div>
                         </div>
+
+                        ${issue.perception ? `
+                        <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Customer Perception</div>
+                            <div style="font-size: 48px;">${getPerceptionEmoji(issue.perception)}</div>
+                            <div style="font-size: 14px; font-weight: 500; margin-top: 4px;">${getPerceptionLabel(issue.perception)}</div>
+                        </div>
+                        ` : ''}
 
                         <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Description</div>
@@ -6471,7 +7460,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-footer">
                     ${issue.status !== 'resolved' ? `
-                        <button class="btn-primary" onclick="closeModal(); setTimeout(() => openModal('resolve-issue', ${issue.id}), 100);">
+                        <button class="btn-primary" onclick="closeModal(); setTimeout(() => openModal('resolve-issue', '${issue.firestoreId || issue.id}'), 100);">
                             <i class="fas fa-check"></i> Resolve Issue
                         </button>
                     ` : ''}
@@ -6524,7 +7513,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Vendors</h2>
+                        <h2 class="section-title">Vendors & Suppliers</h2>
                         <p class="section-subtitle">Manage your supplier contacts and information</p>
                     </div>
                     <button class="btn-primary" onclick="openAddVendorModal()">
@@ -6610,13 +7599,22 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div class="card" style="cursor: pointer; transition: all 0.2s; border-left: 4px solid ${categoryColors[vendor.category] || 'var(--accent-primary)'};" onclick="viewVendorDetails('${vendor.firestoreId}')">
                             <div class="card-body">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                    <div style="flex: 1;">
-                                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-                                            ${vendor.name}
-                                        </h3>
-                                        <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'};">
-                                            ${vendor.category}
-                                        </span>
+                                    <div style="display: flex; align-items: start; gap: 14px; flex: 1;">
+                                        <!-- Vendor Image -->
+                                        <div style="width: 56px; height: 56px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                            ${vendor.image
+                                                ? `<img src="${vendor.image}" style="width: 100%; height: 100%; object-fit: cover;">`
+                                                : `<i class="fas fa-building" style="font-size: 20px; color: var(--text-muted);"></i>`
+                                            }
+                                        </div>
+                                        <div style="flex: 1; min-width: 0;">
+                                            <h3 style="font-size: 17px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                ${vendor.name}
+                                            </h3>
+                                            <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'};">
+                                                ${vendor.category}
+                                            </span>
+                                        </div>
                                     </div>
                                     <i class="fas fa-chevron-right" style="color: var(--text-muted); font-size: 14px;"></i>
                                 </div>
@@ -6678,6 +7676,23 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-body">
                     <form id="add-vendor-form" style="display: grid; gap: 16px;">
+                        <!-- Vendor Image Upload -->
+                        <div>
+                            <label class="form-label">Vendor Logo/Image</label>
+                            <div style="display: flex; align-items: start; gap: 16px;">
+                                <div id="vendor-image-preview" style="width: 100px; height: 100px; border-radius: 12px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); overflow: hidden; flex-shrink: 0;">
+                                    <i class="fas fa-building" style="font-size: 32px; color: var(--text-muted);"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="file" id="vendor-image" accept="image/*" style="display: none;" onchange="previewVendorImage(this, 'vendor-image-preview')">
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('vendor-image').click()" style="margin-bottom: 8px;">
+                                        <i class="fas fa-upload"></i> Upload Image
+                                    </button>
+                                    <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Recommended: Square image, max 2MB</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label class="form-label">Vendor Name *</label>
@@ -6703,18 +7718,18 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div>
                                 <label class="form-label">Phone *</label>
-                                <input type="tel" id="vendor-phone" class="form-input" placeholder="Enter phone number" required>
+                                <input type="tel" id="vendor-phone" class="form-input" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14" required>
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label class="form-label">Email *</label>
-                                <input type="email" id="vendor-email" class="form-input" placeholder="Enter email" required>
+                                <input type="email" id="vendor-email" class="form-input" placeholder="contact@vendor.com" required>
                             </div>
                             <div>
                                 <label class="form-label">Website</label>
-                                <input type="url" id="vendor-website" class="form-input" placeholder="https://example.com">
+                                <input type="url" id="vendor-website" class="form-input" placeholder="https://www.vendor.com" pattern="https?://.+">
                             </div>
                         </div>
 
@@ -6750,6 +7765,22 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             modal.classList.add('active');
         }
 
+        /**
+         * Preview vendor image before upload
+         */
+        function previewVendorImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (!preview) return;
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
         async function createVendor() {
             const name = document.getElementById('vendor-name').value.trim();
             const category = document.getElementById('vendor-category').value;
@@ -6761,6 +7792,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const products = document.getElementById('vendor-products').value.trim();
             const orderMethods = document.getElementById('vendor-order-methods').value.trim();
             const notes = document.getElementById('vendor-notes').value.trim();
+            const imageInput = document.getElementById('vendor-image');
 
             if (!name || !category || !contact || !phone || !email || !products || !orderMethods) {
                 alert('Please fill in all required fields');
@@ -6768,6 +7800,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             try {
+                // Get image as base64 if uploaded
+                let image = null;
+                const previewImg = document.querySelector('#vendor-image-preview img');
+                if (previewImg && imageInput.files && imageInput.files.length > 0) {
+                    image = previewImg.src; // Base64 DataURL from preview
+                }
+
                 const newVendor = {
                     name,
                     category,
@@ -6778,11 +7817,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     access,
                     products,
                     orderMethods,
-                    notes
+                    notes,
+                    image
                 };
 
                 await firebaseVendorsManager.addVendor(newVendor);
-                
+
                 // Reload vendors
                 firebaseVendors = await firebaseVendorsManager.loadVendors();
                 closeModal();
@@ -6815,8 +7855,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-body">
                     <div style="display: grid; gap: 20px;">
-                        <!-- Header with Category -->
-                        <div style="text-align: center;">
+                        <!-- Header with Image and Category -->
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                            <div style="width: 100px; height: 100px; border-radius: 16px; background: var(--bg-secondary); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                ${vendor.image
+                                    ? `<img src="${vendor.image}" style="width: 100%; height: 100%; object-fit: cover;">`
+                                    : `<i class="fas fa-building" style="font-size: 40px; color: var(--text-muted);"></i>`
+                                }
+                            </div>
                             <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'}; font-size: 14px; padding: 8px 16px;">
                                 ${vendor.category}
                             </span>
@@ -6936,6 +7982,24 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
                 <div class="modal-body">
                     <form id="edit-vendor-form" style="display: grid; gap: 16px;">
+                        <!-- Vendor Image Upload -->
+                        <div>
+                            <label class="form-label">Vendor Logo/Image</label>
+                            <div style="display: flex; align-items: start; gap: 16px;">
+                                <div id="edit-vendor-image-preview" style="width: 100px; height: 100px; border-radius: 12px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); overflow: hidden; flex-shrink: 0;">
+                                    ${vendor.image ? `<img src="${vendor.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fas fa-building" style="font-size: 32px; color: var(--text-muted);"></i>`}
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="file" id="edit-vendor-image" accept="image/*" style="display: none;" onchange="previewVendorImage(this, 'edit-vendor-image-preview')">
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('edit-vendor-image').click()" style="margin-bottom: 8px;">
+                                        <i class="fas fa-upload"></i> ${vendor.image ? 'Change Image' : 'Upload Image'}
+                                    </button>
+                                    ${vendor.image ? `<button type="button" class="btn-secondary" onclick="removeVendorImage('edit')" style="margin-left: 8px; margin-bottom: 8px;"><i class="fas fa-trash"></i></button>` : ''}
+                                    <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Recommended: Square image, max 2MB</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label class="form-label">Vendor Name *</label>
@@ -6961,18 +8025,18 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div>
                                 <label class="form-label">Phone *</label>
-                                <input type="tel" id="edit-vendor-phone" class="form-input" value="${vendor.phone}" placeholder="Enter phone number" required>
+                                <input type="tel" id="edit-vendor-phone" class="form-input" value="${vendor.phone}" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14" required>
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label class="form-label">Email *</label>
-                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="Enter email" required>
+                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="contact@vendor.com" required>
                             </div>
                             <div>
                                 <label class="form-label">Website</label>
-                                <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://example.com">
+                                <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://www.vendor.com" pattern="https?://.+">
                             </div>
                         </div>
 
@@ -7013,6 +8077,24 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             modal.classList.add('active');
         }
 
+        /**
+         * Remove vendor image from preview
+         */
+        function removeVendorImage(mode) {
+            const previewId = mode === 'edit' ? 'edit-vendor-image-preview' : 'vendor-image-preview';
+            const inputId = mode === 'edit' ? 'edit-vendor-image' : 'vendor-image';
+            const preview = document.getElementById(previewId);
+            const input = document.getElementById(inputId);
+
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-building" style="font-size: 32px; color: var(--text-muted);"></i>`;
+                preview.setAttribute('data-removed', 'true');
+            }
+            if (input) {
+                input.value = '';
+            }
+        }
+
         async function saveVendorChanges(firestoreId) {
             const name = document.getElementById('edit-vendor-name').value.trim();
             const category = document.getElementById('edit-vendor-category').value;
@@ -7024,6 +8106,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const products = document.getElementById('edit-vendor-products').value.trim();
             const orderMethods = document.getElementById('edit-vendor-order-methods').value.trim();
             const notes = document.getElementById('edit-vendor-notes').value.trim();
+            const imageInput = document.getElementById('edit-vendor-image');
+            const imagePreview = document.getElementById('edit-vendor-image-preview');
 
             if (!name || !category || !contact || !phone || !email || !products || !orderMethods) {
                 alert('Please fill in all required fields');
@@ -7031,6 +8115,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             try {
+                // Determine image value
+                let image = null;
+                const wasRemoved = imagePreview?.getAttribute('data-removed') === 'true';
+
+                if (wasRemoved) {
+                    // Image was explicitly removed
+                    image = null;
+                } else if (imageInput?.files && imageInput.files.length > 0) {
+                    // New image uploaded
+                    const previewImg = document.querySelector('#edit-vendor-image-preview img');
+                    if (previewImg) {
+                        image = previewImg.src;
+                    }
+                } else {
+                    // Keep existing image
+                    const existingVendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
+                    image = existingVendor?.image || null;
+                }
+
                 const updateData = {
                     name,
                     category,
@@ -7041,11 +8144,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     access,
                     products,
                     orderMethods,
-                    notes
+                    notes,
+                    image
                 };
 
                 await firebaseVendorsManager.updateVendor(firestoreId, updateData);
-                
+
                 // Reload vendors
                 firebaseVendors = await firebaseVendorsManager.loadVendors();
                 closeModal();
@@ -7353,6 +8457,28 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         function formatDate(dateStr) {
             const date = new Date(dateStr);
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Format phone number to US format (XXX) XXX-XXXX
+        function formatPhoneNumber(input) {
+            // Remove all non-digit characters
+            let value = input.value.replace(/\D/g, '');
+
+            // Limit to 10 digits
+            if (value.length > 10) {
+                value = value.substring(0, 10);
+            }
+
+            // Format the number
+            if (value.length === 0) {
+                input.value = '';
+            } else if (value.length <= 3) {
+                input.value = '(' + value;
+            } else if (value.length <= 6) {
+                input.value = '(' + value.substring(0, 3) + ') ' + value.substring(3);
+            } else {
+                input.value = '(' + value.substring(0, 3) + ') ' + value.substring(3, 6) + '-' + value.substring(6);
+            }
         }
 
         // Variable to track employee being edited
@@ -7764,7 +8890,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-group">
                                 <label>Supplier</label>
-                                <input type="text" class="form-input" id="new-product-supplier" placeholder="Enter supplier name...">
+                                <select class="form-input" id="new-product-supplier">
+                                    <option value="">Select supplier...</option>
+                                    ${getSupplierOptions()}
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Product Image</label>
@@ -8191,6 +9320,74 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                     `;
                     break;
+                case 'edit-restock-request':
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-edit"></i> Edit Restock Request</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Product Name *</label>
+                                <input type="text" class="form-input" id="edit-restock-product" placeholder="Enter product name...">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Brand</label>
+                                    <input type="text" class="form-input" id="edit-restock-brand" placeholder="Enter brand...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Flavor/Variant</label>
+                                    <input type="text" class="form-input" id="edit-restock-flavor" placeholder="Enter flavor or variant...">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Quantity Requested *</label>
+                                    <input type="number" class="form-input" id="edit-restock-quantity" placeholder="Enter quantity...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Priority *</label>
+                                    <select class="form-input" id="edit-restock-priority">
+                                        <option value="">Select priority...</option>
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" class="form-input" id="edit-restock-date">
+                                </div>
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="edit-restock-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Requested By *</label>
+                                <input type="text" class="form-input" id="edit-restock-requested-by" placeholder="Your name...">
+                            </div>
+                            <div class="form-group">
+                                <label>Notes (Optional)</label>
+                                <textarea class="form-input" id="edit-restock-notes" rows="3" placeholder="Add any additional notes..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="submitEditRestockRequest()">Save Changes</button>
+                        </div>
+                    `;
+                    break;
                 case 'create-cashout':
                     content = `
                         <div class="modal-header">
@@ -8240,7 +9437,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     break;
                 case 'close-cashout':
                     const cashoutId = arguments[1];
-                    const cashoutRecord = cashOutRecords.find(r => r.id === cashoutId);
+                    const cashoutRecord = cashOutRecords.find(r => r.id === cashoutId || r.firestoreId === cashoutId);
                     if (!cashoutRecord) break;
 
                     content = `
@@ -8296,7 +9493,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="closeCashOut(${cashoutId})">
+                            <button class="btn-primary" onclick="closeCashOut('${cashoutRecord.firestoreId || cashoutRecord.id}')">
                                 <i class="fas fa-check"></i>
                                 Close Cash Out
                             </button>
@@ -8317,7 +9514,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                                 <div class="form-group">
                                     <label>Phone Number</label>
-                                    <input type="tel" class="form-input" id="issue-phone" placeholder="(555) 555-5555">
+                                    <input type="tel" class="form-input" id="issue-phone" placeholder="(555) 555-5555" oninput="formatPhoneNumber(this)" maxlength="14">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -8463,18 +9660,18 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Phone *</label>
-                                    <input type="tel" class="form-input" id="vendor-phone" placeholder="(800) 555-0000">
+                                    <input type="tel" class="form-input" id="vendor-phone" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                                 </div>
                                 <div class="form-group">
                                     <label>Email *</label>
-                                    <input type="email" class="form-input" id="vendor-email" placeholder="email@vendor.com">
+                                    <input type="email" class="form-input" id="vendor-email" placeholder="contact@vendor.com">
                                 </div>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Website (Optional)</label>
-                                    <input type="url" class="form-input" id="vendor-website" placeholder="https://...">
+                                    <input type="url" class="form-input" id="vendor-website" placeholder="https://www.vendor.com" pattern="https?://.+">
                                 </div>
                                 <div class="form-group">
                                     <label>Access Info (Optional)</label>
@@ -8544,18 +9741,18 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Phone *</label>
-                                    <input type="tel" class="form-input" id="edit-vendor-phone" placeholder="(800) 555-0000" value="${editVendor.phone}">
+                                    <input type="tel" class="form-input" id="edit-vendor-phone" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14" value="${editVendor.phone}">
                                 </div>
                                 <div class="form-group">
                                     <label>Email *</label>
-                                    <input type="email" class="form-input" id="edit-vendor-email" placeholder="email@vendor.com" value="${editVendor.email}">
+                                    <input type="email" class="form-input" id="edit-vendor-email" placeholder="contact@vendor.com" value="${editVendor.email}">
                                 </div>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Website (Optional)</label>
-                                    <input type="url" class="form-input" id="edit-vendor-website" placeholder="https://..." value="${editVendor.website || ''}">
+                                    <input type="url" class="form-input" id="edit-vendor-website" placeholder="https://www.vendor.com" pattern="https?://.+" value="${editVendor.website || ''}">
                                 </div>
                                 <div class="form-group">
                                     <label>Access Info (Optional)</label>
@@ -8639,8 +9836,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- Image Upload Section -->
                             <div class="form-group">
-                                <label>Artwork Name</label>
+                                <label>Piece Image</label>
+                                <div style="display: flex; align-items: start; gap: 16px;">
+                                    <div id="treasury-image-preview" style="width: 120px; height: 120px; border-radius: 12px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); overflow: hidden; flex-shrink: 0;">
+                                        <i class="fas fa-gem" style="font-size: 36px; color: var(--text-muted);"></i>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <input type="file" id="treasury-image" accept="image/*" style="display: none;" onchange="previewTreasuryImage(this)">
+                                        <button type="button" class="btn-secondary" onclick="document.getElementById('treasury-image').click()" style="margin-bottom: 8px;">
+                                            <i class="fas fa-upload"></i> Upload Image
+                                        </button>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Recommended: Square image, max 2MB</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Artwork Name *</label>
                                 <input type="text" class="form-input" id="treasury-artwork-name" placeholder="Enter artwork name...">
                             </div>
                             <div class="form-group">
@@ -8658,7 +9872,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Current Location</label>
+                                <label>Current Location *</label>
                                 <select class="form-input" id="treasury-location">
                                     <option value="">Select location...</option>
                                     <option value="VSU Miramar">VSU Miramar</option>
@@ -8672,17 +9886,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-group">
                                 <label>Description</label>
                                 <textarea class="form-input" id="treasury-description" rows="4" placeholder="Add details about the piece..."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Photos</label>
-                                <div class="file-upload">
-                                    <input type="file" id="treasury-photos" accept="image/*" multiple>
-                                    <div class="file-upload-content">
-                                        <i class="fas fa-images"></i>
-                                        <span>Click to upload or drag and drop</span>
-                                        <small>Multiple images allowed (JPG, PNG, GIF)</small>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -8699,14 +9902,35 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     const treasuryItem = treasuryItems.find(t => t.id === treasuryId);
                     if (!treasuryItem) break;
 
+                    // Get the main image (first photo or image field)
+                    const treasuryEditImage = treasuryItem.image || (treasuryItem.photos && treasuryItem.photos.length > 0 ? treasuryItem.photos[0] : null);
+
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-edit"></i> Edit Treasury Piece</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- Image Upload Section -->
                             <div class="form-group">
-                                <label>Artwork Name</label>
+                                <label>Piece Image</label>
+                                <div style="display: flex; align-items: start; gap: 16px;">
+                                    <div id="treasury-image-preview" style="width: 120px; height: 120px; border-radius: 12px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); overflow: hidden; flex-shrink: 0;">
+                                        ${treasuryEditImage ? `<img src="${treasuryEditImage}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fas fa-gem" style="font-size: 36px; color: var(--text-muted);"></i>`}
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <input type="file" id="treasury-image" accept="image/*" style="display: none;" onchange="previewTreasuryImage(this)">
+                                        <button type="button" class="btn-secondary" onclick="document.getElementById('treasury-image').click()" style="margin-bottom: 8px;">
+                                            <i class="fas fa-upload"></i> ${treasuryEditImage ? 'Change Image' : 'Upload Image'}
+                                        </button>
+                                        ${treasuryEditImage ? `<button type="button" class="btn-secondary" onclick="removeTreasuryImage()" style="margin-left: 8px; margin-bottom: 8px;"><i class="fas fa-trash"></i></button>` : ''}
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Recommended: Square image, max 2MB</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Artwork Name *</label>
                                 <input type="text" class="form-input" id="treasury-artwork-name" placeholder="Enter artwork name..." value="${treasuryItem.artworkName || ''}">
                             </div>
                             <div class="form-group">
@@ -8724,7 +9948,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Current Location</label>
+                                <label>Current Location *</label>
                                 <select class="form-input" id="treasury-location">
                                     <option value="">Select location...</option>
                                     <option value="VSU Miramar" ${treasuryItem.location === 'VSU Miramar' ? 'selected' : ''}>VSU Miramar</option>
@@ -8738,26 +9962,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-group">
                                 <label>Description</label>
                                 <textarea class="form-input" id="treasury-description" rows="4" placeholder="Add details about the piece...">${treasuryItem.description || ''}</textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Photos</label>
-                                ${treasuryItem.photos && treasuryItem.photos.length > 0 ? `
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-bottom: 12px;">
-                                        ${treasuryItem.photos.map(photo => `
-                                            <div style="position: relative; padding-bottom: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);">
-                                                <img src="${photo}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;" alt="Treasury photo">
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                                <div class="file-upload">
-                                    <input type="file" id="treasury-photos" accept="image/*" multiple>
-                                    <div class="file-upload-content">
-                                        <i class="fas fa-images"></i>
-                                        <span>Click to upload more photos</span>
-                                        <small>Multiple images allowed (JPG, PNG, GIF)</small>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -8776,6 +9980,24 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <div class="form-group">
+                                <label>Photo of Envelope/Receipt (Optional)</label>
+                                <div style="display: flex; align-items: flex-start; gap: 16px;">
+                                    <div id="change-photo-preview" style="width: 120px; height: 120px; border-radius: 12px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border-color); cursor: pointer;" onclick="document.getElementById('change-photo').click()">
+                                        <i class="fas fa-coins" style="font-size: 36px; color: var(--text-muted);"></i>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <input type="file" id="change-photo" accept="image/*" style="display: none;" onchange="previewChangePhoto(this)">
+                                        <button type="button" class="btn-secondary" onclick="document.getElementById('change-photo').click()" style="margin-bottom: 8px;">
+                                            <i class="fas fa-upload"></i> Upload Image
+                                        </button>
+                                        <button type="button" class="btn-secondary" onclick="removeChangePhoto()" style="margin-left: 8px; margin-bottom: 8px;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Upload a photo of the envelope or receipt (optional)</p>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Store / Location *</label>
@@ -8812,17 +10034,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-group">
                                 <label>Notes (Optional)</label>
                                 <textarea class="form-input" id="change-notes" rows="3" placeholder="e.g., 'Se dejó en caja 1', 'Se metió extra por falta de cambio'..."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Photo of Envelope/Receipt (Optional)</label>
-                                <div class="file-upload">
-                                    <input type="file" id="change-photo" accept="image/*">
-                                    <div class="file-upload-content">
-                                        <i class="fas fa-camera"></i>
-                                        <span>Click to upload photo</span>
-                                        <small>JPG, PNG, GIF accepted</small>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -9088,7 +10299,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="saveGift(true, ${editGiftRecord.id})">
+                            <button class="btn-primary" onclick="saveGift(true, '${String(editGiftRecord.id).replace(/'/g, "\\'")}')">
                                 <i class="fas fa-save"></i>
                                 Update Gift
                             </button>
@@ -9992,27 +11203,57 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             renderPage(currentPage);
         }
 
-        function saveAnnouncement() {
+        async function saveAnnouncement() {
             const title = document.getElementById('announcement-title').value;
             const content = document.getElementById('announcement-content').value;
+            const targetStores = document.getElementById('announcement-stores')?.value || 'all';
 
             if (!title || !content) {
                 alert('Please fill in all required fields');
                 return;
             }
 
-            announcements.unshift({
-                id: announcements.length + 1,
-                date: new Date().toISOString().split('T')[0],
-                title, content,
-                author: 'Carlos Admin'
-            });
+            // Get current user info for author
+            const user = authManager.getCurrentUser();
+            const authorName = user?.name || user?.email?.split('@')[0] || 'Unknown';
 
-            closeModal();
-            renderPage(currentPage);
+            const announcementData = {
+                date: new Date().toISOString().split('T')[0],
+                title,
+                content,
+                author: authorName,
+                targetStores
+            };
+
+            try {
+                // Save to Firebase
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    const docId = await firebaseAnnouncementsManager.addAnnouncement(announcementData);
+                    if (docId) {
+                        // Reload announcements from Firebase
+                        const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+                        if (updatedAnnouncements && updatedAnnouncements.length > 0) {
+                            announcements = updatedAnnouncements;
+                        }
+                        console.log('Announcement saved to Firebase with ID:', docId);
+                    }
+                } else {
+                    // Fallback to local storage
+                    announcements.unshift({
+                        id: announcements.length + 1,
+                        ...announcementData
+                    });
+                }
+
+                closeModal();
+                renderPage(currentPage);
+            } catch (error) {
+                console.error('Error saving announcement:', error);
+                alert('Failed to save announcement. Please try again.');
+            }
         }
 
-        function saveAnnouncementInline() {
+        async function saveAnnouncementInline() {
             const title = document.getElementById('new-announcement-title').value;
             const content = document.getElementById('new-announcement-content').value;
 
@@ -10021,14 +11262,43 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            announcements.unshift({
-                id: announcements.length + 1,
-                date: new Date().toISOString().split('T')[0],
-                title, content,
-                author: 'Carlos Admin'
-            });
+            // Get current user info for author
+            const user = authManager.getCurrentUser();
+            const authorName = user?.name || user?.email?.split('@')[0] || 'Unknown';
 
-            renderAnnouncements();
+            const announcementData = {
+                date: new Date().toISOString().split('T')[0],
+                title,
+                content,
+                author: authorName,
+                targetStores: 'all'
+            };
+
+            try {
+                // Save to Firebase
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    const docId = await firebaseAnnouncementsManager.addAnnouncement(announcementData);
+                    if (docId) {
+                        // Reload announcements from Firebase
+                        const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
+                        if (updatedAnnouncements && updatedAnnouncements.length > 0) {
+                            announcements = updatedAnnouncements;
+                        }
+                        console.log('Announcement saved to Firebase with ID:', docId);
+                    }
+                } else {
+                    // Fallback to local storage
+                    announcements.unshift({
+                        id: announcements.length + 1,
+                        ...announcementData
+                    });
+                }
+
+                renderAnnouncements();
+            } catch (error) {
+                console.error('Error saving announcement:', error);
+                alert('Failed to save announcement. Please try again.');
+            }
         }
 
         async function saveProduct() {
@@ -10250,6 +11520,28 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         /**
+         * Get unique supplier options from existing products
+         */
+        function getSupplierOptions(currentSupplier = '') {
+            // Get unique suppliers from existing products
+            const suppliers = [...new Set(products.map(p => p.supplier).filter(s => s && s.trim()))];
+
+            // Add some default suppliers if not already in the list
+            const defaultSuppliers = ['Direct Import', 'Local Vendor', 'Wholesale'];
+            defaultSuppliers.forEach(s => {
+                if (!suppliers.includes(s)) suppliers.push(s);
+            });
+
+            // Sort alphabetically
+            suppliers.sort((a, b) => a.localeCompare(b));
+
+            // Generate options HTML
+            return suppliers.map(supplier =>
+                `<option value="${supplier}" ${currentSupplier === supplier ? 'selected' : ''}>${supplier}</option>`
+            ).join('');
+        }
+
+        /**
          * Edit product
          */
         function editProduct(productId) {
@@ -10284,7 +11576,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Category</label>
-                                <input type="text" id="edit-product-category" value="${product.category || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                                <select id="edit-product-category" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                                    <option value="">Select category...</option>
+                                    <option value="Vape Devices" ${product.category === 'Vape Devices' ? 'selected' : ''}>Vape Devices</option>
+                                    <option value="Vape Pods" ${product.category === 'Vape Pods' ? 'selected' : ''}>Vape Pods</option>
+                                    <option value="Disposables" ${product.category === 'Disposables' ? 'selected' : ''}>Disposables</option>
+                                    <option value="Cigarettes" ${product.category === 'Cigarettes' ? 'selected' : ''}>Cigarettes</option>
+                                    <option value="Accessories" ${product.category === 'Accessories' ? 'selected' : ''}>Accessories</option>
+                                </select>
                             </div>
                             <div>
                                 <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Quantity</label>
@@ -10299,7 +11598,14 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div>
                                 <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Store</label>
-                                <input type="text" id="edit-product-store" value="${product.store || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                                <select id="edit-product-store" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                                    <option value="">Select store...</option>
+                                    <option value="Miramar" ${product.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                    <option value="Morena" ${product.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                    <option value="Kearny Mesa" ${product.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                    <option value="Chula Vista" ${product.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                    <option value="Miramar Wine & Liquor" ${product.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                </select>
                             </div>
                         </div>
 
@@ -10310,7 +11616,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div>
                                 <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Supplier</label>
-                                <input type="text" id="edit-product-supplier" value="${product.supplier || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                                <select id="edit-product-supplier" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                                    <option value="">Select supplier...</option>
+                                    ${getSupplierOptions(product.supplier)}
+                                </select>
                             </div>
                         </div>
 
@@ -10464,8 +11773,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 ? `Customer Request: ${customerInfo}${notes ? '\n' + notes : ''}`
                 : notes;
 
-            restockRequests.unshift({
-                id: restockRequests.length + 1,
+            const newRequest = {
                 productName: productName,
                 quantity: item.minStock - parseInt(qtyHand),
                 store,
@@ -10474,11 +11782,36 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 status: 'pending',
                 priority: parseInt(qtyHand) < item.minStock * 0.3 ? 'high' : parseInt(qtyHand) < item.minStock * 0.6 ? 'medium' : 'low',
                 notes: noteText
-            });
+            };
 
-            closeModal();
-            currentRestockTab = 'requests';
-            renderRestockRequests();
+            // Save to Firebase if initialized
+            if (firebaseRestockRequestsManager.isInitialized) {
+                firebaseRestockRequestsManager.addRestockRequest(newRequest).then(newId => {
+                    if (newId) {
+                        restockRequests.unshift({
+                            id: newId,
+                            firestoreId: newId,
+                            ...newRequest
+                        });
+                        console.log('✅ Restock request created in Firebase');
+                        closeModal();
+                        currentRestockTab = 'requests';
+                        renderRestockRequests();
+                    }
+                }).catch(error => {
+                    console.error('Error creating restock request in Firebase:', error);
+                    alert('Error creating restock request: ' + error.message);
+                });
+            } else {
+                // Fallback to local storage only
+                restockRequests.unshift({
+                    id: restockRequests.length + 1,
+                    ...newRequest
+                });
+                closeModal();
+                currentRestockTab = 'requests';
+                renderRestockRequests();
+            }
         }
 
         function openNewRestockRequestModal() {
@@ -10533,9 +11866,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 ? `Customer Request: ${customerInfo}${notes ? '\n' + notes : ''}`
                 : notes;
 
-            // Add to requests array
-            restockRequests.unshift({
-                id: restockRequests.length + 1,
+            // Create request object
+            const newRequest = {
                 productName: productName,
                 quantity: parseInt(quantity),
                 store,
@@ -10544,11 +11876,39 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 status: 'pending',
                 priority,
                 notes: noteText
-            });
+            };
 
-            closeModal();
-            currentRestockTab = 'requests';
-            renderRestockRequests();
+            // Save to Firebase if initialized
+            if (firebaseRestockRequestsManager.isInitialized) {
+                firebaseRestockRequestsManager.addRestockRequest(newRequest).then(newId => {
+                    if (newId) {
+                        // Add to local array with Firestore ID
+                        restockRequests.unshift({
+                            id: newId,
+                            firestoreId: newId,
+                            ...newRequest
+                        });
+                        console.log('✅ Restock request created in Firebase');
+                        closeModal();
+                        currentRestockTab = 'requests';
+                        renderRestockRequests();
+                    } else {
+                        alert('Error creating restock request. Please try again.');
+                    }
+                }).catch(error => {
+                    console.error('Error creating restock request in Firebase:', error);
+                    alert('Error creating restock request: ' + error.message);
+                });
+            } else {
+                // Fallback to local storage only
+                restockRequests.unshift({
+                    id: restockRequests.length + 1,
+                    ...newRequest
+                });
+                closeModal();
+                currentRestockTab = 'requests';
+                renderRestockRequests();
+            }
         }
 
         // Initialize navigation
@@ -11454,6 +12814,63 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             'Miramar Wine & Liquor'
         ];
 
+        // IndexedDB setup for storing images
+        let riskPhotoDB = null;
+        const initRiskPhotoDB = async () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('RiskNotesDB', 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    riskPhotoDB = request.result;
+                    resolve(riskPhotoDB);
+                };
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('photos')) {
+                        db.createObjectStore('photos', { keyPath: 'id' });
+                    }
+                };
+            });
+        };
+
+        const savePhotoToIndexedDB = async (noteId, photoData) => {
+            if (!riskPhotoDB) await initRiskPhotoDB();
+            return new Promise((resolve, reject) => {
+                const tx = riskPhotoDB.transaction('photos', 'readwrite');
+                const store = tx.objectStore('photos');
+                store.put({ id: noteId, data: photoData });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        };
+
+        const getPhotoFromIndexedDB = async (noteId) => {
+            if (!riskPhotoDB) await initRiskPhotoDB();
+            return new Promise((resolve, reject) => {
+                const tx = riskPhotoDB.transaction('photos', 'readonly');
+                const store = tx.objectStore('photos');
+                const request = store.get(noteId);
+                request.onsuccess = () => resolve(request.result?.data);
+                request.onerror = () => reject(request.error);
+            });
+        };
+
+        const deletePhotoFromIndexedDB = async (noteId) => {
+            if (!riskPhotoDB) await initRiskPhotoDB();
+            return new Promise((resolve, reject) => {
+                const tx = riskPhotoDB.transaction('photos', 'readwrite');
+                const store = tx.objectStore('photos');
+                const request = store.delete(noteId);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        };
+
+        // Initialize IndexedDB on page load
+        initRiskPhotoDB().catch(err => {
+            console.error('Failed to initialize IndexedDB:', err);
+        });
+
         let riskNotesState = {
             notes: JSON.parse(localStorage.getItem('riskNotes')) || [],
             filterStore: 'all',
@@ -11462,7 +12879,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         };
 
         function saveRiskNotes() {
-            localStorage.setItem('riskNotes', JSON.stringify(riskNotesState.notes));
+            // Store notes WITHOUT photo data in localStorage (only metadata)
+            const notesForStorage = riskNotesState.notes.map(note => {
+                const { photo, ...noteData } = note;
+                return noteData;
+            });
+            localStorage.setItem('riskNotes', JSON.stringify(notesForStorage));
         }
 
         function renderRiskNotes() {
@@ -11665,7 +13087,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                                     <i class="fas fa-user"></i> ${note.reportedBy || 'Anonymous'}
                                                 </div>
                                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                                    ${note.photo ? '<i class="fas fa-image" style="color: var(--text-muted); font-size: 12px;" title="Has photo"></i>' : ''}
+                                                    ${note.hasPhoto ? '<i class="fas fa-image" style="color: var(--text-muted); font-size: 12px;" title="Has photo"></i>' : ''}
                                                     ${note.managerNote ? '<i class="fas fa-comment" style="color: var(--warning); font-size: 12px;" title="Has manager note"></i>' : ''}
                                                     <span style="font-size: 11px; color: var(--text-muted);">Click to view</span>
                                                 </div>
@@ -11696,7 +13118,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         function deleteRiskNote(noteId) {
             if (confirm('Are you sure you want to delete this risk note?')) {
+                const note = riskNotesState.notes.find(n => n.id === noteId);
                 riskNotesState.notes = riskNotesState.notes.filter(n => n.id !== noteId);
+                
+                // Delete photo from IndexedDB if it exists
+                if (note && note.hasPhoto) {
+                    deletePhotoFromIndexedDB(noteId).catch(err => {
+                        console.error('Error deleting photo:', err);
+                    });
+                }
+                
                 saveRiskNotes();
                 renderRiskNotes();
             }
@@ -11733,11 +13164,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 level: level || 'low',
                 reportedBy: reportedBy || 'Staff',
                 managerNote,
-                photo,
+                hasPhoto: !!photo,
                 createdAt: new Date().toISOString()
             };
 
             riskNotesState.notes.unshift(newNote);
+            
+            // Save photo to IndexedDB if it exists
+            if (photo) {
+                savePhotoToIndexedDB(newNote.id, photo).catch(err => {
+                    console.error('Error saving photo:', err);
+                    alert('Warning: Photo could not be saved, but note was created.');
+                });
+            }
+            
             saveRiskNotes();
             closeModal();
             renderRiskNotes();
@@ -11784,6 +13224,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const createdDate = note.createdAt ? new Date(note.createdAt).toLocaleString('en-US') : 'Unknown';
 
             const modal = document.getElementById('modal');
+            
+            // Fetch photo from IndexedDB if it exists
+            const loadPhotoAndRender = async () => {
+                let photoUrl = null;
+                if (note.hasPhoto) {
+                    try {
+                        photoUrl = await getPhotoFromIndexedDB(noteId);
+                    } catch (err) {
+                        console.error('Error loading photo:', err);
+                    }
+                }
+                
+                renderNoteModal(modal, note, behaviorType, level, noteDate, createdDate, photoUrl);
+            };
+            
+            loadPhotoAndRender();
+        }
+
+        function renderNoteModal(modal, note, behaviorType, level, noteDate, createdDate, photoUrl) {
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header" style="background: linear-gradient(135deg, ${level.color}20 0%, var(--bg-secondary) 100%); border-bottom: 3px solid ${level.color};">
@@ -11819,12 +13278,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                         </div>
 
-                        ${note.photo ? `
+                        ${photoUrl ? `
                             <!-- Photo Evidence -->
                             <div style="margin-bottom: 20px;">
                                 <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Photo Evidence</label>
                                 <div style="border-radius: 12px; overflow: hidden; background: var(--bg-secondary);">
-                                    <img src="${note.photo}" alt="Evidence" style="width: 100%; max-height: 350px; object-fit: contain; cursor: pointer;" onclick="window.open('${note.photo}', '_blank')">
+                                    <img src="${photoUrl}" alt="Evidence" style="width: 100%; max-height: 350px; object-fit: contain; cursor: pointer;" onclick="window.open('${photoUrl}', '_blank')">
                                 </div>
                                 <div style="text-align: center; margin-top: 8px;">
                                     <span style="font-size: 11px; color: var(--text-muted);">Click image to view full size</span>
@@ -11870,9 +13329,9 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         // G FORCE FUNCTIONALITY
         function renderGForce() {
             const dashboard = document.querySelector('.dashboard');
-            const quote = getRandomGForceQuote();
-            const affirmations = getRandomGForceAffirmations(5);
-            const philosophy = getRandomGForcePhilosophy();
+            const quote = getDailyGForceQuote();
+            const affirmations = getDailyGForceAffirmations(5);
+            const philosophy = getDailyGForcePhilosophy();
 
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -11891,9 +13350,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
                         <div id="gforce-quote-text" style="font-size: 1.6rem; line-height: 1.7; margin-bottom: 20px; font-weight: 300; color: var(--text-primary);">"${quote.text}"</div>
                         <div id="gforce-quote-author" style="text-align: right; color: var(--accent-primary); font-size: 1.1rem; font-style: italic;">— ${quote.author}</div>
-                        <button class="btn-secondary" onclick="refreshGForceQuote()" style="margin-top: 20px;">
-                            <i class="fas fa-sync-alt"></i> New Quote
-                        </button>
                     </div>
                 </div>
 
@@ -11905,9 +13361,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <i class="fas fa-heart" style="color: #ec4899;"></i>
                                 Today's Affirmations
                             </h3>
-                            <button class="btn-icon" onclick="refreshGForceAffirmations()" title="New Affirmations">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
                         </div>
                         <div class="card-body">
                             <div id="gforce-affirmations-page">
@@ -11927,9 +13380,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
                                 Self-Care Philosophy
                             </h3>
-                            <button class="btn-icon" onclick="refreshGForcePhilosophy()" title="New Philosophy">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
                         </div>
                         <div class="card-body">
                             <div id="gforce-philosophy-page-text" style="font-size: 15px; line-height: 1.8; margin-bottom: 24px; color: var(--text-secondary);">${philosophy.text}</div>
@@ -11983,49 +13433,139 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         const gforceQuotes = [
+            // Abundance & Prosperity
             { text: "Abundance is not something we acquire, it is something we tune into.", author: "Wayne Dyer" },
-            { text: "The universe is always conspiring in your favor when you raise your vibration.", author: "Anonymous" },
+            { text: "The universe is always conspiring in your favor when you raise your vibration.", author: "G Force" },
             { text: "What you think, you create. What you feel, you attract. What you imagine, you become.", author: "Buddha" },
             { text: "Gratitude is the key that unlocks the door to infinite abundance.", author: "Melody Beattie" },
             { text: "You are a living magnet. What you attract into your life is in harmony with your dominant thoughts.", author: "Brian Tracy" },
             { text: "Money is energy, and energy flows where you put your attention.", author: "Deepak Chopra" },
             { text: "Don't look for happiness outside yourself. Abundance begins within.", author: "Rumi" },
             { text: "When you change the way you look at things, the things you look at change.", author: "Wayne Dyer" },
-            { text: "The universe returns what you radiate. Be the energy you want to attract.", author: "G Force Original" },
+            { text: "The universe returns what you radiate. Be the energy you want to attract.", author: "G Force" },
             { text: "Prosperity is a state of mind before it becomes a physical reality.", author: "Napoleon Hill" },
-            { text: "Every moment is an opportunity to align with universal abundance.", author: "G Force Original" },
-            { text: "Your vibrational frequency determines your reality. Choose thoughts of abundance.", author: "G Force Original" },
-            { text: "The universe doesn't give you what you ask for, it gives you what you are.", author: "G Force Original" },
-            { text: "Gratitude transforms what you have into enough, and more.", author: "G Force Original" },
+            { text: "Every moment is an opportunity to align with universal abundance.", author: "G Force" },
+            { text: "Your vibrational frequency determines your reality. Choose thoughts of abundance.", author: "G Force" },
+            { text: "The universe doesn't give you what you ask for, it gives you what you are.", author: "G Force" },
+            { text: "Gratitude transforms what you have into enough, and more.", author: "G Force" },
             { text: "You are not a drop in the ocean, you are the entire ocean in a drop.", author: "Rumi" },
             { text: "Energy flows where your focus goes. Focus on abundance.", author: "Tony Robbins" },
-            { text: "Your intention creates your reality. Declare your prosperity now.", author: "G Force Original" },
+            { text: "Your intention creates your reality. Declare your prosperity now.", author: "G Force" },
             { text: "Success is not the key to happiness. Happiness is the key to success.", author: "Albert Schweitzer" },
-            { text: "When you connect with your purpose, the universe supports you.", author: "G Force Original" },
-            { text: "Abundance is your birthright. Claim it with confidence.", author: "Louise Hay" }
+            { text: "When you connect with your purpose, the universe supports you.", author: "G Force" },
+            { text: "Abundance is your birthright. Claim it with confidence.", author: "Louise Hay" },
+            // Self-Love & Inner Peace
+            { text: "You yourself, as much as anybody in the entire universe, deserve your love and affection.", author: "Buddha" },
+            { text: "The most powerful relationship you will ever have is the relationship with yourself.", author: "Steve Maraboli" },
+            { text: "Self-care is not selfish. You cannot serve from an empty vessel.", author: "Eleanor Brown" },
+            { text: "Be gentle with yourself. You're doing the best you can.", author: "G Force" },
+            { text: "Your value doesn't decrease based on someone's inability to see your worth.", author: "G Force" },
+            { text: "The way you speak to yourself matters. Choose words of love and encouragement.", author: "G Force" },
+            { text: "Peace comes from within. Do not seek it without.", author: "Buddha" },
+            { text: "In the midst of movement and chaos, keep stillness inside of you.", author: "Deepak Chopra" },
+            { text: "You are enough just as you are. Each emotion, each moment, each experience.", author: "G Force" },
+            { text: "Loving yourself isn't vanity; it's sanity.", author: "Katrina Mayer" },
+            // Manifestation & Power
+            { text: "Everything you can imagine is real.", author: "Pablo Picasso" },
+            { text: "The only limit to our realization of tomorrow is our doubts of today.", author: "Franklin D. Roosevelt" },
+            { text: "You have within you right now, everything you need to deal with whatever the world throws at you.", author: "Brian Tracy" },
+            { text: "The mind is everything. What you think you become.", author: "Buddha" },
+            { text: "Your thoughts are the architects of your destiny.", author: "David O. McKay" },
+            { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+            { text: "Whatever the mind can conceive and believe, it can achieve.", author: "Napoleon Hill" },
+            { text: "You are the creator of your own reality. Choose wisely.", author: "G Force" },
+            { text: "The universe rearranges itself to accommodate your picture of reality.", author: "G Force" },
+            { text: "Your imagination is your preview of life's coming attractions.", author: "Albert Einstein" },
+            // Growth & Transformation
+            { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { text: "Growth is painful. Change is painful. But nothing is as painful as staying stuck.", author: "G Force" },
+            { text: "Every adversity carries with it the seed of an equal or greater benefit.", author: "Napoleon Hill" },
+            { text: "Your current situation is not your final destination.", author: "G Force" },
+            { text: "The butterfly counts not months but moments, and has time enough.", author: "Rabindranath Tagore" },
+            { text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson" },
+            { text: "The secret of change is to focus all your energy not on fighting the old, but on building the new.", author: "Socrates" },
+            { text: "Every morning brings new potential, but if you dwell on yesterday's misfortunes, you tend to overlook today's opportunities.", author: "G Force" },
+            { text: "Stars can't shine without darkness. Your struggles are preparing you for greatness.", author: "G Force" },
+            { text: "Trust the timing of your life. Everything is unfolding exactly as it should.", author: "G Force" },
+            // Courage & Strength
+            { text: "She remembered who she was and the game changed.", author: "Lalah Delia" },
+            { text: "You are braver than you believe, stronger than you seem, and smarter than you think.", author: "A.A. Milne" },
+            { text: "Courage doesn't always roar. Sometimes it's the quiet voice saying 'I will try again tomorrow.'", author: "Mary Anne Radmacher" },
+            { text: "You didn't come this far to only come this far.", author: "G Force" },
+            { text: "The woman who doesn't require validation from anyone is the most feared individual on the planet.", author: "Mohadesa Najumi" },
+            { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller" },
+            { text: "Life shrinks or expands in proportion to one's courage.", author: "Anaïs Nin" },
+            { text: "You have been assigned this mountain to show others it can be moved.", author: "G Force" },
+            { text: "The only person you are destined to become is the person you decide to be.", author: "Ralph Waldo Emerson" },
+            { text: "Your wings already exist. All you have to do is fly.", author: "G Force" }
         ];
 
         const gforceAffirmations = [
+            // Abundance & Prosperity
             "I am a magnet for infinite abundance and prosperity",
             "The universe is constantly working in my favor",
             "I deserve all the good things coming into my life",
             "My energy attracts wonderful opportunities every day",
             "I trust in the perfect process of the universe",
             "I am aligned with the frequency of abundance",
+            "Money flows to me easily and naturally",
+            "I am surrounded by love, light, and abundance",
+            "My thoughts create my reality and I choose thoughts of abundance",
+            "I am an open channel for universal prosperity",
+            "Success and abundance are my natural state",
+            "Wealth constantly flows into my life from expected and unexpected sources",
+            "I am grateful for the abundance that surrounds me",
+            "Every dollar I spend comes back to me multiplied",
+            "I attract lucrative opportunities effortlessly",
+            // Self-Love & Worth
             "I release everything that no longer serves me and embrace the new",
             "My mind is at peace, my heart is calm",
             "I am worthy of receiving everything I desire and more",
             "Every day I become more prosperous in all aspects of my life",
-            "Money flows to me easily and naturally",
-            "I am surrounded by love, light, and abundance",
             "My present is full of blessings that I recognize with gratitude",
             "I have everything I need in this moment",
-            "My thoughts create my reality and I choose thoughts of abundance",
-            "I am an open channel for universal prosperity",
             "Each breath connects me more deeply with my inner peace",
             "I trust in my ability to create the life I desire",
-            "Success and abundance are my natural state",
-            "I am exactly where I need to be in this moment"
+            "I am exactly where I need to be in this moment",
+            "I love and accept myself unconditionally",
+            "I am deserving of happiness, love, and success",
+            "My self-worth is not determined by others' opinions",
+            "I honor my needs and take time for self-care",
+            "I am complete and whole just as I am",
+            "I forgive myself and release all guilt",
+            // Power & Manifestation
+            "I am the architect of my own destiny",
+            "My dreams are manifesting into reality right now",
+            "I have the power to create positive change in my life",
+            "I am confident in my ability to achieve my goals",
+            "Every challenge I face makes me stronger and wiser",
+            "I attract the right people and circumstances into my life",
+            "My potential is limitless",
+            "I transform obstacles into opportunities",
+            "I am creating the life of my dreams one day at a time",
+            "The universe supports my highest good",
+            // Peace & Gratitude
+            "I choose peace over worry, love over fear",
+            "I am grateful for this beautiful day and all it brings",
+            "I release anxiety and embrace calm",
+            "Today I choose joy and positivity",
+            "I am blessed with an amazing support system",
+            "Every experience teaches me something valuable",
+            "I radiate positive energy wherever I go",
+            "I am at peace with my past and excited for my future",
+            "Happiness flows through me naturally",
+            "I appreciate the small miracles in everyday life",
+            // Strength & Courage
+            "I am brave, bold, and unstoppable",
+            "I face challenges with courage and determination",
+            "My inner strength is greater than any obstacle",
+            "I trust myself to make the right decisions",
+            "I am resilient and bounce back from setbacks quickly",
+            "Fear does not control me; I control my response to fear",
+            "I embrace change as an opportunity for growth",
+            "I am becoming the best version of myself every day",
+            "My voice matters and deserves to be heard",
+            "I stand in my power with grace and confidence"
         ];
 
         const gforcePhilosophies = [
@@ -12068,16 +13608,129 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     { icon: "💌", text: "Send a message of appreciation to someone who has positively impacted your life" },
                     { icon: "🌅", text: "Start each morning by naming three good things before checking your phone" }
                 ]
+            },
+            {
+                text: "Your thoughts shape your reality more than you realize. Every thought is a seed planted in the garden of your mind. Choose to plant flowers of positivity, hope, and possibility rather than weeds of doubt and fear.",
+                tips: [
+                    { icon: "🧠", text: "Notice negative self-talk today and consciously replace it with a positive alternative" },
+                    { icon: "✨", text: "Visualize your ideal day for 5 minutes this morning, feeling the emotions of success" },
+                    { icon: "🪞", text: "Look in the mirror and speak three kind affirmations to yourself out loud" }
+                ]
+            },
+            {
+                text: "Boundaries are not walls that keep people out; they are bridges that define where you end and others begin. Setting healthy boundaries is an act of self-respect that teaches others how to treat you.",
+                tips: [
+                    { icon: "🚧", text: "Identify one area where you need stronger boundaries and commit to honoring it today" },
+                    { icon: "💬", text: "Practice expressing your needs clearly and calmly without over-explaining or apologizing" },
+                    { icon: "🛡️", text: "Remember: 'No' is a complete sentence. You don't owe anyone an explanation for protecting your energy" }
+                ]
+            },
+            {
+                text: "Connection with nature is medicine for the soul. In the natural world, you remember that you are part of something greater than yourself. Let the earth ground you and the sky remind you of infinite possibilities.",
+                tips: [
+                    { icon: "🌳", text: "Spend 10 minutes outside today, whether it's a walk, sitting in the sun, or tending to plants" },
+                    { icon: "🌊", text: "Listen to nature sounds while working or relaxing to bring calm energy into your space" },
+                    { icon: "🌻", text: "Bring a piece of nature indoors - a flower, a plant, or even a beautiful stone" }
+                ]
+            },
+            {
+                text: "Forgiveness is not about condoning what happened; it's about freeing yourself from carrying the weight of resentment. When you forgive, you release the chains that bind you to the past and step into freedom.",
+                tips: [
+                    { icon: "🕊️", text: "Write a letter of forgiveness to someone who hurt you (you don't need to send it)" },
+                    { icon: "💝", text: "Forgive yourself for one past mistake. Say out loud: 'I release this and move forward with love'" },
+                    { icon: "🌈", text: "Recognize that holding onto anger hurts you more than anyone else - choose peace today" }
+                ]
+            },
+            {
+                text: "Your intuition is your inner compass, a gift that guides you toward your highest good. In a world full of noise, learning to listen to your inner voice is a superpower. Trust yourself - you know more than you think.",
+                tips: [
+                    { icon: "🔮", text: "Before making a decision today, pause and ask yourself: 'What does my gut tell me?'" },
+                    { icon: "🧘‍♀️", text: "Spend 5 minutes in silence, breathing deeply, and notice what thoughts or feelings arise" },
+                    { icon: "📿", text: "Practice trusting a small intuitive nudge today and observe the outcome" }
+                ]
+            },
+            {
+                text: "Creativity is not reserved for artists; it is the essence of being human. Every time you solve a problem, cook a meal, or rearrange your space, you are creating. Honor your creative spirit by making time to play.",
+                tips: [
+                    { icon: "🎨", text: "Do something creative today with no expectation of perfection - doodle, sing, write, dance" },
+                    { icon: "🎭", text: "Try something new that slightly scares you - creativity lives at the edge of comfort" },
+                    { icon: "🌈", text: "Give yourself permission to be a beginner at something. Mastery isn't the goal - joy is" }
+                ]
+            },
+            {
+                text: "Patience is the art of trusting the timing of your life. Like a seed beneath the soil, growth is happening even when you cannot see it. Have faith that everything is unfolding exactly as it should.",
+                tips: [
+                    { icon: "🌱", text: "When feeling impatient today, take three deep breaths and say: 'Everything is working out for me'" },
+                    { icon: "⏳", text: "Reflect on a past situation that felt frustrating but eventually revealed its purpose" },
+                    { icon: "🦋", text: "Remember: the caterpillar doesn't know it will become a butterfly. Trust your transformation" }
+                ]
+            },
+            {
+                text: "Joy is not something to be pursued; it is something to be allowed. It already exists within you, waiting to be uncovered. Strip away the layers of worry and obligation, and you will find joy has been there all along.",
+                tips: [
+                    { icon: "😊", text: "Do one thing today purely because it brings you joy, with no productivity attached" },
+                    { icon: "🎉", text: "Celebrate a small win from this week - no achievement is too small to acknowledge" },
+                    { icon: "💃", text: "Move your body in a way that feels good - dance, stretch, walk - and notice how joy follows" }
+                ]
+            },
+            {
+                text: "Vulnerability is not weakness; it is the birthplace of connection, creativity, and courage. When you allow yourself to be seen - truly seen - you open the door to authentic relationships and deep fulfillment.",
+                tips: [
+                    { icon: "💗", text: "Share something honest with a trusted person today, even if it feels uncomfortable" },
+                    { icon: "🎭", text: "Notice where you wear masks to hide your true self. Ask: 'What would happen if I took it off?'" },
+                    { icon: "🌸", text: "Embrace imperfection today. Done is better than perfect, and real is better than polished" }
+                ]
+            },
+            {
+                text: "Abundance is a mindset before it becomes a reality. When you shift from scarcity thinking to abundance thinking, you open yourself to receiving more of everything - love, opportunities, wealth, and happiness.",
+                tips: [
+                    { icon: "💰", text: "Replace 'I can't afford it' with 'How can I afford it?' to open your mind to possibilities" },
+                    { icon: "🙏", text: "Express gratitude for your current blessings, no matter how small - this attracts more" },
+                    { icon: "🎁", text: "Give something away today - generosity signals to the universe that you have plenty to share" }
+                ]
             }
         ];
 
-        let currentGForceQuoteIndex = -1;
-        let currentGForcePhilosophyIndex = -1;
+        // Get day of year for consistent daily content
+        function getDayOfYear() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            return Math.floor(diff / oneDay);
+        }
 
         function getGForceDate() {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             return new Date().toLocaleDateString('en-US', options);
         }
+
+        // Daily functions - content changes each day but stays consistent throughout the day
+        function getDailyGForceQuote() {
+            const dayOfYear = getDayOfYear();
+            const index = dayOfYear % gforceQuotes.length;
+            return gforceQuotes[index];
+        }
+
+        function getDailyGForceAffirmations(count = 5) {
+            const dayOfYear = getDayOfYear();
+            const result = [];
+            for (let i = 0; i < count; i++) {
+                const index = (dayOfYear + i * 7) % gforceAffirmations.length;
+                result.push(gforceAffirmations[index]);
+            }
+            return result;
+        }
+
+        function getDailyGForcePhilosophy() {
+            const dayOfYear = getDayOfYear();
+            const index = dayOfYear % gforcePhilosophies.length;
+            return gforcePhilosophies[index];
+        }
+
+        // Keep random functions for backwards compatibility
+        let currentGForceQuoteIndex = -1;
+        let currentGForcePhilosophyIndex = -1;
 
         function getRandomGForceQuote() {
             let newIndex;
@@ -12182,7 +13835,81 @@ let gconomicsState = {
 
 // Save expenses to localStorage
 function saveGconomicsExpenses() {
-    localStorage.setItem('gconomicsExpenses', JSON.stringify(gconomicsState.expenses));
+    const expensesWithTimestamp = gconomicsState.expenses.map(exp => ({
+        ...exp,
+        updatedAt: exp.updatedAt || new Date().toISOString()
+    }));
+    localStorage.setItem('gconomicsExpenses', JSON.stringify(expensesWithTimestamp));
+}
+
+// Initialize Gconomics Firebase sync
+async function initializeGconomicsFirebase(userId, userEmail) {
+    if (!window.gconomicsFirebase) {
+        console.warn('Gconomics Firebase module not loaded');
+        return false;
+    }
+
+    try {
+        const initialized = await window.gconomicsFirebase.initialize();
+        if (!initialized) return false;
+
+        window.gconomicsFirebase.setCurrentUser(userId, userEmail);
+        
+        // Sync existing local expenses to Firebase
+        if (gconomicsState.expenses.length > 0) {
+            await window.gconomicsFirebase.syncExpensesToFirestore(gconomicsState.expenses);
+        }
+
+        console.log('✅ Gconomics Firebase initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Error initializing Gconomics Firebase:', error);
+        return false;
+    }
+}
+
+// Load Gconomics expenses from Firebase
+async function loadGconomicsFromFirebase() {
+    if (!window.gconomicsFirebase || !window.gconomicsFirebase.isInitialized) {
+        console.warn('Gconomics Firebase not initialized');
+        return false;
+    }
+
+    try {
+        const firebaseExpenses = await window.gconomicsFirebase.loadExpensesFromFirestore();
+        
+        if (firebaseExpenses.length === 0) {
+            console.log('No expenses found in Firebase');
+            return true;
+        }
+
+        // Merge Firebase expenses with local expenses
+        const mergedExpenses = await window.gconomicsFirebase.syncWithFirebase(gconomicsState.expenses);
+        gconomicsState.expenses = mergedExpenses;
+        saveGconomicsExpenses();
+        
+        console.log(`✅ Loaded and merged ${mergedExpenses.length} expenses from Firebase`);
+        return true;
+    } catch (error) {
+        console.error('Error loading expenses from Firebase:', error);
+        return false;
+    }
+}
+
+// Get expense statistics from Firebase
+async function getGconomicsStatsFromFirebase(monthString) {
+    if (!window.gconomicsFirebase || !window.gconomicsFirebase.isInitialized) {
+        console.warn('Gconomics Firebase not initialized');
+        return null;
+    }
+
+    try {
+        const stats = await window.gconomicsFirebase.getMonthlyStats(monthString);
+        return stats;
+    } catch (error) {
+        console.error('Error getting Firebase stats:', error);
+        return null;
+    }
 }
 
 // Get expenses for current month
@@ -12669,6 +14396,14 @@ function deleteExpense(expenseId) {
 
     gconomicsState.expenses = gconomicsState.expenses.filter(e => e.id !== expenseId);
     saveGconomicsExpenses();
+    
+    // Delete from Firebase if available
+    if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
+        window.gconomicsFirebase.deleteExpenseFromFirestore(expenseId).catch(error => {
+            console.warn('Expense deleted locally but not from Firebase:', error);
+        });
+    }
+    
     renderGconomics();
 }
 
@@ -12712,7 +14447,8 @@ function saveExpenseWithPhoto(date, description, category, amount, photo) {
                 description: description || 'Expense',
                 category: category || 'other',
                 amount,
-                photo
+                photo,
+                updatedAt: new Date().toISOString()
             };
         }
     } else {
@@ -12724,12 +14460,27 @@ function saveExpenseWithPhoto(date, description, category, amount, photo) {
             category: category || 'other',
             amount,
             photo,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
         gconomicsState.expenses.push(newExpense);
     }
 
     saveGconomicsExpenses();
+    
+    // Sync to Firebase if available
+    if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
+        const expenseToSync = gconomicsState.editingExpenseId 
+            ? gconomicsState.expenses.find(e => e.id === gconomicsState.editingExpenseId)
+            : gconomicsState.expenses[gconomicsState.expenses.length - 1];
+        
+        if (expenseToSync) {
+            window.gconomicsFirebase.saveExpenseToFirestore(expenseToSync).catch(error => {
+                console.warn('Expense saved locally but not synced to Firebase:', error);
+            });
+        }
+    }
+    
     closeExpenseModal();
 
     // Switch to the month of the expense if different

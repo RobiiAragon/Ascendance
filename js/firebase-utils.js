@@ -1946,3 +1946,1135 @@ class FirebaseInvoiceManager {
 
 // Initialize global Firebase Invoice Manager
 const firebaseInvoiceManager = new FirebaseInvoiceManager();
+
+/**
+ * Firebase Announcements Manager
+ * Handles Firebase Firestore operations for announcements
+ */
+class FirebaseAnnouncementsManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Announcements Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Announcements Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Announcements Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load announcements from Firestore
+     * @returns {Promise<Array>} Array of announcement records
+     */
+    async loadAnnouncements() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Announcements Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
+            const snapshot = await this.db.collection(announcementsCollection)
+                .orderBy('date', 'desc')
+                .get();
+
+            const announcements = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                announcements.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    date: data.date || '',
+                    title: data.title || '',
+                    content: data.content || '',
+                    author: data.author || 'Unknown',
+                    targetStores: data.targetStores || 'all',
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                });
+            });
+
+            console.log(`Loaded ${announcements.length} announcements from Firestore`);
+            return announcements;
+        } catch (error) {
+            console.error('Error loading announcements from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new announcement to Firestore
+     * @param {Object} announcementData - Announcement data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addAnnouncement(announcementData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Announcements Manager not initialized.');
+                return null;
+            }
+
+            announcementData.createdAt = new Date();
+            announcementData.updatedAt = new Date();
+
+            const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
+            const docRef = await this.db.collection(announcementsCollection).add(announcementData);
+
+            console.log('Announcement added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding announcement:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update announcement in Firestore
+     * @param {string} announcementId - Announcement Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateAnnouncement(announcementId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Announcements Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
+            await this.db.collection(announcementsCollection).doc(announcementId).update(updateData);
+
+            console.log('Announcement updated:', announcementId);
+            return true;
+        } catch (error) {
+            console.error('Error updating announcement:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete announcement from Firestore
+     * @param {string} announcementId - Announcement Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteAnnouncement(announcementId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Announcements Manager not initialized.');
+                return false;
+            }
+
+            const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
+            await this.db.collection(announcementsCollection).doc(announcementId).delete();
+
+            console.log('Announcement deleted:', announcementId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting announcement:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to announcements collection for real-time updates
+     * @param {Function} callback - Function to call with updated announcements array
+     * @returns {Function} Unsubscribe function
+     */
+    listenToAnnouncements(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Announcements Manager not initialized.');
+                return null;
+            }
+
+            const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
+            return this.db.collection(announcementsCollection)
+                .orderBy('date', 'desc')
+                .onSnapshot(snapshot => {
+                    const announcements = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        announcements.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            date: data.date || '',
+                            title: data.title || '',
+                            content: data.content || '',
+                            author: data.author || 'Unknown',
+                            targetStores: data.targetStores || 'all',
+                            createdAt: data.createdAt,
+                            updatedAt: data.updatedAt
+                        });
+                    });
+                    callback(announcements);
+                }, error => {
+                    console.error('Error listening to announcements:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up announcements listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Announcements Manager
+const firebaseAnnouncementsManager = new FirebaseAnnouncementsManager();
+
+class FirebaseRestockRequestsManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Restock Requests Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Restock Requests Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Restock Requests Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load restock requests from Firestore
+     * @returns {Promise<Array>} Array of restock requests
+     */
+    async loadRestockRequests() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Restock Requests Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
+            const snapshot = await this.db.collection(requestsCollection)
+                .orderBy('requestDate', 'desc')
+                .get();
+
+            const requests = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                requests.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    productName: data.productName || '',
+                    quantity: data.quantity || 0,
+                    store: data.store || '',
+                    requestedBy: data.requestedBy || '',
+                    requestDate: data.requestDate || '',
+                    status: data.status || 'pending',
+                    priority: data.priority || 'medium',
+                    notes: data.notes || ''
+                });
+            });
+
+            console.log(`Loaded ${requests.length} restock requests from Firestore`);
+            return requests;
+        } catch (error) {
+            console.error('Error loading restock requests from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new restock request to Firestore
+     * @param {Object} requestData - Request data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addRestockRequest(requestData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Restock Requests Manager not initialized.');
+                return null;
+            }
+
+            requestData.createdAt = new Date();
+            requestData.updatedAt = new Date();
+
+            const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
+            const docRef = await this.db.collection(requestsCollection).add(requestData);
+
+            console.log('Restock request added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding restock request:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update restock request in Firestore
+     * @param {string} requestId - Request Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateRestockRequest(requestId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Restock Requests Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
+            await this.db.collection(requestsCollection).doc(requestId).update(updateData);
+
+            console.log('Restock request updated:', requestId);
+            return true;
+        } catch (error) {
+            console.error('Error updating restock request:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete restock request from Firestore
+     * @param {string} requestId - Request Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteRestockRequest(requestId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Restock Requests Manager not initialized.');
+                return false;
+            }
+
+            const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
+            await this.db.collection(requestsCollection).doc(requestId).delete();
+
+            console.log('Restock request deleted:', requestId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting restock request:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to real-time updates for restock requests
+     * @param {Function} callback - Callback function to handle updates
+     * @returns {Function} Unsubscribe function
+     */
+    listenToRestockRequests(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Restock Requests Manager not initialized.');
+                return null;
+            }
+
+            const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
+            return this.db.collection(requestsCollection)
+                .orderBy('requestDate', 'desc')
+                .onSnapshot(snapshot => {
+                    const requests = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        requests.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            productName: data.productName || '',
+                            quantity: data.quantity || 0,
+                            store: data.store || '',
+                            requestedBy: data.requestedBy || '',
+                            requestDate: data.requestDate || '',
+                            status: data.status || 'pending',
+                            priority: data.priority || 'medium',
+                            notes: data.notes || ''
+                        });
+                    });
+                    callback(requests);
+                }, error => {
+                    console.error('Error listening to restock requests:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up restock requests listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Restock Requests Manager
+const firebaseRestockRequestsManager = new FirebaseRestockRequestsManager();
+
+/**
+ * Firebase Change Records Manager
+ * Handles Firebase Firestore operations for change records (cambio dejado en Campos)
+ */
+class FirebaseChangeRecordsManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Change Records Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Change Records Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Change Records Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load change records from Firestore
+     * @returns {Promise<Array>} Array of change records
+     */
+    async loadChangeRecords() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Change Records Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
+            const snapshot = await this.db.collection(changeCollection)
+                .orderBy('date', 'desc')
+                .get();
+
+            const records = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                records.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    store: data.store || '',
+                    amount: data.amount || 0,
+                    date: data.date || '',
+                    leftBy: data.leftBy || '',
+                    receivedBy: data.receivedBy || '',
+                    notes: data.notes || '',
+                    photo: data.photo || null,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                });
+            });
+
+            console.log(`Loaded ${records.length} change records from Firestore`);
+            return records;
+        } catch (error) {
+            console.error('Error loading change records from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new change record to Firestore
+     * @param {Object} recordData - Record data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addChangeRecord(recordData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Change Records Manager not initialized.');
+                return null;
+            }
+
+            recordData.createdAt = new Date();
+            recordData.updatedAt = new Date();
+
+            const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
+            const docRef = await this.db.collection(changeCollection).add(recordData);
+
+            console.log('Change record added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding change record:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update change record in Firestore
+     * @param {string} recordId - Record Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateChangeRecord(recordId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Change Records Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
+            await this.db.collection(changeCollection).doc(recordId).update(updateData);
+
+            console.log('Change record updated:', recordId);
+            return true;
+        } catch (error) {
+            console.error('Error updating change record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete change record from Firestore
+     * @param {string} recordId - Record Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteChangeRecord(recordId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Change Records Manager not initialized.');
+                return false;
+            }
+
+            const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
+            await this.db.collection(changeCollection).doc(recordId).delete();
+
+            console.log('Change record deleted:', recordId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting change record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to real-time updates for change records
+     * @param {Function} callback - Callback function to handle updates
+     * @returns {Function} Unsubscribe function
+     */
+    listenToChangeRecords(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Change Records Manager not initialized.');
+                return null;
+            }
+
+            const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
+            return this.db.collection(changeCollection)
+                .orderBy('date', 'desc')
+                .onSnapshot(snapshot => {
+                    const records = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        records.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            store: data.store || '',
+                            amount: data.amount || 0,
+                            date: data.date || '',
+                            leftBy: data.leftBy || '',
+                            receivedBy: data.receivedBy || '',
+                            notes: data.notes || '',
+                            photo: data.photo || null,
+                            createdAt: data.createdAt,
+                            updatedAt: data.updatedAt
+                        });
+                    });
+                    callback(records);
+                }, error => {
+                    console.error('Error listening to change records:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up change records listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Change Records Manager
+const firebaseChangeRecordsManager = new FirebaseChangeRecordsManager();
+
+/**
+ * Firebase Cash Out Manager
+ * Handles Firebase Firestore operations for cash out records
+ */
+class FirebaseCashOutManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Cash Out Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Cash Out Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Cash Out Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load cash out records from Firestore
+     * @returns {Promise<Array>} Array of cash out records
+     */
+    async loadCashOutRecords() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Cash Out Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
+            const snapshot = await this.db.collection(cashOutCollection)
+                .orderBy('createdDate', 'desc')
+                .get();
+
+            const records = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                records.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    name: data.name || '',
+                    amount: data.amount || 0,
+                    reason: data.reason || '',
+                    createdDate: data.createdDate || '',
+                    createdBy: data.createdBy || '',
+                    store: data.store || '',
+                    status: data.status || 'open',
+                    closedDate: data.closedDate || null,
+                    receiptPhoto: data.receiptPhoto || null,
+                    amountSpent: data.amountSpent || null,
+                    moneyLeft: data.moneyLeft || null,
+                    hasMoneyLeft: data.hasMoneyLeft || null,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                });
+            });
+
+            console.log(`Loaded ${records.length} cash out records from Firestore`);
+            return records;
+        } catch (error) {
+            console.error('Error loading cash out records from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new cash out record to Firestore
+     * @param {Object} recordData - Record data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addCashOutRecord(recordData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Cash Out Manager not initialized.');
+                return null;
+            }
+
+            recordData.createdAt = new Date();
+            recordData.updatedAt = new Date();
+
+            const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
+            const docRef = await this.db.collection(cashOutCollection).add(recordData);
+
+            console.log('Cash out record added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding cash out record:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update cash out record in Firestore
+     * @param {string} recordId - Record Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateCashOutRecord(recordId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Cash Out Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
+            await this.db.collection(cashOutCollection).doc(recordId).update(updateData);
+
+            console.log('Cash out record updated:', recordId);
+            return true;
+        } catch (error) {
+            console.error('Error updating cash out record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete cash out record from Firestore
+     * @param {string} recordId - Record Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteCashOutRecord(recordId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Cash Out Manager not initialized.');
+                return false;
+            }
+
+            const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
+            await this.db.collection(cashOutCollection).doc(recordId).delete();
+
+            console.log('Cash out record deleted:', recordId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting cash out record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to real-time updates for cash out records
+     * @param {Function} callback - Callback function to handle updates
+     * @returns {Function} Unsubscribe function
+     */
+    listenToCashOutRecords(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Cash Out Manager not initialized.');
+                return null;
+            }
+
+            const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
+            return this.db.collection(cashOutCollection)
+                .orderBy('createdDate', 'desc')
+                .onSnapshot(snapshot => {
+                    const records = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        records.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            name: data.name || '',
+                            amount: data.amount || 0,
+                            reason: data.reason || '',
+                            createdDate: data.createdDate || '',
+                            createdBy: data.createdBy || '',
+                            store: data.store || '',
+                            status: data.status || 'open',
+                            closedDate: data.closedDate || null,
+                            receiptPhoto: data.receiptPhoto || null,
+                            amountSpent: data.amountSpent || null,
+                            moneyLeft: data.moneyLeft || null,
+                            hasMoneyLeft: data.hasMoneyLeft || null,
+                            createdAt: data.createdAt,
+                            updatedAt: data.updatedAt
+                        });
+                    });
+                    callback(records);
+                }, error => {
+                    console.error('Error listening to cash out records:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up cash out records listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Cash Out Manager
+const firebaseCashOutManager = new FirebaseCashOutManager();
+
+/**
+ * Firebase Gifts Manager
+ * Handles all gifts (Control de Regalos en Especie) operations with Firestore
+ */
+class FirebaseGiftsManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Gifts Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Gifts Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Gifts Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load gifts from Firestore
+     * @returns {Promise<Array>} Array of gift records
+     */
+    async loadGifts() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Gifts Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
+            const snapshot = await this.db.collection(giftsCollection)
+                .orderBy('date', 'desc')
+                .get();
+
+            const gifts = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                gifts.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    product: data.product || '',
+                    quantity: data.quantity || 0,
+                    value: data.value || 0,
+                    recipient: data.recipient || '',
+                    recipientType: data.recipientType || 'customer',
+                    reason: data.reason || '',
+                    store: data.store || '',
+                    date: data.date || '',
+                    notes: data.notes || '',
+                    photo: data.photo || null
+                });
+            });
+
+            console.log(`Loaded ${gifts.length} gift records from Firestore`);
+            return gifts;
+        } catch (error) {
+            console.error('Error loading gifts from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new gift record to Firestore
+     * @param {Object} giftData - Gift data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addGift(giftData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Gifts Manager not initialized.');
+                return null;
+            }
+
+            giftData.createdAt = new Date();
+            giftData.updatedAt = new Date();
+
+            const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
+            const docRef = await this.db.collection(giftsCollection).add(giftData);
+
+            console.log('Gift record added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding gift record:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update gift record in Firestore
+     * @param {string} giftId - Gift Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateGift(giftId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Gifts Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
+            await this.db.collection(giftsCollection).doc(giftId).update(updateData);
+
+            console.log('Gift record updated:', giftId);
+            return true;
+        } catch (error) {
+            console.error('Error updating gift record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete gift record from Firestore
+     * @param {string} giftId - Gift Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteGift(giftId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Gifts Manager not initialized.');
+                return false;
+            }
+
+            const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
+            await this.db.collection(giftsCollection).doc(giftId).delete();
+
+            console.log('Gift record deleted:', giftId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting gift record:', error);
+            return false;
+        }
+    }
+}
+
+// Initialize global Firebase Gifts Manager
+const firebaseGiftsManager = new FirebaseGiftsManager();
+
+/**
+ * Firebase Issues Manager
+ * Handles Firebase Firestore operations for issues registry
+ */
+class FirebaseIssuesManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Issues Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Issues Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Issues Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load issues from Firestore
+     * @returns {Promise<Array>} Array of issue records
+     */
+    async loadIssues() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Issues Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
+            const snapshot = await this.db.collection(issuesCollection)
+                .orderBy('incidentDate', 'desc')
+                .get();
+
+            const issues = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                issues.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    customer: data.customer || 'Anonymous',
+                    phone: data.phone || '',
+                    type: data.type || 'In Store',
+                    description: data.description || '',
+                    incidentDate: data.incidentDate || '',
+                    perception: data.perception || null,
+                    status: data.status || 'open',
+                    createdBy: data.createdBy || '',
+                    createdDate: data.createdDate || '',
+                    solution: data.solution || null,
+                    resolvedBy: data.resolvedBy || null,
+                    resolutionDate: data.resolutionDate || null,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                });
+            });
+
+            console.log(`Loaded ${issues.length} issues from Firestore`);
+            return issues;
+        } catch (error) {
+            console.error('Error loading issues from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new issue to Firestore
+     * @param {Object} issueData - Issue data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addIssue(issueData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Issues Manager not initialized.');
+                return null;
+            }
+
+            issueData.createdAt = new Date();
+            issueData.updatedAt = new Date();
+
+            const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
+            const docRef = await this.db.collection(issuesCollection).add(issueData);
+
+            console.log('Issue added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding issue:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update issue in Firestore
+     * @param {string} issueId - Issue Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateIssue(issueId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Issues Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
+            await this.db.collection(issuesCollection).doc(issueId).update(updateData);
+
+            console.log('Issue updated:', issueId);
+            return true;
+        } catch (error) {
+            console.error('Error updating issue:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete issue from Firestore
+     * @param {string} issueId - Issue Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteIssue(issueId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Issues Manager not initialized.');
+                return false;
+            }
+
+            const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
+            await this.db.collection(issuesCollection).doc(issueId).delete();
+
+            console.log('Issue deleted:', issueId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting issue:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to real-time updates for issues
+     * @param {Function} callback - Callback function to handle updates
+     * @returns {Function} Unsubscribe function
+     */
+    listenToIssues(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Issues Manager not initialized.');
+                return null;
+            }
+
+            const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
+            return this.db.collection(issuesCollection)
+                .orderBy('incidentDate', 'desc')
+                .onSnapshot(snapshot => {
+                    const issues = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        issues.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            customer: data.customer || 'Anonymous',
+                            phone: data.phone || '',
+                            type: data.type || 'In Store',
+                            description: data.description || '',
+                            incidentDate: data.incidentDate || '',
+                            perception: data.perception || null,
+                            status: data.status || 'open',
+                            createdBy: data.createdBy || '',
+                            createdDate: data.createdDate || '',
+                            solution: data.solution || null,
+                            resolvedBy: data.resolvedBy || null,
+                            resolutionDate: data.resolutionDate || null,
+                            createdAt: data.createdAt,
+                            updatedAt: data.updatedAt
+                        });
+                    });
+                    callback(issues);
+                }, error => {
+                    console.error('Error listening to issues:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up issues listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Issues Manager
+const firebaseIssuesManager = new FirebaseIssuesManager();

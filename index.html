@@ -171,10 +171,9 @@
             <a href="#" class="nav-item" data-page="licenses" onclick="navigateTo('licenses'); return false;">
                 <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
                 Licenses & Docs
-                <span class="nav-badge" style="background: var(--warning);">2</span>
             </a>
 
-            <!-- Sales Analytics with dropdown -->
+            <!-- Sales Analytics with dropdown (HIDDEN)
             <div>
                 <a href="#" class="nav-item has-dropdown" data-page="analytics" onclick="toggleDropdown(event, 'sales'); return false;">
                     <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
@@ -190,6 +189,7 @@
                     </a>
                 </div>
             </div>
+            -->
             <a href="#" class="nav-item">
                 <span class="nav-icon"><i class="fas fa-box"></i></span>
                 New Stuff
@@ -205,7 +205,7 @@
             <a href="#" class="nav-item" data-page="announcements" onclick="navigateTo('announcements'); return false;">
                 <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
                 Announcements
-                <span class="nav-badge">3</span>
+                <span class="nav-badge" id="announcements-badge">0</span>
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('thieves'); return false;">
                 <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
@@ -213,11 +213,11 @@
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('invoices'); return false;">
                 <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                Invoices
+                Invoices & Payments
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('issues'); return false;">
                 <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                Issues
+                Issues Registry
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('gconomics'); return false;">
                 <span class="nav-icon"><i class="fas fa-wallet"></i></span>
@@ -225,7 +225,7 @@
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('vendors'); return false;">
                 <span class="nav-icon"><i class="fas fa-truck"></i></span>
-                Vendors
+                Vendors & Suppliers
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('cashout'); return false;">
                 <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
@@ -233,11 +233,11 @@
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('treasury'); return false;">
                 <span class="nav-icon"><i class="fas fa-vault"></i></span>
-                Treasury
+                Treasury Pieces
             </a>
             <a href="#" class="nav-item" data-page="change" onclick="navigateTo('change'); return false;">
                 <span class="nav-icon"><i class="fas fa-coins"></i></span>
-                Change
+                Change Records
             </a>
             <a href="#" class="nav-item" data-page="gifts" onclick="navigateTo('gifts'); return false;">
                 <span class="nav-icon"><i class="fas fa-gift"></i></span>
@@ -247,7 +247,7 @@
                 <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
                 Risk Notes
             </a>
-            <a href="#" class="nav-item" data-page="gforce">
+            <a href="#" class="nav-item" data-page="gforce" onclick="navigateTo('gforce'); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
                 G Force
             </a>
@@ -290,29 +290,30 @@
             </div>
 
             <div class="header-right">
+                <!-- Announcements Bell -->
+                <div class="header-notification-container">
+                    <button class="header-notification-btn" onclick="toggleAnnouncementsDropdown()" title="Announcements">
+                        <i class="fas fa-bell"></i>
+                        <span class="header-notification-badge" id="header-announcements-badge">0</span>
+                    </button>
+                    <div class="announcements-dropdown" id="announcements-dropdown">
+                        <div class="announcements-dropdown-header">
+                            <h4>Announcements</h4>
+                            <a href="#" onclick="navigateTo('announcements'); closeAnnouncementsDropdown(); return false;">View All</a>
+                        </div>
+                        <div class="announcements-dropdown-list" id="announcements-dropdown-list">
+                            <!-- Announcements will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
                 <div class="user-menu-container">
-                    <div class="user-menu" onclick="toggleUserMenu()">
+                    <div class="user-menu">
                         <div class="user-avatar" id="header-user-avatar">--</div>
                         <div class="user-info">
                             <span class="user-name" id="header-user-name">Loading...</span>
                             <span class="user-role" id="header-user-role">...</span>
                         </div>
-                        <i class="fas fa-chevron-down user-menu-chevron" style="color: var(--text-muted); font-size: 12px;"></i>
-                    </div>
-                    <div class="user-menu-dropdown" id="user-menu-dropdown">
-                        <a href="#" class="user-menu-item" onclick="navigateTo('profile'); closeUserMenu(); return false;">
-                            <i class="fas fa-user"></i>
-                            <span>My Profile</span>
-                        </a>
-                        <a href="#" class="user-menu-item" onclick="navigateTo('settings'); closeUserMenu(); return false;">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                        <div class="user-menu-divider"></div>
-                        <a href="#" class="user-menu-item logout" onclick="logout(); return false;">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
-                        </a>
                     </div>
                 </div>
             </div>
@@ -613,6 +614,9 @@
     <!-- Firebase Sync Manager -->
     <script src="js/firebase-sync.js"></script>
 
+    <!-- Gconomics Firebase Manager -->
+    <script src="js/gconomics-firebase.js"></script>
+
     <!-- Authentication Manager -->
     <script src="js/auth-manager.js"></script>
 
@@ -675,7 +679,55 @@
             } catch (error) {
                 console.warn('⚠️ Firebase Clock In Manager initialization failed, using local fallback data:', error);
             }
-            
+
+            try {
+                // Initialize Firebase Announcements
+                await initializeFirebaseAnnouncements();
+                console.log('✅ Announcements system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Announcements initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Restock Requests
+                await initializeFirebaseRestockRequests();
+                console.log('✅ Restock Requests system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Restock Requests initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Change Records
+                await initializeFirebaseChangeRecords();
+                console.log('✅ Change Records system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Change Records initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Cash Out Records
+                await initializeFirebaseCashOut();
+                console.log('✅ Cash Out system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Cash Out initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Gifts
+                await initializeFirebaseGifts();
+                console.log('✅ Gifts system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Gifts initialization failed, using local fallback data:', error);
+            }
+
+            try {
+                // Initialize Firebase Issues
+                await initializeFirebaseIssues();
+                console.log('✅ Issues Registry system initialized');
+            } catch (error) {
+                console.warn('⚠️ Firebase Issues initialization failed, using local fallback data:', error);
+            }
+
             // Filter navigation menu based on user role
             try {
                 filterNavigationByRole();

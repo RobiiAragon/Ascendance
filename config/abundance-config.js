@@ -62,7 +62,12 @@ window.FIREBASE_COLLECTIONS = {
     products: 'products',       // Firestore collection for products
     trainings: 'trainings',     // Firestore collection for trainings
     schedules: 'schedules',     // Firestore collection for employee schedules
-    treasury: 'treasury'        // Firestore collection for treasury pieces
+    treasury: 'treasury',       // Firestore collection for treasury pieces
+    announcements: 'announcements', // Firestore collection for announcements
+    changeRecords: 'changeRecords', // Firestore collection for change records
+    cashOut: 'cashOut', // Firestore collection for cash out records
+    gifts: 'gifts',             // Firestore collection for gifts (Control de Regalos en Especie)
+    issues: 'issues'            // Firestore collection for issues registry
 };
 
 // Employee Roles Configuration
@@ -123,7 +128,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes']
+        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce']
     },
     'manager': {
         // Action Permissions
@@ -137,7 +142,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'change', 'gifts', 'risknotes']
+        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'change', 'gifts', 'risknotes', 'gforce']
     },
     'employee': {
         // Action Permissions
@@ -151,7 +156,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training', 'change', 'risknotes']
+        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training', 'change', 'risknotes', 'gforce']
     }
 };
 
