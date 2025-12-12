@@ -253,6 +253,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <script src="config/env.js"></script>
     <script src="config/abundance-config.js"></script>
@@ -437,11 +438,20 @@
                 
                 console.log(`🔍 Fetching employee data from Firestore...`);
                 
-                // Query Firestore for employee with matching email
-                const snapshot = await db.collection(employeesCollection)
-                    .where('email', '==', email)
+                // Query Firestore for employee with matching authEmail or email
+                let snapshot = await db.collection(employeesCollection)
+                    .where('authEmail', '==', email)
                     .limit(1)
                     .get();
+
+                // If not found by authEmail, try email field
+                if (snapshot.empty) {
+                    console.log('⚠️  Not found by authEmail, trying email field...');
+                    snapshot = await db.collection(employeesCollection)
+                        .where('email', '==', email)
+                        .limit(1)
+                        .get();
+                }
 
                 if (snapshot.empty) {
                     console.warn(`⚠️  No employee record found for authenticated user: ${email}`);
@@ -474,9 +484,9 @@
                     id: doc.id,
                     firestoreId: doc.id,
                     firebaseUid: userCredential.user.uid,
-                    email: employeeData.email,
+                    email: employeeData.email || employeeData.authEmail,
                     name: employeeData.name,
-                    role: employeeData.employeeType || 'employee',  // Use employeeType for permission level
+                    role: employeeData.employeeType || 'employee',  // Use employeeType as role for permissions
                     store: employeeData.store,
                     jobRole: employeeData.role,  // Store the job position separately
                     status: employeeData.status || 'active',
@@ -484,7 +494,7 @@
                     hireDate: employeeData.hireDate
                 };
 
-                console.log('✅ User authenticated successfully:', user.name);
+                console.log('✅ User authenticated successfully:', user.name, '- Role:', user.role);
                 return user;
             } catch (error) {
                 console.error('❌ Error during authentication:', error.message);

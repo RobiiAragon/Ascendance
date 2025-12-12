@@ -7,7 +7,10 @@
       "Bash(findstr:*)",
       "Bash(npm start)",
       "Bash(start http://127.0.0.1:5500/abundance-cloud.html)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(cat:*)",
+      "Bash(node --check:*)",
+      "Bash(npx http-server -p 5500 -o)"
     ],
     "deny": [],
     "ask": []

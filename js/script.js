@@ -21,7 +21,8 @@
             vendors: null,
             clockin: null,
             dailysales: null,
-            cashout: null
+            cashout: null,
+            change: null
         };
 
         // Current state
@@ -58,7 +59,6 @@
 
         let products = [
             { id: 1, name: 'JUUL Starter Kit', category: 'Vape Devices', quantity: 24, arrivalDate: '2025-12-10', store: 'Miramar', status: 'pending', supplier: 'JUUL Labs', price: 34.99, image: 'https://images.unsplash.com/photo-1560913210-fd4c0e4c3f75?w=400&h=300&fit=crop' },
-            { id: 2, name: 'VUSE Alto Pods - Menthol', category: 'Vape Pods', quantity: 48, arrivalDate: '2025-12-08', store: 'Morena', status: 'arrived', supplier: 'VUSE', price: 12.99, image: 'https://images.unsplash.com/photo-1567922045116-2a00fae2ed03?w=400&h=300&fit=crop' },
             { id: 3, name: 'Elf Bar BC5000 - Mixed Flavors', category: 'Disposables', quantity: 120, arrivalDate: '2025-12-15', store: 'Kearny Mesa', status: 'pending', supplier: 'Elf Bar', price: 15.99, image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=300&fit=crop' },
             { id: 4, name: 'Marlboro Red Box', category: 'Cigarettes', quantity: 200, arrivalDate: '2025-12-12', store: 'Chula Vista', status: 'pending', supplier: 'Philip Morris', price: 8.99, image: 'https://images.unsplash.com/photo-1571941736487-969c8e1d8e9f?w=400&h=300&fit=crop' },
             { id: 5, name: 'Puff Bar Plus', category: 'Disposables', quantity: 80, arrivalDate: '2025-12-07', store: 'Miramar', status: 'arrived', supplier: 'Puff Bar', price: 13.99, image: 'https://images.unsplash.com/photo-1606235727737-4c2b7a0ecab7?w=400&h=300&fit=crop' },
@@ -67,7 +67,6 @@
 
         let inventory = [
             { id: 1, brand: 'JUUL', productName: 'JUUL Starter Kit', flavor: 'Virginia Tobacco', volume: '0.7ml', nicotine: '5%', unitPrice: 34.99, minStock: 10, stock: 5, store: 'Miramar' },
-            { id: 2, brand: 'VUSE', productName: 'Alto Pods', flavor: 'Menthol', volume: '1.8ml', nicotine: '5%', unitPrice: 12.99, minStock: 20, stock: 15, store: 'Morena' },
             { id: 3, brand: 'Elf Bar', productName: 'BC5000', flavor: 'Blue Razz Ice', volume: '13ml', nicotine: '50mg', unitPrice: 15.99, minStock: 50, stock: 45, store: 'Kearny Mesa' },
             { id: 4, brand: 'Marlboro', productName: 'Red Box', flavor: 'Original', volume: 'N/A', nicotine: 'Full', unitPrice: 8.99, minStock: 100, stock: 80, store: 'Chula Vista' },
             { id: 5, brand: 'Puff Bar', productName: 'Puff Plus', flavor: 'Mango', volume: '3.2ml', nicotine: '50mg', unitPrice: 13.99, minStock: 30, stock: 12, store: 'Miramar' },
@@ -96,7 +95,6 @@
                 id: 1,
                 artworkName: 'Vintage Tobacco Advertisement',
                 artist: 'Unknown',
-                manufacturer: 'Philip Morris',
                 acquisitionDate: '2024-03-15',
                 value: 2500.00,
                 location: 'VSU Kearny Mesa',
@@ -107,7 +105,6 @@
                 id: 2,
                 artworkName: 'Neon Sign Collection',
                 artist: 'Custom Neon Works',
-                manufacturer: 'SignCraft Industries',
                 acquisitionDate: '2023-11-20',
                 value: 4800.00,
                 location: 'VSU Miramar',
@@ -274,6 +271,84 @@
             }
         ];
 
+        // Change Records - Cambio dejado en Campos
+        let changeRecords = [
+            {
+                id: 1,
+                store: 'Miramar',
+                amount: 500.00,
+                date: '2025-12-10',
+                leftBy: 'Marcus Rodriguez',
+                receivedBy: 'Sarah Kim',
+                notes: 'Se dejó en caja 1',
+                photo: null
+            },
+            {
+                id: 2,
+                store: 'Morena',
+                amount: 300.00,
+                date: '2025-12-09',
+                leftBy: 'James Thompson',
+                receivedBy: 'Amanda Lopez',
+                notes: 'Se metió extra por falta de cambio',
+                photo: null
+            },
+            {
+                id: 3,
+                store: 'Kearny Mesa',
+                amount: 400.00,
+                date: '2025-12-08',
+                leftBy: 'David Nguyen',
+                receivedBy: 'Marcus Rodriguez',
+                notes: '',
+                photo: null
+            }
+        ];
+
+        // Gifts Records - Control de Regalos en Especie
+        let giftsCurrentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+        let giftsRecords = [
+            {
+                id: 1,
+                product: 'Vape Pen SMOK Nord 4',
+                quantity: 1,
+                value: 45.99,
+                recipient: 'Juan Pérez',
+                recipientType: 'customer',
+                reason: 'Producto defectuoso - reemplazo por garantía',
+                store: 'Miramar',
+                date: '2025-12-10',
+                notes: 'Cliente habitual, su vape dejó de funcionar después de 2 semanas',
+                photo: null
+            },
+            {
+                id: 2,
+                product: 'E-Liquid 60ml Naked 100',
+                quantity: 2,
+                value: 39.98,
+                recipient: 'María García',
+                recipientType: 'customer',
+                reason: 'Compensación por error en pedido',
+                store: 'Morena',
+                date: '2025-12-09',
+                notes: 'Se le envió sabor equivocado, se le regaló el correcto + el erróneo',
+                photo: null
+            },
+            {
+                id: 3,
+                product: 'Coils para Caliburn',
+                quantity: 5,
+                value: 24.95,
+                recipient: 'Carlos López',
+                recipientType: 'vendor',
+                reason: 'Regalo a proveedor por colaboración',
+                store: 'Kearny Mesa',
+                date: '2025-12-08',
+                notes: 'Proveedor nos ayudó con entrega urgente',
+                photo: null
+            }
+        ];
+
         /**
          * Initialize Firebase and load employees from Firestore
          * This function is called when the page loads
@@ -394,13 +469,16 @@
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
             
-            // If page not in allowed list, deny access
+            // If page not in allowed list, silently deny access and return to current page
             if (!allowedPages.includes(page)) {
-                alert(`❌ Acceso denegado. Tu rol de ${userPermissions.label} no tiene permiso para acceder a esta página.`);
+                console.warn(`⚠️ Access denied: ${userPermissions.label} role cannot access ${page}`);
                 return;
             }
             
             currentPage = page;
+            
+            // Save current page to sessionStorage (persists on refresh, clears on tab close)
+            sessionStorage.setItem('ascendance_current_page', page);
             
             // Update nav items
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -434,7 +512,10 @@
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
                 abundancecloud: 'Abundance Cloud',
-                newstuff: 'New Stuff'
+                newstuff: 'New Stuff',
+                change: 'Change',
+                gifts: 'Gifts',
+                risknotes: 'Risk Notes'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
@@ -506,6 +587,18 @@
                     break;
                 case 'treasury':
                     renderTreasury();
+                    break;
+                case 'change':
+                    renderChange();
+                    break;
+                case 'gifts':
+                    renderGifts();
+                    break;
+                case 'gforce':
+                    renderGForce();
+                    break;
+                case 'risknotes':
+                    renderRiskNotes();
                     break;
                 default:
                     renderDashboard();
@@ -866,8 +959,30 @@
             `;
         }
 
-        function renderTraining() {
+        async function renderTraining() {
             const dashboard = document.querySelector('.dashboard');
+
+            // Show loading state
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Training Center</h2>
+                        <p class="section-subtitle">Videos, documents, and courses for your team</p>
+                    </div>
+                    <button class="btn-primary" onclick="openModal('add-training')">
+                        <i class="fas fa-plus"></i> Add Training
+                    </button>
+                </div>
+                <div style="text-align: center; padding: 60px 20px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary);"></i>
+                    <p style="color: var(--text-muted); margin-top: 16px;">Loading training materials...</p>
+                </div>
+            `;
+
+            // Load trainings from Firebase
+            await loadTrainingsFromFirebase();
+
+            // Render the trainings grid
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
@@ -879,34 +994,47 @@
                     </button>
                 </div>
 
-
-                <div class="training-grid">
-                    ${trainings.map(t => `
-                        <div class="training-card" onclick="${t.type === 'video' ? `playTrainingVideo(${t.id})` : `viewTraining(${t.id})`}" style="cursor: pointer;">
-                            <div class="training-card-thumbnail ${t.type}">
-                                <i class="fas fa-${t.type === 'video' ? 'play-circle' : 'file-pdf'}"></i>
-                            </div>
-                            <div class="training-card-body">
-                                <div class="training-card-type">${t.type.toUpperCase()}</div>
-                                <h3 class="training-card-title">${t.title}</h3>
-                                <div class="training-card-meta">
-                                    <span><i class="fas fa-clock"></i> ${t.duration}</span>
-                                    <span class="${t.required ? 'required' : ''}"><i class="fas fa-${t.required ? 'exclamation-circle' : 'check'}"></i> ${t.required ? 'Required' : 'Optional'}</span>
+                ${trainings.length === 0 ? `
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fas fa-graduation-cap" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                        <div style="font-size: 16px;">No training materials yet</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Click "Add Training" to create your first training material</div>
+                    </div>
+                ` : `
+                    <div class="training-grid">
+                        ${trainings.map(t => `
+                            <div class="training-card" onclick="${t.type === 'video' ? `playTrainingVideo('${t.id}')` : `viewTraining('${t.id}')`}" style="cursor: pointer;">
+                                <div class="training-card-thumbnail ${t.type}">
+                                    <i class="fas fa-${t.type === 'video' ? 'play-circle' : 'file-pdf'}"></i>
                                 </div>
-                                <div class="training-card-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${t.completion}%;"></div>
+                                <div class="training-card-body">
+                                    <div class="training-card-type">${(t.type || 'document').toUpperCase()}</div>
+                                    <h3 class="training-card-title">${t.title}</h3>
+                                    <div class="training-card-meta">
+                                        <span><i class="fas fa-clock"></i> ${t.duration || '30 min'}</span>
+                                        <span class="${t.required ? 'required' : ''}"><i class="fas fa-${t.required ? 'exclamation-circle' : 'check'}"></i> ${t.required ? 'Required' : 'Optional'}</span>
                                     </div>
-                                    <span>${t.completion}% completed</span>
+                                    ${t.fileName ? `
+                                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                                            <i class="fas fa-file-pdf"></i> ${t.fileName}
+                                        </div>
+                                    ` : ''}
+                                    <div class="training-card-progress">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: ${t.completion || 0}%;"></div>
+                                        </div>
+                                        <span>${t.completion || 0}% completed</span>
+                                    </div>
+                                </div>
+                                <div class="training-card-footer">
+                                    <button class="btn-secondary" onclick="event.stopPropagation(); viewTraining('${t.id}')">View Details</button>
+                                    <button class="btn-icon" onclick="event.stopPropagation(); editTraining('${t.id}')"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon danger" onclick="event.stopPropagation(); deleteTraining('${t.id}')"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
-                            <div class="training-card-footer">
-                                <button class="btn-secondary" onclick="event.stopPropagation(); viewTraining(${t.id})">View Details</button>
-                                <button class="btn-icon" onclick="event.stopPropagation(); editTraining(${t.id})"><i class="fas fa-edit"></i></button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
+                        `).join('')}
+                    </div>
+                `}
             `;
         }
 
@@ -918,7 +1046,18 @@
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Licenses & Documents</h2>
-                        <p class="section-subtitle">Drag and drop documents between stores</p>
+                        <div style="display: flex; align-items: center; gap: 16px; margin-top: 12px;">
+                            <p class="section-subtitle">Drag and drop documents between stores</p>
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-secondary); border-radius: 6px;">
+                                <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Edit Mode:</span>
+                                <button onclick="toggleLicensesEditMode()" style="background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
+                                    <div style="width: 44px; height: 24px; background: ${licensesEditMode ? '#10b981' : '#ef4444'}; border-radius: 12px; position: relative; transition: background 0.3s;">
+                                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; ${licensesEditMode ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s;"></div>
+                                    </div>
+                                </button>
+                                <span style="font-size: 12px; color: ${licensesEditMode ? '#10b981' : '#ef4444'}; font-weight: 600; min-width: 60px;">${licensesEditMode ? '✓ EDITABLE' : '✗ LOCKED'}</span>
+                            </div>
+                        </div>
                     </div>
                     <button class="btn-primary" onclick="openModal('add-license')">
                         <i class="fas fa-plus"></i> Add Document
@@ -970,9 +1109,10 @@
                                     ` : ''}
                                     ${storeLicenses.map(lic => `
                                         <div class="license-item"
-                                             draggable="true"
+                                             draggable="${licensesEditMode ? 'true' : 'false'}"
                                              data-license-id="${lic.id}"
-                                             ondragstart="handleLicenseDragStart(event, ${lic.id})">
+                                             ondragstart="handleLicenseDragStart(event, ${lic.id})"
+                                             style="cursor: ${licensesEditMode ? 'grab' : 'default'}; opacity: ${licensesEditMode ? '1' : '0.85'}; ${!licensesEditMode ? 'pointer-events: none;' : ''}">
                                             <div class="license-item-header">
                                                 <div class="license-item-name">
                                                     <i class="fas fa-file-pdf"></i>
@@ -1198,6 +1338,11 @@
                     <div class="page-header-left">
                         <h2 class="section-title">Announcements</h2>
                         <p class="section-subtitle">Company-wide communications</p>
+                    </div>
+                    <div class="page-header-right">
+                        <button class="btn-primary" onclick="openModal('add-announcement')">
+                            <i class="fas fa-plus"></i> New Announcement
+                        </button>
                     </div>
                 </div>
 
@@ -1443,184 +1588,160 @@
         }
 
         function showClockModal(action) {
-            currentClockAction = action;
-
-            const actionTitles = {
-                'in': 'Clock In',
-                'lunch-start': 'Start Lunch Break',
-                'lunch-end': 'End Lunch Break',
-                'out': 'Clock Out'
-            };
-
-            // Create modal HTML
-            const modalHtml = `
-                <div class="modal active" id="clockModal">
-                    <div class="modal-content" style="max-width: 500px;">
-                        <div class="modal-header">
-                            <h2><i class="fas fa-clock"></i> ${actionTitles[action]}</h2>
-                            <button class="modal-close" onclick="closeClockModal()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="clockForm">
-                                <div class="form-group">
-                                    <label>Employee:</label>
-                                    <select id="employeeSelect" class="form-input" required>
-                                        <option value="">Select employee...</option>
-                                        ${employees.map(emp => `<option value="${emp.id}">${emp.name} - ${emp.role}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Store:</label>
-                                    <select id="storeSelect" class="form-input" required>
-                                        <option value="">Select store...</option>
-                                        <option value="VSU Miramar">VSU Miramar</option>
-                                        <option value="VSU Chulavista">VSU Chulavista</option>
-                                        <option value="VSU North Park">VSU North Park</option>
-                                        <option value="VSU Morena">VSU Morena</option>
-                                        <option value="VSU Kearny Mesa">VSU Kearny Mesa</option>
-                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Time:</label>
-                                    <input type="time" id="clockTime" class="form-input" required value="${new Date().toTimeString().slice(0, 5)}">
-                                </div>
-                                <div class="form-group">
-                                    <label>Notes (Optional):</label>
-                                    <textarea id="clockNotes" class="form-input" rows="3" placeholder="Add any notes..."></textarea>
-                                </div>
-                                <div id="clockMessage" class="alert" style="display: none;"></div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary" onclick="closeClockModal()">Cancel</button>
-                            <button type="button" class="btn-primary" onclick="submitClockAction()">
-                                <i class="fas fa-check"></i> ${actionTitles[action]}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Remove existing modal if any
-            const existingModal = document.getElementById('clockModal');
-            if (existingModal) existingModal.remove();
-
-            // Add modal to body
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            // No modal - directly submit with current user and time
+            submitClockAction(action);
         }
 
         function closeClockModal() {
-            const modal = document.getElementById('clockModal');
-            if (modal) modal.remove();
+            // Not needed anymore, but kept for compatibility
         }
 
-        async function submitClockAction() {
-            const employeeId = parseInt(document.getElementById('employeeSelect').value);
-            const store = document.getElementById('storeSelect').value;
-            const time = document.getElementById('clockTime').value;
-            const notes = document.getElementById('clockNotes').value;
-            const messageDiv = document.getElementById('clockMessage');
+        async function submitClockAction(action = null) {
+            // Use the action passed as parameter if available
+            if (action) {
+                currentClockAction = action;
+            }
 
-            // Validation
-            if (!employeeId || !store || !time) {
-                messageDiv.className = 'alert error';
-                messageDiv.textContent = 'Please fill in all required fields';
-                messageDiv.style.display = 'block';
+            // Get current logged-in user
+            const currentUser = getCurrentUser();
+            
+            if (!currentUser || (!currentUser.userId && !currentUser.id)) {
+                console.error('No user logged in');
+                showNotification('Error: No user logged in', 'error');
                 return;
             }
 
-            const employee = employees.find(e => e.id === employeeId);
+            // Get current time in HH:MM format
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const time = `${hours}:${minutes}`;
+
+            // Get employee info from current user
+            // Priority: Name (main identifier) -> ID -> Email -> Create fallback
+            let employee = null;
+            
+            // 1. First try to find by NAME (this is the primary identifier to avoid duplicates)
+            if (currentUser.name) {
+                employee = employees.find(e => e.name === currentUser.name);
+                if (employee) console.log('✅ Found employee by name:', currentUser.name);
+            }
+            
+            // 2. If not found by name, try by ID
             if (!employee) {
-                messageDiv.className = 'alert error';
-                messageDiv.textContent = 'Employee not found';
-                messageDiv.style.display = 'block';
-                return;
+                const userId = currentUser.userId || currentUser.id;
+                if (userId) {
+                    employee = employees.find(e => String(e.id) === String(userId));
+                    if (employee) console.log('✅ Found employee by ID:', userId);
+                }
             }
+
+            // 3. If still not found, try by email
+            if (!employee && currentUser.email) {
+                employee = employees.find(e => e.email === currentUser.email);
+                if (employee) console.log('✅ Found employee by email:', currentUser.email);
+            }
+
+            // 4. If still not found, create a minimal employee object
+            if (!employee) {
+                const userId = currentUser.userId || currentUser.id;
+                console.warn('⚠️ Employee not found in database, creating fallback record');
+                employee = {
+                    id: userId,
+                    name: currentUser.name || 'Current User',
+                    role: currentUser.role || 'Employee',
+                    initials: (currentUser.name || 'CU')?.substring(0, 2).toUpperCase() || 'CU',
+                    store: currentUser.store || 'VSU Miramar',
+                    email: currentUser.email
+                };
+            }
+
+            const store = employee.store || 'VSU Miramar';
+
+            console.log('✅ Clock action for user:', employee.name, 'at', time, 'Action:', currentClockAction);
 
             // Format date as YYYY-MM-DD for consistency
             const today = new Date();
             const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
             const dateDisplayString = today.toDateString();
 
-            let record = clockinAttendanceRecords.find(r => r.employeeId === employeeId && r.date === dateDisplayString);
+            // Find record by EMPLOYEE NAME (primary identifier to avoid duplicates)
+            let record = clockinAttendanceRecords.find(r => r.employeeName === employee.name && r.date === dateDisplayString);
 
             // Create new record if doesn't exist
             if (!record) {
                 record = {
                     id: Date.now(),
-                    employeeId: employeeId,
+                    employeeId: employee.id,
                     employeeName: employee.name,
                     employeeRole: employee.role,
-                    employeeInitials: employee.initials,
+                    employeeInitials: employee.initials || employee.name?.substring(0, 2).toUpperCase() || '',
                     store: store,
                     date: dateDisplayString,
                     clockIn: null,
                     lunchStart: null,
                     lunchEnd: null,
                     clockOut: null,
-                    notes: notes
+                    notes: ''
                 };
                 clockinAttendanceRecords.push(record);
+            } else {
+                // Update existing record's store
+                if (store) record.store = store;
             }
 
             // Update record based on action
             switch(currentClockAction) {
                 case 'in':
                     if (record.clockIn) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Employee already clocked in today';
-                        messageDiv.style.display = 'block';
+                        console.warn('Employee already clocked in today');
+                        showNotification('You are already clocked in', 'warning');
                         return;
                     }
                     record.clockIn = time;
+                    console.log('⏱️ Clocking in:', record.employeeName, 'at', time);
                     break;
                 case 'lunch-start':
                     if (!record.clockIn) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Employee must clock in first';
-                        messageDiv.style.display = 'block';
+                        console.warn('Lunch start attempted without clock in');
+                        showNotification('Please clock in first', 'warning');
                         return;
                     }
                     if (record.lunchStart) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Lunch break already started';
-                        messageDiv.style.display = 'block';
+                        console.warn('Lunch break already started');
+                        showNotification('Lunch break already started', 'warning');
                         return;
                     }
                     record.lunchStart = time;
+                    console.log('🍽️ Lunch start:', record.employeeName, 'at', time);
                     break;
                 case 'lunch-end':
                     if (!record.lunchStart) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Lunch break not started yet';
-                        messageDiv.style.display = 'block';
+                        console.warn('Lunch break not started yet');
+                        showNotification('Lunch break not started yet', 'warning');
                         return;
                     }
                     if (record.lunchEnd) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Lunch break already ended';
-                        messageDiv.style.display = 'block';
+                        console.warn('Lunch break already ended');
+                        showNotification('Lunch break already ended', 'warning');
                         return;
                     }
                     record.lunchEnd = time;
+                    console.log('🍽️ Lunch end:', record.employeeName, 'at', time);
                     break;
                 case 'out':
                     if (!record.clockIn) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Employee must clock in first';
-                        messageDiv.style.display = 'block';
+                        console.warn('Clock out attempted without clock in');
+                        showNotification('Please clock in first', 'warning');
                         return;
                     }
                     if (record.clockOut) {
-                        messageDiv.className = 'alert error';
-                        messageDiv.textContent = 'Employee already clocked out today';
-                        messageDiv.style.display = 'block';
+                        console.warn('Employee already clocked out today');
+                        showNotification('You are already clocked out', 'warning');
                         return;
                     }
                     record.clockOut = time;
+                    console.log('⏱️ Clocking out:', record.employeeName, 'at', time);
                     break;
             }
 
@@ -1636,7 +1757,7 @@
 
                 // Prepare clock record for Firebase
                 const firebaseRecord = {
-                    employeeId: employeeId,
+                    employeeId: employee.id,
                     employeeName: employee.name,
                     employeeRole: employee.role,
                     store: store,
@@ -1645,28 +1766,68 @@
                     lunchStart: record.lunchStart,
                     lunchEnd: record.lunchEnd,
                     clockOut: record.clockOut,
-                    notes: record.notes || notes
+                    notes: record.notes || ''
                 };
 
                 // Save to Firebase
                 await firebaseClockInManager.saveClockRecord(firebaseRecord);
                 console.log('✅ Clock record saved to Firebase successfully');
+                
+                // Reload from Firebase immediately to sync state across devices/reloads
+                try {
+                    const updatedRecords = await firebaseClockInManager.loadClockRecordsByDate(dateString);
+                    console.log('✅ Reloaded updated records from Firebase:', updatedRecords.length);
+                    
+                    if (updatedRecords.length > 0) {
+                        // Update local records with Firebase data
+                        const today = new Date().toDateString();
+                        const updatedArray = [];
+                        const processedNames = new Set();
+                        
+                        updatedRecords.forEach(rec => {
+                            processedNames.add(rec.employeeName);
+                            updatedArray.push({
+                                id: rec.id || Date.now(),
+                                employeeId: rec.employeeId,
+                                employeeName: rec.employeeName,
+                                employeeRole: rec.employeeRole,
+                                employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
+                                store: rec.store,
+                                date: today,
+                                clockIn: rec.clockIn || null,
+                                lunchStart: rec.lunchStart || null,
+                                lunchEnd: rec.lunchEnd || null,
+                                clockOut: rec.clockOut || null,
+                                notes: rec.notes || ''
+                            });
+                        });
+                        
+                        // Add any local-only records
+                        clockinAttendanceRecords.forEach(localRec => {
+                            if (!processedNames.has(localRec.employeeName) && localRec.date === today) {
+                                updatedArray.push(localRec);
+                            }
+                        });
+                        
+                        clockinAttendanceRecords = updatedArray;
+                        localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+                    }
+                } catch (reloadError) {
+                    console.warn('⚠️ Could not reload from Firebase after save:', reloadError);
+                }
             } catch (error) {
                 console.error('⚠️ Error saving to Firebase:', error);
                 // Don't prevent saving to localStorage if Firebase fails
                 // The user will still see success message but data is local only
             }
 
-            // Show success message
-            messageDiv.className = 'alert success';
-            messageDiv.textContent = 'Clock action recorded successfully!';
-            messageDiv.style.display = 'block';
-
+            // Show success message and reload
+            showNotification('Action recorded successfully!', 'success');
+            
             // Reload attendance table
             setTimeout(() => {
-                closeClockModal();
                 loadAttendanceData();
-            }, 1000);
+            }, 500);
         }
 
         async function loadAttendanceData() {
@@ -1696,29 +1857,52 @@
                     firebaseRecords = await firebaseClockInManager.loadClockRecordsByDate(dateString);
                     console.log('✅ Loaded clock records from Firebase:', firebaseRecords.length);
                     
-                    // Merge Firebase records with local records
-                    // Firebase records take precedence
+                    // Merge Firebase records with local records intelligently
                     if (firebaseRecords.length > 0) {
-                        clockinAttendanceRecords = firebaseRecords.map(rec => ({
-                            id: rec.id || Date.now(),
-                            employeeId: rec.employeeId,
-                            employeeName: rec.employeeName,
-                            employeeRole: rec.employeeRole,
-                            employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
-                            store: rec.store,
-                            date: today, // Use display format for local tracking
-                            clockIn: rec.clockIn,
-                            lunchStart: rec.lunchStart,
-                            lunchEnd: rec.lunchEnd,
-                            clockOut: rec.clockOut,
-                            notes: rec.notes || ''
-                        }));
+                        // Create a map of Firebase records by EMPLOYEE NAME (primary identifier)
+                        const firebaseMap = {};
+                        firebaseRecords.forEach(rec => {
+                            firebaseMap[rec.employeeName] = rec;
+                        });
+                        
+                        // Update or add records
+                        const updatedRecords = [];
+                        const processedNames = new Set();
+                        
+                        // First, process Firebase records (they're latest)
+                        firebaseRecords.forEach(rec => {
+                            processedNames.add(rec.employeeName);
+                            updatedRecords.push({
+                                id: rec.id || Date.now(),
+                                employeeId: rec.employeeId,
+                                employeeName: rec.employeeName,
+                                employeeRole: rec.employeeRole,
+                                employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
+                                store: rec.store,
+                                date: today, // Use display format for local tracking
+                                clockIn: rec.clockIn || null,
+                                lunchStart: rec.lunchStart || null,
+                                lunchEnd: rec.lunchEnd || null,
+                                clockOut: rec.clockOut || null,
+                                notes: rec.notes || ''
+                            });
+                        });
+                        
+                        // Then, add any local-only records
+                        clockinAttendanceRecords.forEach(localRec => {
+                            if (!processedNames.has(localRec.employeeName) && localRec.date === today) {
+                                updatedRecords.push(localRec);
+                            }
+                        });
+                        
+                        clockinAttendanceRecords = updatedRecords;
                         // Save merged data to localStorage for fallback
                         localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
                     }
                 } catch (firebaseError) {
                     console.warn('⚠️ Could not load from Firebase, using local data:', firebaseError);
-                    // Fall back to localStorage
+                    // Fall back to localStorage - filter only today's records
+                    clockinAttendanceRecords = clockinAttendanceRecords.filter(r => r.date === today);
                 }
             } catch (error) {
                 console.error('Error in loadAttendanceData:', error);
@@ -1914,6 +2098,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         function renderNewStuff() {
             const dashboard = document.querySelector('.dashboard');
+
+            // Show loading state
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
@@ -1924,61 +2110,367 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <i class="fas fa-plus"></i> Add Product
                     </button>
                 </div>
-
-                <div class="employees-grid">
-                    ${products.map(product => `
-                        <div class="card">
-                            <div class="product-image-container" style="position: relative; width: 100%; height: 180px; overflow: hidden; border-radius: 12px 12px 0 0;">
-                                <img src="${product.image || 'https://via.placeholder.com/400x300?text=No+Image'}"
-                                     alt="${product.name}"
-                                     style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
-                                     onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
-                                <span class="status-badge ${product.status === 'arrived' ? 'valid' : 'expiring'}"
-                                      style="position: absolute; top: 12px; right: 12px;">
-                                    ${product.status}
-                                </span>
-                            </div>
-                            <div class="card-header" style="background: ${product.status === 'arrived' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'}; border-radius: 0;">
-                                <h3 class="card-title" style="font-size: 16px; font-weight: 600;">
-                                    ${product.name}
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div style="display: flex; flex-direction: column; gap: 12px;">
-                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                                        <span style="color: var(--text-muted); font-size: 13px;">Category:</span>
-                                        <span style="font-weight: 600; font-size: 13px;">${product.category}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                                        <span style="color: var(--text-muted); font-size: 13px;">Quantity:</span>
-                                        <span style="font-weight: 600; font-size: 13px; color: var(--accent-primary);">${product.quantity} units</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                                        <span style="color: var(--text-muted); font-size: 13px;">Price:</span>
-                                        <span style="font-weight: 600; font-size: 13px; color: var(--success);">$${product.price}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                                        <span style="color: var(--text-muted); font-size: 13px;">Store:</span>
-                                        <span style="font-weight: 600; font-size: 13px;">${product.store}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                                        <span style="color: var(--text-muted); font-size: 13px;">Arrival Date:</span>
-                                        <span style="font-weight: 600; font-size: 13px;">${formatDate(product.arrivalDate)}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                                        <span style="color: var(--text-muted); font-size: 13px;">Supplier:</span>
-                                        <span style="font-weight: 600; font-size: 13px;">${product.supplier}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer" style="padding: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px;">
-                                <button class="btn-icon"><i class="fas fa-edit"></i></button>
-                                <button class="btn-icon danger"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `).join('')}
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 16px;"></i>
+                    <p>Loading products from Firebase...</p>
                 </div>
             `;
+
+            // Load products from Firebase
+            loadProductsFromFirebase().then(() => {
+                dashboard.innerHTML = `
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2 class="section-title">New Stuff</h2>
+                            <p class="section-subtitle">Incoming products and inventory</p>
+                        </div>
+                        <button class="btn-primary" onclick="openModal('add-product')">
+                            <i class="fas fa-plus"></i> Add Product
+                        </button>
+                    </div>
+
+                    ${products.length === 0 ? `
+                        <div style="text-align: center; padding: 60px 20px; background: var(--bg-hover); border-radius: 12px;">
+                            <i class="fas fa-box-open" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                            <h3 style="color: var(--text-secondary);">No Products Yet</h3>
+                            <p style="color: var(--text-muted); margin-bottom: 20px;">Add your first product to get started</p>
+                            <button class="btn-primary" onclick="openModal('add-product')">
+                                <i class="fas fa-plus"></i> Add First Product
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="employees-grid">
+                            ${products.map(product => `
+                                <div class="card" onclick="viewProductDetails('${product.id}')" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';">
+                                    <div class="product-image-container" style="position: relative; width: 100%; height: 180px; overflow: hidden; border-radius: 12px 12px 0 0;">
+                                        <img src="${product.image || 'https://via.placeholder.com/400x300?text=No+Image'}"
+                                             alt="${product.name}"
+                                             style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+                                             onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                                    </div>
+                                    <div class="card-header" style="background: rgba(139, 92, 246, 0.1); border-radius: 0;">
+                                        <h3 class="card-title" style="font-size: 16px; font-weight: 600;">
+                                            ${product.name}
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                                            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+                                                <span style="color: var(--text-muted); font-size: 13px;">Category:</span>
+                                                <span style="font-weight: 600; font-size: 13px;">${product.category || '-'}</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+                                                <span style="color: var(--text-muted); font-size: 13px;">Quantity:</span>
+                                                <span style="font-weight: 600; font-size: 13px; color: var(--accent-primary);">${product.quantity || 0} units</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+                                                <span style="color: var(--text-muted); font-size: 13px;">Price:</span>
+                                                <span style="font-weight: 600; font-size: 13px; color: var(--success);">$${product.price || 0}</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                                                <span style="color: var(--text-muted); font-size: 13px;">Store:</span>
+                                                <span style="font-weight: 600; font-size: 13px;">${product.store || '-'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer" style="padding: 12px 16px; border-top: 1px solid var(--border-color); text-align: center;">
+                                        <span style="color: var(--text-muted); font-size: 12px;">
+                                            <i class="fas fa-hand-pointer"></i> Click to view details
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                `;
+            });
+        }
+
+        function viewProductDetails(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 12px; margin: 0;">
+                        <i class="fas fa-box" style="color: var(--accent-primary); font-size: 24px;"></i>
+                        Product Details
+                    </h2>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    ${product.image ? `
+                        <div style="
+                            margin-bottom: 24px;
+                            border-radius: 16px;
+                            overflow: hidden;
+                            background: var(--bg-secondary);
+                            position: relative;
+                            aspect-ratio: 16 / 10;
+                        ">
+                            <img 
+                                src="${product.image}" 
+                                alt="${product.name}" 
+                                style="
+                                    width: 100%;
+                                    height: 100%;
+                                    object-fit: cover;
+                                    display: block;
+                                " 
+                                onerror="this.style.display='none'">
+                        </div>
+                    ` : `
+                        <div style="
+                            margin-bottom: 24px;
+                            border-radius: 16px;
+                            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+                            height: 200px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">
+                            <i class="fas fa-image" style="font-size: 48px; color: rgba(255,255,255,0.5);"></i>
+                        </div>
+                    `}
+
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="
+                            margin: 0 0 8px 0;
+                            font-size: 24px;
+                            font-weight: 700;
+                            color: var(--text-primary);
+                        ">${product.name}</h3>
+                        <p style="
+                            margin: 0;
+                            color: var(--text-muted);
+                            font-size: 14px;
+                        ">Product Reference ID: #${product.id}</p>
+                    </div>
+
+                    <div style="
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 16px;
+                        margin-bottom: 24px;
+                    ">
+                        <!-- Category -->
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                            transition: all 0.2s ease;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">Category</div>
+                            <div style="
+                                font-weight: 600;
+                                font-size: 15px;
+                                color: var(--text-primary);
+                            ">${product.category || '-'}</div>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                            transition: all 0.2s ease;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">Quantity</div>
+                            <div style="
+                                font-weight: 600;
+                                font-size: 18px;
+                                color: var(--accent-primary);
+                            ">${product.quantity || 0} <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">units</span></div>
+                        </div>
+
+                        <!-- Price -->
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                            transition: all 0.2s ease;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">Unit Price</div>
+                            <div style="
+                                font-weight: 600;
+                                font-size: 18px;
+                                color: var(--success);
+                            ">$${(product.price || 0).toFixed(2)}</div>
+                        </div>
+
+                        <!-- Store -->
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                            transition: all 0.2s ease;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">Store Location</div>
+                            <div style="
+                                font-weight: 600;
+                                font-size: 15px;
+                                color: var(--text-primary);
+                            ">${product.store || '-'}</div>
+                        </div>
+                    </div>
+
+                    <div style="
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 16px;
+                        margin-bottom: 24px;
+                    ">
+                        <!-- Arrival Date -->
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">
+                                <i class="fas fa-calendar" style="margin-right: 6px; font-size: 12px;"></i>Arrival Date
+                            </div>
+                            <div style="
+                                font-weight: 600;
+                                font-size: 15px;
+                                color: var(--text-primary);
+                            ">${product.arrivalDate ? formatDate(product.arrivalDate) : '-'}</div>
+                        </div>
+
+                        <!-- Supplier -->
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 8px;
+                            ">
+                                <i class="fas fa-truck" style="margin-right: 6px; font-size: 12px;"></i>Supplier
+                            </div>
+                            <div style="
+                                font-weight: 600;
+                                font-size: 15px;
+                                color: var(--text-primary);
+                            ">${product.supplier || '-'}</div>
+                        </div>
+                    </div>
+
+                    ${product.description ? `
+                        <div style="
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 14px;
+                            padding: 16px;
+                            margin-bottom: 24px;
+                        ">
+                            <div style="
+                                color: var(--text-muted);
+                                font-size: 11px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 12px;
+                            ">Description</div>
+                            <p style="
+                                margin: 0;
+                                line-height: 1.6;
+                                color: var(--text-secondary);
+                                font-size: 14px;
+                            ">${product.description}</p>
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-primary" style="
+                            flex: 1;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            padding: 12px 16px;
+                            border-radius: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            border: none;
+                            transition: all 0.2s ease;
+                        " onclick="closeModal(); editProduct('${product.id}');">
+                            <i class="fas fa-edit"></i>
+                            Edit Product
+                        </button>
+                        <button style="
+                            flex: 1;
+                            background: var(--danger);
+                            color: white;
+                            border: none;
+                            padding: 12px 16px;
+                            border-radius: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            transition: all 0.2s ease;
+                        " onclick="if(confirm('Are you sure you want to delete this product?')) { deleteProductFromFirebase('${product.id}'); closeModal(); }" onhover="this.style.opacity='0.9'">
+                            <i class="fas fa-trash"></i>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
         }
 
         let currentRestockTab = 'inventory';
@@ -2044,8 +2536,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <th>Brand</th>
                                 <th>Product Name</th>
                                 <th>Flavor</th>
-                                <th>Volume</th>
-                                <th>Nicotine</th>
                                 <th>Unit Price</th>
                                 <th>Min Stock</th>
                                 <th>Stock</th>
@@ -2058,8 +2548,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <td style="font-weight: 600;">${item.brand}</td>
                                     <td>${item.productName}</td>
                                     <td>${item.flavor}</td>
-                                    <td>${item.volume}</td>
-                                    <td>${item.nicotine}</td>
                                     <td style="font-weight: 600; color: var(--success);">$${item.unitPrice}</td>
                                     <td>${item.minStock}</td>
                                     <td>
@@ -2181,19 +2669,282 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             `;
         }
 
+        // Schedules data array
+        let schedules = [];
+        let currentWeekStart = getWeekStart(new Date());
+        let draggedShift = null;
+
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day;
+            return new Date(d.setDate(diff));
+        }
+
+        function getWeekDates(startDate) {
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                dates.push(date);
+            }
+            return dates;
+        }
+
+        function formatDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
         function renderSchedule() {
             const dashboard = document.querySelector('.dashboard');
+            const weekDates = getWeekDates(currentWeekStart);
+            const weekRangeText = `${weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
             dashboard.innerHTML = `
+                <style>
+                    .schedule-week-grid {
+                        display: grid;
+                        grid-template-columns: 180px repeat(7, 1fr);
+                        gap: 1px;
+                        background: var(--border-color);
+                        border-radius: 12px;
+                        overflow: hidden;
+                    }
+                    .schedule-header-cell {
+                        background: var(--bg-hover);
+                        padding: 12px 8px;
+                        text-align: center;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                    }
+                    .schedule-header-cell.today {
+                        background: var(--primary);
+                        color: white;
+                    }
+                    .schedule-header-cell .day-name {
+                        font-size: 11px;
+                        text-transform: uppercase;
+                        opacity: 0.7;
+                    }
+                    .schedule-header-cell .day-number {
+                        font-size: 18px;
+                        margin-top: 2px;
+                    }
+                    .schedule-employee-cell {
+                        background: var(--bg-card);
+                        padding: 10px;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        font-weight: 500;
+                        border-right: 2px solid var(--border-color);
+                    }
+                    .schedule-employee-avatar {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .schedule-employee-info {
+                        overflow: hidden;
+                    }
+                    .schedule-employee-name {
+                        font-size: 13px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .schedule-employee-store {
+                        font-size: 10px;
+                        color: var(--text-muted);
+                    }
+                    .schedule-day-cell {
+                        background: var(--bg-card);
+                        min-height: 70px;
+                        padding: 6px;
+                        position: relative;
+                        transition: background 0.2s;
+                        cursor: pointer;
+                    }
+                    .schedule-day-cell:hover {
+                        background: var(--bg-hover);
+                    }
+                    .schedule-day-cell.drag-over {
+                        background: rgba(59, 130, 246, 0.1);
+                        outline: 2px dashed var(--primary);
+                    }
+                    .shift-block {
+                        background: linear-gradient(135deg, var(--primary), #6366f1);
+                        color: white;
+                        padding: 6px 8px;
+                        border-radius: 6px;
+                        font-size: 11px;
+                        cursor: grab;
+                        margin-bottom: 4px;
+                        position: relative;
+                        transition: transform 0.15s, box-shadow 0.15s;
+                    }
+                    .shift-block:hover {
+                        transform: scale(1.02);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    }
+                    .shift-block:active {
+                        cursor: grabbing;
+                    }
+                    .shift-block.dragging {
+                        opacity: 0.5;
+                        transform: scale(0.95);
+                    }
+                    .shift-block .shift-time {
+                        font-weight: 600;
+                    }
+                    .shift-block .shift-hours {
+                        font-size: 10px;
+                        opacity: 0.8;
+                    }
+                    .shift-block .shift-delete {
+                        position: absolute;
+                        top: 2px;
+                        right: 4px;
+                        opacity: 0;
+                        cursor: pointer;
+                        font-size: 10px;
+                        transition: opacity 0.2s;
+                    }
+                    .shift-block:hover .shift-delete {
+                        opacity: 1;
+                    }
+                    .add-shift-btn {
+                        width: 100%;
+                        padding: 4px;
+                        border: 1px dashed var(--border-color);
+                        border-radius: 4px;
+                        background: transparent;
+                        color: var(--text-muted);
+                        font-size: 11px;
+                        cursor: pointer;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .schedule-day-cell:hover .add-shift-btn {
+                        opacity: 1;
+                    }
+                    .add-shift-btn:hover {
+                        background: var(--bg-hover);
+                        color: var(--primary);
+                        border-color: var(--primary);
+                    }
+                    .week-nav {
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                    }
+                    .week-nav-btn {
+                        background: var(--bg-hover);
+                        border: none;
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        color: var(--text-primary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .week-nav-btn:hover {
+                        background: var(--primary);
+                        color: white;
+                    }
+                    .week-display {
+                        font-size: 16px;
+                        font-weight: 600;
+                        min-width: 200px;
+                        text-align: center;
+                    }
+                    .schedule-filters {
+                        display: flex;
+                        gap: 10px;
+                        align-items: center;
+                    }
+                    .employee-sidebar {
+                        background: var(--bg-card);
+                        border-radius: 12px;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                    }
+                    .employee-sidebar h4 {
+                        margin-bottom: 10px;
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        color: var(--text-muted);
+                    }
+                    .draggable-employee {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 10px;
+                        background: var(--bg-hover);
+                        border-radius: 8px;
+                        margin-bottom: 6px;
+                        cursor: grab;
+                        transition: all 0.2s;
+                    }
+                    .draggable-employee:hover {
+                        background: var(--primary);
+                        color: white;
+                    }
+                    .draggable-employee:active {
+                        cursor: grabbing;
+                    }
+                    .total-hours {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                        text-align: right;
+                        padding: 4px 8px;
+                    }
+                </style>
+
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Schedule</h2>
-                        <p class="section-subtitle">Employee shifts and availability</p>
+                        <p class="section-subtitle">Drag & drop to assign shifts</p>
+                    </div>
+                    <div class="page-header-right" style="display: flex; gap: 15px; align-items: center;">
+                        <div class="week-nav">
+                            <button class="week-nav-btn" onclick="changeWeek(-1)">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="week-display">${weekRangeText}</div>
+                            <button class="week-nav-btn" onclick="changeWeek(1)">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="week-nav-btn" onclick="goToToday()" title="Today">
+                                <i class="fas fa-calendar-day"></i>
+                            </button>
+                        </div>
+                        <select class="form-input" id="schedule-store-filter" onchange="renderScheduleGrid()" style="width: 150px;">
+                            <option value="all">All Stores</option>
+                            <option value="Miramar">VSU Miramar</option>
+                            <option value="Morena">VSU Morena</option>
+                            <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                            <option value="Chula Vista">VSU Chula Vista</option>
+                            <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                        </select>
                     </div>
                 </div>
-                <div id="schedule-container" class="card" style="padding: 60px; text-align: center;">
-                    <div class="loading-spinner"></div>
-                    <h2 style="color: var(--text-secondary); margin: 20px 0 10px;">Working in progress...</h2>
-                    <p style="color: var(--text-muted);">Loading schedule data</p>
+
+                <div id="schedule-container" class="card" style="padding: 15px;">
+                    <div style="padding: 40px; text-align: center;">
+                        <div class="loading-spinner"></div>
+                        <p style="color: var(--text-muted); margin-top: 15px;">Loading schedules...</p>
+                    </div>
                 </div>
             `;
             loadScheduleData();
@@ -2202,26 +2953,355 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         async function loadScheduleData() {
             const container = document.getElementById('schedule-container');
             if (!container) return;
-            
+
             try {
-                // TODO: Replace with actual API endpoint
-                // const response = await fetch('YOUR_API_ENDPOINT');
-                // const data = await response.json();
-                // renderScheduleData(data);
-                
-                console.log('Schedule API ready for integration');
+                // Make sure employees are loaded first
+                if (employees.length === 0) {
+                    console.log('Loading employees for schedule...');
+                    await loadEmployeesFromFirebase();
+                }
+
+                const db = firebase.firestore();
+                const schedulesRef = db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules');
+                const snapshot = await schedulesRef.get();
+
+                schedules = [];
+                snapshot.forEach(doc => {
+                    schedules.push({ id: doc.id, ...doc.data() });
+                });
+
+                console.log('Loaded schedules from Firestore:', schedules.length);
+                console.log('Employees available:', employees.length);
+                renderScheduleGrid();
             } catch (error) {
+                console.error('Error loading schedules:', error);
                 container.innerHTML = `
-                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
-                    <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Connection Error</h2>
-                    <p style="color: var(--text-muted);">Unable to load schedule data.</p>
-                    <button class="btn-primary" style="margin-top: 20px;" onclick="loadScheduleData()"><i class="fas fa-sync"></i> Retry</button>
+                    <div style="padding: 40px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
+                        <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Connection Error</h2>
+                        <p style="color: var(--text-muted);">Unable to load schedule data.</p>
+                        <button class="btn-primary" style="margin-top: 20px;" onclick="loadScheduleData()"><i class="fas fa-sync"></i> Retry</button>
+                    </div>
                 `;
             }
         }
 
-        function renderScheduleData(data) {
-            // TODO: Render schedule grid with API data
+        function renderScheduleGrid() {
+            const container = document.getElementById('schedule-container');
+            if (!container) return;
+
+            const storeFilter = document.getElementById('schedule-store-filter')?.value || 'all';
+            const weekDates = getWeekDates(currentWeekStart);
+            const today = formatDateKey(new Date());
+
+            // Filter employees by store
+            let filteredEmployees = [...employees];
+            if (storeFilter !== 'all') {
+                filteredEmployees = filteredEmployees.filter(e => e.store === storeFilter);
+            }
+
+            if (filteredEmployees.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 60px; text-align: center;">
+                        <i class="fas fa-users" style="font-size: 48px; color: var(--text-muted); margin-bottom: 20px;"></i>
+                        <h3 style="color: var(--text-secondary); margin-bottom: 10px;">No Employees</h3>
+                        <p style="color: var(--text-muted);">No employees found for the selected store.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build grid HTML
+            let gridHTML = '<div class="schedule-week-grid">';
+
+            // Header row
+            gridHTML += '<div class="schedule-header-cell" style="background: var(--bg-card);"><i class="fas fa-users"></i> Team</div>';
+            weekDates.forEach(date => {
+                const dateKey = formatDateKey(date);
+                const isToday = dateKey === today;
+                gridHTML += `
+                    <div class="schedule-header-cell ${isToday ? 'today' : ''}">
+                        <div class="day-name">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                        <div class="day-number">${date.getDate()}</div>
+                    </div>
+                `;
+            });
+
+            // Employee rows
+            filteredEmployees.forEach(emp => {
+                const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+                const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                // Employee cell
+                gridHTML += `
+                    <div class="schedule-employee-cell">
+                        <div class="schedule-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                        <div class="schedule-employee-info">
+                            <div class="schedule-employee-name">${emp.name || 'Unknown'}</div>
+                            <div class="schedule-employee-store">${emp.store || ''}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Day cells for this employee
+                let weekTotalHours = 0;
+                weekDates.forEach(date => {
+                    const dateKey = formatDateKey(date);
+                    const daySchedules = schedules.filter(s => s.employeeId === emp.id && s.date === dateKey);
+
+                    gridHTML += `
+                        <div class="schedule-day-cell"
+                             data-employee-id="${emp.id}"
+                             data-date="${dateKey}"
+                             ondragover="handleDragOver(event)"
+                             ondragleave="handleDragLeave(event)"
+                             ondrop="handleDrop(event)">
+                    `;
+
+                    daySchedules.forEach(schedule => {
+                        const hours = calculateHours(schedule.startTime, schedule.endTime);
+                        weekTotalHours += parseFloat(hours);
+                        gridHTML += `
+                            <div class="shift-block"
+                                 draggable="true"
+                                 data-schedule-id="${schedule.id}"
+                                 ondragstart="handleDragStart(event, '${schedule.id}')"
+                                 ondragend="handleDragEnd(event)"
+                                 onclick="openModal('edit-schedule', '${schedule.id}')">
+                                <div class="shift-time">${formatTimeShort(schedule.startTime)} - ${formatTimeShort(schedule.endTime)}</div>
+                                <div class="shift-hours">${hours}h</div>
+                                <span class="shift-delete" onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
+                        `;
+                    });
+
+                    gridHTML += `
+                            <button class="add-shift-btn" onclick="quickAddShift('${emp.id}', '${dateKey}', '${emp.store}')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    `;
+                });
+            });
+
+            gridHTML += '</div>';
+
+            container.innerHTML = gridHTML;
+        }
+
+        function changeWeek(direction) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+            renderSchedule();
+        }
+
+        function goToToday() {
+            currentWeekStart = getWeekStart(new Date());
+            renderSchedule();
+        }
+
+        function formatTimeShort(time) {
+            if (!time) return '--';
+            const [hours, minutes] = time.split(':');
+            const h = parseInt(hours);
+            const ampm = h >= 12 ? 'p' : 'a';
+            const h12 = h % 12 || 12;
+            return `${h12}:${minutes}${ampm}`;
+        }
+
+        function calculateHours(startTime, endTime) {
+            if (!startTime || !endTime) return 0;
+            const [startH, startM] = startTime.split(':').map(Number);
+            const [endH, endM] = endTime.split(':').map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = endH * 60 + endM;
+            const diff = endMinutes - startMinutes;
+            return (diff / 60).toFixed(1);
+        }
+
+        function formatTime(time) {
+            if (!time) return '--';
+            const [hours, minutes] = time.split(':');
+            const h = parseInt(hours);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return `${h12}:${minutes} ${ampm}`;
+        }
+
+        // Drag and Drop handlers
+        function handleDragStart(event, scheduleId) {
+            draggedShift = scheduleId;
+            event.target.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            document.querySelectorAll('.schedule-day-cell').forEach(cell => {
+                cell.classList.remove('drag-over');
+            });
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        async function handleDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            if (!draggedShift) return;
+
+            const newEmployeeId = event.currentTarget.dataset.employeeId;
+            const newDate = event.currentTarget.dataset.date;
+            const schedule = schedules.find(s => s.id === draggedShift);
+
+            if (!schedule) return;
+
+            // Update in Firestore
+            try {
+                const db = firebase.firestore();
+                const emp = employees.find(e => e.id === newEmployeeId);
+
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(draggedShift).update({
+                    employeeId: newEmployeeId,
+                    employeeName: emp ? emp.name : '',
+                    date: newDate,
+                    updatedAt: new Date().toISOString()
+                });
+
+                // Update local data
+                schedule.employeeId = newEmployeeId;
+                schedule.employeeName = emp ? emp.name : '';
+                schedule.date = newDate;
+
+                showNotification('Shift moved successfully!', 'success');
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error moving shift:', error);
+                showNotification('Error moving shift', 'error');
+            }
+
+            draggedShift = null;
+        }
+
+        function quickAddShift(employeeId, date, store) {
+            const emp = employees.find(e => e.id === employeeId);
+            openModal('quick-add-schedule', { employeeId, date, store, employeeName: emp?.name });
+        }
+
+        function setShiftPreset(startTime, endTime) {
+            document.getElementById('schedule-start').value = startTime;
+            document.getElementById('schedule-end').value = endTime;
+            // Highlight selected preset
+            document.querySelectorAll('.shift-preset-btn').forEach(btn => {
+                btn.style.borderColor = 'var(--border-color)';
+                btn.style.background = 'var(--bg-card)';
+            });
+            event.currentTarget.style.borderColor = 'var(--primary)';
+            event.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+        }
+
+        async function saveSchedule(isQuick = false) {
+            const employeeId = document.getElementById('schedule-employee')?.value;
+            const store = document.getElementById('schedule-store')?.value;
+            const date = document.getElementById('schedule-date')?.value;
+            const startTime = document.getElementById('schedule-start')?.value;
+            const endTime = document.getElementById('schedule-end')?.value;
+
+            console.log('Saving schedule:', { employeeId, store, date, startTime, endTime });
+
+            if (!employeeId || !store || !date || !startTime || !endTime) {
+                showNotification('Please fill in all fields', 'error');
+                console.log('Missing fields:', { employeeId: !employeeId, store: !store, date: !date, startTime: !startTime, endTime: !endTime });
+                return;
+            }
+
+            const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+            console.log('Found employee:', emp);
+
+            const scheduleData = {
+                employeeId,
+                employeeName: emp ? emp.name : '',
+                store,
+                date,
+                startTime,
+                endTime,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.name || 'Unknown'
+            };
+
+            console.log('Schedule data to save:', scheduleData);
+
+            try {
+                const db = firebase.firestore();
+                const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(scheduleData);
+                console.log('Schedule saved with ID:', docRef.id);
+
+                showNotification('Shift added!', 'success');
+                closeModal();
+                loadScheduleData();
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function updateSchedule(scheduleId) {
+            const employeeId = document.getElementById('schedule-employee').value;
+            const store = document.getElementById('schedule-store').value;
+            const date = document.getElementById('schedule-date').value;
+            const startTime = document.getElementById('schedule-start').value;
+            const endTime = document.getElementById('schedule-end').value;
+
+            if (!employeeId || !store || !date || !startTime || !endTime) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+
+            const emp = employees.find(e => e.id === employeeId);
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).update({
+                    employeeId,
+                    employeeName: emp ? emp.name : '',
+                    store,
+                    date,
+                    startTime,
+                    endTime,
+                    updatedAt: new Date().toISOString()
+                });
+
+                showNotification('Shift updated!', 'success');
+                closeModal();
+                loadScheduleData();
+            } catch (error) {
+                console.error('Error updating schedule:', error);
+                showNotification('Error updating schedule', 'error');
+            }
+        }
+
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Delete this shift?')) return;
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).delete();
+
+                showNotification('Shift deleted!', 'success');
+                loadScheduleData();
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+                showNotification('Error deleting schedule', 'error');
+            }
         }
 
         // Thieves database
@@ -2765,8 +3845,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         ];
 
-        function renderInvoices() {
+        async function renderInvoices() {
             const dashboard = document.querySelector('.dashboard');
+
+            // Load invoices from Firebase if available
+            await loadInvoicesFromFirebase();
 
             const totalPending = invoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
             const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + i.amount, 0);
@@ -2827,6 +3910,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 60px;">Photo</th>
                                     <th>Invoice #</th>
                                     <th>Vendor</th>
                                     <th>Category</th>
@@ -2834,7 +3918,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <th>Amount</th>
                                     <th>Due Date</th>
                                     <th>Status</th>
-                                    <th style="width: 100px;">Actions</th>
+                                    <th style="width: 120px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="invoicesTableBody">
@@ -2852,7 +3936,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             if (filteredInvoices.length === 0) {
                 return `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
                             No invoices found
                         </td>
@@ -2867,8 +3951,23 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     overdue: 'background: var(--error); color: #fff;'
                 };
 
+                const invoiceId = invoice.firestoreId || invoice.id;
+
                 return `
                     <tr>
+                        <td>
+                            ${invoice.photo ? (invoice.fileType === 'pdf' ? `
+                                <div style="width: 50px; height: 50px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="Click to view PDF">
+                                    <i class="fas fa-file-pdf" style="font-size: 24px; color: #ef4444;"></i>
+                                </div>
+                            ` : `
+                                <img src="${invoice.photo}" alt="Invoice" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="Click to view details">
+                            `) : `
+                                <div style="width: 50px; height: 50px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-file-invoice" style="color: var(--text-muted);"></i>
+                                </div>
+                            `}
+                        </td>
                         <td><strong>${invoice.invoiceNumber}</strong></td>
                         <td>${invoice.vendor}</td>
                         <td>
@@ -2882,9 +3981,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             ${invoice.recurring ? '<i class="fas fa-sync-alt" style="margin-left: 8px; color: var(--text-muted);" title="Recurring"></i>' : ''}
                         </td>
                         <td>
-                            ${invoice.status !== 'paid' ? `<button class="btn-icon" onclick="markInvoicePaid(${invoice.id})" title="Mark Paid"><i class="fas fa-check"></i></button>` : ''}
-                            <button class="btn-icon" onclick="viewInvoice(${invoice.id})" title="View Details"><i class="fas fa-eye"></i></button>
-                            <button class="btn-icon" onclick="deleteInvoice(${invoice.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                            ${invoice.status !== 'paid' ? `<button class="btn-icon" onclick="markInvoicePaid('${invoiceId}')" title="Mark Paid"><i class="fas fa-check"></i></button>` : ''}
+                            <button class="btn-icon" onclick="viewInvoice('${invoiceId}')" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="btn-icon" onclick="editInvoice('${invoiceId}')" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon" onclick="deleteInvoice('${invoiceId}')" title="Delete"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -2898,19 +3998,42 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
-        function markInvoicePaid(id) {
-            const invoice = invoices.find(i => i.id === id);
+        async function markInvoicePaid(id) {
+            const numericId = !isNaN(id) ? parseInt(id, 10) : id;
+            const invoice = invoices.find(i => i.id === id || i.id === numericId || i.firestoreId === id);
             if (invoice) {
-                invoice.status = 'paid';
-                invoice.paidDate = new Date().toISOString().split('T')[0];
-                renderInvoices();
+                // Update in Firebase
+                if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
+                    const firestoreId = invoice.firestoreId || id;
+                    const success = await firebaseInvoiceManager.markInvoicePaid(firestoreId);
+                    if (success) {
+                        // Update local state
+                        invoice.status = 'paid';
+                        invoice.paidDate = new Date().toISOString().split('T')[0];
+                        renderInvoices();
+                    } else {
+                        alert('Error marking invoice as paid');
+                    }
+                } else {
+                    // Fallback to local only
+                    invoice.status = 'paid';
+                    invoice.paidDate = new Date().toISOString().split('T')[0];
+                    renderInvoices();
+                }
             }
         }
 
         function viewInvoice(id) {
-            const invoice = invoices.find(i => i.id === id);
-            if (!invoice) return;
+            // Convert id to number if it's a numeric string for comparison with numeric IDs
+            const numericId = !isNaN(id) ? parseInt(id, 10) : id;
+            const invoice = invoices.find(i => i.id === id || i.id === numericId || i.firestoreId === id);
 
+            if (!invoice) {
+                console.error('Invoice not found with ID:', id);
+                return;
+            }
+
+            const invoiceId = invoice.firestoreId || invoice.id;
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
 
@@ -2969,11 +4092,74 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <div style="color: var(--text-secondary);">${invoice.notes}</div>
                                 </div>
                             ` : ''}
+
+                            ${invoice.photo ? `
+                                <div style="margin-top: 20px;">
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">Invoice File</label>
+                                    ${invoice.fileType === 'pdf' ? `
+                                        <div style="border-radius: 8px; overflow: hidden; background: var(--bg-tertiary);">
+                                            <div style="padding: 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+                                                <div style="display: flex; align-items: center; gap: 12px;">
+                                                    <i class="fas fa-file-pdf" style="font-size: 24px; color: #ef4444;"></i>
+                                                    <span style="font-weight: 500;">${invoice.fileName || 'Invoice.pdf'}</span>
+                                                </div>
+                                                <div style="display: flex; gap: 8px;">
+                                                    <button class="btn-secondary" onclick="openPdfInNewTab('${invoice.photo.replace(/'/g, "\\'")}')" style="padding: 6px 12px;">
+                                                        <i class="fas fa-external-link-alt"></i> Open in Tab
+                                                    </button>
+                                                    <button class="btn-primary" onclick="downloadPdf('${invoice.photo.replace(/'/g, "\\'")}', '${(invoice.fileName || 'Invoice.pdf').replace(/'/g, "\\'")}')" style="padding: 6px 12px;">
+                                                        <i class="fas fa-download"></i> Download
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div style="width: 100%; height: 450px; position: relative;">
+                                                <embed src="${invoice.photo}" type="application/pdf" style="width: 100%; height: 100%;" />
+                                                <div id="pdf-fallback-${invoiceId}" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;">
+                                                    <i class="fas fa-file-pdf" style="font-size: 64px; color: #ef4444; margin-bottom: 16px;"></i>
+                                                    <p style="margin-bottom: 16px; color: var(--text-secondary);">PDF preview not available in this browser.</p>
+                                                    <button class="btn-primary" onclick="openPdfInNewTab('${invoice.photo.replace(/'/g, "\\'")}')">
+                                                        <i class="fas fa-external-link-alt"></i> Open PDF
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : `
+                                        <div style="border-radius: 8px; overflow: hidden; background: var(--bg-tertiary);">
+                                            <!-- Zoom Controls -->
+                                            <div style="padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <i class="fas fa-image" style="color: var(--text-muted);"></i>
+                                                    <span style="font-size: 13px; color: var(--text-secondary);">Invoice Image</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <button class="btn-icon" onclick="zoomInvoiceImage(-0.25)" title="Zoom Out" style="width: 32px; height: 32px;">
+                                                        <i class="fas fa-search-minus"></i>
+                                                    </button>
+                                                    <span id="invoice-zoom-level" style="font-size: 12px; color: var(--text-muted); min-width: 45px; text-align: center;">100%</span>
+                                                    <button class="btn-icon" onclick="zoomInvoiceImage(0.25)" title="Zoom In" style="width: 32px; height: 32px;">
+                                                        <i class="fas fa-search-plus"></i>
+                                                    </button>
+                                                    <button class="btn-icon" onclick="resetInvoiceZoom()" title="Reset Zoom" style="width: 32px; height: 32px;">
+                                                        <i class="fas fa-compress-arrows-alt"></i>
+                                                    </button>
+                                                    <button class="btn-icon" onclick="openInvoiceImageFullSize()" title="Open Full Size" style="width: 32px; height: 32px;">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <!-- Image Container with Zoom -->
+                                            <div id="invoice-image-container" style="overflow: hidden; max-height: 400px; position: relative;">
+                                                <img id="invoice-zoom-image" src="${invoice.photo}" alt="Invoice Photo" style="width: 100%; transform-origin: top left; transition: transform 0.15s ease; cursor: default; user-select: none;" ondragstart="return false;" onmousedown="startImageDrag(event)">
+                                            </div>
+                                        </div>
+                                    `}
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
 
                     ${invoice.status !== 'paid' ? `
-                        <button class="btn-primary" style="width: 100%;" onclick="markInvoicePaid(${invoice.id}); closeModal();">
+                        <button class="btn-primary" style="width: 100%;" onclick="markInvoicePaid('${invoiceId}'); closeModal();">
                             <i class="fas fa-check"></i>
                             Mark as Paid
                         </button>
@@ -2982,16 +4168,34 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             `;
 
             modal.style.display = 'flex';
+            modal.classList.add('active');
+
+            // Reset zoom level for new invoice
+            invoiceZoomLevel = 1;
         }
 
-        function deleteInvoice(id) {
+        async function deleteInvoice(id) {
             if (confirm('Are you sure you want to delete this invoice?')) {
-                invoices = invoices.filter(i => i.id !== id);
-                renderInvoices();
+                const numericId = !isNaN(id) ? parseInt(id, 10) : id;
+                // Delete from Firebase
+                if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
+                    const success = await firebaseInvoiceManager.deleteInvoice(id);
+                    if (success) {
+                        // Update local state
+                        invoices = invoices.filter(i => i.id !== id && i.id !== numericId && i.firestoreId !== id);
+                        renderInvoices();
+                    } else {
+                        alert('Error deleting invoice');
+                    }
+                } else {
+                    // Fallback to local only
+                    invoices = invoices.filter(i => i.id !== id && i.id !== numericId && i.firestoreId !== id);
+                    renderInvoices();
+                }
             }
         }
 
-        function saveInvoice() {
+        async function saveInvoice() {
             const invoiceNumber = document.getElementById('invoice-number').value.trim();
             const vendor = document.getElementById('invoice-vendor').value.trim();
             const category = document.getElementById('invoice-category').value;
@@ -3002,39 +4206,674 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const recurring = document.getElementById('invoice-recurring').checked;
             const notes = document.getElementById('invoice-notes').value.trim();
 
-            // Validation
-            if (!invoiceNumber || !vendor || !category || !amount || !description || !dueDate || !status) {
-                alert('Please fill in all required fields');
+            // Validate required fields
+            if (!invoiceNumber || !vendor || !amount) {
+                alert('Please fill in all required fields (Invoice #, Vendor, Amount)');
                 return;
             }
 
-            // Generate new ID
-            const newId = invoices.length > 0 ? Math.max(...invoices.map(i => i.id)) + 1 : 1;
+            // Get file if uploaded (Base64 encoding for both images and PDFs)
+            const fileInput = document.getElementById('invoice-photo');
+            let fileData = null;
+            let fileType = null;
+            let fileName = null;
 
-            // Add new invoice
-            invoices.unshift({
-                id: newId,
-                invoiceNumber: invoiceNumber,
-                vendor: vendor,
-                category: category,
-                description: description,
-                amount: parseFloat(amount),
-                dueDate: dueDate,
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+
+                // Validate file size (max 1MB for Firestore)
+                if (file.size > 1024 * 1024) {
+                    alert('File is too large. Please use a file smaller than 1MB.');
+                    return;
+                }
+
+                // Determine file type
+                const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                fileType = isPdf ? 'pdf' : 'image';
+                fileName = file.name;
+
+                // Convert to Base64
+                fileData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(e);
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            await createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, recurring, notes, fileData, fileType, fileName);
+        }
+
+        async function createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, recurring, notes, photo, fileType = null, fileName = null) {
+            // Create invoice data object
+            const invoiceData = {
+                invoiceNumber: invoiceNumber || '',
+                vendor: vendor || '',
+                category: category || '',
+                description: description || '',
+                amount: parseFloat(amount) || 0,
+                dueDate: dueDate || '',
                 paidDate: status === 'paid' ? new Date().toISOString().split('T')[0] : null,
-                status: status,
+                status: status || 'pending',
                 recurring: recurring,
-                notes: notes
-            });
+                notes: notes || '',
+                photo: photo,
+                fileType: fileType,  // 'pdf' or 'image' or null
+                fileName: fileName   // Original filename for PDFs
+            };
 
-            closeModal();
-            renderInvoices();
+            // Save to Firebase
+            if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
+                const docId = await firebaseInvoiceManager.addInvoice(invoiceData);
+                if (docId) {
+                    // Add to local array with Firebase ID
+                    invoiceData.id = docId;
+                    invoiceData.firestoreId = docId;
+                    invoices.unshift(invoiceData);
+                    closeModal();
+                    renderInvoices();
+                } else {
+                    alert('Error saving invoice to Firebase');
+                }
+            } else {
+                // Fallback to local only
+                const newId = invoices.length > 0 ? Math.max(...invoices.map(i => typeof i.id === 'number' ? i.id : 0)) + 1 : 1;
+                invoiceData.id = newId;
+                invoices.unshift(invoiceData);
+                closeModal();
+                renderInvoices();
+            }
+        }
+
+        function previewInvoiceFile(input) {
+            const photoPreview = document.getElementById('invoice-photo-preview');
+            const pdfPreview = document.getElementById('invoice-pdf-preview');
+            const img = document.getElementById('invoice-photo-img');
+            const pdfName = document.getElementById('invoice-pdf-name');
+            const pdfSize = document.getElementById('invoice-pdf-size');
+
+            // Hide both previews initially
+            if (photoPreview) photoPreview.style.display = 'none';
+            if (pdfPreview) pdfPreview.style.display = 'none';
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file size (max 1MB for Firestore)
+                if (file.size > 1024 * 1024) {
+                    alert('File is too large. Please use a file smaller than 1MB.');
+                    input.value = '';
+                    return;
+                }
+
+                // Check if it's a PDF
+                if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                    // Show PDF preview
+                    if (pdfPreview && pdfName && pdfSize) {
+                        pdfName.textContent = file.name;
+                        pdfSize.textContent = formatFileSize(file.size);
+                        pdfPreview.style.display = 'block';
+                    }
+                } else {
+                    // Show image preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (img && photoPreview) {
+                            img.src = e.target.result;
+                            photoPreview.style.display = 'block';
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        // Helper function to format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Keep old function name for backwards compatibility
+        function previewInvoicePhoto(input) {
+            previewInvoiceFile(input);
+        }
+
+        // Open PDF in a new browser tab
+        function openPdfInNewTab(base64Data) {
+            // Create a blob from the base64 data
+            try {
+                const byteCharacters = atob(base64Data.split(',')[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                window.open(blobUrl, '_blank');
+            } catch (error) {
+                console.error('Error opening PDF:', error);
+                // Fallback to direct base64 URL
+                window.open(base64Data, '_blank');
+            }
+        }
+
+        // Download PDF file
+        function downloadPdf(base64Data, fileName) {
+            try {
+                const byteCharacters = atob(base64Data.split(',')[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+                // Create download link
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName || 'invoice.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            } catch (error) {
+                console.error('Error downloading PDF:', error);
+                alert('Error downloading PDF. Please try the "Open in Tab" option instead.');
+            }
+        }
+
+        // Invoice Image Zoom Controls
+        let invoiceZoomLevel = 1;
+        let isImageDragging = false;
+        let imageDragStartX = 0;
+        let imageDragStartY = 0;
+        let imageTranslateX = 0;
+        let imageTranslateY = 0;
+        let imageStartTranslateX = 0;
+        let imageStartTranslateY = 0;
+
+        function zoomInvoiceImage(delta) {
+            const img = document.getElementById('invoice-zoom-image');
+            const zoomDisplay = document.getElementById('invoice-zoom-level');
+
+            if (!img) return;
+
+            // Calculate new zoom level (min 0.5, max 4)
+            const newZoom = Math.max(0.5, Math.min(4, invoiceZoomLevel + delta));
+
+            // If zooming out to 1 or less, reset position
+            if (newZoom <= 1) {
+                imageTranslateX = 0;
+                imageTranslateY = 0;
+            }
+
+            invoiceZoomLevel = newZoom;
+
+            // Apply zoom with transform
+            img.style.transform = `scale(${invoiceZoomLevel}) translate(${imageTranslateX}px, ${imageTranslateY}px)`;
+
+            // Update display
+            if (zoomDisplay) {
+                zoomDisplay.textContent = `${Math.round(invoiceZoomLevel * 100)}%`;
+            }
+
+            // Update cursor based on zoom level
+            img.style.cursor = invoiceZoomLevel > 1 ? 'grab' : 'default';
+        }
+
+        function resetInvoiceZoom() {
+            const img = document.getElementById('invoice-zoom-image');
+            const zoomDisplay = document.getElementById('invoice-zoom-level');
+
+            if (!img) return;
+
+            invoiceZoomLevel = 1;
+            imageTranslateX = 0;
+            imageTranslateY = 0;
+            img.style.transform = 'scale(1) translate(0px, 0px)';
+            img.style.cursor = 'default';
+
+            if (zoomDisplay) {
+                zoomDisplay.textContent = '100%';
+            }
+        }
+
+        function startImageDrag(event) {
+            const img = document.getElementById('invoice-zoom-image');
+            if (!img || invoiceZoomLevel <= 1) return;
+
+            isImageDragging = true;
+            img.style.cursor = 'grabbing';
+            img.style.transition = 'none'; // Disable transition during drag for smooth movement
+            imageDragStartX = event.clientX;
+            imageDragStartY = event.clientY;
+            imageStartTranslateX = imageTranslateX;
+            imageStartTranslateY = imageTranslateY;
+            event.preventDefault();
+
+            // Add document-level listeners so dragging continues even outside the image
+            document.addEventListener('mousemove', dragImage);
+            document.addEventListener('mouseup', stopImageDrag);
+        }
+
+        function dragImage(event) {
+            if (!isImageDragging) return;
+
+            const img = document.getElementById('invoice-zoom-image');
+            if (!img) return;
+
+            // Calculate delta and apply to translate (divide by zoom to keep movement proportional)
+            const deltaX = (event.clientX - imageDragStartX) / invoiceZoomLevel;
+            const deltaY = (event.clientY - imageDragStartY) / invoiceZoomLevel;
+
+            imageTranslateX = imageStartTranslateX + deltaX;
+            imageTranslateY = imageStartTranslateY + deltaY;
+
+            img.style.transform = `scale(${invoiceZoomLevel}) translate(${imageTranslateX}px, ${imageTranslateY}px)`;
+        }
+
+        function stopImageDrag() {
+            const img = document.getElementById('invoice-zoom-image');
+            if (img) {
+                img.style.cursor = invoiceZoomLevel > 1 ? 'grab' : 'default';
+                img.style.transition = 'transform 0.15s ease'; // Re-enable smooth transition
+            }
+            isImageDragging = false;
+
+            // Remove document-level listeners
+            document.removeEventListener('mousemove', dragImage);
+            document.removeEventListener('mouseup', stopImageDrag);
+        }
+
+        function openInvoiceImageFullSize() {
+            const img = document.getElementById('invoice-zoom-image');
+            if (!img || !img.src) return;
+
+            const base64Data = img.src;
+
+            // Check if it's a base64 image
+            if (base64Data.startsWith('data:image')) {
+                // Convert base64 to blob and open in new tab
+                try {
+                    const parts = base64Data.split(',');
+                    const mimeMatch = parts[0].match(/:(.*?);/);
+                    const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+                    const byteString = atob(parts[1]);
+                    const byteNumbers = new Array(byteString.length);
+
+                    for (let i = 0; i < byteString.length; i++) {
+                        byteNumbers[i] = byteString.charCodeAt(i);
+                    }
+
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: mimeType });
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    // Open in new tab
+                    const newTab = window.open(blobUrl, '_blank');
+
+                    // Clean up blob URL after a delay
+                    if (newTab) {
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                    }
+                } catch (error) {
+                    console.error('Error opening image:', error);
+                    // Fallback: try opening directly
+                    window.open(base64Data, '_blank');
+                }
+            } else {
+                // It's a regular URL, just open it
+                window.open(base64Data, '_blank');
+            }
+        }
+
+        function editInvoice(id) {
+            const numericId = !isNaN(id) ? parseInt(id, 10) : id;
+            const invoice = invoices.find(i => i.id === id || i.id === numericId || i.firestoreId === id);
+            if (!invoice) return;
+
+            const invoiceId = invoice.firestoreId || invoice.id;
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2>Edit Invoice</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-invoice-form" onsubmit="event.preventDefault(); saveInvoiceChanges('${invoiceId}');">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Invoice Number *</label>
+                                <input type="text" class="form-input" id="edit-invoice-number" value="${invoice.invoiceNumber || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Vendor *</label>
+                                <input type="text" class="form-input" id="edit-invoice-vendor" value="${invoice.vendor || ''}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select class="form-input" id="edit-invoice-category">
+                                    <option value="utilities" ${invoice.category === 'utilities' ? 'selected' : ''}>Utilities</option>
+                                    <option value="rent" ${invoice.category === 'rent' ? 'selected' : ''}>Rent</option>
+                                    <option value="supplies" ${invoice.category === 'supplies' ? 'selected' : ''}>Supplies</option>
+                                    <option value="inventory" ${invoice.category === 'inventory' ? 'selected' : ''}>Inventory</option>
+                                    <option value="services" ${invoice.category === 'services' ? 'selected' : ''}>Services</option>
+                                    <option value="equipment" ${invoice.category === 'equipment' ? 'selected' : ''}>Equipment</option>
+                                    <option value="other" ${invoice.category === 'other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Amount *</label>
+                                <input type="number" step="0.01" class="form-input" id="edit-invoice-amount" value="${invoice.amount || ''}" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <input type="text" class="form-input" id="edit-invoice-description" value="${invoice.description || ''}">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" class="form-input" id="edit-invoice-due-date" value="${invoice.dueDate || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <select class="form-input" id="edit-invoice-status">
+                                    <option value="pending" ${invoice.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="overdue" ${invoice.status === 'overdue' ? 'selected' : ''}>Overdue</option>
+                                    <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Paid</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="edit-invoice-recurring" ${invoice.recurring ? 'checked' : ''}>
+                                Recurring Invoice
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-input" id="edit-invoice-notes" rows="3">${invoice.notes || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Invoice File (Photo or PDF)</label>
+                            ${invoice.photo ? `
+                                <div id="edit-invoice-current-file" style="margin-bottom: 10px;">
+                                    ${invoice.fileType === 'pdf' ? `
+                                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+                                            <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444;"></i>
+                                            <div>
+                                                <div style="font-weight: 500;">${invoice.fileName || 'Invoice.pdf'}</div>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Current PDF (upload new to replace)</p>
+                                            </div>
+                                        </div>
+                                    ` : `
+                                        <img src="${invoice.photo}" alt="Current Invoice Photo" style="max-width: 200px; max-height: 150px; border-radius: 8px; object-fit: contain;">
+                                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Current photo (upload new to replace)</p>
+                                    `}
+                                </div>
+                            ` : ''}
+                            <input type="file" class="form-input" id="edit-invoice-photo" accept="image/*,.pdf,application/pdf" onchange="previewEditInvoiceFile(this)">
+                            <div id="edit-invoice-photo-preview" style="margin-top: 10px; display: none;">
+                                <img id="edit-invoice-photo-img" src="" alt="New Photo Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; object-fit: contain;">
+                                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">New photo preview</p>
+                            </div>
+                            <div id="edit-invoice-pdf-preview" style="margin-top: 10px; display: none;">
+                                <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444;"></i>
+                                    <div>
+                                        <div id="edit-invoice-pdf-name" style="font-weight: 500;"></div>
+                                        <div id="edit-invoice-pdf-size" style="font-size: 12px; color: var(--text-muted);"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top: 24px;">
+                            <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+
+        function previewEditInvoiceFile(input) {
+            const photoPreview = document.getElementById('edit-invoice-photo-preview');
+            const pdfPreview = document.getElementById('edit-invoice-pdf-preview');
+            const img = document.getElementById('edit-invoice-photo-img');
+            const pdfName = document.getElementById('edit-invoice-pdf-name');
+            const pdfSize = document.getElementById('edit-invoice-pdf-size');
+
+            // Hide both previews initially
+            if (photoPreview) photoPreview.style.display = 'none';
+            if (pdfPreview) pdfPreview.style.display = 'none';
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file size (max 1MB for Firestore)
+                if (file.size > 1024 * 1024) {
+                    alert('File is too large. Please use a file smaller than 1MB.');
+                    input.value = '';
+                    return;
+                }
+
+                // Check if it's a PDF
+                if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                    // Show PDF preview
+                    if (pdfPreview && pdfName && pdfSize) {
+                        pdfName.textContent = file.name;
+                        pdfSize.textContent = formatFileSize(file.size);
+                        pdfPreview.style.display = 'block';
+                    }
+                } else {
+                    // Show image preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (img && photoPreview) {
+                            img.src = e.target.result;
+                            photoPreview.style.display = 'block';
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        // Keep old function name for backwards compatibility
+        function previewEditInvoicePhoto(input) {
+            previewEditInvoiceFile(input);
+        }
+
+        async function saveInvoiceChanges(invoiceId) {
+            const invoiceNumber = document.getElementById('edit-invoice-number').value.trim();
+            const vendor = document.getElementById('edit-invoice-vendor').value.trim();
+            const category = document.getElementById('edit-invoice-category').value;
+            const amount = document.getElementById('edit-invoice-amount').value;
+            const description = document.getElementById('edit-invoice-description').value.trim();
+            const dueDate = document.getElementById('edit-invoice-due-date').value;
+            const status = document.getElementById('edit-invoice-status').value;
+            const recurring = document.getElementById('edit-invoice-recurring').checked;
+            const notes = document.getElementById('edit-invoice-notes').value.trim();
+
+            // Validate required fields
+            if (!invoiceNumber || !vendor || !amount) {
+                alert('Please fill in all required fields (Invoice #, Vendor, Amount)');
+                return;
+            }
+
+            // Find the invoice to get current file data
+            const numericId = !isNaN(invoiceId) ? parseInt(invoiceId, 10) : invoiceId;
+            const invoice = invoices.find(i => i.id === invoiceId || i.id === numericId || i.firestoreId === invoiceId);
+
+            // Get new file if uploaded (Base64 encoding for both images and PDFs)
+            const fileInput = document.getElementById('edit-invoice-photo');
+            let fileData = invoice ? invoice.photo : null; // Keep existing file by default
+            let fileType = invoice ? invoice.fileType : null;
+            let fileName = invoice ? invoice.fileName : null;
+
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+
+                // Validate file size (max 1MB for Firestore)
+                if (file.size > 1024 * 1024) {
+                    alert('File is too large. Please use a file smaller than 1MB.');
+                    return;
+                }
+
+                // Determine file type
+                const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                fileType = isPdf ? 'pdf' : 'image';
+                fileName = file.name;
+
+                // Convert to Base64
+                fileData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(e);
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Create update data object
+            const updateData = {
+                invoiceNumber: invoiceNumber || '',
+                vendor: vendor || '',
+                category: category || '',
+                description: description || '',
+                amount: parseFloat(amount) || 0,
+                dueDate: dueDate || '',
+                paidDate: status === 'paid' ? (invoice && invoice.paidDate ? invoice.paidDate : new Date().toISOString().split('T')[0]) : null,
+                status: status || 'pending',
+                recurring: recurring,
+                notes: notes || '',
+                photo: fileData,
+                fileType: fileType,
+                fileName: fileName
+            };
+
+            // Update in Firebase
+            if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
+                const success = await firebaseInvoiceManager.updateInvoice(invoiceId, updateData);
+                if (success) {
+                    // Update local state
+                    const idx = invoices.findIndex(i => i.id === invoiceId || i.firestoreId === invoiceId);
+                    if (idx !== -1) {
+                        invoices[idx] = { ...invoices[idx], ...updateData };
+                    }
+                    closeModal();
+                    renderInvoices();
+                } else {
+                    alert('Error updating invoice');
+                }
+            } else {
+                // Fallback to local only
+                const idx = invoices.findIndex(i => i.id === invoiceId || i.firestoreId === invoiceId);
+                if (idx !== -1) {
+                    invoices[idx] = { ...invoices[idx], ...updateData };
+                }
+                closeModal();
+                renderInvoices();
+            }
+        }
+
+        // Load invoices from Firebase
+        async function loadInvoicesFromFirebase() {
+            try {
+                if (typeof firebaseInvoiceManager === 'undefined') {
+                    console.log('Firebase Invoice Manager not available');
+                    return;
+                }
+
+                if (!firebaseInvoiceManager.isInitialized) {
+                    await firebaseInvoiceManager.initialize();
+                }
+
+                const firebaseInvoices = await firebaseInvoiceManager.loadInvoices();
+
+                if (firebaseInvoices.length > 0) {
+                    // Replace local invoices with Firebase data
+                    invoices = firebaseInvoices;
+                    console.log('Loaded', firebaseInvoices.length, 'invoices from Firebase');
+                }
+            } catch (error) {
+                console.error('Error loading invoices from Firebase:', error);
+            }
         }
 
         // Treasury Functions
+        async function loadTreasuryItemsFromFirebase() {
+            try {
+                console.log('🔄 Loading treasury from Firebase...');
+                if (typeof firebase === 'undefined' || !firebase.firestore) {
+                    console.warn('⚠️ Firebase not available for treasury');
+                    return false;
+                }
+
+                const db = firebase.firestore();
+                const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
+                
+                const snapshot = await db.collection(treasuryCollection).get();
+                const items = [];
+                
+                snapshot.forEach(doc => {
+                    items.push({
+                        id: items.length > 0 ? Math.max(...items.map(i => i.id || 0)) + 1 : 1,
+                        firestoreId: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                treasuryItems = items;
+                console.log('✅ Loaded treasury items from Firebase:', treasuryItems.length);
+                return true;
+            } catch (error) {
+                console.error('❌ Error loading treasury items from Firebase:', error);
+                return false;
+            }
+        }
+
         function renderTreasury() {
-            console.log('renderTreasury called');
-            console.log('treasuryItems:', treasuryItems);
+            console.log('🚀 renderTreasury called');
+            // Load from Firebase first
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                loadTreasuryItemsFromFirebase().then(() => {
+                    console.log('📊 Firebase load complete, rendering content');
+                    renderTreasuryContent();
+                }).catch(error => {
+                    console.error('❌ Error in renderTreasury:', error);
+                    renderTreasuryContent(); // Still render even if Firebase fails
+                });
+            } else {
+                console.warn('⚠️ Firebase not initialized, rendering with local data');
+                // If Firebase not available, just render with existing data
+                renderTreasuryContent();
+            }
+        }
+
+        function renderTreasuryContent() {
+            console.log('📝 renderTreasuryContent called with', treasuryItems.length, 'items');
             const dashboard = document.querySelector('.dashboard');
+            
+            if (!dashboard) {
+                console.error('❌ Dashboard element not found!');
+                return;
+            }
 
             const totalValue = treasuryItems.reduce((sum, item) => sum + item.value, 0);
             const itemsByLocation = {
@@ -3095,7 +4934,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 <tr>
                                     <th style="width: 80px;">Photo</th>
                                     <th>Artwork Name</th>
-                                    <th>Artist / Manufacturer</th>
+                                    <th>Artist</th>
                                     <th>Acquisition Date</th>
                                     <th>Value (USD)</th>
                                     <th>Location</th>
@@ -3130,6 +4969,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     ? `<img src="${item.photos[0]}" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
                     : `<i class="fas fa-image" style="color: var(--text-muted); font-size: 24px;"></i>`;
 
+                const itemValue = parseFloat(item.value) || 0;
+                const itemName = item.artworkName || 'Unknown';
+                const itemArtist = item.artist || '-';
+                const itemDate = item.acquisitionDate || '-';
+                const itemLocation = item.location || 'Unknown';
+
                 return `
                     <tr>
                         <td>
@@ -3137,15 +4982,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 ${photoDisplay}
                             </div>
                         </td>
-                        <td><strong>${item.artworkName}</strong></td>
+                        <td><strong>${itemName}</strong></td>
+                        <td>${itemArtist}</td>
+                        <td>${formatDate(itemDate)}</td>
+                        <td style="font-weight: 600; color: var(--success);">$${itemValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td>
-                            <div>${item.artist}</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">${item.manufacturer}</div>
-                        </td>
-                        <td>${formatDate(item.acquisitionDate)}</td>
-                        <td style="font-weight: 600; color: var(--success);">$${item.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>
-                            <span class="badge" style="background: var(--accent-primary);">${item.location}</span>
+                            <span class="badge" style="background: var(--accent-primary);">${itemLocation}</span>
                         </td>
                         <td>
                             <button class="btn-icon" onclick="viewTreasuryItem(${item.id})" title="View Details">
@@ -3202,23 +5044,19 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;">
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Artist</label>
-                                    <div style="font-weight: 500;">${item.artist}</div>
-                                </div>
-                                <div>
-                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Manufacturer</label>
-                                    <div>${item.manufacturer}</div>
+                                    <div style="font-weight: 500;">${item.artist || 'Unknown'}</div>
                                 </div>
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Acquisition Date</label>
-                                    <div>${formatDate(item.acquisitionDate)}</div>
+                                    <div>${formatDate(item.acquisitionDate) || '-'}</div>
                                 </div>
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Estimated Value</label>
-                                    <div style="font-weight: 600; color: var(--success); font-size: 18px;">$${item.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                                    <div style="font-weight: 600; color: var(--success); font-size: 18px;">$${(parseFloat(item.value) || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                 </div>
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Current Location</label>
-                                    <div><span class="badge" style="background: var(--accent-primary);">${item.location}</span></div>
+                                    <div><span class="badge" style="background: var(--accent-primary);">${item.location || 'Unknown'}</span></div>
                                 </div>
                             </div>
 
@@ -3252,215 +5090,826 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             setTimeout(() => openModal('edit-treasury', id), 100);
         }
 
-        function deleteTreasuryItem(id) {
+        async function deleteTreasuryItem(id) {
             if (confirm('Are you sure you want to delete this piece from the collection?')) {
-                treasuryItems = treasuryItems.filter(t => t.id !== id);
-                renderTreasury();
+                try {
+                    // Find the item to get firestoreId
+                    const item = treasuryItems.find(t => t.id === id);
+                    
+                    // Delete from Firebase if firestoreId exists
+                    if (item && item.firestoreId && typeof firebase !== 'undefined' && firebase.firestore) {
+                        const db = firebase.firestore();
+                        const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
+                        await db.collection(treasuryCollection).doc(item.firestoreId).delete();
+                        console.log('✅ Treasury item deleted from Firebase');
+                    }
+
+                    // Remove from local array
+                    treasuryItems = treasuryItems.filter(t => t.id !== id);
+                    
+                    await loadTreasuryItemsFromFirebase();
+                    renderTreasuryContent();
+                } catch (error) {
+                    console.error('Error deleting treasury item:', error);
+                    alert('Error deleting item. Please try again.');
+                }
             }
         }
 
-        function saveTreasuryItem(isEdit = false, itemId = null) {
+        async function saveTreasuryItem(isEdit = false, itemId = null) {
             const artworkName = document.getElementById('treasury-artwork-name').value.trim();
             const artist = document.getElementById('treasury-artist').value.trim();
-            const manufacturer = document.getElementById('treasury-manufacturer').value.trim();
             const acquisitionDate = document.getElementById('treasury-acquisition-date').value;
-            const value = parseFloat(document.getElementById('treasury-value').value);
+            const value = parseFloat(document.getElementById('treasury-value').value) || 0;
             const location = document.getElementById('treasury-location').value;
             const description = document.getElementById('treasury-description').value.trim();
 
-            if (!artworkName || !artist || !manufacturer || !acquisitionDate || !value || !location) {
+            const photoInput = document.getElementById('treasury-photos');
+            const existingPhotos = isEdit ? treasuryItems.find(t => t.id === itemId)?.photos || [] : [];
+
+            // Prepare photos for Firebase (convert blobs to base64)
+            let photosData = [...existingPhotos];
+            if (photoInput.files.length > 0) {
+                for (let file of photoInput.files) {
+                    const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(file);
+                    });
+                    photosData.push(base64);
+                }
+            }
+
+            try {
+                if (isEdit) {
+                    const item = treasuryItems.find(t => t.id === itemId);
+                    if (item) {
+                        item.artworkName = artworkName;
+                        item.artist = artist;
+                        item.acquisitionDate = acquisitionDate;
+                        item.value = value;
+                        item.location = location;
+                        item.description = description;
+                        item.photos = photosData;
+
+                        // Update in Firebase
+                        if (typeof firebase !== 'undefined' && firebase.firestore) {
+                            const db = firebase.firestore();
+                            const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
+                            
+                            // Use firestoreId if available, otherwise create new
+                            if (item.firestoreId) {
+                                await db.collection(treasuryCollection).doc(item.firestoreId).update({
+                                    artworkName,
+                                    artist,
+                                    acquisitionDate,
+                                    value,
+                                    location,
+                                    description,
+                                    photos: photosData,
+                                    updatedAt: new Date()
+                                });
+                                console.log('✅ Treasury item updated in Firebase');
+                            } else {
+                                // If no firestoreId, save as new
+                                const docRef = await db.collection(treasuryCollection).add({
+                                    artworkName,
+                                    artist,
+                                    acquisitionDate,
+                                    value,
+                                    location,
+                                    description,
+                                    photos: photosData,
+                                    createdAt: new Date(),
+                                    updatedAt: new Date()
+                                });
+                                item.firestoreId = docRef.id;
+                                console.log('✅ Treasury item created in Firebase');
+                            }
+                        }
+                    }
+                } else {
+                    const newItem = {
+                        id: treasuryItems.length > 0 ? Math.max(...treasuryItems.map(t => t.id)) + 1 : 1,
+                        artworkName,
+                        artist,
+                        acquisitionDate,
+                        value,
+                        location,
+                        description,
+                        photos: photosData
+                    };
+
+                    // Save to Firebase
+                    if (typeof firebase !== 'undefined' && firebase.firestore) {
+                        const db = firebase.firestore();
+                        const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
+                        
+                        const docRef = await db.collection(treasuryCollection).add({
+                            artworkName,
+                            artist,
+                            acquisitionDate,
+                            value,
+                            location,
+                            description,
+                            photos: photosData,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        });
+                        newItem.firestoreId = docRef.id;
+                        console.log('✅ Treasury item saved to Firebase');
+                    }
+
+                    treasuryItems.push(newItem);
+                }
+
+                closeModal();
+                await loadTreasuryItemsFromFirebase();
+                renderTreasuryContent();
+            } catch (error) {
+                console.error('Error saving treasury item:', error);
+                alert('Error saving treasury item. Please try again.');
+            }
+        }
+
+        // Change Functions - Cambio dejado en Campos
+        function renderChange() {
+            const dashboard = document.querySelector('.dashboard');
+
+            const totalChange = changeRecords.reduce((sum, r) => sum + r.amount, 0);
+            const recordsByStore = {};
+            changeRecords.forEach(r => {
+                recordsByStore[r.store] = (recordsByStore[r.store] || 0) + r.amount;
+            });
+
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Change Management</h2>
+                        <p class="section-subtitle">Track change left at Campos</p>
+                    </div>
+                    <button class="btn-primary" onclick="openModal('add-change')">
+                        <i class="fas fa-plus"></i>
+                        Add Change Record
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); text-align: center; padding: 32px 24px;">
+                        <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-coins"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Change</div>
+                            <div class="stat-value" style="color: white;">$${totalChange.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); text-align: center; padding: 32px 24px;">
+                        <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-receipt"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Records</div>
+                            <div class="stat-value" style="color: white;">${changeRecords.length}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i>
+                            Change Records
+                        </h3>
+                        <div style="display: flex; gap: 12px;">
+                            <select class="form-input" style="width: 200px;" onchange="filterChangeRecords(this.value)">
+                                <option value="all">All Stores</option>
+                                <option value="Miramar">VSU Miramar</option>
+                                <option value="Morena">VSU Morena</option>
+                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                <option value="Chula Vista">VSU Chula Vista</option>
+                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Photo</th>
+                                    <th>Store</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Left By</th>
+                                    <th>Received By</th>
+                                    <th>Notes</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="changeTableBody">
+                                ${renderChangeTable()}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderChangeTable(filter = 'all') {
+            const filteredRecords = filter === 'all' ? changeRecords : changeRecords.filter(r => r.store === filter);
+
+            if (filteredRecords.length === 0) {
+                return `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <i class="fas fa-coins" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                            No change records found
+                        </td>
+                    </tr>
+                `;
+            }
+
+            return filteredRecords.map(record => {
+                const photoDisplay = record.photo
+                    ? `<img src="${record.photo}" style="width: 100%; height: 100%; object-fit: cover;" alt="Change photo">`
+                    : `<i class="fas fa-image" style="color: var(--text-muted); font-size: 24px;"></i>`;
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: ${record.photo ? 'pointer' : 'default'};" ${record.photo ? `onclick="viewChangePhoto(${record.id})"` : ''}>
+                                ${photoDisplay}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: var(--accent-primary);">VSU ${record.store}</span>
+                        </td>
+                        <td style="font-weight: 600; color: var(--success);">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>${formatDate(record.date)}</td>
+                        <td>${record.leftBy}</td>
+                        <td>${record.receivedBy}</td>
+                        <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${record.notes || ''}">${record.notes || '-'}</td>
+                        <td>
+                            <button class="btn-icon" onclick="viewChangeRecord(${record.id})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon" onclick="deleteChangeRecord(${record.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterChangeRecords(store) {
+            const tbody = document.getElementById('changeTableBody');
+            if (tbody) {
+                tbody.innerHTML = renderChangeTable(store);
+            }
+        }
+
+        function viewChangeRecord(id) {
+            const record = changeRecords.find(r => r.id === id);
+            if (!record) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            const photoDisplay = record.photo
+                ? `<img src="${record.photo}" style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px;" alt="Change photo">`
+                : `<div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 8px; color: var(--text-muted);">
+                    <i class="fas fa-image" style="font-size: 48px; margin-bottom: 12px; display: block;"></i>
+                    No photo available
+                </div>`;
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-coins"></i> Change Record Details</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="margin-bottom: 20px;">
+                        ${photoDisplay}
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Store</label>
+                            <p style="margin: 0; font-weight: 500;">VSU ${record.store}</p>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Amount</label>
+                            <p style="margin: 0; font-weight: 600; color: var(--success); font-size: 20px;">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Date</label>
+                            <p style="margin: 0; font-weight: 500;">${formatDate(record.date)}</p>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Left By</label>
+                            <p style="margin: 0; font-weight: 500;">${record.leftBy}</p>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Received By</label>
+                            <p style="margin: 0; font-weight: 500;">${record.receivedBy}</p>
+                        </div>
+                    </div>
+
+                    ${record.notes ? `
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">Notes</label>
+                            <p style="margin: 0; line-height: 1.6; color: var(--text-secondary);">${record.notes}</p>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    <button class="btn-primary" style="background: var(--danger); border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this record?')) { deleteChangeRecord(${record.id}); closeModal(); }">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function viewChangePhoto(id) {
+            const record = changeRecords.find(r => r.id === id);
+            if (!record || !record.photo) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-image"></i> Change Photo</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="padding: 0;">
+                    <img src="${record.photo}" style="width: 100%; height: auto; display: block;" alt="Change photo">
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function deleteChangeRecord(id) {
+            if (confirm('Are you sure you want to delete this change record?')) {
+                changeRecords = changeRecords.filter(r => r.id !== id);
+                renderChange();
+            }
+        }
+
+        function saveChangeRecord() {
+            const store = document.getElementById('change-store').value;
+            const amount = parseFloat(document.getElementById('change-amount').value);
+            const date = document.getElementById('change-date').value;
+            const leftBy = document.getElementById('change-left-by').value.trim();
+            const receivedBy = document.getElementById('change-received-by').value.trim();
+            const notes = document.getElementById('change-notes').value.trim();
+            const photoInput = document.getElementById('change-photo');
+
+            if (!store || !amount || !date || !leftBy || !receivedBy) {
                 alert('Please fill in all required fields');
                 return;
             }
 
-            const photoInput = document.getElementById('treasury-photos');
-            const existingPhotos = isEdit ? treasuryItems.find(t => t.id === itemId).photos : [];
+            const newRecord = {
+                id: Math.max(0, ...changeRecords.map(r => r.id)) + 1,
+                store,
+                amount,
+                date,
+                leftBy,
+                receivedBy,
+                notes,
+                photo: photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : null
+            };
 
-            if (isEdit) {
-                const item = treasuryItems.find(t => t.id === itemId);
-                item.artworkName = artworkName;
-                item.artist = artist;
-                item.manufacturer = manufacturer;
-                item.acquisitionDate = acquisitionDate;
-                item.value = value;
-                item.location = location;
-                item.description = description;
+            changeRecords.unshift(newRecord);
+            closeModal();
+            renderChange();
+        }
 
-                if (photoInput.files.length > 0) {
-                    const newPhotos = Array.from(photoInput.files).map(file => URL.createObjectURL(file));
-                    item.photos = [...existingPhotos, ...newPhotos];
+        // Gifts Functions - Control de Regalos en Especie
+        function getGiftsAvailableMonths() {
+            const months = new Set();
+            giftsRecords.forEach(r => {
+                if (r.date) months.add(r.date.slice(0, 7));
+            });
+            months.add(new Date().toISOString().slice(0, 7));
+            return Array.from(months).sort().reverse();
+        }
+
+        function changeGiftsMonth(month) {
+            giftsCurrentMonth = month;
+            renderGifts();
+        }
+
+        function renderGifts() {
+            const dashboard = document.querySelector('.dashboard');
+
+            // Filter by current month
+            const monthlyRecords = giftsRecords.filter(r => r.date && r.date.startsWith(giftsCurrentMonth));
+            const monthlyTotal = monthlyRecords.reduce((sum, r) => sum + r.value, 0);
+            const monthlyItems = monthlyRecords.reduce((sum, r) => sum + r.quantity, 0);
+            const monthName = new Date(giftsCurrentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+            const availableMonths = getGiftsAvailableMonths();
+
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Gifts</h2>
+                        <p class="section-subtitle">Control de Regalos en Especie</p>
+                    </div>
+                    <button class="btn-primary" onclick="openModal('add-gift')">
+                        <i class="fas fa-plus"></i>
+                        Register Gift
+                    </button>
+                </div>
+
+                <!-- Monthly Total Card -->
+                <div style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); border-radius: 16px; padding: 30px 40px; margin-bottom: 24px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.1);"></div>
+                    <div style="position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px;">${monthName}</div>
+                            <div style="color: white; font-size: 42px; font-weight: 700; margin-bottom: 4px;">$${monthlyTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 14px;">${monthlyRecords.length} gift${monthlyRecords.length !== 1 ? 's' : ''} (${monthlyItems} items) this month</div>
+                        </div>
+                        <select class="form-input" style="width: 150px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;" onchange="changeGiftsMonth(this.value)">
+                            ${availableMonths.map(month => {
+                                const mName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                                return `<option value="${month}" ${month === giftsCurrentMonth ? 'selected' : ''} style="color: black;">${mName}</option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-body" style="padding: 12px 16px;">
+                        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: 500; color: var(--text-secondary);">Store:</label>
+                                <select class="form-input" id="gifts-store-filter" style="width: 180px;" onchange="filterGiftsTable()">
+                                    <option value="all">All Stores</option>
+                                    <option value="Miramar">Miramar</option>
+                                    <option value="Morena">Morena</option>
+                                    <option value="Kearny Mesa">Kearny Mesa</option>
+                                    <option value="Chula Vista">Chula Vista</option>
+                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: 500; color: var(--text-secondary);">Recipient:</label>
+                                <select class="form-input" id="gifts-type-filter" style="width: 150px;" onchange="filterGiftsTable()">
+                                    <option value="all">All Types</option>
+                                    <option value="customer">Customer</option>
+                                    <option value="vendor">Vendor</option>
+                                    <option value="employee">Employee</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gifts Table -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        ${monthlyRecords.length === 0 ? `
+                            <div style="padding: 60px; text-align: center; color: var(--text-muted);">
+                                <i class="fas fa-gift" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                                <h3 style="margin-bottom: 8px; color: var(--text-secondary);">No Gifts This Month</h3>
+                                <p>Click "Register Gift" to add a new record</p>
+                            </div>
+                        ` : `
+                            <table class="data-table" style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Product</th>
+                                        <th>Qty</th>
+                                        <th>Value</th>
+                                        <th>Recipient</th>
+                                        <th>Type</th>
+                                        <th>Store</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="giftsTableBody">
+                                    ${renderGiftsTableRows(monthlyRecords)}
+                                </tbody>
+                            </table>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGiftsTableRows(records) {
+            if (records.length === 0) return '';
+
+            return records.map(gift => `
+                <tr>
+                    <td>${new Date(gift.date).toLocaleDateString()}</td>
+                    <td>
+                        <div style="font-weight: 500;">${gift.product}</div>
+                        ${gift.notes ? `<div style="font-size: 11px; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gift.notes}</div>` : ''}
+                    </td>
+                    <td style="text-align: center;">${gift.quantity}</td>
+                    <td style="font-weight: 600; color: var(--danger);">$${gift.value.toFixed(2)}</td>
+                    <td>${gift.recipient}</td>
+                    <td>
+                        <span class="status-badge ${gift.recipientType === 'customer' ? 'active' : gift.recipientType === 'vendor' ? 'warning' : 'inactive'}">
+                            ${gift.recipientType.charAt(0).toUpperCase() + gift.recipientType.slice(1)}
+                        </span>
+                    </td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${gift.reason}">${gift.reason}</td>
+                    <td>
+                        <span style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                            ${gift.store}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-icon" onclick="viewGiftDetails(${gift.id})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon" onclick="editGift(${gift.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon" onclick="deleteGift(${gift.id})" title="Delete" style="color: var(--danger);">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterGiftsTable() {
+            const storeFilter = document.getElementById('gifts-store-filter')?.value || 'all';
+            const typeFilter = document.getElementById('gifts-type-filter')?.value || 'all';
+
+            // Start with monthly records
+            let filteredRecords = giftsRecords.filter(r => r.date && r.date.startsWith(giftsCurrentMonth));
+
+            // Apply store filter
+            if (storeFilter !== 'all') {
+                filteredRecords = filteredRecords.filter(r => r.store === storeFilter);
+            }
+
+            // Apply type filter
+            if (typeFilter !== 'all') {
+                filteredRecords = filteredRecords.filter(r => r.recipientType === typeFilter);
+            }
+
+            const tbody = document.getElementById('giftsTableBody');
+            if (tbody) {
+                tbody.innerHTML = renderGiftsTableRows(filteredRecords);
+            }
+        }
+
+        function viewGiftDetails(id) {
+            const gift = giftsRecords.find(r => r.id === id);
+            if (!gift) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-gift" style="color: var(--accent-primary);"></i>
+                        Gift Details
+                    </h2>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: grid; gap: 16px;">
+                        <div class="card" style="background: var(--bg-tertiary);">
+                            <div class="card-body">
+                                <h3 style="margin: 0 0 12px 0; color: var(--text-primary);">${gift.product}</h3>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                    <div>
+                                        <div style="color: var(--text-muted); font-size: 12px;">Quantity</div>
+                                        <div style="font-weight: 600;">${gift.quantity}</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: var(--text-muted); font-size: 12px;">Value</div>
+                                        <div style="font-weight: 600; color: var(--danger);">$${gift.value.toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: var(--text-muted); font-size: 12px;">Date</div>
+                                        <div style="font-weight: 500;">${new Date(gift.date).toLocaleDateString()}</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: var(--text-muted); font-size: 12px;">Store</div>
+                                        <div style="font-weight: 500;">${gift.store}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-tertiary);">
+                            <div class="card-body">
+                                <h4 style="margin: 0 0 12px 0; color: var(--text-primary);">
+                                    <i class="fas fa-user" style="margin-right: 8px;"></i>Recipient
+                                </h4>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                    <div>
+                                        <div style="color: var(--text-muted); font-size: 12px;">Name</div>
+                                        <div style="font-weight: 600;">${gift.recipient}</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: var(--text-muted); font-size: 12px;">Type</div>
+                                        <span class="status-badge ${gift.recipientType === 'customer' ? 'active' : gift.recipientType === 'vendor' ? 'warning' : 'inactive'}">
+                                            ${gift.recipientType.charAt(0).toUpperCase() + gift.recipientType.slice(1)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-tertiary);">
+                            <div class="card-body">
+                                <h4 style="margin: 0 0 12px 0; color: var(--text-primary);">
+                                    <i class="fas fa-clipboard-list" style="margin-right: 8px;"></i>Reason
+                                </h4>
+                                <p style="margin: 0; line-height: 1.6; color: var(--text-secondary);">${gift.reason}</p>
+                            </div>
+                        </div>
+
+                        ${gift.notes ? `
+                            <div class="card" style="background: var(--bg-tertiary);">
+                                <div class="card-body">
+                                    <h4 style="margin: 0 0 12px 0; color: var(--text-primary);">
+                                        <i class="fas fa-sticky-note" style="margin-right: 8px;"></i>Notes
+                                    </h4>
+                                    <p style="margin: 0; line-height: 1.6; color: var(--text-secondary);">${gift.notes}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 20px;">
+                        <button class="btn-secondary" style="flex: 1;" onclick="editGift(${gift.id}); closeModal();">
+                            <i class="fas fa-edit"></i>
+                            Edit Gift
+                        </button>
+                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="if(confirm('Are you sure you want to delete this gift record?')) { deleteGift(${gift.id}); closeModal(); }">
+                            <i class="fas fa-trash"></i>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function editGift(id) {
+            closeModal();
+            setTimeout(() => openModal('edit-gift', id), 100);
+        }
+
+        function deleteGift(id) {
+            if (confirm('Are you sure you want to delete this gift record?')) {
+                giftsRecords = giftsRecords.filter(r => r.id !== id);
+                renderGifts();
+            }
+        }
+
+        function saveGift(isEdit = false, giftId = null) {
+            const product = document.getElementById('gift-product').value.trim();
+            const quantity = parseInt(document.getElementById('gift-quantity').value);
+            const value = parseFloat(document.getElementById('gift-value').value);
+            const recipient = document.getElementById('gift-recipient').value.trim();
+            const recipientType = document.getElementById('gift-recipient-type').value;
+            const reason = document.getElementById('gift-reason').value.trim();
+            const store = document.getElementById('gift-store').value;
+            const date = document.getElementById('gift-date').value;
+            const notes = document.getElementById('gift-notes').value.trim();
+            const photoInput = document.getElementById('gift-photo');
+
+            if (!product) {
+                alert('Please enter a product name');
+                return;
+            }
+
+            if (isEdit && giftId) {
+                const gift = giftsRecords.find(r => r.id === giftId);
+                if (gift) {
+                    gift.product = product;
+                    gift.quantity = quantity;
+                    gift.value = value;
+                    gift.recipient = recipient;
+                    gift.recipientType = recipientType;
+                    gift.reason = reason;
+                    gift.store = store;
+                    gift.date = date;
+                    gift.notes = notes;
+                    if (photoInput && photoInput.files.length > 0) {
+                        gift.photo = URL.createObjectURL(photoInput.files[0]);
+                    }
                 }
             } else {
-                const newItem = {
-                    id: treasuryItems.length > 0 ? Math.max(...treasuryItems.map(t => t.id)) + 1 : 1,
-                    artworkName,
-                    artist,
-                    manufacturer,
-                    acquisitionDate,
+                const newGift = {
+                    id: Math.max(0, ...giftsRecords.map(r => r.id)) + 1,
+                    product,
+                    quantity,
                     value,
-                    location,
-                    description,
-                    photos: photoInput.files.length > 0 ? Array.from(photoInput.files).map(file => URL.createObjectURL(file)) : []
+                    recipient,
+                    recipientType,
+                    reason,
+                    store,
+                    date,
+                    notes,
+                    photo: photoInput && photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : null
                 };
-                treasuryItems.push(newItem);
+                giftsRecords.unshift(newGift);
             }
 
             closeModal();
-            renderTreasury();
+            renderGifts();
         }
 
         // Cash Out Functions
         function renderCashOut() {
             const dashboard = document.querySelector('.dashboard');
 
-            const openRecords = cashOutRecords.filter(r => r.status === 'open');
-            const closedRecords = cashOutRecords.filter(r => r.status === 'closed');
-            const totalOpen = openRecords.reduce((sum, r) => sum + r.amount, 0);
-            const totalClosed = closedRecords.reduce((sum, r) => sum + r.amountSpent, 0);
+            // Calculate monthly total
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const monthlyRecords = cashOutRecords.filter(r => {
+                const date = new Date(r.createdDate);
+                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+            });
+            const monthlyTotal = monthlyRecords.reduce((sum, r) => sum + r.amount, 0);
+            const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Cash Out Management</h2>
-                        <p class="section-subtitle">Track and manage cash disbursements</p>
+                        <h2 class="section-title">Cash Out</h2>
+                        <p class="section-subtitle">Cash disbursements record</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-cashout')">
                         <i class="fas fa-plus"></i>
-                        Create Cash Out
+                        Add Cash Out
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 32px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Open Cash Outs</div>
-                            <div class="stat-value" style="color: white;">${openRecords.length}</div>
-                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; margin-top: 8px;">
-                                Total: $${totalOpen.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Closed Cash Outs</div>
-                            <div class="stat-value" style="color: white;">${closedRecords.length}</div>
-                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; margin-top: 8px;">
-                                Total Spent: $${totalClosed.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%);">
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Records</div>
-                            <div class="stat-value" style="color: white;">${cashOutRecords.length}</div>
-                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; margin-top: 8px;">
-                                All time tracking
-                            </div>
-                        </div>
+                <!-- Monthly Total Card -->
+                <div style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border-radius: 16px; padding: 30px 40px; margin-bottom: 24px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.1);"></div>
+                    <div style="position: relative; z-index: 1;">
+                        <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px;">${monthName}</div>
+                        <div style="color: white; font-size: 42px; font-weight: 700; margin-bottom: 4px;">$${monthlyTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 14px;">${monthlyRecords.length} expense${monthlyRecords.length !== 1 ? 's' : ''} this month</div>
                     </div>
                 </div>
 
-                <!-- Open Cash Outs -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-folder-open"></i>
-                            Open Cash Outs
-                        </h3>
-                        <span class="badge" style="background: var(--warning);">${openRecords.length} Open</span>
-                    </div>
-                    <div class="card-body">
-                        ${openRecords.length === 0 ? `
-                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                                No open cash outs
-                            </div>
-                        ` : `
-                            <div style="display: grid; gap: 16px;">
-                                ${openRecords.map(record => `
-                                    <div class="card" style="border-left: 4px solid var(--warning);">
-                                        <div class="card-body">
-                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                                <div>
-                                                    <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">${record.name}</h4>
-                                                    <div style="font-size: 13px; color: var(--text-muted);">
-                                                        <i class="fas fa-user"></i> ${record.createdBy} •
-                                                        <i class="fas fa-calendar"></i> ${formatDate(record.createdDate)}
-                                                    </div>
-                                                </div>
-                                                <div style="text-align: right;">
-                                                    <div style="font-size: 24px; font-weight: 700; color: var(--warning);">
-                                                        $${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                    </div>
-                                                    <span class="badge" style="background: var(--warning); margin-top: 4px;">Open</span>
-                                                </div>
-                                            </div>
-                                            <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Reason:</div>
-                                                <div style="font-size: 14px;">${record.reason}</div>
-                                            </div>
-                                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                                <button class="btn-secondary" onclick="viewCashOutDetails(${record.id})">
-                                                    <i class="fas fa-eye"></i> View
-                                                </button>
-                                                <button class="btn-primary" onclick="openModal('close-cashout', ${record.id})">
-                                                    <i class="fas fa-check"></i> Close Cash Out
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `}
-                    </div>
-                </div>
-
-                <!-- Closed Cash Outs -->
                 <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-check-circle"></i>
-                            Closed Cash Outs
-                        </h3>
-                        <span class="badge" style="background: var(--success);">${closedRecords.length} Closed</span>
-                    </div>
                     <div class="card-body" style="padding: 0;">
-                        ${closedRecords.length === 0 ? `
-                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                                No closed cash outs yet
+                        ${cashOutRecords.length === 0 ? `
+                            <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+                                <i class="fas fa-money-bill-wave" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                                <h3 style="margin-bottom: 8px; color: var(--text-secondary);">No Cash Outs Yet</h3>
+                                <p>Click "Add Cash Out" to create a new record</p>
                             </div>
                         ` : `
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Store</th>
                                         <th>Created By</th>
-                                        <th>Amount Given</th>
-                                        <th>Amount Spent</th>
-                                        <th>Money Left</th>
-                                        <th>Closed Date</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${closedRecords.map(record => `
+                                    ${cashOutRecords.map(record => `
                                         <tr>
-                                            <td><strong>${record.name}</strong></td>
-                                            <td>${record.createdBy}</td>
-                                            <td style="font-weight: 600;">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                            <td style="font-weight: 600; color: var(--danger);">$${record.amountSpent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                            <td>${formatDate(record.createdDate)}</td>
                                             <td>
-                                                ${record.hasMoneyLeft
-                                                    ? `<span style="color: var(--success); font-weight: 600;">$${record.moneyLeft.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`
-                                                    : `<span style="color: var(--text-muted);">$0.00</span>`
-                                                }
+                                                <strong>${record.name}</strong>
+                                                ${record.reason ? `<div style="font-size: 12px; color: var(--text-muted);">${record.reason}</div>` : ''}
                                             </td>
-                                            <td>${formatDate(record.closedDate)}</td>
+                                            <td style="font-weight: 600; color: var(--danger);">
+                                                $${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                            </td>
+                                            <td><span class="status-badge">${record.store || 'N/A'}</span></td>
+                                            <td>${record.createdBy}</td>
                                             <td>
-                                                <button class="btn-icon" onclick="viewCashOutDetails(${record.id})" title="View Details">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
+                                                <div class="action-buttons">
+                                                    <button class="btn-icon btn-danger" onclick="deleteCashOut(${record.id})" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     `).join('')}
@@ -3472,18 +5921,27 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             `;
         }
 
+        function deleteCashOut(id) {
+            if (!confirm('Are you sure you want to delete this cash out record?')) return;
+            cashOutRecords = cashOutRecords.filter(r => r.id !== id);
+            renderCashOut();
+            showNotification('Cash out deleted', 'success');
+        }
+
         function createCashOut() {
             const name = document.getElementById('cashout-name').value.trim();
             const amount = parseFloat(document.getElementById('cashout-amount').value);
+            const store = document.getElementById('cashout-store').value;
+            const date = document.getElementById('cashout-date').value;
             const reason = document.getElementById('cashout-reason').value.trim();
 
-            if (!name || !amount || !reason) {
-                alert('Please fill in all required fields');
+            if (!name || !amount || !store) {
+                showNotification('Please fill in all required fields', 'error');
                 return;
             }
 
             if (amount <= 0) {
-                alert('Amount must be greater than zero');
+                showNotification('Amount must be greater than zero', 'error');
                 return;
             }
 
@@ -3491,20 +5949,16 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 id: cashOutRecords.length > 0 ? Math.max(...cashOutRecords.map(r => r.id)) + 1 : 1,
                 name,
                 amount,
+                store,
                 reason,
-                createdDate: new Date().toISOString().split('T')[0],
-                createdBy: 'Carlos Admin', // This should be dynamic based on logged-in user
-                status: 'open',
-                closedDate: null,
-                receiptPhoto: null,
-                amountSpent: null,
-                moneyLeft: null,
-                hasMoneyLeft: null
+                createdDate: date || new Date().toISOString().split('T')[0],
+                createdBy: currentUser?.name || 'Unknown'
             };
 
             cashOutRecords.unshift(newRecord);
             closeModal();
             renderCashOut();
+            showNotification('Cash out added!', 'success');
         }
 
         function closeCashOut(recordId) {
@@ -3644,196 +6098,87 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         function renderIssues() {
             const dashboard = document.querySelector('.dashboard');
 
-            const openIssues = issues.filter(i => i.status === 'open');
-            const inProgressIssues = issues.filter(i => i.status === 'in_progress');
-            const resolvedIssues = issues.filter(i => i.status === 'resolved');
+            // Sort issues by date, most recent first
+            const sortedIssues = [...issues].sort((a, b) => new Date(b.incidentDate) - new Date(a.incidentDate));
 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Issues Management</h2>
-                        <p class="section-subtitle">Track and resolve customer issues</p>
+                        <h2 class="section-title">Issues</h2>
+                        <p class="section-subtitle">Customer incident documentation</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-issue')">
                         <i class="fas fa-plus"></i>
-                        Create Issue
+                        New Issue
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Open Issues</div>
-                            <div class="stat-value" style="color: white;">${openIssues.length}</div>
-                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; margin-top: 8px;">
-                                Needs attention
-                            </div>
-                        </div>
+                <!-- Customer Perception Chart -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-smile"></i>
+                            Customer Perception
+                        </h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">How customers felt when leaving</span>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">In Progress</div>
-                            <div class="stat-value" style="color: white;">${inProgressIssues.length}</div>
-                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; margin-top: 8px;">
-                                Being handled
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Resolved</div>
-                            <div class="stat-value" style="color: white;">${resolvedIssues.length}</div>
-                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; margin-top: 8px;">
-                                Successfully closed
-                            </div>
-                        </div>
+                    <div class="card-body">
+                        ${renderPerceptionGanttChart()}
                     </div>
                 </div>
 
-                <!-- Open Issues -->
-                ${openIssues.length > 0 ? `
-                    <div class="card" style="margin-bottom: 24px;">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-exclamation-circle"></i>
-                                Open Issues
-                            </h3>
-                            <span class="badge" style="background: var(--danger);">${openIssues.length} Open</span>
-                        </div>
-                        <div class="card-body">
-                            <div style="display: grid; gap: 16px;">
-                                ${openIssues.map(issue => `
-                                    <div class="card" style="border-left: 4px solid var(--danger);">
-                                        <div class="card-body">
-                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                                <div style="flex: 1;">
-                                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                                                        <h4 style="font-size: 16px; font-weight: 600; margin: 0;">${issue.customer}</h4>
-                                                        <span class="badge" style="background: ${issue.type === 'In Store' ? 'var(--accent-primary)' : 'var(--info)'}; font-size: 12px;">
-                                                            <i class="fas fa-${issue.type === 'In Store' ? 'store' : 'globe'}"></i>
-                                                            ${issue.type}
-                                                        </span>
-                                                    </div>
-                                                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
-                                                        <i class="fas fa-calendar"></i> Incident: ${formatDate(issue.incidentDate)} •
-                                                        <i class="fas fa-user"></i> Created by: ${issue.createdBy}
-                                                    </div>
-                                                    <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
-                                                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Description:</div>
-                                                        <div style="font-size: 14px;">${issue.description}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                                <button class="btn-secondary" onclick="updateIssueStatus(${issue.id}, 'in_progress')">
-                                                    <i class="fas fa-play"></i> Start Working
-                                                </button>
-                                                <button class="btn-primary" onclick="openModal('resolve-issue', ${issue.id})">
-                                                    <i class="fas fa-check"></i> Resolve
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
-
-                <!-- In Progress Issues -->
-                ${inProgressIssues.length > 0 ? `
-                    <div class="card" style="margin-bottom: 24px;">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-spinner"></i>
-                                In Progress
-                            </h3>
-                            <span class="badge" style="background: var(--warning);">${inProgressIssues.length} Active</span>
-                        </div>
-                        <div class="card-body">
-                            <div style="display: grid; gap: 16px;">
-                                ${inProgressIssues.map(issue => `
-                                    <div class="card" style="border-left: 4px solid var(--warning);">
-                                        <div class="card-body">
-                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                                <div style="flex: 1;">
-                                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                                                        <h4 style="font-size: 16px; font-weight: 600; margin: 0;">${issue.customer}</h4>
-                                                        <span class="badge" style="background: ${issue.type === 'In Store' ? 'var(--accent-primary)' : 'var(--info)'}; font-size: 12px;">
-                                                            <i class="fas fa-${issue.type === 'In Store' ? 'store' : 'globe'}"></i>
-                                                            ${issue.type}
-                                                        </span>
-                                                    </div>
-                                                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
-                                                        <i class="fas fa-calendar"></i> Incident: ${formatDate(issue.incidentDate)} •
-                                                        <i class="fas fa-user"></i> Created by: ${issue.createdBy}
-                                                    </div>
-                                                    <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
-                                                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Description:</div>
-                                                        <div style="font-size: 14px;">${issue.description}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                                <button class="btn-secondary" onclick="updateIssueStatus(${issue.id}, 'open')">
-                                                    <i class="fas fa-arrow-left"></i> Back to Open
-                                                </button>
-                                                <button class="btn-primary" onclick="openModal('resolve-issue', ${issue.id})">
-                                                    <i class="fas fa-check"></i> Resolve
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
-
-                <!-- Resolved Issues -->
+                <!-- All Issues List -->
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-check-circle"></i>
-                            Resolved Issues
+                            <i class="fas fa-list"></i>
+                            All Issues
                         </h3>
-                        <span class="badge" style="background: var(--success);">${resolvedIssues.length} Resolved</span>
+                        <span class="badge" style="background: var(--accent-primary);">${issues.length} Total</span>
                     </div>
                     <div class="card-body" style="padding: 0;">
-                        ${resolvedIssues.length === 0 ? `
+                        ${sortedIssues.length === 0 ? `
                             <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                                No resolved issues yet
+                                No issues recorded yet
                             </div>
                         ` : `
                             <table class="data-table">
                                 <thead>
                                     <tr>
+                                        <th>Date</th>
                                         <th>Customer</th>
+                                        <th>Phone</th>
                                         <th>Type</th>
                                         <th>Description</th>
-                                        <th>Incident Date</th>
-                                        <th>Resolved By</th>
-                                        <th>Resolution Date</th>
-                                        <th>Actions</th>
+                                        <th>Perception</th>
+                                        <th style="width: 80px;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${resolvedIssues.map(issue => `
+                                    ${sortedIssues.map(issue => `
                                         <tr>
+                                            <td style="white-space: nowrap;">${formatDate(issue.incidentDate)}</td>
                                             <td><strong>${issue.customer}</strong></td>
                                             <td>
+                                                ${issue.phone ? `<a href="tel:${issue.phone}" style="color: var(--accent-primary); text-decoration: none;"><i class="fas fa-phone"></i> ${issue.phone}</a>` : '-'}
+                                            </td>
+                                            <td>
                                                 <span class="badge" style="background: ${issue.type === 'In Store' ? 'var(--accent-primary)' : 'var(--info)'};">
+                                                    <i class="fas fa-${issue.type === 'In Store' ? 'store' : 'globe'}"></i>
                                                     ${issue.type}
                                                 </span>
                                             </td>
-                                            <td style="max-width: 300px;">${issue.description}</td>
-                                            <td>${formatDate(issue.incidentDate)}</td>
-                                            <td>${issue.resolvedBy}</td>
-                                            <td>${formatDate(issue.resolutionDate)}</td>
+                                            <td style="max-width: 250px;">${issue.description || '-'}</td>
+                                            <td style="text-align: center; font-size: 24px;">
+                                                ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
+                                            </td>
                                             <td>
                                                 <button class="btn-icon" onclick="viewIssueDetails(${issue.id})" title="View Details">
                                                     <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn-icon danger" onclick="deleteIssue(${issue.id})" title="Delete">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -3846,29 +6191,158 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             `;
         }
 
+        function selectPerception(value) {
+            // Update hidden input
+            document.getElementById('issue-perception').value = value;
+
+            // Update button styles
+            const buttons = document.querySelectorAll('.perception-btn');
+            buttons.forEach(btn => {
+                const btnValue = parseInt(btn.dataset.value);
+                if (btnValue === value) {
+                    btn.style.borderColor = 'var(--accent-primary)';
+                    btn.style.background = 'rgba(99, 102, 241, 0.1)';
+                    btn.style.transform = 'scale(1.05)';
+                } else {
+                    btn.style.borderColor = 'var(--border-color)';
+                    btn.style.background = 'var(--bg-secondary)';
+                    btn.style.transform = 'scale(1)';
+                }
+            });
+        }
+
+        function getPerceptionEmoji(value) {
+            const emojis = {
+                1: '😡',
+                2: '😠',
+                3: '😐',
+                4: '🙂',
+                5: '😊'
+            };
+            return emojis[value] || '❓';
+        }
+
+        function getPerceptionLabel(value) {
+            const labels = {
+                1: 'Very Upset',
+                2: 'Upset',
+                3: 'Neutral',
+                4: 'Satisfied',
+                5: 'Happy'
+            };
+            return labels[value] || 'Unknown';
+        }
+
+        function getPerceptionColor(value) {
+            const colors = {
+                1: '#ef4444',
+                2: '#f97316',
+                3: '#eab308',
+                4: '#22c55e',
+                5: '#10b981'
+            };
+            return colors[value] || '#6b7280';
+        }
+
+        function renderPerceptionGanttChart() {
+            // Get issues with perception data, sorted by date
+            const issuesWithPerception = issues
+                .filter(i => i.perception !== null && i.perception !== undefined)
+                .sort((a, b) => new Date(a.incidentDate) - new Date(b.incidentDate))
+                .slice(-15); // Last 15 issues
+
+            if (issuesWithPerception.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fas fa-chart-bar" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.5;"></i>
+                        <p>No perception data recorded yet</p>
+                        <p style="font-size: 13px;">Create issues with customer perception to see the chart</p>
+                    </div>
+                `;
+            }
+
+            // Calculate perception distribution
+            const perceptionCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+            issuesWithPerception.forEach(i => {
+                if (perceptionCounts[i.perception] !== undefined) {
+                    perceptionCounts[i.perception]++;
+                }
+            });
+
+            const total = issuesWithPerception.length;
+
+            return `
+                <!-- Perception Summary -->
+                <div style="display: flex; justify-content: space-around; margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                    ${[1, 2, 3, 4, 5].map(level => `
+                        <div style="text-align: center;">
+                            <div style="font-size: 28px; margin-bottom: 4px;">${getPerceptionEmoji(level)}</div>
+                            <div style="font-size: 20px; font-weight: 700; color: ${getPerceptionColor(level)};">${perceptionCounts[level]}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">${getPerceptionLabel(level)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Gantt-style Timeline Chart -->
+                <div style="margin-bottom: 16px;">
+                    <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--text-secondary);">
+                        <i class="fas fa-stream"></i> Recent Customer Experiences
+                    </h4>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${issuesWithPerception.map(issue => {
+                        const barWidth = (issue.perception / 5) * 100;
+                        const color = getPerceptionColor(issue.perception);
+                        return `
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 100px; font-size: 12px; color: var(--text-muted); text-align: right; flex-shrink: 0;">
+                                    ${formatDate(issue.incidentDate)}
+                                </div>
+                                <div style="flex: 1; background: var(--bg-secondary); border-radius: 8px; height: 36px; position: relative; overflow: hidden;">
+                                    <div style="width: ${barWidth}%; height: 100%; background: linear-gradient(90deg, ${color}88, ${color}); border-radius: 8px; display: flex; align-items: center; padding-left: 12px; transition: width 0.3s ease;">
+                                        <span style="font-size: 20px;">${getPerceptionEmoji(issue.perception)}</span>
+                                    </div>
+                                </div>
+                                <div style="width: 140px; font-size: 12px; color: var(--text-secondary); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${issue.customer}">
+                                    ${issue.customer}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                <!-- Perception Scale Legend -->
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: center; gap: 24px; font-size: 12px; color: var(--text-muted);">
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #ef4444; border-radius: 3px; margin-right: 4px;"></span> Very Upset</span>
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #f97316; border-radius: 3px; margin-right: 4px;"></span> Upset</span>
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #eab308; border-radius: 3px; margin-right: 4px;"></span> Neutral</span>
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 3px; margin-right: 4px;"></span> Satisfied</span>
+                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #10b981; border-radius: 3px; margin-right: 4px;"></span> Happy</span>
+                    </div>
+                </div>
+            `;
+        }
+
         function createIssue() {
             const customer = document.getElementById('issue-customer').value.trim();
+            const phone = document.getElementById('issue-phone').value.trim();
             const type = document.getElementById('issue-type').value;
             const description = document.getElementById('issue-description').value.trim();
             const incidentDate = document.getElementById('issue-incident-date').value;
-
-            if (!customer || !type || !description || !incidentDate) {
-                alert('Please fill in all required fields');
-                return;
-            }
+            const perception = document.getElementById('issue-perception').value;
 
             const newIssue = {
                 id: issues.length > 0 ? Math.max(...issues.map(i => i.id)) + 1 : 1,
-                customer,
-                type,
-                description,
-                incidentDate,
-                status: 'open',
-                createdBy: 'Carlos Admin', // This should be dynamic based on logged-in user
-                createdDate: new Date().toISOString().split('T')[0],
-                solution: null,
-                resolvedBy: null,
-                resolutionDate: null
+                customer: customer || 'Anonymous',
+                phone: phone || '',
+                type: type || 'In Store',
+                description: description || '',
+                incidentDate: incidentDate || new Date().toISOString().split('T')[0],
+                perception: perception ? parseInt(perception) : null,
+                createdBy: 'Carlos Admin',
+                createdDate: new Date().toISOString().split('T')[0]
             };
 
             issues.unshift(newIssue);
@@ -3876,12 +6350,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             renderIssues();
         }
 
-        function updateIssueStatus(issueId, newStatus) {
-            const issue = issues.find(i => i.id === issueId);
-            if (!issue) return;
-
-            issue.status = newStatus;
-            renderIssues();
+        function deleteIssue(issueId) {
+            if (confirm('Are you sure you want to delete this issue?')) {
+                issues = issues.filter(i => i.id !== issueId);
+                renderIssues();
+            }
         }
 
         function resolveIssue(issueId) {
@@ -4012,11 +6485,41 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         // Vendors Functions
         let vendorSearchTerm = '';
         let vendorCategoryFilter = 'all';
+        let firebaseVendors = [];
 
-        function renderVendors() {
+        async function initVendors() {
+            try {
+                // Initialize Firebase if not already done
+                if (!firebaseVendorsManager.isInitialized) {
+                    console.log('Initializing Firebase Vendors Manager...');
+                    await firebaseVendorsManager.initialize();
+                }
+                
+                // Load vendors from Firebase
+                if (firebaseVendorsManager.isInitialized) {
+                    firebaseVendors = await firebaseVendorsManager.loadVendors();
+                    console.log(`✅ Loaded ${firebaseVendors.length} vendors from Firebase`);
+                } else {
+                    console.warn('⚠️ Firebase not initialized.');
+                    firebaseVendors = [];
+                }
+            } catch (error) {
+                console.error('Error loading vendors:', error);
+                firebaseVendors = [];
+            }
+        }
+
+        async function renderVendors() {
             const dashboard = document.querySelector('.dashboard');
+            
+            // Load vendors from Firebase
+            try {
+                await initVendors();
+            } catch (error) {
+                console.error('Error initializing vendors:', error);
+            }
 
-            const categories = [...new Set(vendors.map(v => v.category))];
+            const categories = [...new Set(firebaseVendors.map(v => v.category))];
 
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -4024,7 +6527,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <h2 class="section-title">Vendors</h2>
                         <p class="section-subtitle">Manage your supplier contacts and information</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('create-vendor')">
+                    <button class="btn-primary" onclick="openAddVendorModal()">
                         <i class="fas fa-plus"></i>
                         Add Vendor
                     </button>
@@ -4065,7 +6568,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function renderVendorsList() {
-            let filteredVendors = vendors;
+            let filteredVendors = firebaseVendors;
 
             // Apply category filter
             if (vendorCategoryFilter !== 'all') {
@@ -4104,7 +6607,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             return `
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
                     ${filteredVendors.map(vendor => `
-                        <div class="card" style="cursor: pointer; transition: all 0.2s; border-left: 4px solid ${categoryColors[vendor.category] || 'var(--accent-primary)'};" onclick="viewVendorDetails(${vendor.id})">
+                        <div class="card" style="cursor: pointer; transition: all 0.2s; border-left: 4px solid ${categoryColors[vendor.category] || 'var(--accent-primary)'};" onclick="viewVendorDetails('${vendor.firestoreId}')">
                             <div class="card-body">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                     <div style="flex: 1;">
@@ -4164,7 +6667,90 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
-        function createVendor() {
+        function openAddVendorModal() {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-plus-circle"></i> Add New Vendor</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-vendor-form" style="display: grid; gap: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Vendor Name *</label>
+                                <input type="text" id="vendor-name" class="form-input" placeholder="Enter vendor name" required>
+                            </div>
+                            <div>
+                                <label class="form-label">Category *</label>
+                                <select id="vendor-category" class="form-input" required>
+                                    <option value="">Select category</option>
+                                    <option value="Vape Products">Vape Products</option>
+                                    <option value="Tobacco Products">Tobacco Products</option>
+                                    <option value="Beverages">Beverages</option>
+                                    <option value="Snacks & Candy">Snacks & Candy</option>
+                                    <option value="Store Supplies">Store Supplies</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Contact Person *</label>
+                                <input type="text" id="vendor-contact" class="form-input" placeholder="Enter contact name" required>
+                            </div>
+                            <div>
+                                <label class="form-label">Phone *</label>
+                                <input type="tel" id="vendor-phone" class="form-input" placeholder="Enter phone number" required>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Email *</label>
+                                <input type="email" id="vendor-email" class="form-input" placeholder="Enter email" required>
+                            </div>
+                            <div>
+                                <label class="form-label">Website</label>
+                                <input type="url" id="vendor-website" class="form-input" placeholder="https://example.com">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Access Information</label>
+                            <textarea id="vendor-access" class="form-input" placeholder="Account details, login info, etc." style="min-height: 80px;"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Products/Services *</label>
+                            <textarea id="vendor-products" class="form-input" placeholder="What products/services do you buy from this vendor?" style="min-height: 80px;" required></textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Order Methods *</label>
+                            <textarea id="vendor-order-methods" class="form-input" placeholder="How to order (phone, email, online, etc.)" style="min-height: 80px;" required></textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Additional Notes</label>
+                            <textarea id="vendor-notes" class="form-input" placeholder="Payment terms, delivery schedule, discounts, etc." style="min-height: 80px;"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-primary" onclick="createVendor()">
+                        <i class="fas fa-save"></i> Save Vendor
+                    </button>
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        async function createVendor() {
             const name = document.getElementById('vendor-name').value.trim();
             const category = document.getElementById('vendor-category').value;
             const contact = document.getElementById('vendor-contact').value.trim();
@@ -4181,27 +6767,34 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            const newVendor = {
-                id: vendors.length > 0 ? Math.max(...vendors.map(v => v.id)) + 1 : 1,
-                name,
-                category,
-                contact,
-                phone,
-                email,
-                website,
-                access,
-                products,
-                orderMethods,
-                notes
-            };
+            try {
+                const newVendor = {
+                    name,
+                    category,
+                    contact,
+                    phone,
+                    email,
+                    website,
+                    access,
+                    products,
+                    orderMethods,
+                    notes
+                };
 
-            vendors.push(newVendor);
-            closeModal();
-            renderVendors();
+                await firebaseVendorsManager.addVendor(newVendor);
+                
+                // Reload vendors
+                firebaseVendors = await firebaseVendorsManager.loadVendors();
+                closeModal();
+                renderVendors();
+            } catch (error) {
+                console.error('Error creating vendor:', error);
+                alert('Error creating vendor: ' + error.message);
+            }
         }
 
-        function viewVendorDetails(vendorId) {
-            const vendor = vendors.find(v => v.id === vendorId);
+        async function viewVendorDetails(firestoreId) {
+            const vendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
             if (!vendor) return;
 
             const modal = document.getElementById('modal');
@@ -4319,17 +6912,108 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-primary" onclick="closeModal(); setTimeout(() => openModal('edit-vendor', ${vendor.id}), 100);">
+                    <button class="btn-primary" onclick="closeModal(); setTimeout(() => editVendorModal('${vendor.firestoreId}'), 100);">
                         <i class="fas fa-edit"></i> Edit Vendor
                     </button>
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
                 </div>
             `;
 
-            modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
-        function editVendor(vendorId) {
+        function editVendorModal(firestoreId) {
+            const vendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
+            if (!vendor) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit"></i> Edit Vendor</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-vendor-form" style="display: grid; gap: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Vendor Name *</label>
+                                <input type="text" id="edit-vendor-name" class="form-input" value="${vendor.name}" placeholder="Enter vendor name" required>
+                            </div>
+                            <div>
+                                <label class="form-label">Category *</label>
+                                <select id="edit-vendor-category" class="form-input" required>
+                                    <option value="">Select category</option>
+                                    <option value="Vape Products" ${vendor.category === 'Vape Products' ? 'selected' : ''}>Vape Products</option>
+                                    <option value="Tobacco Products" ${vendor.category === 'Tobacco Products' ? 'selected' : ''}>Tobacco Products</option>
+                                    <option value="Beverages" ${vendor.category === 'Beverages' ? 'selected' : ''}>Beverages</option>
+                                    <option value="Snacks & Candy" ${vendor.category === 'Snacks & Candy' ? 'selected' : ''}>Snacks & Candy</option>
+                                    <option value="Store Supplies" ${vendor.category === 'Store Supplies' ? 'selected' : ''}>Store Supplies</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Contact Person *</label>
+                                <input type="text" id="edit-vendor-contact" class="form-input" value="${vendor.contact}" placeholder="Enter contact name" required>
+                            </div>
+                            <div>
+                                <label class="form-label">Phone *</label>
+                                <input type="tel" id="edit-vendor-phone" class="form-input" value="${vendor.phone}" placeholder="Enter phone number" required>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Email *</label>
+                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="Enter email" required>
+                            </div>
+                            <div>
+                                <label class="form-label">Website</label>
+                                <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://example.com">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Access Information</label>
+                            <textarea id="edit-vendor-access" class="form-input" placeholder="Account details, login info, etc." style="min-height: 80px;">${vendor.access || ''}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Products/Services *</label>
+                            <textarea id="edit-vendor-products" class="form-input" placeholder="What products/services do you buy from this vendor?" style="min-height: 80px;" required>${vendor.products}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Order Methods *</label>
+                            <textarea id="edit-vendor-order-methods" class="form-input" placeholder="How to order (phone, email, online, etc.)" style="min-height: 80px;" required>${vendor.orderMethods}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Additional Notes</label>
+                            <textarea id="edit-vendor-notes" class="form-input" placeholder="Payment terms, delivery schedule, discounts, etc." style="min-height: 80px;">${vendor.notes || ''}</textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="justify-content: space-between;">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" onclick="saveVendorChanges('${vendor.firestoreId}')">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    </div>
+                    <button class="btn-danger" onclick="deleteVendorConfirm('${vendor.firestoreId}')">
+                        <i class="fas fa-trash"></i> Delete Vendor
+                    </button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        async function saveVendorChanges(firestoreId) {
             const name = document.getElementById('edit-vendor-name').value.trim();
             const category = document.getElementById('edit-vendor-category').value;
             const contact = document.getElementById('edit-vendor-contact').value.trim();
@@ -4346,22 +7030,53 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            const vendor = vendors.find(v => v.id === vendorId);
+            try {
+                const updateData = {
+                    name,
+                    category,
+                    contact,
+                    phone,
+                    email,
+                    website,
+                    access,
+                    products,
+                    orderMethods,
+                    notes
+                };
+
+                await firebaseVendorsManager.updateVendor(firestoreId, updateData);
+                
+                // Reload vendors
+                firebaseVendors = await firebaseVendorsManager.loadVendors();
+                closeModal();
+                renderVendors();
+            } catch (error) {
+                console.error('Error updating vendor:', error);
+                alert('Error updating vendor: ' + error.message);
+            }
+        }
+
+        function deleteVendorConfirm(firestoreId) {
+            const vendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
             if (!vendor) return;
 
-            vendor.name = name;
-            vendor.category = category;
-            vendor.contact = contact;
-            vendor.phone = phone;
-            vendor.email = email;
-            vendor.website = website;
-            vendor.access = access;
-            vendor.products = products;
-            vendor.orderMethods = orderMethods;
-            vendor.notes = notes;
+            if (confirm(`Are you sure you want to delete "${vendor.name}"? This action cannot be undone.`)) {
+                deleteVendor(firestoreId);
+            }
+        }
 
-            closeModal();
-            renderVendors();
+        async function deleteVendor(firestoreId) {
+            try {
+                await firebaseVendorsManager.deleteVendor(firestoreId);
+                
+                // Reload vendors
+                firebaseVendors = await firebaseVendorsManager.loadVendors();
+                closeModal();
+                renderVendors();
+            } catch (error) {
+                console.error('Error deleting vendor:', error);
+                alert('Error deleting vendor: ' + error.message);
+            }
         }
 
         // Gconomics Functions
@@ -4863,7 +7578,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Type *</label>
-                                    <select class="form-input" id="training-type">
+                                    <select class="form-input" id="training-type" onchange="toggleTrainingTypeFields()">
                                         <option value="video">Video (YouTube/Vimeo)</option>
                                         <option value="document">Document (PDF)</option>
                                     </select>
@@ -4873,9 +7588,33 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     <input type="text" class="form-input" id="training-duration" placeholder="30 min">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>URL / Link *</label>
+                            <div class="form-group" id="training-url-group">
+                                <label>Video URL *</label>
                                 <input type="url" class="form-input" id="training-url" placeholder="https://youtube.com/watch?v=...">
+                                <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">Supports YouTube and Vimeo links</small>
+                            </div>
+                            <div class="form-group" id="training-file-group" style="display: none;">
+                                <label>PDF File *</label>
+                                <div class="file-upload" id="training-file-upload" onclick="document.getElementById('training-file').click()">
+                                    <input type="file" id="training-file" accept=".pdf" style="display: none;" onchange="handleTrainingFileSelect(this)">
+                                    <div class="file-upload-content" id="training-file-content">
+                                        <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 8px;"></i>
+                                        <span style="color: var(--text-secondary);">Click to upload or drag and drop</span>
+                                        <span style="color: var(--text-muted); font-size: 12px;">PDF files only (max 50MB)</span>
+                                    </div>
+                                </div>
+                                <div id="training-upload-progress" style="display: none; margin-top: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div class="progress-bar" style="flex: 1; height: 8px;">
+                                            <div class="progress-fill" id="training-progress-fill" style="width: 0%;"></div>
+                                        </div>
+                                        <span id="training-progress-text" style="font-size: 12px; color: var(--text-muted);">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-input" id="training-description" rows="3" placeholder="Brief description of the training content..."></textarea>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
@@ -4886,7 +7625,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="saveTraining()">Add Training</button>
+                            <button class="btn-primary" id="save-training-btn" onclick="saveTraining()">
+                                <span id="save-training-text">Add Training</span>
+                                <i class="fas fa-spinner fa-spin" id="save-training-spinner" style="display: none;"></i>
+                            </button>
                         </div>
                     `;
                     break;
@@ -4919,13 +7661,13 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Upload PDF *</label>
+                                <label>Upload PDF</label>
                                 <div class="file-upload">
                                     <input type="file" id="license-file" accept=".pdf">
                                     <div class="file-upload-content">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                         <span>Click to upload or drag and drop</span>
-                                        <small>PDF files only</small>
+                                        <small>PDF files only (optional)</small>
                                     </div>
                                 </div>
                             </div>
@@ -4978,11 +7720,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div class="modal-body">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Product Name *</label>
+                                    <label>Product Name</label>
                                     <input type="text" class="form-input" id="new-product-name" placeholder="Enter product name...">
                                 </div>
                                 <div class="form-group">
-                                    <label>Category *</label>
+                                    <label>Category</label>
                                     <select class="form-input" id="new-product-category">
                                         <option value="">Select category...</option>
                                         <option value="Vape Devices">Vape Devices</option>
@@ -4995,17 +7737,17 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Quantity *</label>
+                                    <label>Quantity</label>
                                     <input type="number" class="form-input" id="new-product-quantity" placeholder="0">
                                 </div>
                                 <div class="form-group">
-                                    <label>Price *</label>
+                                    <label>Price</label>
                                     <input type="number" step="0.01" class="form-input" id="new-product-price" placeholder="0.00">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Store *</label>
+                                    <label>Store</label>
                                     <select class="form-input" id="new-product-store">
                                         <option value="">Select store...</option>
                                         <option value="Miramar">VSU Miramar</option>
@@ -5016,18 +7758,35 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Arrival Date *</label>
+                                    <label>Arrival Date</label>
                                     <input type="date" class="form-input" id="new-product-arrival">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Supplier *</label>
+                                <label>Supplier</label>
                                 <input type="text" class="form-input" id="new-product-supplier" placeholder="Enter supplier name...">
+                            </div>
+                            <div class="form-group">
+                                <label>Product Image</label>
+                                <label>Product Photo *</label>
+                                <div style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; background: var(--bg-hover);">
+                                    <input type="file" class="form-input" id="new-product-image" accept="image/*" onchange="previewProductImage(this)" style="display: none;">
+                                    <div id="product-image-preview" style="display: none; margin-bottom: 12px;">
+                                        <img id="product-image-img" style="max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover;">
+                                    </div>
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('new-product-image').click()" style="margin: 0;">
+                                        <i class="fas fa-image"></i> Choose Photo
+                                    </button>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Click to select an image (optional)</p>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Click to select an image (JPG, PNG up to 5MB)</p>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="saveProduct()">Add Product</button>
+                            <button class="btn-primary" id="save-product-btn" onclick="saveProduct()">
+                                <i class="fas fa-plus"></i> Add Product
+                            </button>
                         </div>
                     `;
                     break;
@@ -5212,17 +7971,17 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         <div class="modal-body">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Invoice Number *</label>
+                                    <label>Invoice Number</label>
                                     <input type="text" class="form-input" id="invoice-number" placeholder="e.g., INV-2025-004">
                                 </div>
                                 <div class="form-group">
-                                    <label>Vendor *</label>
+                                    <label>Vendor</label>
                                     <input type="text" class="form-input" id="invoice-vendor" placeholder="Enter vendor name...">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Category *</label>
+                                    <label>Category</label>
                                     <select class="form-input" id="invoice-category">
                                         <option value="">Select category...</option>
                                         <option value="Technology">Technology</option>
@@ -5236,21 +7995,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Amount ($) *</label>
+                                    <label>Amount ($)</label>
                                     <input type="number" step="0.01" class="form-input" id="invoice-amount" placeholder="0.00">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Description *</label>
+                                <label>Description</label>
                                 <input type="text" class="form-input" id="invoice-description" placeholder="Enter description...">
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Due Date *</label>
+                                    <label>Due Date</label>
                                     <input type="date" class="form-input" id="invoice-due-date">
                                 </div>
                                 <div class="form-group">
-                                    <label>Status *</label>
+                                    <label>Status</label>
                                     <select class="form-input" id="invoice-status">
                                         <option value="pending">Pending</option>
                                         <option value="paid">Paid</option>
@@ -5267,7 +8026,29 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Notes (Optional)</label>
+                                <label>Invoice File (Photo or PDF)</label>
+                                <div style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; background: var(--bg-hover);">
+                                    <input type="file" class="form-input" id="invoice-photo" accept="image/*,.pdf,application/pdf" onchange="previewInvoiceFile(this)" style="display: none;">
+                                    <div id="invoice-photo-preview" style="display: none; margin-bottom: 12px;">
+                                        <img id="invoice-photo-img" style="max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover;">
+                                    </div>
+                                    <div id="invoice-pdf-preview" style="display: none; margin-bottom: 12px;">
+                                        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+                                            <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444;"></i>
+                                            <div style="text-align: left;">
+                                                <div id="invoice-pdf-name" style="font-weight: 600;"></div>
+                                                <div id="invoice-pdf-size" style="font-size: 12px; color: var(--text-muted);"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('invoice-photo').click()" style="margin: 0;">
+                                        <i class="fas fa-upload"></i> Upload File
+                                    </button>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Upload a photo or PDF of the invoice (max 1MB)</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes</label>
                                 <textarea class="form-input" id="invoice-notes" rows="2" placeholder="Add any additional notes..."></textarea>
                             </div>
                         </div>
@@ -5413,28 +8194,46 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 case 'create-cashout':
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-money-bill-wave"></i> Create Cash Out</h2>
+                            <h2><i class="fas fa-money-bill-wave"></i> Add Cash Out</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
-                                <label>Name *</label>
-                                <input type="text" class="form-input" id="cashout-name" placeholder="Enter cash out name (e.g., Office Supplies)...">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>Description *</label>
+                                    <input type="text" class="form-input" id="cashout-name" placeholder="e.g., Office Supplies, Bank Deposit...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount *</label>
+                                    <input type="number" step="0.01" class="form-input" id="cashout-amount" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="cashout-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" class="form-input" id="cashout-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label>Amount *</label>
-                                <input type="number" step="0.01" class="form-input" id="cashout-amount" placeholder="0.00">
-                            </div>
-                            <div class="form-group">
-                                <label>Reason *</label>
-                                <textarea class="form-input" id="cashout-reason" rows="4" placeholder="Enter the reason for this cash out..."></textarea>
+                                <label>Notes</label>
+                                <textarea class="form-input" id="cashout-reason" rows="2" placeholder="Additional notes (optional)..."></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
                             <button class="btn-primary" onclick="createCashOut()">
-                                <i class="fas fa-plus"></i>
-                                Create Cash Out
+                                <i class="fas fa-save"></i> Save
                             </button>
                         </div>
                     `;
@@ -5511,25 +8310,60 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
-                                <label>Customer Name *</label>
-                                <input type="text" class="form-input" id="issue-customer" placeholder="Enter customer name...">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Customer Name</label>
+                                    <input type="text" class="form-input" id="issue-customer" placeholder="Enter customer name...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone Number</label>
+                                    <input type="tel" class="form-input" id="issue-phone" placeholder="(555) 555-5555">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Issue Type</label>
+                                    <select class="form-input" id="issue-type">
+                                        <option value="">Select type...</option>
+                                        <option value="In Store">In Store</option>
+                                        <option value="Online">Online</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Incident Date</label>
+                                    <input type="date" class="form-input" id="issue-incident-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label>Issue Type *</label>
-                                <select class="form-input" id="issue-type">
-                                    <option value="">Select type...</option>
-                                    <option value="In Store">In Store</option>
-                                    <option value="Online">Online</option>
-                                </select>
+                                <label>Brief Description</label>
+                                <textarea class="form-input" id="issue-description" rows="3" placeholder="Describe the issue briefly..."></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Brief Description *</label>
-                                <textarea class="form-input" id="issue-description" rows="4" placeholder="Describe the issue briefly..."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Incident Date *</label>
-                                <input type="date" class="form-input" id="issue-incident-date" value="${new Date().toISOString().split('T')[0]}">
+                                <label>Customer Perception When Leaving</label>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">How did the customer feel when leaving the store?</p>
+                                <div id="perception-selector" style="display: flex; justify-content: space-between; gap: 8px;">
+                                    <button type="button" class="perception-btn" data-value="1" onclick="selectPerception(1)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 32px; margin-bottom: 4px;">😡</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Very Upset</div>
+                                    </button>
+                                    <button type="button" class="perception-btn" data-value="2" onclick="selectPerception(2)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 32px; margin-bottom: 4px;">😠</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Upset</div>
+                                    </button>
+                                    <button type="button" class="perception-btn" data-value="3" onclick="selectPerception(3)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 32px; margin-bottom: 4px;">😐</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Neutral</div>
+                                    </button>
+                                    <button type="button" class="perception-btn" data-value="4" onclick="selectPerception(4)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 32px; margin-bottom: 4px;">🙂</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Satisfied</div>
+                                    </button>
+                                    <button type="button" class="perception-btn" data-value="5" onclick="selectPerception(5)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 32px; margin-bottom: 4px;">😊</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Happy</div>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="issue-perception" value="">
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -5806,31 +8640,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label>Artwork Name *</label>
+                                <label>Artwork Name</label>
                                 <input type="text" class="form-input" id="treasury-artwork-name" placeholder="Enter artwork name...">
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Artist *</label>
-                                    <input type="text" class="form-input" id="treasury-artist" placeholder="Artist name...">
-                                </div>
-                                <div class="form-group">
-                                    <label>Manufacturer *</label>
-                                    <input type="text" class="form-input" id="treasury-manufacturer" placeholder="Manufacturer...">
-                                </div>
+                            <div class="form-group">
+                                <label>Artist</label>
+                                <input type="text" class="form-input" id="treasury-artist" placeholder="Artist name...">
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Acquisition Date *</label>
+                                    <label>Acquisition Date</label>
                                     <input type="date" class="form-input" id="treasury-acquisition-date">
                                 </div>
                                 <div class="form-group">
-                                    <label>Estimated Value (USD) *</label>
+                                    <label>Estimated Value (USD)</label>
                                     <input type="number" step="0.01" class="form-input" id="treasury-value" placeholder="0.00">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Current Location *</label>
+                                <label>Current Location</label>
                                 <select class="form-input" id="treasury-location">
                                     <option value="">Select location...</option>
                                     <option value="VSU Miramar">VSU Miramar</option>
@@ -5842,11 +8670,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Description (Optional)</label>
+                                <label>Description</label>
                                 <textarea class="form-input" id="treasury-description" rows="4" placeholder="Add details about the piece..."></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Photos (Optional)</label>
+                                <label>Photos</label>
                                 <div class="file-upload">
                                     <input type="file" id="treasury-photos" accept="image/*" multiple>
                                     <div class="file-upload-content">
@@ -5878,31 +8706,25 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label>Artwork Name *</label>
-                                <input type="text" class="form-input" id="treasury-artwork-name" placeholder="Enter artwork name..." value="${treasuryItem.artworkName}">
+                                <label>Artwork Name</label>
+                                <input type="text" class="form-input" id="treasury-artwork-name" placeholder="Enter artwork name..." value="${treasuryItem.artworkName || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>Artist</label>
+                                <input type="text" class="form-input" id="treasury-artist" placeholder="Artist name..." value="${treasuryItem.artist || ''}">
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Artist *</label>
-                                    <input type="text" class="form-input" id="treasury-artist" placeholder="Artist name..." value="${treasuryItem.artist}">
+                                    <label>Acquisition Date</label>
+                                    <input type="date" class="form-input" id="treasury-acquisition-date" value="${treasuryItem.acquisitionDate || ''}">
                                 </div>
                                 <div class="form-group">
-                                    <label>Manufacturer *</label>
-                                    <input type="text" class="form-input" id="treasury-manufacturer" placeholder="Manufacturer..." value="${treasuryItem.manufacturer}">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Acquisition Date *</label>
-                                    <input type="date" class="form-input" id="treasury-acquisition-date" value="${treasuryItem.acquisitionDate}">
-                                </div>
-                                <div class="form-group">
-                                    <label>Estimated Value (USD) *</label>
-                                    <input type="number" step="0.01" class="form-input" id="treasury-value" placeholder="0.00" value="${treasuryItem.value}">
+                                    <label>Estimated Value (USD)</label>
+                                    <input type="number" step="0.01" class="form-input" id="treasury-value" placeholder="0.00" value="${treasuryItem.value || ''}">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Current Location *</label>
+                                <label>Current Location</label>
                                 <select class="form-input" id="treasury-location">
                                     <option value="">Select location...</option>
                                     <option value="VSU Miramar" ${treasuryItem.location === 'VSU Miramar' ? 'selected' : ''}>VSU Miramar</option>
@@ -5914,11 +8736,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Description (Optional)</label>
+                                <label>Description</label>
                                 <textarea class="form-input" id="treasury-description" rows="4" placeholder="Add details about the piece...">${treasuryItem.description || ''}</textarea>
                             </div>
                             <div class="form-group">
-                                <label>Photos (Optional)</label>
+                                <label>Photos</label>
                                 ${treasuryItem.photos && treasuryItem.photos.length > 0 ? `
                                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-bottom: 12px;">
                                         ${treasuryItem.photos.map(photo => `
@@ -5943,6 +8765,497 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             <button class="btn-primary" onclick="saveTreasuryItem(true, ${treasuryId})">
                                 <i class="fas fa-save"></i>
                                 Update Piece
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'add-change':
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-coins"></i> Add Change Record</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Store / Location *</label>
+                                    <select class="form-input" id="change-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount *</label>
+                                    <input type="number" step="0.01" class="form-input" id="change-amount" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" class="form-input" id="change-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Left By (Person who left the change) *</label>
+                                    <input type="text" class="form-input" id="change-left-by" placeholder="Name of person...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Received By (Person who received it) *</label>
+                                    <input type="text" class="form-input" id="change-received-by" placeholder="Name of person...">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes (Optional)</label>
+                                <textarea class="form-input" id="change-notes" rows="3" placeholder="e.g., 'Se dejó en caja 1', 'Se metió extra por falta de cambio'..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo of Envelope/Receipt (Optional)</label>
+                                <div class="file-upload">
+                                    <input type="file" id="change-photo" accept="image/*">
+                                    <div class="file-upload-content">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Click to upload photo</span>
+                                        <small>JPG, PNG, GIF accepted</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveChangeRecord()">
+                                <i class="fas fa-save"></i>
+                                Save Record
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'add-risknote':
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-shield-halved"></i> New Risk Note</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" class="form-input" id="risknote-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Store</label>
+                                    <select class="form-input" id="risknote-store">
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Type of Behavior</label>
+                                <select class="form-input" id="risknote-type">
+                                    <option value="strange_questions">Strange Questions</option>
+                                    <option value="unusual_purchase">Unusual Purchase</option>
+                                    <option value="recording">Recording / Taking Photos</option>
+                                    <option value="policy_violation">Policy Violation Attempt</option>
+                                    <option value="suspicious_attitude">Suspicious Attitude</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-input" id="risknote-description" rows="3" placeholder="Describe what happened..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Risk Level</label>
+                                <div style="display: flex; gap: 12px;">
+                                    <button type="button" class="risk-level-btn" data-level="low" onclick="selectRiskLevel('low')" style="flex: 1; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 20px; margin-bottom: 4px; color: #22c55e;">🟢</div>
+                                        <div style="font-size: 12px; font-weight: 600;">Low</div>
+                                    </button>
+                                    <button type="button" class="risk-level-btn" data-level="medium" onclick="selectRiskLevel('medium')" style="flex: 1; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 20px; margin-bottom: 4px; color: #f59e0b;">🟡</div>
+                                        <div style="font-size: 12px; font-weight: 600;">Medium</div>
+                                    </button>
+                                    <button type="button" class="risk-level-btn" data-level="high" onclick="selectRiskLevel('high')" style="flex: 1; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 20px; margin-bottom: 4px; color: #ef4444;">🔴</div>
+                                        <div style="font-size: 12px; font-weight: 600;">High</div>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="risknote-level" value="low">
+                            </div>
+                            <div class="form-group">
+                                <label>Reported By</label>
+                                <input type="text" class="form-input" id="risknote-reporter" placeholder="Your name...">
+                            </div>
+                            <div class="form-group">
+                                <label>Photo (Optional)</label>
+                                <div style="border: 2px dashed var(--border-color); border-radius: 12px; padding: 16px; text-align: center; background: var(--bg-hover);">
+                                    <input type="file" id="risknote-photo" accept="image/*" onchange="previewRiskNotePhoto(this)" style="display: none;">
+                                    <div id="risknote-photo-preview" style="display: none; margin-bottom: 12px;">
+                                        <img id="risknote-photo-img" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: cover;">
+                                    </div>
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('risknote-photo').click()" style="margin: 0;">
+                                        <i class="fas fa-camera"></i> Upload Photo
+                                    </button>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Add photo evidence if available</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Manager Note (Optional)</label>
+                                <textarea class="form-input" id="risknote-manager-note" rows="2" placeholder="Internal notes for management..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveRiskNote()">
+                                <i class="fas fa-save"></i> Save Note
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'add-gift':
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-gift"></i> Register Gift</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>Product Name</label>
+                                    <input type="text" class="form-input" id="gift-product" placeholder="e.g., Vape Pen SMOK Nord 4">
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantity</label>
+                                    <input type="number" class="form-input" id="gift-quantity" value="1" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Value ($)</label>
+                                    <input type="number" step="0.01" class="form-input" id="gift-value" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Recipient Name</label>
+                                    <input type="text" class="form-input" id="gift-recipient" placeholder="Name of person receiving the gift">
+                                </div>
+                                <div class="form-group">
+                                    <label>Recipient Type</label>
+                                    <select class="form-input" id="gift-recipient-type">
+                                        <option value="">Select type...</option>
+                                        <option value="customer">Customer</option>
+                                        <option value="vendor">Vendor</option>
+                                        <option value="employee">Employee</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Reason for Gift</label>
+                                <textarea class="form-input" id="gift-reason" rows="2" placeholder="e.g., Defective product replacement, compensation for error, promotional gift..."></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Store</label>
+                                    <select class="form-input" id="gift-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" class="form-input" id="gift-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Additional Notes</label>
+                                <textarea class="form-input" id="gift-notes" rows="2" placeholder="Any additional details..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo of Gift</label>
+                                <div class="file-upload">
+                                    <input type="file" id="gift-photo" accept="image/*">
+                                    <div class="file-upload-content">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Click to upload photo</span>
+                                        <small>JPG, PNG, GIF accepted</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveGift()">
+                                <i class="fas fa-save"></i>
+                                Save Gift
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'edit-gift':
+                    const editGiftRecord = giftsRecords.find(r => r.id === data);
+                    if (!editGiftRecord) {
+                        content = '<div class="modal-body"><p>Gift record not found</p></div>';
+                        break;
+                    }
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-edit"></i> Edit Gift</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>Product Name</label>
+                                    <input type="text" class="form-input" id="gift-product" value="${editGiftRecord.product || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantity</label>
+                                    <input type="number" class="form-input" id="gift-quantity" value="${editGiftRecord.quantity || 1}" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Value ($)</label>
+                                    <input type="number" step="0.01" class="form-input" id="gift-value" value="${editGiftRecord.value || ''}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Recipient Name</label>
+                                    <input type="text" class="form-input" id="gift-recipient" value="${editGiftRecord.recipient || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Recipient Type</label>
+                                    <select class="form-input" id="gift-recipient-type">
+                                        <option value="">Select type...</option>
+                                        <option value="customer" ${editGiftRecord.recipientType === 'customer' ? 'selected' : ''}>Customer</option>
+                                        <option value="vendor" ${editGiftRecord.recipientType === 'vendor' ? 'selected' : ''}>Vendor</option>
+                                        <option value="employee" ${editGiftRecord.recipientType === 'employee' ? 'selected' : ''}>Employee</option>
+                                        <option value="other" ${editGiftRecord.recipientType === 'other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Reason for Gift</label>
+                                <textarea class="form-input" id="gift-reason" rows="2">${editGiftRecord.reason || ''}</textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Store</label>
+                                    <select class="form-input" id="gift-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar" ${editGiftRecord.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                        <option value="Morena" ${editGiftRecord.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                        <option value="Kearny Mesa" ${editGiftRecord.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                        <option value="Chula Vista" ${editGiftRecord.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor" ${editGiftRecord.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" class="form-input" id="gift-date" value="${editGiftRecord.date || ''}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Additional Notes</label>
+                                <textarea class="form-input" id="gift-notes" rows="2">${editGiftRecord.notes || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo of Gift</label>
+                                <div class="file-upload">
+                                    <input type="file" id="gift-photo" accept="image/*">
+                                    <div class="file-upload-content">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Click to upload new photo</span>
+                                        <small>JPG, PNG, GIF accepted</small>
+                                    </div>
+                                </div>
+                                ${editGiftRecord.photo ? `<img src="${editGiftRecord.photo}" style="max-width: 200px; margin-top: 10px; border-radius: 8px;">` : ''}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveGift(true, ${editGiftRecord.id})">
+                                <i class="fas fa-save"></i>
+                                Update Gift
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'add-schedule':
+                    const scheduleEmployeeOptions = employees.map(emp =>
+                        `<option value="${emp.id}">${emp.name} - ${emp.store}</option>`
+                    ).join('');
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-calendar-plus"></i> Add Schedule</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>Employee *</label>
+                                    <select class="form-input" id="schedule-employee">
+                                        <option value="">Select employee...</option>
+                                        ${scheduleEmployeeOptions}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="schedule-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" class="form-input" id="schedule-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Time *</label>
+                                    <input type="time" class="form-input" id="schedule-start" value="09:00">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Time *</label>
+                                    <input type="time" class="form-input" id="schedule-end" value="17:00">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveSchedule()">
+                                <i class="fas fa-save"></i>
+                                Save
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'quick-add-schedule':
+                    const quickData = data || {};
+                    const dayName = quickData.date ? new Date(quickData.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : '';
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-clock"></i> Add Shift</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="background: var(--bg-hover); padding: 12px 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <div style="font-weight: 600; color: var(--text-primary);">${quickData.employeeName || 'Employee'}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">${dayName} @ ${quickData.store || ''}</div>
+                            </div>
+                            <input type="hidden" id="schedule-employee" value="${quickData.employeeId || ''}">
+                            <input type="hidden" id="schedule-store" value="${quickData.store || ''}">
+                            <input type="hidden" id="schedule-date" value="${quickData.date || ''}">
+                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <button type="button" class="shift-preset-btn" onclick="setShiftPreset('09:00', '17:00')" style="flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); cursor: pointer; transition: all 0.2s;">
+                                    <div style="font-weight: 600;">Morning</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">9am - 5pm</div>
+                                </button>
+                                <button type="button" class="shift-preset-btn" onclick="setShiftPreset('14:00', '22:00')" style="flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); cursor: pointer; transition: all 0.2s;">
+                                    <div style="font-weight: 600;">Evening</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">2pm - 10pm</div>
+                                </button>
+                                <button type="button" class="shift-preset-btn" onclick="setShiftPreset('10:00', '19:00')" style="flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); cursor: pointer; transition: all 0.2s;">
+                                    <div style="font-weight: 600;">Mid</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">10am - 7pm</div>
+                                </button>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Start Time</label>
+                                    <input type="time" class="form-input" id="schedule-start" value="09:00" style="font-size: 18px; padding: 12px;">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Time</label>
+                                    <input type="time" class="form-input" id="schedule-end" value="17:00" style="font-size: 18px; padding: 12px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveSchedule()" style="min-width: 120px;">
+                                <i class="fas fa-plus"></i> Add Shift
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'edit-schedule':
+                    const editSchedule = schedules.find(s => s.id === data);
+                    if (!editSchedule) {
+                        content = '<div class="modal-body"><p>Schedule not found</p></div>';
+                        break;
+                    }
+                    const editScheduleEmployeeOptions = employees.map(emp =>
+                        `<option value="${emp.id}" ${emp.id === editSchedule.employeeId ? 'selected' : ''}>${emp.name} - ${emp.store}</option>`
+                    ).join('');
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-calendar-edit"></i> Edit Schedule</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>Employee *</label>
+                                    <select class="form-input" id="schedule-employee">
+                                        <option value="">Select employee...</option>
+                                        ${editScheduleEmployeeOptions}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="schedule-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar" ${editSchedule.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                        <option value="Morena" ${editSchedule.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                        <option value="Kearny Mesa" ${editSchedule.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                        <option value="Chula Vista" ${editSchedule.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="Miramar Wine & Liquor" ${editSchedule.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" class="form-input" id="schedule-date" value="${editSchedule.date || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Time *</label>
+                                    <input type="time" class="form-input" id="schedule-start" value="${editSchedule.startTime || '09:00'}">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Time *</label>
+                                    <input type="time" class="form-input" id="schedule-end" value="${editSchedule.endTime || '17:00'}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="updateSchedule('${editSchedule.id}')">
+                                <i class="fas fa-save"></i>
+                                Update
                             </button>
                         </div>
                     `;
@@ -6123,12 +9436,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     div.style.display = '';
                 }
             });
-
-            // Always show Dashboard to all users
-            const dashboardLink = document.querySelector('.nav-item.active');
-            if (dashboardLink) {
-                dashboardLink.style.display = '';
-            }
         }
 
         function editEmployee(id) {
@@ -6443,34 +9750,218 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }, 3000);
         }
 
-        function saveTraining() {
-            const title = document.getElementById('training-title').value;
-            const type = document.getElementById('training-type').value;
-            const duration = document.getElementById('training-duration').value;
-            const url = document.getElementById('training-url').value;
-            const required = document.getElementById('training-required').checked;
+        // Variable to store selected training file
+        let selectedTrainingFile = null;
 
-            if (!title || !url) {
-                alert('Please fill in all required fields');
+        // Toggle between video URL and PDF file upload fields
+        function toggleTrainingTypeFields() {
+            const type = document.getElementById('training-type').value;
+            const urlGroup = document.getElementById('training-url-group');
+            const fileGroup = document.getElementById('training-file-group');
+
+            if (type === 'video') {
+                urlGroup.style.display = 'block';
+                fileGroup.style.display = 'none';
+            } else {
+                urlGroup.style.display = 'none';
+                fileGroup.style.display = 'block';
+            }
+        }
+
+        // Handle training file selection
+        function handleTrainingFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (file.type !== 'application/pdf') {
+                showToast('Please select a PDF file', 'error');
+                input.value = '';
                 return;
             }
 
-            trainings.push({
-                id: trainings.length + 1,
-                title, type, url,
-                duration: duration || '30 min',
-                completion: 0,
-                required
-            });
+            // Validate file size (max 50MB)
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                showToast('File size exceeds 50MB limit', 'error');
+                input.value = '';
+                return;
+            }
 
-            closeModal();
-            renderPage(currentPage);
+            selectedTrainingFile = file;
+
+            // Update UI to show selected file
+            const fileContent = document.getElementById('training-file-content');
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            fileContent.innerHTML = `
+                <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444; margin-bottom: 8px;"></i>
+                <span style="color: var(--text-primary); font-weight: 500;">${file.name}</span>
+                <span style="color: var(--text-muted); font-size: 12px;">${fileSize} MB</span>
+            `;
+        }
+
+        // Format file size for display
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function saveTraining() {
+            const title = document.getElementById('training-title').value.trim();
+            const type = document.getElementById('training-type').value;
+            const duration = document.getElementById('training-duration').value.trim();
+            const url = document.getElementById('training-url').value.trim();
+            const description = document.getElementById('training-description')?.value.trim() || '';
+            const required = document.getElementById('training-required').checked;
+
+            // Validation
+            if (!title) {
+                showToast('Please enter a training title', 'error');
+                return;
+            }
+
+            if (type === 'video' && !url) {
+                showToast('Please enter a video URL', 'error');
+                return;
+            }
+
+            if (type === 'document' && !selectedTrainingFile) {
+                showToast('Please select a PDF file', 'error');
+                return;
+            }
+
+            // Show loading state
+            const saveBtn = document.getElementById('save-training-btn');
+            const saveText = document.getElementById('save-training-text');
+            const saveSpinner = document.getElementById('save-training-spinner');
+
+            if (saveBtn) saveBtn.disabled = true;
+            if (saveText) saveText.textContent = 'Saving...';
+            if (saveSpinner) saveSpinner.style.display = 'inline-block';
+
+            // Show upload progress for PDF files
+            if (type === 'document') {
+                const progressDiv = document.getElementById('training-upload-progress');
+                if (progressDiv) progressDiv.style.display = 'block';
+
+                // Listen for upload progress
+                const progressHandler = (e) => {
+                    const progress = e.detail.progress;
+                    const progressFill = document.getElementById('training-progress-fill');
+                    const progressText = document.getElementById('training-progress-text');
+                    if (progressFill) progressFill.style.width = progress + '%';
+                    if (progressText) progressText.textContent = Math.round(progress) + '%';
+                };
+                window.addEventListener('uploadProgress', progressHandler);
+
+                try {
+                    // Initialize Firebase Training Manager if not already
+                    if (!firebaseTrainingManager.isInitialized) {
+                        await firebaseTrainingManager.initialize();
+                    }
+
+                    // Prepare training data
+                    const trainingData = {
+                        title,
+                        type,
+                        url: type === 'video' ? url : '',
+                        duration: duration || '30 min',
+                        completion: 0,
+                        required,
+                        description
+                    };
+
+                    // Save to Firebase with file
+                    const newId = await firebaseTrainingManager.addTraining(trainingData, selectedTrainingFile);
+
+                    if (newId) {
+                        showToast('Training material added successfully!', 'success');
+                        selectedTrainingFile = null;
+                        closeModal();
+                        await loadTrainingsFromFirebase();
+                        renderPage(currentPage);
+                    } else {
+                        throw new Error('Failed to save training');
+                    }
+
+                    window.removeEventListener('uploadProgress', progressHandler);
+                } catch (error) {
+                    console.error('Error saving training:', error);
+                    showToast('Error saving training: ' + error.message, 'error');
+                    window.removeEventListener('uploadProgress', progressHandler);
+
+                    // Reset button state
+                    if (saveBtn) saveBtn.disabled = false;
+                    if (saveText) saveText.textContent = 'Add Training';
+                    if (saveSpinner) saveSpinner.style.display = 'none';
+                }
+            } else {
+                // Video type - no file upload needed
+                try {
+                    if (!firebaseTrainingManager.isInitialized) {
+                        await firebaseTrainingManager.initialize();
+                    }
+
+                    const trainingData = {
+                        title,
+                        type,
+                        url,
+                        duration: duration || '30 min',
+                        completion: 0,
+                        required,
+                        description
+                    };
+
+                    const newId = await firebaseTrainingManager.addTraining(trainingData);
+
+                    if (newId) {
+                        showToast('Training material added successfully!', 'success');
+                        closeModal();
+                        await loadTrainingsFromFirebase();
+                        renderPage(currentPage);
+                    } else {
+                        throw new Error('Failed to save training');
+                    }
+                } catch (error) {
+                    console.error('Error saving training:', error);
+                    showToast('Error saving training: ' + error.message, 'error');
+
+                    // Reset button state
+                    if (saveBtn) saveBtn.disabled = false;
+                    if (saveText) saveText.textContent = 'Add Training';
+                    if (saveSpinner) saveSpinner.style.display = 'none';
+                }
+            }
+        }
+
+        // Load trainings from Firebase
+        async function loadTrainingsFromFirebase() {
+            try {
+                if (!firebaseTrainingManager.isInitialized) {
+                    await firebaseTrainingManager.initialize();
+                }
+
+                const firebaseTrainings = await firebaseTrainingManager.loadTrainings();
+
+                if (firebaseTrainings.length > 0) {
+                    trainings = firebaseTrainings;
+                    console.log('Loaded trainings from Firebase:', trainings.length);
+                } else {
+                    console.log('No trainings in Firebase, using default data');
+                }
+            } catch (error) {
+                console.error('Error loading trainings from Firebase:', error);
+            }
         }
 
         function saveLicense() {
             const name = document.getElementById('license-name').value;
             const store = document.getElementById('license-store').value;
             const expires = document.getElementById('license-expires').value;
+            const fileInput = document.getElementById('license-file');
 
             if (!name || !store || !expires) {
                 alert('Please fill in all required fields');
@@ -6480,15 +9971,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const expiresDate = new Date(expires);
             const today = new Date();
             const daysUntilExpiry = Math.ceil((expiresDate - today) / (1000 * 60 * 60 * 24));
-            
+
             let status = 'valid';
             if (daysUntilExpiry < 0) status = 'expired';
             else if (daysUntilExpiry < 60) status = 'expiring';
 
+            // Handle file - use uploaded file name or generate placeholder
+            let fileName = null;
+            if (fileInput && fileInput.files.length > 0) {
+                fileName = fileInput.files[0].name;
+            }
+
             licenses.push({
                 id: licenses.length + 1,
                 name, store, expires, status,
-                file: `${name.toLowerCase().replace(/\s+/g, '_')}_${store.toLowerCase()}.pdf`
+                file: fileName
             });
 
             closeModal();
@@ -6534,32 +10031,406 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             renderAnnouncements();
         }
 
-        function saveProduct() {
-            const name = document.getElementById('new-product-name').value;
+        async function saveProduct() {
+            const name = document.getElementById('new-product-name').value.trim();
             const category = document.getElementById('new-product-category').value;
             const quantity = document.getElementById('new-product-quantity').value;
             const price = document.getElementById('new-product-price').value;
             const store = document.getElementById('new-product-store').value;
             const arrivalDate = document.getElementById('new-product-arrival').value;
-            const supplier = document.getElementById('new-product-supplier').value;
+            const supplier = document.getElementById('new-product-supplier').value.trim();
+            const imageInput = document.getElementById('new-product-image');
 
-            if (!name || !category || !quantity || !price || !store || !arrivalDate || !supplier) {
-                alert('Please fill in all required fields');
+            if (!name) {
+                alert('Please enter a product name');
                 return;
             }
 
-            products.unshift({
-                id: products.length + 1,
-                name,
-                category,
-                quantity: parseInt(quantity),
-                price: parseFloat(price),
-                store,
-                arrivalDate,
-                supplier,
-                status: 'pending'
-            });
+            // Show loading state
+            const saveBtn = document.getElementById('save-product-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
+            try {
+                // Get image as base64 if uploaded (same approach as thieves)
+                let image = null;
+                const imageImg = document.getElementById('product-image-img');
+                if (imageImg && imageImg.src && imageInput.files && imageInput.files.length > 0) {
+                    image = imageImg.src;  // Base64 DataURL from preview
+                }
+
+                // Create product data object
+                const productData = {
+                    name,
+                    category: category || '',
+                    quantity: parseInt(quantity) || 0,
+                    price: parseFloat(price) || 0,
+                    store: store || '',
+                    arrivalDate: arrivalDate || '',
+                    supplier: supplier || '',
+                    image: image,  // Base64 image stored directly in Firestore
+                    status: 'pending'
+                };
+
+                // Ensure Firebase Product Manager is initialized
+                if (!firebaseProductManager.isInitialized) {
+                    const initialized = await firebaseProductManager.initialize();
+                    if (!initialized) {
+                        throw new Error('Failed to initialize Firebase Product Manager');
+                    }
+                }
+
+                // Save to Firebase Firestore
+                console.log('💾 Saving product to Firestore...');
+                const savedProduct = await firebaseProductManager.saveProduct(productData);
+
+                if (savedProduct) {
+                    console.log('✅ Product saved successfully:', savedProduct);
+                    showToast('Product added successfully!', 'success');
+                    closeModal();
+                    // Reload products from Firebase and render
+                    await loadProductsFromFirebase();
+                    renderNewStuff();
+                } else {
+                    throw new Error('Failed to save product');
+                }
+            } catch (error) {
+                console.error('Error saving product:', error);
+                showToast('Error saving product: ' + error.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        }
+
+        /**
+         * Preview product image (converts to Base64 for direct Firestore storage)
+         */
+        function previewProductImage(input) {
+            const preview = document.getElementById('product-image-preview');
+            const img = document.getElementById('product-image-img');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file size (max 1MB for Firestore document limit)
+                const maxSize = 1 * 1024 * 1024; // 1MB
+                if (file.size > maxSize) {
+                    showToast('Image too large. Please use an image under 1MB.', 'error');
+                    input.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;  // Base64 DataURL
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        /**
+         * View product image in a modal
+         */
+        function viewProductImage(imageUrl) {
+            if (!imageUrl) {
+                alert('No image available');
+                return;
+            }
+
+            openModal('view-image');
+            setTimeout(() => {
+                const modal = document.getElementById('modal');
+                const modalContent = modal.querySelector('.modal-content');
+                modalContent.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <img src="${imageUrl}" alt="Product" style="max-width: 100%; max-height: 80vh; border-radius: 12px;">
+                        <button class="btn-secondary" onclick="closeModal()" style="margin-top: 20px; width: 100%;">Close</button>
+                    </div>
+                `;
+            }, 100);
+        }
+
+        /**
+         * Load products from Firebase
+         */
+        async function loadProductsFromFirebase() {
+            try {
+                if (!firebaseProductManager.isInitialized) {
+                    const initialized = await firebaseProductManager.initialize();
+                    if (!initialized) {
+                        console.warn('Firebase not initialized, using empty local products');
+                        products = [];
+                        return Promise.resolve();
+                    }
+                }
+
+                console.log('📦 Loading products from Firebase...');
+                const firebaseProducts = await firebaseProductManager.loadProducts();
+                
+                // Replace local products with Firebase products
+                products = firebaseProducts || [];
+                
+                console.log(`✅ Loaded ${products.length} products from Firebase`);
+                return Promise.resolve();
+            } catch (error) {
+                console.error('Error loading products from Firebase:', error);
+                products = [];
+                return Promise.resolve();
+            }
+        }
+
+        /**
+         * Delete product from Firebase
+         */
+        async function deleteProductFromFirebase(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) {
+                return;
+            }
+
+            try {
+                if (!firebaseProductManager.isInitialized) {
+                    const initialized = await firebaseProductManager.initialize();
+                    if (!initialized) {
+                        alert('Firebase not initialized');
+                        return;
+                    }
+                }
+
+                console.log(`🗑️ Deleting product: ${productId}`);
+                const success = await firebaseProductManager.deleteProduct(productId);
+                
+                if (success) {
+                    console.log('✅ Product deleted successfully');
+                    // Remove from local array
+                    products = products.filter(p => p.id !== productId);
+                    renderNewStuff();
+                } else {
+                    alert('Error deleting product');
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                alert('Error deleting product');
+            }
+        }
+
+        // Variable to store the product being edited
+        let editingProductId = null;
+
+        /**
+         * Preview edit product image (converts to Base64)
+         */
+        function previewEditProductImage(input) {
+            const preview = document.getElementById('edit-product-image-preview');
+            const img = document.getElementById('edit-product-image-img');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file size (max 1MB for Firestore document limit)
+                const maxSize = 1 * 1024 * 1024; // 1MB
+                if (file.size > maxSize) {
+                    showToast('Image too large. Please use an image under 1MB.', 'error');
+                    input.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;  // Base64 DataURL
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        /**
+         * Edit product
+         */
+        function editProduct(productId) {
+            const product = products.find(p => p.id === productId || p.firestoreId === productId);
+            if (!product) {
+                alert('Product not found');
+                return;
+            }
+
+            editingProductId = productId;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 12px; margin: 0;">
+                        <i class="fas fa-edit" style="color: var(--accent-primary); font-size: 24px;"></i>
+                        Edit Product
+                    </h2>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-product-form" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div>
+                            <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Product Name</label>
+                            <input type="text" id="edit-product-name" value="${product.name || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Category</label>
+                                <input type="text" id="edit-product-category" value="${product.category || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Quantity</label>
+                                <input type="number" id="edit-product-quantity" value="${product.quantity || 0}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Price</label>
+                                <input type="number" id="edit-product-price" value="${product.price || 0}" step="0.01" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Store</label>
+                                <input type="text" id="edit-product-store" value="${product.store || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Arrival Date</label>
+                                <input type="date" id="edit-product-arrival-date" value="${product.arrivalDate || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Supplier</label>
+                                <input type="text" id="edit-product-supplier" value="${product.supplier || ''}" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit;">
+                            </div>
+                        </div>
+
+                        <!-- Image Upload Section -->
+                        <div>
+                            <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Product Image (leave empty to keep current)</label>
+                            <input type="file" class="form-input" id="edit-product-image" accept="image/*" onchange="previewEditProductImage(this)" style="display: none;">
+                            <div id="edit-product-image-preview" style="margin-bottom: 12px; ${product.image ? '' : 'display: none;'}">
+                                <img id="edit-product-image-img" src="${product.image || ''}" style="max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover;">
+                            </div>
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('edit-product-image').click()" style="margin: 0;">
+                                <i class="fas fa-image"></i> ${product.image ? 'Change Image' : 'Select Image'}
+                            </button>
+                            <small style="display: block; margin-top: 8px; color: var(--text-muted);">Max file size: 1MB</small>
+                        </div>
+
+                        <div>
+                            <label style="display: block; color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Description</label>
+                            <textarea id="edit-product-description" class="form-input" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; min-height: 100px; resize: vertical;">${product.description || ''}</textarea>
+                        </div>
+                    </form>
+
+                    <div style="display: flex; gap: 12px; margin-top: 20px;">
+                        <button class="btn-primary" style="
+                            flex: 1;
+                            padding: 12px 16px;
+                            border-radius: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            border: none;
+                            transition: all 0.2s ease;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                        " onclick="saveProductChanges('${productId}')">
+                            <i class="fas fa-check"></i>
+                            Save Changes
+                        </button>
+                        <button style="
+                            flex: 1;
+                            background: var(--bg-secondary);
+                            color: var(--text-primary);
+                            border: 1px solid var(--border-color);
+                            padding: 12px 16px;
+                            border-radius: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            transition: all 0.2s ease;
+                        " onclick="closeModal()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        async function saveProductChanges(productId) {
+            const product = products.find(p => p.id === productId || p.firestoreId === productId);
+            if (!product) {
+                showToast('Product not found', 'error');
+                return;
+            }
+
+            const imageInput = document.getElementById('edit-product-image');
+
+            // Get image - use new one if uploaded, otherwise keep current (same approach as thieves)
+            let image = product.image;
+            const imageImg = document.getElementById('edit-product-image-img');
+            if (imageInput && imageInput.files && imageInput.files.length > 0 && imageImg && imageImg.src) {
+                image = imageImg.src;  // New Base64 DataURL
+            }
+
+            // Update product with new values
+            const updatedData = {
+                name: document.getElementById('edit-product-name').value.trim() || product.name,
+                category: document.getElementById('edit-product-category').value.trim() || product.category,
+                quantity: parseInt(document.getElementById('edit-product-quantity').value) || 0,
+                price: parseFloat(document.getElementById('edit-product-price').value) || 0,
+                store: document.getElementById('edit-product-store').value.trim() || product.store,
+                arrivalDate: document.getElementById('edit-product-arrival-date').value || product.arrivalDate,
+                supplier: document.getElementById('edit-product-supplier').value.trim() || product.supplier,
+                description: document.getElementById('edit-product-description').value.trim() || '',
+                image: image  // Base64 image
+            };
+
+            // Update local product
+            const productIndex = products.findIndex(p => p.id === productId || p.firestoreId === productId);
+            if (productIndex !== -1) {
+                products[productIndex] = {
+                    ...products[productIndex],
+                    ...updatedData
+                };
+            }
+
+            // Save to Firebase
+            try {
+                if (firebaseProductManager && firebaseProductManager.isInitialized) {
+                    const firestoreId = product.firestoreId || productId;
+                    await firebaseProductManager.updateProduct(String(firestoreId), updatedData);
+                    console.log('✅ Product updated in Firebase');
+                    showToast('Product updated successfully!', 'success');
+                } else {
+                    console.warn('⚠️ Firebase not initialized, saving locally only');
+                    showToast('Product updated locally', 'success');
+                }
+            } catch (error) {
+                console.error('Error updating product in Firebase:', error);
+                showToast('Error updating product: ' + error.message, 'error');
+            }
+
+            editingProductId = null;
+            closeModal();
             renderNewStuff();
         }
 
@@ -6703,7 +10574,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 'clock': 'clockin',
                 'chart-bar': 'dailysales',
                 'money-bill-wave': 'cashout',
-                'vault': 'treasury'
+                'vault': 'treasury',
+                'coins': 'change',
+                'gift': 'gifts',
+                'shield-halved': 'risknotes',
+                'bolt': 'gforce'
             };
             item.dataset.page = pageMap[page] || 'dashboard';
             
@@ -6720,7 +10595,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         // Close modal on background click
         const modal = document.getElementById('modal');
         if (modal) {
-            modal.addEventListener('click', function(e) {
+            modal.addEventListener('mousedown', function(e) {
                 if (e.target === this) closeModal();
             });
         }
@@ -6753,12 +10628,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function playTrainingVideo(trainingId) {
-            const training = trainings.find(t => t.id === trainingId);
+            const training = trainings.find(t => t.id === trainingId || t.id === parseInt(trainingId));
             if (!training || training.type !== 'video') return;
 
             const videoInfo = getVideoEmbedUrl(training.url);
             if (!videoInfo) {
-                alert('Invalid video URL. Please use a YouTube or Vimeo link.');
+                showToast('Invalid video URL. Please use a YouTube or Vimeo link.', 'error');
                 return;
             }
 
@@ -6785,7 +10660,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="color: var(--text-muted); font-size: 13px;">
-                                <i class="fas fa-clock"></i> ${training.duration}
+                                <i class="fas fa-clock"></i> ${training.duration || '30 min'}
                             </span>
                             <span style="color: var(--text-muted); font-size: 13px;">
                                 <i class="fas fa-${training.required ? 'exclamation-circle' : 'check'}"></i> ${training.required ? 'Required' : 'Optional'}
@@ -6803,19 +10678,259 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function viewTraining(trainingId) {
-            const training = trainings.find(t => t.id === trainingId);
-            if (!training) return;
+            const training = trainings.find(t => t.id === trainingId || t.id === parseInt(trainingId));
+            if (!training) {
+                showToast('Training not found', 'error');
+                return;
+            }
 
             if (training.type === 'video') {
                 playTrainingVideo(trainingId);
             } else {
-                // For document type, show details
-                alert(`Viewing training: ${training.title}\nType: ${training.type}\nDuration: ${training.duration}`);
+                // For document type, show PDF preview modal
+                showTrainingDetailsModal(training);
             }
         }
 
+        // Show training details modal with PDF preview
+        function showTrainingDetailsModal(training) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            const hasPdf = training.fileUrl && training.type === 'document';
+            const fileSize = training.fileSize ? formatFileSize(training.fileSize) : 'N/A';
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-file-pdf" style="color: #ef4444; margin-right: 10px;"></i>${training.title}</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    ${hasPdf ? `
+                        <div style="background: var(--bg-tertiary); border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+                            <iframe
+                                src="${training.fileUrl}"
+                                style="width: 100%; height: 500px; border: none;"
+                                title="PDF Preview">
+                            </iframe>
+                        </div>
+                    ` : `
+                        <div style="text-align: center; padding: 60px 20px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 20px;">
+                            <i class="fas fa-file-pdf" style="font-size: 64px; color: #ef4444; margin-bottom: 16px;"></i>
+                            <p style="color: var(--text-muted);">No PDF file available for preview</p>
+                        </div>
+                    `}
+
+                    <div class="card" style="margin-bottom: 16px;">
+                        <div class="card-body">
+                            <h4 style="margin-bottom: 16px; color: var(--text-primary);">Training Details</h4>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Type</label>
+                                    <span style="font-weight: 500; color: var(--text-primary);">${(training.type || 'Document').toUpperCase()}</span>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Duration</label>
+                                    <span style="font-weight: 500; color: var(--text-primary);">${training.duration || '30 min'}</span>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Status</label>
+                                    <span class="badge ${training.required ? 'danger' : 'success'}">${training.required ? 'Required' : 'Optional'}</span>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Completion</label>
+                                    <span style="font-weight: 500; color: var(--text-primary);">${training.completion || 0}%</span>
+                                </div>
+                                ${training.fileName ? `
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">File</label>
+                                        <span style="font-weight: 500; color: var(--text-primary);">
+                                            <i class="fas fa-file-pdf" style="color: #ef4444;"></i> ${training.fileName} (${fileSize})
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${training.description ? `
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Description</label>
+                                        <p style="color: var(--text-secondary); margin: 0; line-height: 1.6;">${training.description}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="training-card-progress" style="margin-bottom: 0;">
+                        <div class="progress-bar" style="height: 10px;">
+                            <div class="progress-fill" style="width: ${training.completion || 0}%;"></div>
+                        </div>
+                        <span style="text-align: center; display: block; margin-top: 8px;">${training.completion || 0}% completed</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="display: flex; gap: 8px;">
+                            ${hasPdf ? `
+                                <a href="${training.fileUrl}" target="_blank" class="btn-secondary" style="text-decoration: none;">
+                                    <i class="fas fa-external-link-alt"></i> Open in New Tab
+                                </a>
+                                <a href="${training.fileUrl}" download="${training.fileName || 'training.pdf'}" class="btn-secondary" style="text-decoration: none;">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            ` : ''}
+                        </div>
+                        <button class="btn-primary" onclick="closeModal()">Close</button>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        // Edit training function
         function editTraining(trainingId) {
-            alert('Edit training #' + trainingId + ' - Coming soon!');
+            const training = trainings.find(t => t.id === trainingId || t.id === parseInt(trainingId));
+            if (!training) {
+                showToast('Training not found', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2>Edit Training Material</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Title *</label>
+                        <input type="text" class="form-input" id="edit-training-title" value="${training.title || ''}" placeholder="Training name...">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Type</label>
+                            <input type="text" class="form-input" value="${(training.type || 'document').toUpperCase()}" disabled style="background: var(--bg-tertiary);">
+                        </div>
+                        <div class="form-group">
+                            <label>Duration</label>
+                            <input type="text" class="form-input" id="edit-training-duration" value="${training.duration || '30 min'}" placeholder="30 min">
+                        </div>
+                    </div>
+                    ${training.type === 'video' ? `
+                        <div class="form-group">
+                            <label>Video URL</label>
+                            <input type="url" class="form-input" id="edit-training-url" value="${training.url || ''}" placeholder="https://youtube.com/watch?v=...">
+                        </div>
+                    ` : ''}
+                    ${training.fileName ? `
+                        <div class="form-group">
+                            <label>Current File</label>
+                            <div style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-file-pdf" style="font-size: 24px; color: #ef4444;"></i>
+                                <div>
+                                    <div style="font-weight: 500; color: var(--text-primary);">${training.fileName}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">${training.fileSize ? formatFileSize(training.fileSize) : 'Unknown size'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-input" id="edit-training-description" rows="3" placeholder="Brief description...">${training.description || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="edit-training-required" ${training.required ? 'checked' : ''}>
+                            <span>Required for all employees</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn-primary" onclick="updateTraining('${trainingId}')">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        // Update training in Firebase
+        async function updateTraining(trainingId) {
+            const title = document.getElementById('edit-training-title').value.trim();
+            const duration = document.getElementById('edit-training-duration').value.trim();
+            const urlInput = document.getElementById('edit-training-url');
+            const url = urlInput ? urlInput.value.trim() : '';
+            const description = document.getElementById('edit-training-description').value.trim();
+            const required = document.getElementById('edit-training-required').checked;
+
+            if (!title) {
+                showToast('Please enter a title', 'error');
+                return;
+            }
+
+            try {
+                if (!firebaseTrainingManager.isInitialized) {
+                    await firebaseTrainingManager.initialize();
+                }
+
+                const updateData = {
+                    title,
+                    duration: duration || '30 min',
+                    description,
+                    required
+                };
+
+                if (url) {
+                    updateData.url = url;
+                }
+
+                const success = await firebaseTrainingManager.updateTraining(trainingId, updateData);
+
+                if (success) {
+                    showToast('Training updated successfully!', 'success');
+                    closeModal();
+                    await loadTrainingsFromFirebase();
+                    renderPage(currentPage);
+                } else {
+                    throw new Error('Failed to update training');
+                }
+            } catch (error) {
+                console.error('Error updating training:', error);
+                showToast('Error updating training: ' + error.message, 'error');
+            }
+        }
+
+        // Delete training from Firebase
+        async function deleteTraining(trainingId) {
+            const training = trainings.find(t => t.id === trainingId || t.id === parseInt(trainingId));
+            if (!training) {
+                showToast('Training not found', 'error');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete "${training.title}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                if (!firebaseTrainingManager.isInitialized) {
+                    await firebaseTrainingManager.initialize();
+                }
+
+                const success = await firebaseTrainingManager.deleteTraining(trainingId);
+
+                if (success) {
+                    showToast('Training deleted successfully!', 'success');
+                    await loadTrainingsFromFirebase();
+                    renderPage(currentPage);
+                } else {
+                    throw new Error('Failed to delete training');
+                }
+            } catch (error) {
+                console.error('Error deleting training:', error);
+                showToast('Error deleting training: ' + error.message, 'error');
+            }
         }
 
         // Theme toggle functionality
@@ -6883,7 +10998,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             if (typeof authManager !== 'undefined') {
                 authManager.logout();
             }
-            localStorage.removeItem('userSession');
+            
+            // Clear all localStorage data for security
+            localStorage.clear();
+            
+            // Also clear sessionStorage to ensure clean state
+            sessionStorage.clear();
 
             // Redirect to login page
             window.location.href = 'login.html';
@@ -7247,14 +11367,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         // Drag and drop functionality for licenses
         let draggedLicenseId = null;
+        let licensesEditMode = false;  // Edit mode toggle for drag and drop
 
         function handleLicenseDragStart(event, licenseId) {
+            if (!licensesEditMode) {
+                event.preventDefault();
+                return;
+            }
             draggedLicenseId = licenseId;
             event.target.classList.add('dragging');
             event.dataTransfer.effectAllowed = 'move';
         }
 
         function handleLicenseDragOver(event) {
+            if (!licensesEditMode) return;
             event.preventDefault();
             event.dataTransfer.dropEffect = 'move';
             const dropZone = event.currentTarget;
@@ -7267,6 +11393,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         function handleLicenseDrop(event, targetStore) {
+            if (!licensesEditMode) return;
             event.preventDefault();
             const dropZone = event.currentTarget;
             dropZone.classList.remove('drag-over');
@@ -7279,6 +11406,11 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 }
                 draggedLicenseId = null;
             }
+        }
+
+        function toggleLicensesEditMode() {
+            licensesEditMode = !licensesEditMode;
+            renderLicenses();
         }
 
         function viewLicense(licenseId) {
@@ -7298,7 +11430,558 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
+        // RISK NOTES FUNCTIONALITY
+        const RISK_BEHAVIOR_TYPES = [
+            { id: 'strange_questions', label: 'Strange Questions', icon: 'fa-question-circle', color: '#f59e0b' },
+            { id: 'unusual_purchase', label: 'Unusual Purchase', icon: 'fa-shopping-cart', color: '#3b82f6' },
+            { id: 'recording', label: 'Recording / Taking Photos', icon: 'fa-camera', color: '#8b5cf6' },
+            { id: 'policy_violation', label: 'Policy Violation Attempt', icon: 'fa-ban', color: '#ef4444' },
+            { id: 'suspicious_attitude', label: 'Suspicious Attitude', icon: 'fa-user-secret', color: '#ec4899' },
+            { id: 'other', label: 'Other', icon: 'fa-ellipsis', color: '#6b7280' }
+        ];
+
+        const RISK_LEVELS = [
+            { id: 'low', label: 'Low', color: '#22c55e', icon: 'fa-circle' },
+            { id: 'medium', label: 'Medium', color: '#f59e0b', icon: 'fa-circle' },
+            { id: 'high', label: 'High', color: '#ef4444', icon: 'fa-circle' }
+        ];
+
+        const RISK_STORES = [
+            'Miramar',
+            'Morena',
+            'Kearny Mesa',
+            'Chula Vista',
+            'Miramar Wine & Liquor'
+        ];
+
+        let riskNotesState = {
+            notes: JSON.parse(localStorage.getItem('riskNotes')) || [],
+            filterStore: 'all',
+            filterLevel: 'all',
+            filterType: 'all'
+        };
+
+        function saveRiskNotes() {
+            localStorage.setItem('riskNotes', JSON.stringify(riskNotesState.notes));
+        }
+
+        function renderRiskNotes() {
+            const dashboard = document.querySelector('.dashboard');
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            // Filter notes
+            let filteredNotes = riskNotesState.notes.filter(note => {
+                const storeMatch = riskNotesState.filterStore === 'all' || note.store === riskNotesState.filterStore;
+                const levelMatch = riskNotesState.filterLevel === 'all' || note.level === riskNotesState.filterLevel;
+                const typeMatch = riskNotesState.filterType === 'all' || note.behaviorType === riskNotesState.filterType;
+                return storeMatch && levelMatch && typeMatch;
+            });
+
+            // Sort by date descending
+            filteredNotes.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Monthly stats
+            const monthlyNotes = riskNotesState.notes.filter(n => n.date && n.date.startsWith(currentMonth));
+            const storeCounts = {};
+            const typeCounts = {};
+
+            monthlyNotes.forEach(note => {
+                storeCounts[note.store] = (storeCounts[note.store] || 0) + 1;
+                typeCounts[note.behaviorType] = (typeCounts[note.behaviorType] || 0) + 1;
+            });
+
+            const topStore = Object.entries(storeCounts).sort((a, b) => b[1] - a[1])[0];
+            const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">
+                            <i class="fas fa-shield-halved" style="color: var(--accent-primary);"></i>
+                            Risk Notes
+                        </h2>
+                        <p class="section-subtitle">Document unusual activity and stay alert</p>
+                    </div>
+                    <div class="page-header-right">
+                        <button class="btn-primary" onclick="openModal('add-risknote')">
+                            <i class="fas fa-plus"></i> New Risk Note
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Safety Guidelines -->
+                <div class="card" style="margin-bottom: 24px; border-left: 4px solid var(--warning); background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, var(--bg-secondary) 100%);">
+                    <div class="card-body" style="padding: 20px;">
+                        <div style="display: flex; align-items: start; gap: 16px;">
+                            <div style="font-size: 32px;">⚠️</div>
+                            <div>
+                                <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600;">General Safety Recommendations</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 13px; color: var(--text-secondary);">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-check" style="color: var(--success);"></i>
+                                        <span>Never sell to customers without a valid account</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-check" style="color: var(--success);"></i>
+                                        <span>Always verify ID for age-restricted products</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-check" style="color: var(--success);"></i>
+                                        <span>Trust your instincts - if something feels off, report it</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-check" style="color: var(--success);"></i>
+                                        <span>Document everything - dates, times, descriptions</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-check" style="color: var(--success);"></i>
+                                        <span>Alert manager immediately for high-risk situations</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-check" style="color: var(--success);"></i>
+                                        <span>Never confront suspicious individuals directly</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Summary -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="card" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;">
+                        <div class="card-body" style="padding: 20px; text-align: center;">
+                            <div style="font-size: 36px; font-weight: 700;">${monthlyNotes.length}</div>
+                            <div style="font-size: 13px; opacity: 0.9;">Notes This Month</div>
+                        </div>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                        <div class="card-body" style="padding: 20px; text-align: center;">
+                            <div style="font-size: 36px; font-weight: 700;">${topStore ? topStore[1] : 0}</div>
+                            <div style="font-size: 13px; opacity: 0.9;">${topStore ? topStore[0] : 'No data'}</div>
+                            <div style="font-size: 11px; opacity: 0.7;">Most Cases</div>
+                        </div>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white;">
+                        <div class="card-body" style="padding: 20px; text-align: center;">
+                            <div style="font-size: 36px; font-weight: 700;">${topType ? topType[1] : 0}</div>
+                            <div style="font-size: 13px; opacity: 0.9;">${topType ? RISK_BEHAVIOR_TYPES.find(t => t.id === topType[0])?.label || 'Unknown' : 'No data'}</div>
+                            <div style="font-size: 11px; opacity: 0.7;">Most Common Type</div>
+                        </div>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">
+                        <div class="card-body" style="padding: 20px; text-align: center;">
+                            <div style="font-size: 36px; font-weight: 700;">${monthlyNotes.filter(n => n.level === 'high').length}</div>
+                            <div style="font-size: 13px; opacity: 0.9;">High Risk</div>
+                            <div style="font-size: 11px; opacity: 0.7;">Needs Attention</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-body" style="padding: 16px;">
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 13px; font-weight: 500;">Store:</label>
+                                <select class="form-input" style="width: 160px;" onchange="filterRiskNotes('store', this.value)">
+                                    <option value="all" ${riskNotesState.filterStore === 'all' ? 'selected' : ''}>All Stores</option>
+                                    ${RISK_STORES.map(store => `
+                                        <option value="${store}" ${riskNotesState.filterStore === store ? 'selected' : ''}>${store}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 13px; font-weight: 500;">Level:</label>
+                                <select class="form-input" style="width: 140px;" onchange="filterRiskNotes('level', this.value)">
+                                    <option value="all" ${riskNotesState.filterLevel === 'all' ? 'selected' : ''}>All Levels</option>
+                                    ${RISK_LEVELS.map(level => `
+                                        <option value="${level.id}" ${riskNotesState.filterLevel === level.id ? 'selected' : ''}>${level.label}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 13px; font-weight: 500;">Type:</label>
+                                <select class="form-input" style="width: 180px;" onchange="filterRiskNotes('type', this.value)">
+                                    <option value="all" ${riskNotesState.filterType === 'all' ? 'selected' : ''}>All Types</option>
+                                    ${RISK_BEHAVIOR_TYPES.map(type => `
+                                        <option value="${type.id}" ${riskNotesState.filterType === type.id ? 'selected' : ''}>${type.label}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <button class="btn-secondary" onclick="resetRiskNotesFilters()" style="margin-left: auto;">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Notes List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i>
+                            Recent Activity Notes
+                        </h3>
+                        <span class="badge" style="background: var(--accent-primary);">${filteredNotes.length} Notes</span>
+                    </div>
+                    <div class="card-body">
+                        ${filteredNotes.length === 0 ? `
+                            <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                                <i class="fas fa-shield-halved" style="font-size: 56px; margin-bottom: 20px; display: block; opacity: 0.3;"></i>
+                                <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">No risk notes yet</div>
+                                <div style="font-size: 14px;">Click "New Risk Note" to document unusual activity</div>
+                            </div>
+                        ` : `
+                            <div style="display: grid; gap: 16px;">
+                                ${filteredNotes.map(note => {
+                                    const behaviorType = RISK_BEHAVIOR_TYPES.find(t => t.id === note.behaviorType) || RISK_BEHAVIOR_TYPES[5];
+                                    const level = RISK_LEVELS.find(l => l.id === note.level) || RISK_LEVELS[0];
+                                    const noteDate = new Date(note.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                                    return `
+                                        <div style="background: var(--bg-secondary); border-radius: 16px; padding: 20px; border-left: 4px solid ${level.color}; transition: all 0.2s; cursor: pointer;" onclick="viewRiskNote('${note.id}')" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                                <div style="display: flex; align-items: center; gap: 12px;">
+                                                    <div style="width: 48px; height: 48px; background: ${behaviorType.color}20; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="fas ${behaviorType.icon}" style="color: ${behaviorType.color}; font-size: 20px;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">${behaviorType.label}</div>
+                                                        <div style="font-size: 12px; color: var(--text-muted);">
+                                                            <i class="fas fa-store"></i> ${note.store} •
+                                                            <i class="fas fa-calendar"></i> ${noteDate}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <span style="background: ${level.color}20; color: ${level.color}; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                                    <i class="fas ${level.icon}" style="font-size: 8px;"></i> ${level.label} Risk
+                                                </span>
+                                            </div>
+                                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                                ${note.description || 'No description'}
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                                <div style="font-size: 12px; color: var(--text-muted);">
+                                                    <i class="fas fa-user"></i> ${note.reportedBy || 'Anonymous'}
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    ${note.photo ? '<i class="fas fa-image" style="color: var(--text-muted); font-size: 12px;" title="Has photo"></i>' : ''}
+                                                    ${note.managerNote ? '<i class="fas fa-comment" style="color: var(--warning); font-size: 12px;" title="Has manager note"></i>' : ''}
+                                                    <span style="font-size: 11px; color: var(--text-muted);">Click to view</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterRiskNotes(filterType, value) {
+            if (filterType === 'store') riskNotesState.filterStore = value;
+            if (filterType === 'level') riskNotesState.filterLevel = value;
+            if (filterType === 'type') riskNotesState.filterType = value;
+            renderRiskNotes();
+        }
+
+        function resetRiskNotesFilters() {
+            riskNotesState.filterStore = 'all';
+            riskNotesState.filterLevel = 'all';
+            riskNotesState.filterType = 'all';
+            renderRiskNotes();
+        }
+
+        function deleteRiskNote(noteId) {
+            if (confirm('Are you sure you want to delete this risk note?')) {
+                riskNotesState.notes = riskNotesState.notes.filter(n => n.id !== noteId);
+                saveRiskNotes();
+                renderRiskNotes();
+            }
+        }
+
+        function saveRiskNote() {
+            const date = document.getElementById('risknote-date').value || new Date().toISOString().split('T')[0];
+            const store = document.getElementById('risknote-store').value;
+            const behaviorType = document.getElementById('risknote-type').value;
+            const description = document.getElementById('risknote-description').value.trim();
+            const level = document.getElementById('risknote-level').value;
+            const reportedBy = document.getElementById('risknote-reporter').value.trim();
+            const managerNote = document.getElementById('risknote-manager-note')?.value.trim() || '';
+            const photoInput = document.getElementById('risknote-photo');
+
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    createRiskNote(date, store, behaviorType, description, level, reportedBy, managerNote, e.target.result);
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                createRiskNote(date, store, behaviorType, description, level, reportedBy, managerNote, null);
+            }
+        }
+
+        function createRiskNote(date, store, behaviorType, description, level, reportedBy, managerNote, photo) {
+            const newNote = {
+                id: Date.now().toString(),
+                date,
+                store: store || 'Miramar',
+                behaviorType: behaviorType || 'other',
+                description: description || '',
+                level: level || 'low',
+                reportedBy: reportedBy || 'Staff',
+                managerNote,
+                photo,
+                createdAt: new Date().toISOString()
+            };
+
+            riskNotesState.notes.unshift(newNote);
+            saveRiskNotes();
+            closeModal();
+            renderRiskNotes();
+        }
+
+        function previewRiskNotePhoto(input) {
+            const preview = document.getElementById('risknote-photo-preview');
+            const img = document.getElementById('risknote-photo-img');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function selectRiskLevel(level) {
+            document.getElementById('risknote-level').value = level;
+            const buttons = document.querySelectorAll('.risk-level-btn');
+            buttons.forEach(btn => {
+                const btnLevel = RISK_LEVELS.find(l => l.id === btn.dataset.level);
+                if (btn.dataset.level === level) {
+                    btn.style.borderColor = btnLevel.color;
+                    btn.style.background = btnLevel.color + '20';
+                } else {
+                    btn.style.borderColor = 'var(--border-color)';
+                    btn.style.background = 'var(--bg-secondary)';
+                }
+            });
+        }
+
+        function viewRiskNote(noteId) {
+            const note = riskNotesState.notes.find(n => n.id === noteId);
+            if (!note) return;
+
+            const behaviorType = RISK_BEHAVIOR_TYPES.find(t => t.id === note.behaviorType) || RISK_BEHAVIOR_TYPES[5];
+            const level = RISK_LEVELS.find(l => l.id === note.level) || RISK_LEVELS[0];
+            const noteDate = new Date(note.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const createdDate = note.createdAt ? new Date(note.createdAt).toLocaleString('en-US') : 'Unknown';
+
+            const modal = document.getElementById('modal');
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header" style="background: linear-gradient(135deg, ${level.color}20 0%, var(--bg-secondary) 100%); border-bottom: 3px solid ${level.color};">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 56px; height: 56px; background: ${behaviorType.color}20; border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas ${behaviorType.icon}" style="color: ${behaviorType.color}; font-size: 24px;"></i>
+                            </div>
+                            <div>
+                                <h2 style="margin: 0; font-size: 20px;">${behaviorType.label}</h2>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                                    <i class="fas fa-store"></i> ${note.store}
+                                </div>
+                            </div>
+                        </div>
+                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body" style="padding: 24px;">
+                        <!-- Risk Level Badge -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <span style="background: ${level.color}20; color: ${level.color}; padding: 8px 20px; border-radius: 25px; font-size: 14px; font-weight: 600;">
+                                <i class="fas ${level.icon}" style="font-size: 10px;"></i> ${level.label} Risk
+                            </span>
+                            <span style="font-size: 13px; color: var(--text-muted);">
+                                <i class="fas fa-calendar"></i> ${noteDate}
+                            </span>
+                        </div>
+
+                        <!-- Description -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Description</label>
+                            <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.7;">
+                                ${note.description || 'No description provided'}
+                            </div>
+                        </div>
+
+                        ${note.photo ? `
+                            <!-- Photo Evidence -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Photo Evidence</label>
+                                <div style="border-radius: 12px; overflow: hidden; background: var(--bg-secondary);">
+                                    <img src="${note.photo}" alt="Evidence" style="width: 100%; max-height: 350px; object-fit: contain; cursor: pointer;" onclick="window.open('${note.photo}', '_blank')">
+                                </div>
+                                <div style="text-align: center; margin-top: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-muted);">Click image to view full size</span>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${note.managerNote ? `
+                            <!-- Manager Note -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Manager Note</label>
+                                <div style="background: rgba(245, 158, 11, 0.1); padding: 16px; border-radius: 12px; border-left: 4px solid var(--warning);">
+                                    <div style="font-size: 14px; line-height: 1.6;">${note.managerNote}</div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Meta Info -->
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Reported By</div>
+                                <div style="font-size: 14px; font-weight: 500;"><i class="fas fa-user" style="margin-right: 8px; color: var(--accent-primary);"></i>${note.reportedBy || 'Anonymous'}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Created</div>
+                                <div style="font-size: 14px; font-weight: 500;"><i class="fas fa-clock" style="margin-right: 8px; color: var(--accent-primary);"></i>${createdDate}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                        <button class="btn-secondary danger" onclick="closeModal(); deleteRiskNote('${note.id}');">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <button class="btn-primary" onclick="closeModal()">
+                            <i class="fas fa-check"></i> Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
         // G FORCE FUNCTIONALITY
+        function renderGForce() {
+            const dashboard = document.querySelector('.dashboard');
+            const quote = getRandomGForceQuote();
+            const affirmations = getRandomGForceAffirmations(5);
+            const philosophy = getRandomGForcePhilosophy();
+
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">
+                            <i class="fas fa-bolt" style="color: var(--accent-primary);"></i>
+                            G Force - Giselle's Daily Motivation
+                        </h2>
+                        <p class="section-subtitle">${getGForceDate()}</p>
+                    </div>
+                </div>
+
+                <!-- Quote Card -->
+                <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);">
+                    <div class="card-body" style="text-align: center; padding: 40px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
+                        <div id="gforce-quote-text" style="font-size: 1.6rem; line-height: 1.7; margin-bottom: 20px; font-weight: 300; color: var(--text-primary);">"${quote.text}"</div>
+                        <div id="gforce-quote-author" style="text-align: right; color: var(--accent-primary); font-size: 1.1rem; font-style: italic;">— ${quote.author}</div>
+                        <button class="btn-secondary" onclick="refreshGForceQuote()" style="margin-top: 20px;">
+                            <i class="fas fa-sync-alt"></i> New Quote
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+                    <!-- Affirmations Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-heart" style="color: #ec4899;"></i>
+                                Today's Affirmations
+                            </h3>
+                            <button class="btn-icon" onclick="refreshGForceAffirmations()" title="New Affirmations">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="gforce-affirmations-page">
+                                ${affirmations.map(aff => `
+                                    <div style="background: var(--bg-secondary); padding: 14px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid var(--accent-primary); transition: transform 0.2s; cursor: default;" onmouseover="this.style.transform='translateX(6px)'" onmouseout="this.style.transform='translateX(0)'">
+                                        <span style="color: var(--success); margin-right: 8px;">✓</span> ${aff}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Philosophy Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
+                                Self-Care Philosophy
+                            </h3>
+                            <button class="btn-icon" onclick="refreshGForcePhilosophy()" title="New Philosophy">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="gforce-philosophy-page-text" style="font-size: 15px; line-height: 1.8; margin-bottom: 24px; color: var(--text-secondary);">${philosophy.text}</div>
+                            <div id="gforce-tips-page">
+                                ${philosophy.tips.map(tip => `
+                                    <div style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; transition: all 0.2s; cursor: default;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                        <div style="font-size: 1.8rem; flex-shrink: 0;">${tip.icon}</div>
+                                        <div style="font-size: 14px; line-height: 1.6;">${tip.text}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivational Footer -->
+                <div style="text-align: center; margin-top: 32px; padding: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); border-radius: 16px;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">🌟</div>
+                    <div style="font-size: 18px; font-weight: 500; color: var(--text-primary);">Remember: You are capable of amazing things!</div>
+                    <div style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">Take a deep breath and embrace today with gratitude.</div>
+                </div>
+            `;
+        }
+
+        function refreshGForceQuote() {
+            const quote = getRandomGForceQuote();
+            document.getElementById('gforce-quote-text').textContent = '"' + quote.text + '"';
+            document.getElementById('gforce-quote-author').textContent = '— ' + quote.author;
+        }
+
+        function refreshGForceAffirmations() {
+            const affirmations = getRandomGForceAffirmations(5);
+            const container = document.getElementById('gforce-affirmations-page');
+            container.innerHTML = affirmations.map(aff => `
+                <div style="background: var(--bg-secondary); padding: 14px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid var(--accent-primary); transition: transform 0.2s; cursor: default;" onmouseover="this.style.transform='translateX(6px)'" onmouseout="this.style.transform='translateX(0)'">
+                    <span style="color: var(--success); margin-right: 8px;">✓</span> ${aff}
+                </div>
+            `).join('');
+        }
+
+        function refreshGForcePhilosophy() {
+            const philosophy = getRandomGForcePhilosophy();
+            document.getElementById('gforce-philosophy-page-text').textContent = philosophy.text;
+            const tipsContainer = document.getElementById('gforce-tips-page');
+            tipsContainer.innerHTML = philosophy.tips.map(tip => `
+                <div style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; transition: all 0.2s; cursor: default;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <div style="font-size: 1.8rem; flex-shrink: 0;">${tip.icon}</div>
+                    <div style="font-size: 14px; line-height: 1.6;">${tip.text}</div>
+                </div>
+            `).join('');
+        }
+
         const gforceQuotes = [
             { text: "Abundance is not something we acquire, it is something we tune into.", author: "Wayne Dyer" },
             { text: "The universe is always conspiring in your favor when you raise your vibration.", author: "Anonymous" },
@@ -7469,7 +12152,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         // Close modal when clicking outside
-        document.getElementById('gforce-modal').addEventListener('click', function(e) {
+        document.getElementById('gforce-modal').addEventListener('mousedown', function(e) {
             if (e.target === this) {
                 closeGForceModal();
             }
@@ -7557,150 +12240,178 @@ function renderGconomics() {
     dashboard.innerHTML = `
         <div class="page-header">
             <div class="page-header-left">
-                <h2 class="section-title">Gconomics</h2>
-                <p class="section-subtitle">Expense Planner - ${currentMonthName}</p>
+                <h2 class="section-title">
+                    <i class="fas fa-wallet" style="color: var(--accent-primary);"></i>
+                    Gconomics
+                </h2>
+                <p class="section-subtitle">Personal Expense Tracker</p>
             </div>
-            <div class="page-header-actions">
+            <div class="page-header-right" style="display: flex; gap: 12px; align-items: center;">
+                <select class="form-input" style="width: 160px;" onchange="changeGconomicsMonth(this.value)">
+                    ${availableMonths.map(month => {
+                        const monthName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                        return `<option value="${month}" ${month === gconomicsState.currentMonth ? 'selected' : ''}>${monthName}</option>`;
+                    }).join('')}
+                </select>
                 <button class="btn-primary" onclick="openAddExpenseModal()">
                     <i class="fas fa-plus"></i> New Expense
                 </button>
             </div>
         </div>
 
-        <div class="gconomics-layout">
-            <!-- Sidebar -->
-            <div class="gconomics-sidebar">
-                <!-- Categories -->
-                <div class="gconomics-sidebar-section">
-                    <h3 class="gconomics-sidebar-title">
-                        <i class="fas fa-tags"></i> Categories
-                    </h3>
-                    <div class="gconomics-category-list">
-                        <button class="gconomics-category-btn ${gconomicsState.selectedCategory === 'all' ? 'active' : ''}"
-                                onclick="filterGconomicsByCategory('all')">
-                            <span class="category-icon" style="background: var(--accent-primary);">
-                                <i class="fas fa-border-all"></i>
-                            </span>
-                            <span class="category-name">All</span>
-                            <span class="category-amount">${formatCurrencyGconomics(monthlyTotal)}</span>
-                        </button>
-                        ${GCONOMICS_CATEGORIES.map(cat => `
-                            <button class="gconomics-category-btn ${gconomicsState.selectedCategory === cat.id ? 'active' : ''}"
-                                    onclick="filterGconomicsByCategory('${cat.id}')">
-                                <span class="category-icon" style="background: ${cat.color};">
-                                    <i class="fas ${cat.icon}"></i>
-                                </span>
-                                <span class="category-name">${cat.name}</span>
-                                <span class="category-amount">${formatCurrencyGconomics(categoryTotals[cat.id] || 0)}</span>
-                            </button>
-                        `).join('')}
+        <!-- Monthly Summary Card -->
+        <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%); color: white; overflow: hidden; position: relative;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+            <div class="card-body" style="padding: 32px; position: relative; z-index: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;">
+                    <div>
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">${currentMonthName}</div>
+                        <div style="font-size: 42px; font-weight: 700;">${formatCurrencyGconomics(monthlyTotal)}</div>
+                        <div style="font-size: 13px; opacity: 0.8; margin-top: 8px;">${displayExpenses.length} expense${displayExpenses.length !== 1 ? 's' : ''} this month</div>
                     </div>
-                </div>
-
-                <!-- Previous Months -->
-                <div class="gconomics-sidebar-section">
-                    <h3 class="gconomics-sidebar-title">
-                        <i class="fas fa-calendar-alt"></i> Previous Months
-                    </h3>
-                    <div class="gconomics-month-list">
-                        ${availableMonths.map(month => {
-                            const monthTotal = getMonthlyTotal(month);
-                            const monthName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                            const isActive = month === gconomicsState.currentMonth;
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        ${GCONOMICS_CATEGORIES.slice(0, 4).map(cat => {
+                            const amount = categoryTotals[cat.id] || 0;
+                            if (amount === 0) return '';
                             return `
-                                <button class="gconomics-month-btn ${isActive ? 'active' : ''}"
-                                        onclick="changeGconomicsMonth('${month}')">
-                                    <span class="month-name">${monthName}</span>
-                                    <span class="month-amount">${formatCurrencyGconomics(monthTotal)}</span>
-                                </button>
+                                <div style="background: rgba(255,255,255,0.15); padding: 12px 16px; border-radius: 12px; text-align: center; min-width: 80px;">
+                                    <div style="font-size: 20px; margin-bottom: 4px;"><i class="fas ${cat.icon}"></i></div>
+                                    <div style="font-size: 14px; font-weight: 600;">${formatCurrencyGconomics(amount)}</div>
+                                </div>
                             `;
                         }).join('')}
                     </div>
                 </div>
-
-                <!-- Chart -->
-                <div class="gconomics-sidebar-section">
-                    <h3 class="gconomics-sidebar-title">
-                        <i class="fas fa-chart-pie"></i> Breakdown
-                    </h3>
-                    <div class="gconomics-chart">
-                        ${renderGconomicsChart(categoryTotals, monthlyTotal)}
-                    </div>
-                </div>
             </div>
+        </div>
 
-            <!-- Main Content -->
-            <div class="gconomics-main">
-                <!-- Expenses Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-receipt"></i>
-                            Expenses
-                            ${gconomicsState.selectedCategory !== 'all' ? `<span class="filter-badge">${GCONOMICS_CATEGORIES.find(c => c.id === gconomicsState.selectedCategory)?.name}</span>` : ''}
-                        </h3>
-                        <span class="expense-count">${displayExpenses.length} expense${displayExpenses.length !== 1 ? 's' : ''}</span>
+        <!-- Chart Section -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Spending Breakdown
+                </h3>
+            </div>
+            <div class="card-body">
+                ${monthlyTotal === 0 ? `
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        <i class="fas fa-chart-pie" style="font-size: 40px; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+                        <p>No expenses to display</p>
                     </div>
-                    <div class="card-body" style="padding: 0;">
-                        ${displayExpenses.length === 0 ? `
-                            <div class="empty-state">
-                                <i class="fas fa-receipt"></i>
-                                <h3>No expenses yet</h3>
-                                <p>Click "New Expense" to add your first expense</p>
+                ` : `
+                    <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: center;">
+                        <!-- Donut Chart -->
+                        <div style="position: relative; width: 180px; height: 180px; margin: 0 auto;">
+                            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                ${renderDonutChart(categoryTotals, monthlyTotal)}
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                <div style="font-size: 10px; color: var(--text-muted);">Total</div>
+                                <div style="font-size: 14px; font-weight: 700;">${formatCurrencyGconomics(monthlyTotal)}</div>
                             </div>
-                        ` : `
-                            <table class="gconomics-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Description</th>
-                                        <th>Category</th>
-                                        <th style="text-align: right;">Amount</th>
-                                        <th style="width: 100px;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${displayExpenses.map(expense => {
-                                        const category = GCONOMICS_CATEGORIES.find(c => c.id === expense.category) || GCONOMICS_CATEGORIES[5];
-                                        const expenseDate = new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                        return `
-                                            <tr>
-                                                <td class="expense-date">${expenseDate}</td>
-                                                <td class="expense-description">${expense.description}</td>
-                                                <td>
-                                                    <span class="expense-category-badge" style="background: ${category.color}20; color: ${category.color};">
-                                                        <i class="fas ${category.icon}"></i>
-                                                        ${category.name}
-                                                    </span>
-                                                </td>
-                                                <td class="expense-amount">${formatCurrencyGconomics(expense.amount)}</td>
-                                                <td class="expense-actions">
-                                                    <button class="action-btn edit" onclick="editExpense('${expense.id}')" title="Edit">
-                                                        <i class="fas fa-pen"></i>
-                                                    </button>
-                                                    <button class="action-btn delete" onclick="deleteExpense('${expense.id}')" title="Delete">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                        `}
+                        </div>
+                        <!-- Legend with Bar Chart -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${GCONOMICS_CATEGORIES.map(cat => {
+                                const amount = categoryTotals[cat.id] || 0;
+                                if (amount === 0) return '';
+                                const percentage = ((amount / monthlyTotal) * 100).toFixed(1);
+                                return `
+                                    <div style="cursor: pointer;" onclick="filterGconomicsByCategory('${cat.id}')">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <div style="width: 10px; height: 10px; border-radius: 2px; background: ${cat.color};"></div>
+                                                <span style="font-size: 13px; font-weight: 500;">${cat.name}</span>
+                                            </div>
+                                            <div style="font-size: 13px;">
+                                                <span style="font-weight: 600;">${formatCurrencyGconomics(amount)}</span>
+                                                <span style="color: var(--text-muted); margin-left: 8px;">${percentage}%</span>
+                                            </div>
+                                        </div>
+                                        <div style="height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
+                                            <div style="height: 100%; width: ${percentage}%; background: ${cat.color}; border-radius: 4px; transition: width 0.3s;"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
-                </div>
+                `}
+            </div>
+        </div>
 
-                <!-- Monthly Total -->
-                <div class="gconomics-total-card">
-                    <div class="total-icon">
-                        <i class="fas fa-calculator"></i>
+        <!-- Category Filter Pills -->
+        <div style="display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap;">
+            <button onclick="filterGconomicsByCategory('all')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === 'all' ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+                <i class="fas fa-th-large"></i> All
+            </button>
+            ${GCONOMICS_CATEGORIES.map(cat => `
+                <button onclick="filterGconomicsByCategory('${cat.id}')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === cat.id ? cat.color : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === cat.id ? cat.color : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === cat.id ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+                    <i class="fas ${cat.icon}"></i> ${cat.name}
+                </button>
+            `).join('')}
+        </div>
+
+        <!-- Expenses Grid -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-receipt"></i>
+                    Recent Expenses
+                    ${gconomicsState.selectedCategory !== 'all' ? `<span style="background: var(--accent-primary); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-left: 8px;">${GCONOMICS_CATEGORIES.find(c => c.id === gconomicsState.selectedCategory)?.name}</span>` : ''}
+                </h3>
+            </div>
+            <div class="card-body">
+                ${displayExpenses.length === 0 ? `
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fas fa-receipt" style="font-size: 56px; margin-bottom: 20px; display: block; opacity: 0.3;"></i>
+                        <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">No expenses yet</div>
+                        <div style="font-size: 14px;">Click "New Expense" to start tracking</div>
                     </div>
-                    <div class="total-info">
-                        <span class="total-label">${currentMonthName} Total</span>
-                        <span class="total-value">${formatCurrencyGconomics(monthlyTotal)}</span>
+                ` : `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                        ${displayExpenses.map(expense => {
+                            const category = GCONOMICS_CATEGORIES.find(c => c.id === expense.category) || GCONOMICS_CATEGORIES[5];
+                            const expenseDate = new Date(expense.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                            return `
+                                <div style="background: var(--bg-secondary); border-radius: 16px; padding: 20px; border-left: 4px solid ${category.color}; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'" onclick="viewExpenseDetails('${expense.id}')">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <div style="width: 44px; height: 44px; background: ${category.color}20; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas ${category.icon}" style="color: ${category.color}; font-size: 18px;"></i>
+                                            </div>
+                                            <div>
+                                                <div style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${expense.description}</div>
+                                                <div style="font-size: 12px; color: var(--text-muted);">${expenseDate}</div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-size: 18px; font-weight: 700; color: ${category.color};">${formatCurrencyGconomics(expense.amount)}</div>
+                                        </div>
+                                    </div>
+                                    ${expense.photo ? `
+                                        <div style="margin-top: 12px; border-radius: 10px; overflow: hidden; max-height: 120px;">
+                                            <img src="${expense.photo}" alt="Receipt" style="width: 100%; height: 120px; object-fit: cover;">
+                                        </div>
+                                    ` : ''}
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                        <span style="background: ${category.color}20; color: ${category.color}; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">${category.name}</span>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button class="btn-icon" onclick="event.stopPropagation(); editExpense('${expense.id}')" title="Edit" style="width: 32px; height: 32px;">
+                                                <i class="fas fa-pen" style="font-size: 12px;"></i>
+                                            </button>
+                                            <button class="btn-icon danger" onclick="event.stopPropagation(); deleteExpense('${expense.id}')" title="Delete" style="width: 32px; height: 32px;">
+                                                <i class="fas fa-trash" style="font-size: 12px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
-                </div>
+                `}
             </div>
         </div>
 
@@ -7717,25 +12428,44 @@ function renderGconomics() {
                 </div>
                 <div class="modal-body">
                     <form id="expenseForm" onsubmit="saveExpense(event)">
-                        <div class="form-group">
-                            <label for="expenseDate">Date</label>
-                            <input type="date" id="expenseDate" class="form-input" required>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expenseDate">Date</label>
+                                <input type="date" id="expenseDate" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseAmount">Amount</label>
+                                <input type="number" id="expenseAmount" class="form-input" placeholder="0.00" step="0.01" min="0">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="expenseDescription">Description</label>
-                            <input type="text" id="expenseDescription" class="form-input" placeholder="What did you spend on?" required>
+                            <input type="text" id="expenseDescription" class="form-input" placeholder="What did you spend on?">
                         </div>
                         <div class="form-group">
                             <label for="expenseCategory">Category</label>
-                            <select id="expenseCategory" class="form-input" required>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="categorySelector">
                                 ${GCONOMICS_CATEGORIES.map(cat => `
-                                    <option value="${cat.id}">${cat.name}</option>
+                                    <button type="button" class="category-select-btn" data-category="${cat.id}" onclick="selectExpenseCategory('${cat.id}')" style="padding: 14px 10px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s; text-align: center;">
+                                        <div style="font-size: 20px; margin-bottom: 4px; color: ${cat.color};"><i class="fas ${cat.icon}"></i></div>
+                                        <div style="font-size: 11px; font-weight: 500;">${cat.name}</div>
+                                    </button>
                                 `).join('')}
-                            </select>
+                            </div>
+                            <input type="hidden" id="expenseCategory" value="">
                         </div>
                         <div class="form-group">
-                            <label for="expenseAmount">Amount</label>
-                            <input type="number" id="expenseAmount" class="form-input" placeholder="0.00" step="0.01" min="0" required>
+                            <label>Receipt Photo</label>
+                            <div style="border: 2px dashed var(--border-color); border-radius: 12px; padding: 20px; text-align: center; background: var(--bg-hover);">
+                                <input type="file" id="expensePhoto" accept="image/*" onchange="previewExpensePhoto(this)" style="display: none;">
+                                <div id="expense-photo-preview" style="display: none; margin-bottom: 12px;">
+                                    <img id="expense-photo-img" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: cover;">
+                                </div>
+                                <button type="button" class="btn-secondary" onclick="document.getElementById('expensePhoto').click()" style="margin: 0;">
+                                    <i class="fas fa-camera"></i> Upload Receipt
+                                </button>
+                                <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Take a photo of your receipt (optional)</p>
+                            </div>
                         </div>
                         <div id="expenseMessage" class="alert" style="display: none;"></div>
                     </form>
@@ -7749,6 +12479,105 @@ function renderGconomics() {
             </div>
         </div>
     `;
+}
+
+// Preview expense photo
+function previewExpensePhoto(input) {
+    const preview = document.getElementById('expense-photo-preview');
+    const img = document.getElementById('expense-photo-img');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+// Select expense category
+function selectExpenseCategory(categoryId) {
+    document.getElementById('expenseCategory').value = categoryId;
+    const buttons = document.querySelectorAll('.category-select-btn');
+    buttons.forEach(btn => {
+        const cat = GCONOMICS_CATEGORIES.find(c => c.id === btn.dataset.category);
+        if (btn.dataset.category === categoryId) {
+            btn.style.borderColor = cat.color;
+            btn.style.background = cat.color + '20';
+        } else {
+            btn.style.borderColor = 'var(--border-color)';
+            btn.style.background = 'var(--bg-secondary)';
+        }
+    });
+}
+
+// View expense details
+function viewExpenseDetails(expenseId) {
+    const expense = gconomicsState.expenses.find(e => e.id === expenseId);
+    if (!expense) return;
+
+    const category = GCONOMICS_CATEGORIES.find(c => c.id === expense.category) || GCONOMICS_CATEGORIES[5];
+    const expenseDate = new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modal-content');
+
+    modalContent.innerHTML = `
+        <div class="modal-header">
+            <h2 style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas ${category.icon}" style="color: ${category.color};"></i>
+                Expense Details
+            </h2>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            ${expense.photo ? `
+                <div style="margin-bottom: 20px; border-radius: 12px; overflow: hidden;">
+                    <img src="${expense.photo}" alt="Receipt" style="width: 100%; max-height: 250px; object-fit: cover; cursor: pointer;" onclick="window.open('${expense.photo}', '_blank')">
+                </div>
+            ` : ''}
+            <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <div style="font-size: 32px; font-weight: 700; color: ${category.color}; margin-bottom: 8px;">${formatCurrencyGconomics(expense.amount)}</div>
+                <div style="font-size: 18px; font-weight: 500; margin-bottom: 4px;">${expense.description}</div>
+                <div style="font-size: 14px; color: var(--text-muted);">${expenseDate}</div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <span style="background: ${category.color}20; color: ${category.color}; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;">
+                    <i class="fas ${category.icon}"></i> ${category.name}
+                </span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal(); editExpense('${expense.id}');">
+                <i class="fas fa-pen"></i> Edit
+            </button>
+            <button class="btn-primary" onclick="closeModal();">
+                <i class="fas fa-check"></i> Done
+            </button>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+// Render donut chart SVG
+function renderDonutChart(categoryTotals, total) {
+    if (total === 0) return '';
+
+    let accumulated = 0;
+    return GCONOMICS_CATEGORIES.map(cat => {
+        const amount = categoryTotals[cat.id] || 0;
+        if (amount === 0) return '';
+        const percentage = (amount / total) * 100;
+        const dashArray = percentage + ' ' + (100 - percentage);
+        const dashOffset = -accumulated;
+        accumulated += percentage;
+        return `<circle cx="18" cy="18" r="15.9" fill="none" stroke="${cat.color}" stroke-width="3.5" stroke-dasharray="${dashArray}" stroke-dashoffset="${dashOffset}" />`;
+    }).join('');
 }
 
 // Render simple bar chart
@@ -7847,19 +12676,32 @@ function deleteExpense(expenseId) {
 function saveExpense(event) {
     event.preventDefault();
 
-    const date = document.getElementById('expenseDate').value;
+    const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
     const description = document.getElementById('expenseDescription').value.trim();
     const category = document.getElementById('expenseCategory').value;
-    const amount = parseFloat(document.getElementById('expenseAmount').value);
+    const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+    const photoInput = document.getElementById('expensePhoto');
 
-    if (!date || !description || !category || isNaN(amount) || amount <= 0) {
-        const msg = document.getElementById('expenseMessage');
-        msg.className = 'alert error';
-        msg.textContent = 'Please fill in all fields correctly';
-        msg.style.display = 'block';
-        return;
+    // Get photo if uploaded
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const photoData = e.target.result;
+            saveExpenseWithPhoto(date, description, category, amount, photoData);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+    } else {
+        // Check if editing and preserve existing photo
+        let existingPhoto = null;
+        if (gconomicsState.editingExpenseId) {
+            const existing = gconomicsState.expenses.find(e => e.id === gconomicsState.editingExpenseId);
+            if (existing) existingPhoto = existing.photo;
+        }
+        saveExpenseWithPhoto(date, description, category, amount, existingPhoto);
     }
+}
 
+function saveExpenseWithPhoto(date, description, category, amount, photo) {
     if (gconomicsState.editingExpenseId) {
         // Update existing expense
         const index = gconomicsState.expenses.findIndex(e => e.id === gconomicsState.editingExpenseId);
@@ -7867,9 +12709,10 @@ function saveExpense(event) {
             gconomicsState.expenses[index] = {
                 ...gconomicsState.expenses[index],
                 date,
-                description,
-                category,
-                amount
+                description: description || 'Expense',
+                category: category || 'other',
+                amount,
+                photo
             };
         }
     } else {
@@ -7877,9 +12720,10 @@ function saveExpense(event) {
         const newExpense = {
             id: Date.now().toString(),
             date,
-            description,
-            category,
+            description: description || 'Expense',
+            category: category || 'other',
             amount,
+            photo,
             createdAt: new Date().toISOString()
         };
         gconomicsState.expenses.push(newExpense);

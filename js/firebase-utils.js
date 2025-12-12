@@ -605,7 +605,6 @@ class FirebaseClockInManager {
             const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
             const snapshot = await this.db.collection(clockinCollection)
                 .where('date', '==', date)
-                .orderBy('updatedAt', 'desc')
                 .get();
 
             const records = [];
@@ -616,6 +615,13 @@ class FirebaseClockInManager {
                     firestoreId: doc.id,
                     ...data
                 });
+            });
+
+            // Sort by updatedAt in memory instead of in query
+            records.sort((a, b) => {
+                const timeA = a.updatedAt?.toDate?.() || new Date(0);
+                const timeB = b.updatedAt?.toDate?.() || new Date(0);
+                return timeB - timeA;
             });
 
             console.log(`✅ Loaded ${records.length} clock records from Firebase for date: ${date}`);
@@ -643,19 +649,24 @@ class FirebaseClockInManager {
             const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
             const snapshot = await this.db.collection(clockinCollection)
                 .where('employeeId', '==', employeeId)
-                .where('date', '>=', startDate)
-                .where('date', '<=', endDate)
-                .orderBy('date', 'desc')
                 .get();
 
             const records = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
-                records.push({
-                    id: doc.id,
-                    firestoreId: doc.id,
-                    ...data
-                });
+                // Filter by date range in memory
+                if (data.date >= startDate && data.date <= endDate) {
+                    records.push({
+                        id: doc.id,
+                        firestoreId: doc.id,
+                        ...data
+                    });
+                }
+            });
+
+            // Sort by date in memory
+            records.sort((a, b) => {
+                return b.date.localeCompare(a.date);
             });
 
             console.log(`✅ Loaded ${records.length} clock records for employee: ${employeeId}`);
@@ -726,5 +737,1212 @@ class FirebaseClockInManager {
     }
 }
 
+/**
+ * Firebase Product Manager
+ * Handles Firestore operations for products and image uploads to Storage
+ */
+class FirebaseProductManager {
+    constructor() {
+        this.db = null;
+        this.storage = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined') {
+                const config = window.FIREBASE_CONFIG;
+                
+                // Check if already initialized
+                if (!firebase.apps || firebase.apps.length === 0) {
+                    firebase.initializeApp(config);
+                    console.log('✅ Firebase app initialized');
+                }
+                
+                // Get references to Firestore and Storage
+                this.db = firebase.firestore();
+                
+                // Initialize Firebase Storage - compat version
+                try {
+                    this.storage = firebase.storage();
+                    console.log('✅ Firebase Storage initialized successfully');
+                } catch (storageError) {
+                    console.warn('⚠️ Firebase Storage initialization failed:', storageError.message);
+                    console.warn('   Make sure Firebase Storage is enabled in your Firebase project');
+                    console.warn('   Go to: https://console.firebase.google.com/ → Storage');
+                    this.storage = null;
+                }
+                
+                this.isInitialized = true;
+                console.log('🛍️ Firebase Product Manager initialized');
+                return true;
+            } else {
+                console.error('Firebase not loaded');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Product Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Upload product image to Firebase Storage
+     * @param {File} imageFile - Image file to upload
+     * @param {string} productName - Product name for file naming
+     * @returns {Promise<string>} Download URL of the uploaded image
+     */
+    async uploadProductImage(imageFile, productName) {
+        try {
+            if (!this.isInitialized) {
+                console.error('Firebase not initialized');
+                return null;
+            }
+            
+            if (!this.storage) {
+                console.error('Firebase Storage not available');
+                return null;
+            }
+
+            if (!imageFile) {
+                console.warn('No image file provided');
+                return null;
+            }
+
+            // Create a unique filename
+            const timestamp = Date.now();
+            const sanitizedName = productName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const filename = `products/${sanitizedName}_${timestamp}.${imageFile.name.split('.').pop()}`;
+
+            console.log(`📸 Uploading image: ${filename}`);
+
+            // Upload to Storage
+            const storageRef = this.storage.ref(filename);
+            const snapshot = await storageRef.put(imageFile);
+
+            // Get download URL
+            const downloadUrl = await snapshot.ref.getDownloadURL();
+            console.log(`✅ Image uploaded successfully: ${downloadUrl}`);
+
+            return downloadUrl;
+        } catch (error) {
+            console.error('Error uploading product image:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Save product to Firestore
+     * @param {Object} productData - Product data to save
+     * @returns {Promise<Object>} Saved product with Firestore ID
+     */
+    async saveProduct(productData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firestore not initialized');
+                return null;
+            }
+
+            const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
+
+            // Add timestamp
+            const dataWithTimestamp = {
+                ...productData,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            console.log(`💾 Saving product to Firestore: ${productData.name}`);
+
+            // Save to Firestore
+            const docRef = await this.db.collection(productsCollection).add(dataWithTimestamp);
+
+            console.log(`✅ Product saved successfully with ID: ${docRef.id}`);
+
+            return {
+                id: docRef.id,
+                firestoreId: docRef.id,
+                ...dataWithTimestamp
+            };
+        } catch (error) {
+            console.error('Error saving product to Firestore:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Load all products from Firestore
+     * @returns {Promise<Array>} Array of products
+     */
+    async loadProducts() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firestore not initialized');
+                return [];
+            }
+
+            const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
+            const snapshot = await this.db.collection(productsCollection).get();
+
+            const products = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                products.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...data
+                });
+            });
+
+            console.log(`📦 Loaded ${products.length} products from Firestore`);
+            return products;
+        } catch (error) {
+            console.error('Error loading products from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get a single product by ID
+     * @param {string} productId - Product ID from Firestore
+     * @returns {Promise<Object>} Product data
+     */
+    async getProduct(productId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firestore not initialized');
+                return null;
+            }
+
+            const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
+            const doc = await this.db.collection(productsCollection).doc(productId).get();
+
+            if (doc.exists) {
+                return {
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...doc.data()
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting product:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update a product in Firestore
+     * @param {string} productId - Product ID from Firestore
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<Object>} Updated product
+     */
+    async updateProduct(productId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firestore not initialized');
+                return null;
+            }
+
+            const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
+
+            const dataWithTimestamp = {
+                ...updateData,
+                updatedAt: new Date()
+            };
+
+            console.log(`✏️ Updating product: ${productId}`);
+
+            await this.db.collection(productsCollection).doc(productId).update(dataWithTimestamp);
+
+            console.log(`✅ Product updated successfully`);
+
+            return await this.getProduct(productId);
+        } catch (error) {
+            console.error('Error updating product:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Delete a product from Firestore
+     * @param {string} productId - Product ID from Firestore
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteProduct(productId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firestore not initialized');
+                return false;
+            }
+
+            const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
+
+            console.log(`🗑️ Deleting product: ${productId}`);
+
+            await this.db.collection(productsCollection).doc(productId).delete();
+
+            console.log(`✅ Product deleted successfully`);
+            return true;
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Set up real-time listener for products
+     * @param {Function} callback - Function to call when products change
+     * @returns {Function} Unsubscribe function
+     */
+    onProductsChange(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firestore not initialized');
+                return null;
+            }
+
+            const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
+            return this.db.collection(productsCollection).onSnapshot(snapshot => {
+                const products = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    products.push({
+                        id: doc.id,
+                        firestoreId: doc.id,
+                        ...data
+                    });
+                });
+                callback(products);
+            }, error => {
+                console.error('Error listening to products:', error);
+            });
+        } catch (error) {
+            console.error('Error setting up products listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Product Manager
+const firebaseProductManager = new FirebaseProductManager();
+
 // Initialize global Firebase Clock In Manager
 const firebaseClockInManager = new FirebaseClockInManager();
+
+/**
+ * Firebase Training Manager
+ * Handles Firebase Firestore and Storage operations for training materials
+ */
+class FirebaseTrainingManager {
+    constructor() {
+        this.db = null;
+        this.storage = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.storage = firebase.storage();
+                this.isInitialized = true;
+                console.log('Firebase Training Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Training Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Training Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load trainings from Firestore
+     * @returns {Promise<Array>} Array of training records
+     */
+    async loadTrainings() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Training Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const snapshot = await this.db.collection(trainingsCollection)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const trainings = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                trainings.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    title: data.title || '',
+                    type: data.type || 'video',
+                    url: data.url || '',
+                    fileUrl: data.fileUrl || null,
+                    fileName: data.fileName || null,
+                    fileSize: data.fileSize || null,
+                    duration: data.duration || '30 min',
+                    completion: data.completion || 0,
+                    required: data.required !== undefined ? data.required : true,
+                    description: data.description || '',
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                });
+            });
+
+            console.log(`Loaded ${trainings.length} training records from Firestore`);
+            return trainings;
+        } catch (error) {
+            console.error('Error loading trainings from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Upload file to Firebase Storage
+     * @param {File} file - File to upload
+     * @param {string} trainingId - Training ID for path organization
+     * @returns {Promise<Object>} Upload result with URL and metadata
+     */
+    async uploadFile(file, trainingId = null) {
+        try {
+            if (!this.isInitialized || !this.storage) {
+                throw new Error('Firebase Storage not initialized');
+            }
+
+            // Generate unique filename
+            const timestamp = Date.now();
+            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const path = `trainings/${trainingId || 'temp'}/${timestamp}_${safeName}`;
+
+            const storageRef = this.storage.ref(path);
+
+            // Upload file with progress tracking
+            const uploadTask = storageRef.put(file);
+
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Progress tracking
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log(`Upload progress: ${progress.toFixed(1)}%`);
+
+                        // Dispatch custom event for progress UI
+                        window.dispatchEvent(new CustomEvent('uploadProgress', {
+                            detail: { progress, fileName: file.name }
+                        }));
+                    },
+                    (error) => {
+                        console.error('Upload error:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        // Get download URL
+                        const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
+                        resolve({
+                            url: downloadUrl,
+                            path: path,
+                            fileName: file.name,
+                            fileSize: file.size,
+                            fileType: file.type
+                        });
+                    }
+                );
+            });
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Add new training record to Firestore
+     * @param {Object} trainingData - Training data to add
+     * @param {File} file - Optional PDF file to upload
+     * @returns {Promise<string>} New document ID
+     */
+    async addTraining(trainingData, file = null) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized.');
+                return null;
+            }
+
+            // If there's a file, upload it first
+            if (file) {
+                const tempId = Date.now().toString();
+                const uploadResult = await this.uploadFile(file, tempId);
+                trainingData.fileUrl = uploadResult.url;
+                trainingData.filePath = uploadResult.path;
+                trainingData.fileName = uploadResult.fileName;
+                trainingData.fileSize = uploadResult.fileSize;
+                trainingData.fileType = uploadResult.fileType;
+            }
+
+            trainingData.createdAt = new Date();
+            trainingData.updatedAt = new Date();
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const docRef = await this.db.collection(trainingsCollection).add(trainingData);
+
+            // If we uploaded to a temp path, we could move it here (optional optimization)
+            console.log('Training record added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding training record:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update training record in Firestore
+     * @param {string} trainingId - Training Firestore ID
+     * @param {Object} updateData - Data to update
+     * @param {File} newFile - Optional new PDF file to upload
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateTraining(trainingId, updateData, newFile = null) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized.');
+                return false;
+            }
+
+            // If there's a new file, upload it
+            if (newFile) {
+                const uploadResult = await this.uploadFile(newFile, trainingId);
+                updateData.fileUrl = uploadResult.url;
+                updateData.filePath = uploadResult.path;
+                updateData.fileName = uploadResult.fileName;
+                updateData.fileSize = uploadResult.fileSize;
+                updateData.fileType = uploadResult.fileType;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            await this.db.collection(trainingsCollection).doc(trainingId).update(updateData);
+
+            console.log('Training record updated:', trainingId);
+            return true;
+        } catch (error) {
+            console.error('Error updating training record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete training record from Firestore (and associated file)
+     * @param {string} trainingId - Training Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteTraining(trainingId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized.');
+                return false;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+
+            // Get the training to check for associated file
+            const doc = await this.db.collection(trainingsCollection).doc(trainingId).get();
+            if (doc.exists) {
+                const data = doc.data();
+
+                // Delete associated file from Storage if exists
+                if (data.filePath && this.storage) {
+                    try {
+                        await this.storage.ref(data.filePath).delete();
+                        console.log('Associated file deleted:', data.filePath);
+                    } catch (fileError) {
+                        console.warn('Could not delete associated file:', fileError);
+                    }
+                }
+            }
+
+            // Delete the Firestore document
+            await this.db.collection(trainingsCollection).doc(trainingId).delete();
+
+            console.log('Training record deleted:', trainingId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting training record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get a single training by ID
+     * @param {string} trainingId - Training Firestore ID
+     * @returns {Promise<Object>} Training data
+     */
+    async getTraining(trainingId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Training Manager not initialized.');
+                return null;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            const doc = await this.db.collection(trainingsCollection).doc(trainingId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...data
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting training:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update training completion percentage
+     * @param {string} trainingId - Training Firestore ID
+     * @param {number} completion - Completion percentage (0-100)
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateCompletion(trainingId, completion) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                return false;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            await this.db.collection(trainingsCollection).doc(trainingId).update({
+                completion: Math.min(100, Math.max(0, completion)),
+                updatedAt: new Date()
+            });
+
+            return true;
+        } catch (error) {
+            console.error('Error updating completion:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Set up real-time listener for trainings
+     * @param {Function} callback - Function to call when data changes
+     * @returns {Function} Unsubscribe function
+     */
+    onTrainingsChange(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Training Manager not initialized.');
+                return null;
+            }
+
+            const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
+            return this.db.collection(trainingsCollection)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(snapshot => {
+                    const trainings = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        trainings.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            ...data
+                        });
+                    });
+                    callback(trainings);
+                }, error => {
+                    console.error('Error listening to trainings:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up trainings listener:', error);
+            return null;
+        }
+    }
+}
+
+/**
+ * Firebase Vendors Manager
+ * Handles Firestore operations for vendors management
+ */
+class FirebaseVendorsManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+        this.vendorsListener = null;
+    }
+
+    /**
+     * Initialize Firebase
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+                const config = window.FIREBASE_CONFIG;
+                
+                if (!firebase.apps || firebase.apps.length === 0) {
+                    firebase.initializeApp(config);
+                }
+                
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase initialized successfully for Vendors');
+                return true;
+            } else {
+                console.error('Firebase not loaded');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load vendors from Firestore
+     * @returns {Promise<Array>} Array of vendors
+     */
+    async loadVendors() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized. Using fallback data.');
+                return [];
+            }
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            const snapshot = await this.db.collection(vendorsCollection).get();
+            
+            const vendors = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                vendors.push({
+                    firestoreId: doc.id,
+                    ...data
+                });
+            });
+
+            console.log(`Loaded ${vendors.length} vendors from Firestore`);
+            return vendors;
+        } catch (error) {
+            console.error('Error loading vendors from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get a single vendor by Firestore ID
+     * @param {string} vendorId - Vendor Firestore ID
+     * @returns {Promise<Object>} Vendor data
+     */
+    async getVendor(vendorId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized.');
+                return null;
+            }
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            const doc = await this.db.collection(vendorsCollection).doc(vendorId).get();
+            
+            if (doc.exists) {
+                return {
+                    firestoreId: doc.id,
+                    ...doc.data()
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting vendor:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Add new vendor to Firestore
+     * @param {Object} vendorData - Vendor data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addVendor(vendorData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase not initialized.');
+                return null;
+            }
+
+            vendorData.createdAt = new Date();
+            vendorData.updatedAt = new Date();
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            const docRef = await this.db.collection(vendorsCollection).add(vendorData);
+            
+            console.log('Vendor added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding vendor:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update vendor in Firestore
+     * @param {string} vendorId - Vendor Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateVendor(vendorId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            await this.db.collection(vendorsCollection).doc(vendorId).update(updateData);
+            
+            console.log('Vendor updated:', vendorId);
+            return true;
+        } catch (error) {
+            console.error('Error updating vendor:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete vendor from Firestore
+     * @param {string} vendorId - Vendor Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteVendor(vendorId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase not initialized.');
+                return false;
+            }
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            await this.db.collection(vendorsCollection).doc(vendorId).delete();
+            
+            console.log('Vendor deleted:', vendorId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting vendor:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Set up real-time listener for vendors
+     * @param {Function} callback - Callback function when vendors change
+     * @returns {Function} Unsubscribe function
+     */
+    setupVendorsListener(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized.');
+                return null;
+            }
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            this.vendorsListener = this.db.collection(vendorsCollection)
+                .onSnapshot(snapshot => {
+                    const vendors = [];
+                    snapshot.forEach(doc => {
+                        vendors.push({
+                            firestoreId: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    callback(vendors);
+                });
+
+            return () => {
+                if (this.vendorsListener) {
+                    this.vendorsListener();
+                }
+            };
+        } catch (error) {
+            console.error('Error setting up vendors listener:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Create sample vendors for testing (if collection is empty)
+     * @returns {Promise<void>}
+     */
+    async createSampleVendors() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized.');
+                return;
+            }
+
+            const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
+            
+            try {
+                const snapshot = await this.db.collection(vendorsCollection).get();
+
+                // Only add samples if collection is empty
+                if (snapshot.empty) {
+                    console.log('Creating sample vendors...');
+                    this.addSampleVendorsToCollection(vendorsCollection);
+                }
+            } catch (err) {
+                // Collection doesn't exist, create it with sample data
+                console.log('Vendors collection does not exist. Creating it with sample vendors...');
+                this.addSampleVendorsToCollection(vendorsCollection);
+            }
+        } catch (error) {
+            console.error('Error in createSampleVendors:', error);
+        }
+    }
+
+    /**
+     * Helper function to add sample vendors to collection
+     * @private
+     */
+    async addSampleVendorsToCollection(vendorsCollection) {
+        try {
+            const sampleVendors = [
+                {
+                    name: 'VaporHub Distributors',
+                    category: 'Vape Products',
+                    contact: 'John Martinez',
+                    phone: '(800) 555-0101',
+                    email: 'sales@vaporhub.com',
+                    website: 'https://www.vaporhub.com',
+                    access: 'Online Portal - Account #VH12345',
+                    products: 'Disposable vapes, Pod systems, E-liquids, Accessories',
+                    orderMethods: 'Online portal, Phone orders, Email orders',
+                    notes: 'Net 30 payment terms, Free shipping over $500',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: 'Premium Tobacco Supply',
+                    category: 'Tobacco Products',
+                    contact: 'Sarah Johnson',
+                    phone: '(800) 555-0202',
+                    email: 'orders@premiumtobacco.com',
+                    website: 'https://www.premiumtobacco.com',
+                    access: 'Account Manager: Sarah - Direct line (800) 555-0203',
+                    products: 'Cigarettes, Cigars, Rolling papers, Lighters',
+                    orderMethods: 'Phone orders (preferred), Email',
+                    notes: 'Minimum order $1000, Weekly deliveries on Thursdays',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: 'Beverage Wholesale Direct',
+                    category: 'Beverages',
+                    contact: 'Mike Chen',
+                    phone: '(800) 555-0303',
+                    email: 'info@beveragewholesale.com',
+                    website: 'https://www.beveragewholesale.com',
+                    access: 'Online ordering system - Username: VSU_Admin',
+                    products: 'Energy drinks, Sodas, Water, Sports drinks, Coffee',
+                    orderMethods: 'Online portal (24/7), Phone (business hours)',
+                    notes: 'Next day delivery available, Volume discounts',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: 'Snack Solutions Inc',
+                    category: 'Snacks & Candy',
+                    contact: 'Lisa Rodriguez',
+                    phone: '(800) 555-0404',
+                    email: 'sales@snacksolutions.com',
+                    website: 'https://www.snacksolutions.com',
+                    access: 'Rep visits monthly, Online catalog access',
+                    products: 'Chips, Candy bars, Gum, Cookies, Nuts',
+                    orderMethods: 'Mobile app, Website, Sales rep',
+                    notes: 'Flexible payment terms, Returns accepted',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: 'General Supplies Co',
+                    category: 'Store Supplies',
+                    contact: 'David Park',
+                    phone: '(800) 555-0505',
+                    email: 'support@generalsupplies.com',
+                    website: 'https://www.generalsupplies.com',
+                    access: 'Amazon Business account linked',
+                    products: 'Bags, Receipt paper, Cleaning supplies, Office supplies',
+                    orderMethods: 'Amazon Business, Direct website, Phone',
+                    notes: 'Prime shipping available, Bulk discounts',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }
+            ];
+
+            // Add each sample vendor - this will create the collection if it doesn't exist
+            let count = 0;
+            for (const vendor of sampleVendors) {
+                await this.db.collection(vendorsCollection).add(vendor);
+                count++;
+            }
+
+            console.log(`✅ Created ${count} sample vendors in new collection`);
+        } catch (error) {
+            console.error('Error adding sample vendors to collection:', error);
+        }
+    }
+}
+
+// Initialize global Firebase Vendors Manager
+const firebaseVendorsManager = new FirebaseVendorsManager();
+
+// Initialize global Firebase Training Manager
+const firebaseTrainingManager = new FirebaseTrainingManager();
+
+/**
+ * Firebase Invoice Manager
+ * Handles Firebase Firestore operations for invoice management with Base64 image storage
+ */
+class FirebaseInvoiceManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                console.log('Firebase Invoice Manager initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase not loaded for Invoice Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Invoice Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load invoices from Firestore
+     * @returns {Promise<Array>} Array of invoice records
+     */
+    async loadInvoices() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Invoice Manager not initialized. Using fallback data.');
+                return [];
+            }
+
+            const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
+            const snapshot = await this.db.collection(invoicesCollection)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const invoices = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                invoices.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    invoiceNumber: data.invoiceNumber || '',
+                    vendor: data.vendor || '',
+                    category: data.category || '',
+                    description: data.description || '',
+                    amount: data.amount || 0,
+                    dueDate: data.dueDate || '',
+                    paidDate: data.paidDate || null,
+                    status: data.status || 'pending',
+                    recurring: data.recurring || false,
+                    notes: data.notes || '',
+                    photo: data.photo || null,
+                    fileType: data.fileType || null,  // 'pdf' or 'image' or null
+                    fileName: data.fileName || null,  // Original filename for PDFs
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                });
+            });
+
+            console.log(`Loaded ${invoices.length} invoice records from Firestore`);
+            return invoices;
+        } catch (error) {
+            console.error('Error loading invoices from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new invoice record to Firestore
+     * @param {Object} invoiceData - Invoice data to add (with Base64 photo)
+     * @returns {Promise<string>} New document ID
+     */
+    async addInvoice(invoiceData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Invoice Manager not initialized.');
+                return null;
+            }
+
+            invoiceData.createdAt = new Date();
+            invoiceData.updatedAt = new Date();
+
+            const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
+            const docRef = await this.db.collection(invoicesCollection).add(invoiceData);
+
+            console.log('Invoice record added with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding invoice record:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update invoice record in Firestore
+     * @param {string} invoiceId - Invoice Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateInvoice(invoiceId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Invoice Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = new Date();
+
+            const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
+            await this.db.collection(invoicesCollection).doc(invoiceId).update(updateData);
+
+            console.log('Invoice record updated:', invoiceId);
+            return true;
+        } catch (error) {
+            console.error('Error updating invoice record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete invoice record from Firestore
+     * @param {string} invoiceId - Invoice Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteInvoice(invoiceId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Invoice Manager not initialized.');
+                return false;
+            }
+
+            const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
+            await this.db.collection(invoicesCollection).doc(invoiceId).delete();
+
+            console.log('Invoice record deleted:', invoiceId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting invoice record:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Mark invoice as paid in Firestore
+     * @param {string} invoiceId - Invoice Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async markInvoicePaid(invoiceId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Invoice Manager not initialized.');
+                return false;
+            }
+
+            const updateData = {
+                status: 'paid',
+                paidDate: new Date().toISOString().split('T')[0],
+                updatedAt: new Date()
+            };
+
+            const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
+            await this.db.collection(invoicesCollection).doc(invoiceId).update(updateData);
+
+            console.log('Invoice marked as paid:', invoiceId);
+            return true;
+        } catch (error) {
+            console.error('Error marking invoice as paid:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to invoices collection for real-time updates
+     * @param {Function} callback - Function to call with updated invoices array
+     * @returns {Function} Unsubscribe function
+     */
+    listenToInvoices(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Invoice Manager not initialized.');
+                return null;
+            }
+
+            const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
+            return this.db.collection(invoicesCollection)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(snapshot => {
+                    const invoices = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        invoices.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            invoiceNumber: data.invoiceNumber || '',
+                            vendor: data.vendor || '',
+                            category: data.category || '',
+                            description: data.description || '',
+                            amount: data.amount || 0,
+                            dueDate: data.dueDate || '',
+                            paidDate: data.paidDate || null,
+                            status: data.status || 'pending',
+                            recurring: data.recurring || false,
+                            notes: data.notes || '',
+                            photo: data.photo || null,
+                            fileType: data.fileType || null,
+                            fileName: data.fileName || null,
+                            createdAt: data.createdAt,
+                            updatedAt: data.updatedAt
+                        });
+                    });
+                    callback(invoices);
+                }, error => {
+                    console.error('Error listening to invoices:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up invoices listener:', error);
+            return null;
+        }
+    }
+}
+
+// Initialize global Firebase Invoice Manager
+const firebaseInvoiceManager = new FirebaseInvoiceManager();

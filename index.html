@@ -11,6 +11,43 @@
 <body class="light-theme">
     <div class="bg-gradient"></div>
 
+    <!-- Loading Overlay - Shown until page is fully initialized -->
+    <div id="initial-loading-overlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        flex-direction: column;
+        gap: 20px;
+    ">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+            <div style="
+                width: 60px;
+                height: 60px;
+                border: 4px solid var(--border-color);
+                border-top: 4px solid var(--accent-primary);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            "></div>
+            <div style="text-align: center;">
+                <p style="color: var(--text-primary); font-weight: 600; margin: 0;">Initializing Ascendance Hub</p>
+                <p style="color: var(--text-muted); font-size: 12px; margin: 8px 0 0 0;">Validating permissions...</p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
     <!-- Modal -->
     <div class="modal" id="modal">
         <div class="modal-content" id="modal-content"></div>
@@ -117,6 +154,11 @@
                 </div>
             </div>
 
+            <a href="#" class="nav-item" onclick="navigateTo('schedule'); return false;">
+                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
+                Schedule
+            </a>
+
             <a href="#" class="nav-item" data-page="clockin" onclick="navigateTo('clockin'); return false;">
                 <span class="nav-icon"><i class="fas fa-clock"></i></span>
                 Clock In/Out
@@ -193,11 +235,19 @@
                 <span class="nav-icon"><i class="fas fa-vault"></i></span>
                 Treasury
             </a>
-            <a href="#" class="nav-item" onclick="navigateTo('schedule'); return false;">
-                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
-                Schedule
+            <a href="#" class="nav-item" data-page="change" onclick="navigateTo('change'); return false;">
+                <span class="nav-icon"><i class="fas fa-coins"></i></span>
+                Change
             </a>
-            <a href="#" class="nav-item" onclick="openGForceModal(); return false;">
+            <a href="#" class="nav-item" data-page="gifts" onclick="navigateTo('gifts'); return false;">
+                <span class="nav-icon"><i class="fas fa-gift"></i></span>
+                Gifts
+            </a>
+            <a href="#" class="nav-item" data-page="risknotes" onclick="navigateTo('risknotes'); return false;">
+                <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
+                Risk Notes
+            </a>
+            <a href="#" class="nav-item" data-page="gforce">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
                 G Force
             </a>
@@ -550,6 +600,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <!-- Environment variables (generated at build time) -->
     <script src="config/env.js"></script>
@@ -633,6 +684,46 @@
             } catch (error) {
                 console.warn('⚠️ Navigation filtering failed:', error);
             }
+
+            // Restore the last viewed page from sessionStorage (persists on refresh, clears on tab close)
+            try {
+                const savedPage = sessionStorage.getItem('ascendance_current_page');
+                
+                // Determine default page based on user role
+                let defaultPage = 'dashboard';
+                if (user.role === 'employee') {
+                    defaultPage = 'clockin'; // Employees default to Clock In/Out
+                } else if (user.role === 'manager') {
+                    defaultPage = 'dashboard'; // Managers default to Dashboard
+                } else {
+                    defaultPage = 'dashboard'; // Admins default to Dashboard
+                }
+                
+                // Validate that saved page is allowed for current user role
+                const userPermissions = window.ROLE_PERMISSIONS[user.role] || window.ROLE_PERMISSIONS['employee'];
+                const allowedPages = userPermissions.pages || [];
+                const isPageAllowed = savedPage && allowedPages.includes(savedPage);
+                
+                const pageToShow = isPageAllowed ? savedPage : defaultPage;
+                console.log(`📄 Navigating to page: ${pageToShow} (User role: ${user.role})`);
+                navigateTo(pageToShow);
+            } catch (error) {
+                console.warn('⚠️ Failed to restore page state, defaulting based on role:', error);
+                const defaultPage = user.role === 'employee' ? 'clockin' : 'dashboard';
+                navigateTo(defaultPage);
+            }
+
+            // Hide loading overlay - all initialization and permission checks are complete
+            setTimeout(() => {
+                const loadingOverlay = document.getElementById('initial-loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.opacity = '0';
+                    loadingOverlay.style.transition = 'opacity 0.3s ease-out';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 300);
+                }
+            }, 100);
         });
     </script>
 </body>

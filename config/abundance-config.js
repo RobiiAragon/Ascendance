@@ -58,7 +58,11 @@ window.FIREBASE_COLLECTIONS = {
     roles: 'roles',             // Firestore collection for roles
     users: 'users',             // Firestore collection for auth users
     thieves: 'thieves',         // Firestore collection for thieves database
-    clockin: 'clockin'          // Firestore collection for clock in/out records
+    clockin: 'clockin',         // Firestore collection for clock in/out records
+    products: 'products',       // Firestore collection for products
+    trainings: 'trainings',     // Firestore collection for trainings
+    schedules: 'schedules',     // Firestore collection for employee schedules
+    treasury: 'treasury'        // Firestore collection for treasury pieces
 };
 
 // Employee Roles Configuration
@@ -119,7 +123,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury']
+        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes']
     },
     'manager': {
         // Action Permissions
@@ -133,7 +137,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock']
+        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'change', 'gifts', 'risknotes']
     },
     'employee': {
         // Action Permissions
@@ -147,7 +151,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training']
+        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training', 'change', 'risknotes']
     }
 };
 
