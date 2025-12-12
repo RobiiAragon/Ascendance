@@ -1688,6 +1688,21 @@
             gap: 4px;
         }
 
+        .page-header-right {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Ensure page header buttons don't overlap modals */
+        .modal.active ~ .main-content .page-header-right,
+        .modal.active ~ * .page-header-right,
+        body:has(.modal.active) .page-header-right,
+        body:has(.modal.active) .page-header .btn-primary,
+        body:has(.modal.active) .dashboard .btn-primary:not(.modal-content .btn-primary) {
+            z-index: 1 !important;
+            position: relative;
+        }
+
         .section-title {
             font-size: 20px;
             font-weight: 700;
@@ -3209,7 +3224,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 9999;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;

@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="light-theme">
     <div class="bg-gradient"></div>
@@ -139,20 +140,11 @@
                 <span class="nav-icon"><i class="fas fa-th-large"></i></span>
                 Dashboard
             </a>
-            <!-- Employees with dropdown -->
-            <div>
-                <a href="#" class="nav-item has-dropdown" data-page="employees" onclick="toggleDropdown(event, 'employees'); return false;">
-                    <span class="nav-icon"><i class="fas fa-users"></i></span>
-                    Employees
-                    <span class="nav-badge">20</span>
-                    <i class="fas fa-chevron-down dropdown-icon"></i>
-                </a>
-                <div class="nav-dropdown" id="dropdown-employees">
-                    <a href="#" class="nav-dropdown-item" data-page="employees" onclick="navigateTo('employees'); return false;">
-                        <span>All Employees</span>
-                    </a>
-                </div>
-            </div>
+            <a href="#" class="nav-item" data-page="employees" onclick="navigateTo('employees'); return false;">
+                <span class="nav-icon"><i class="fas fa-users"></i></span>
+                Employees
+                <span class="nav-badge" id="employees-count-badge">0</span>
+            </a>
 
             <a href="#" class="nav-item" onclick="navigateTo('schedule'); return false;">
                 <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>

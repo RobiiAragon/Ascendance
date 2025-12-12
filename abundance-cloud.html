@@ -98,19 +98,16 @@
                 <span class="nav-icon"><i class="fas fa-th-large"></i></span>
                 Dashboard
             </a>
-            <!-- Employees with dropdown -->
-            <div>
-                <a href="#" class="nav-item has-dropdown" data-page="employees" onclick="toggleDropdown(event, 'employees'); return false;">
-                    <span class="nav-icon"><i class="fas fa-users"></i></span>
-                    Employees
-                    <i class="fas fa-chevron-down dropdown-icon"></i>
-                </a>
-                <div class="nav-dropdown" id="dropdown-employees">
-                    <a href="index.html" class="nav-dropdown-item" data-page="employees">
-                        <span>All Employees</span>
-                    </a>
-                </div>
-            </div>
+            <a href="index.html" class="nav-item external-link" data-page="employees">
+                <span class="nav-icon"><i class="fas fa-users"></i></span>
+                Employees
+                <span class="nav-badge" id="employees-count-badge">0</span>
+            </a>
+
+            <a href="index.html" class="nav-item external-link" data-page="schedule">
+                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
+                Schedule
+            </a>
 
             <a href="index.html" class="nav-item external-link" data-page="clockin">
                 <span class="nav-icon"><i class="fas fa-clock"></i></span>
@@ -181,6 +178,10 @@
             <a href="index.html" class="nav-item external-link" data-page="risknotes">
                 <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
                 Risk Notes
+            </a>
+            <a href="index.html" class="nav-item external-link" data-page="passwords">
+                <span class="nav-icon"><i class="fas fa-key"></i></span>
+                Password Manager
             </a>
             <a href="#" class="nav-item" data-page="gforce" onclick="openGForceModal(); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
@@ -568,7 +569,39 @@
             } catch (error) {
                 console.error('Error initializing Abundance Cloud:', error);
             }
+
+            // Load employee count from Firebase
+            loadEmployeeCount();
         });
+
+        // Function to load employee count from Firebase for the badge
+        async function loadEmployeeCount() {
+            const badge = document.getElementById('employees-count-badge');
+            if (!badge) return;
+
+            try {
+                // Wait for Firebase to be ready
+                if (typeof firebaseEmployeeManager !== 'undefined') {
+                    if (!firebaseEmployeeManager.isInitialized) {
+                        await firebaseEmployeeManager.initialize();
+                    }
+
+                    if (firebaseEmployeeManager.isInitialized) {
+                        const employees = await firebaseEmployeeManager.loadEmployees();
+                        if (employees && employees.length > 0) {
+                            badge.textContent = employees.length;
+                            badge.style.display = 'inline-flex';
+                            console.log(`✅ Employee count loaded: ${employees.length}`);
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading employee count:', error);
+                badge.style.display = 'none';
+            }
+        }
 
         // Function to filter navigation menu by role for abundance-cloud.html
         function filterNavigationByRoleAbundance() {

@@ -3404,6 +3404,7 @@ class FirebaseInvoiceManager {
                     status: data.status || 'pending',
                     paymentAccount: data.paymentAccount || '',
                     recurring: data.recurring || false,
+                    store: data.store || null,  // Store assignment
                     notes: data.notes || '',
                     photo: data.photo || null,
                     fileType: data.fileType || null,  // 'pdf' or 'image' or null

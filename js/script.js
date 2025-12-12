@@ -881,6 +881,10 @@
                         }));
                         
                         console.log(`Successfully loaded ${employees.length} employees from Firestore`);
+                        // Update employee count badge in sidebar
+                        if (typeof updateEmployeeCountBadge === 'function') {
+                            updateEmployeeCountBadge();
+                        }
                         return true;
                     }
                 } catch (error) {
@@ -889,7 +893,7 @@
             } else {
                 console.warn('Firebase not available. Using fallback data.');
             }
-            
+
             return false;
         }
 
@@ -1374,10 +1378,23 @@
                             color: emp.color || ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)]
                         }));
                         console.log(`Loaded ${employees.length} employees from Firebase`);
+                        // Update employee count badge in sidebar
+                        updateEmployeeCountBadge();
                     }
                 } catch (error) {
                     console.error('Error loading employees from Firebase:', error);
                 }
+            }
+        }
+
+        /**
+         * Update the employee count badge in the sidebar
+         */
+        function updateEmployeeCountBadge() {
+            const badge = document.getElementById('employees-count-badge');
+            if (badge) {
+                badge.textContent = employees.length;
+                badge.style.display = employees.length > 0 ? 'inline-flex' : 'none';
             }
         }
 
@@ -6963,90 +6980,735 @@
             }
         ];
 
+        // Invoice filter state
+        let invoiceFilters = {
+            store: 'all',
+            timePeriod: 'all',
+            vendor: 'all',
+            category: 'all',
+            status: 'all',
+            minAmount: null,
+            maxAmount: null,
+            activeTab: 'current' // 'current' or 'recurring'
+        };
+
+        // Chart instances (for cleanup)
+        let invoiceCharts = {
+            statusChart: null,
+            timeChart: null,
+            vendorChart: null,
+            trendChart: null,
+            categoryChart: null
+        };
+
+        // Helper function to get filtered invoices
+        function getFilteredInvoices() {
+            let filtered = [...invoices];
+
+            // Filter by store
+            if (invoiceFilters.store !== 'all') {
+                filtered = filtered.filter(i => i.store === invoiceFilters.store);
+            }
+
+            // Filter by time period
+            if (invoiceFilters.timePeriod !== 'all') {
+                const now = new Date();
+                const filterDate = new Date();
+
+                switch (invoiceFilters.timePeriod) {
+                    case '7days':
+                        filterDate.setDate(now.getDate() - 7);
+                        break;
+                    case 'thisMonth':
+                        filterDate.setDate(1);
+                        break;
+                    case 'lastMonth':
+                        filterDate.setMonth(now.getMonth() - 1);
+                        filterDate.setDate(1);
+                        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+                        filtered = filtered.filter(i => {
+                            const date = new Date(i.dueDate);
+                            return date >= filterDate && date <= lastMonthEnd;
+                        });
+                        return filtered;
+                    case 'thisQuarter':
+                        const quarter = Math.floor(now.getMonth() / 3);
+                        filterDate.setMonth(quarter * 3);
+                        filterDate.setDate(1);
+                        break;
+                    case 'thisYear':
+                        filterDate.setMonth(0);
+                        filterDate.setDate(1);
+                        break;
+                }
+
+                filtered = filtered.filter(i => new Date(i.dueDate) >= filterDate);
+            }
+
+            // Filter by vendor
+            if (invoiceFilters.vendor !== 'all') {
+                filtered = filtered.filter(i => i.vendor === invoiceFilters.vendor);
+            }
+
+            // Filter by category
+            if (invoiceFilters.category !== 'all') {
+                filtered = filtered.filter(i => i.category.toLowerCase() === invoiceFilters.category.toLowerCase());
+            }
+
+            // Filter by status
+            if (invoiceFilters.status !== 'all') {
+                filtered = filtered.filter(i => i.status === invoiceFilters.status);
+            }
+
+            // Filter by amount range
+            if (invoiceFilters.minAmount !== null) {
+                filtered = filtered.filter(i => i.amount >= invoiceFilters.minAmount);
+            }
+            if (invoiceFilters.maxAmount !== null) {
+                filtered = filtered.filter(i => i.amount <= invoiceFilters.maxAmount);
+            }
+
+            return filtered;
+        }
+
+        // Update invoice filter and re-render
+        function updateInvoiceFilter(filterKey, value) {
+            invoiceFilters[filterKey] = value;
+            renderInvoices();
+        }
+
+        // Reset all invoice filters
+        function resetInvoiceFilters() {
+            invoiceFilters = {
+                store: 'all',
+                timePeriod: 'all',
+                vendor: 'all',
+                category: 'all',
+                status: 'all',
+                minAmount: null,
+                maxAmount: null,
+                activeTab: invoiceFilters.activeTab
+            };
+            renderInvoices();
+        }
+
+        // Switch invoice tab
+        function switchInvoiceTab(tab) {
+            invoiceFilters.activeTab = tab;
+            renderInvoices();
+        }
+
+        // Render current invoices table
+        function renderCurrentInvoicesTable(filteredInvoices) {
+            if (filteredInvoices.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                        <div style="font-size: 16px;">No invoices found</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Try adjusting your filters</div>
+                    </div>
+                `;
+            }
+
+            return `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">File</th>
+                            <th>Invoice #</th>
+                            <th>Vendor</th>
+                            <th>Category</th>
+                            <th>Store</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th style="width: 140px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredInvoices.map(invoice => {
+                            const statusStyles = {
+                                paid: 'background: #10b981; color: #fff;',
+                                pending: 'background: #f59e0b; color: #000;',
+                                overdue: 'background: #ef4444; color: #fff;'
+                            };
+                            const invoiceId = invoice.firestoreId || invoice.id;
+
+                            return `
+                                <tr>
+                                    <td>
+                                        ${invoice.photo ? (invoice.fileType === 'pdf' ? `
+                                            <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="PDF">
+                                                <i class="fas fa-file-pdf" style="font-size: 20px; color: #ef4444;"></i>
+                                            </div>
+                                        ` : `
+                                            <img src="${invoice.photo}" alt="Invoice" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')">
+                                        `) : `
+                                            <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-file-invoice" style="color: var(--text-muted);"></i>
+                                            </div>
+                                        `}
+                                    </td>
+                                    <td><strong>${invoice.invoiceNumber}</strong></td>
+                                    <td>${invoice.vendor}</td>
+                                    <td><span class="badge" style="background: var(--accent-primary); color: #fff; font-size: 11px;">${invoice.category}</span></td>
+                                    <td>${invoice.store || '<span style="color: var(--text-muted);">Unassigned</span>'}</td>
+                                    <td style="font-weight: 600;">$${invoice.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td>${formatDate(invoice.dueDate)}</td>
+                                    <td>
+                                        <span class="badge" style="${statusStyles[invoice.status]}; font-size: 11px;">${invoice.status.toUpperCase()}</span>
+                                        ${invoice.recurring ? '<i class="fas fa-sync-alt" style="margin-left: 6px; color: var(--text-muted); font-size: 12px;" title="Recurring"></i>' : ''}
+                                    </td>
+                                    <td>
+                                        ${invoice.status !== 'paid' ? `<button class="btn-icon" onclick="markInvoicePaid('${invoiceId}')" title="Mark Paid"><i class="fas fa-check"></i></button>` : ''}
+                                        <button class="btn-icon" onclick="viewInvoice('${invoiceId}')" title="View"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editInvoice('${invoiceId}')" title="Edit"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon danger" onclick="deleteInvoice('${invoiceId}')" title="Delete"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Render recurring projections
+        function renderRecurringProjections() {
+            const recurringInvoices = invoices.filter(i => i.recurring);
+
+            if (recurringInvoices.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fas fa-sync-alt" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                        <div style="font-size: 16px;">No recurring invoices found</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Mark invoices as recurring to see future projections</div>
+                    </div>
+                `;
+            }
+
+            // Generate next 6 months of projections
+            const projections = [];
+            const today = new Date();
+
+            recurringInvoices.forEach(invoice => {
+                for (let i = 1; i <= 6; i++) {
+                    const projectionDate = new Date(today);
+                    projectionDate.setMonth(today.getMonth() + i);
+
+                    projections.push({
+                        ...invoice,
+                        projectedDate: projectionDate,
+                        isProjection: true
+                    });
+                }
+            });
+
+            // Sort by date
+            projections.sort((a, b) => a.projectedDate - b.projectedDate);
+
+            return `
+                <div style="padding: 20px;">
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <i class="fas fa-info-circle" style="color: var(--accent-primary); font-size: 20px;"></i>
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Recurring Invoice Projections</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Showing projected invoices for the next 6 months based on monthly recurrence</div>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
+                            <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Total Projected (6mo)</div>
+                                <div style="font-size: 20px; font-weight: 700; color: var(--accent-primary);">
+                                    $${projections.reduce((sum, p) => sum + p.amount, 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Recurring Invoices</div>
+                                <div style="font-size: 20px; font-weight: 700;">${recurringInvoices.length}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Projected Date</th>
+                                <th>Invoice #</th>
+                                <th>Vendor</th>
+                                <th>Category</th>
+                                <th>Store</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${projections.map(proj => `
+                                <tr>
+                                    <td><strong>${formatDate(proj.projectedDate)}</strong></td>
+                                    <td>${proj.invoiceNumber} <span style="font-size: 11px; color: var(--text-muted);">(recurring)</span></td>
+                                    <td>${proj.vendor}</td>
+                                    <td><span class="badge" style="background: var(--accent-primary); color: #fff; font-size: 11px;">${proj.category}</span></td>
+                                    <td>${proj.store || '<span style="color: var(--text-muted);">Unassigned</span>'}</td>
+                                    <td style="font-weight: 600;">$${proj.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Initialize all invoice charts
+        function initializeInvoiceCharts(filteredInvoices) {
+            // Destroy existing charts
+            Object.values(invoiceCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+
+            // Status Breakdown (Donut Chart)
+            const statusCtx = document.getElementById('invoice-status-chart');
+            if (statusCtx) {
+                const statusCounts = {
+                    paid: filteredInvoices.filter(i => i.status === 'paid').length,
+                    pending: filteredInvoices.filter(i => i.status === 'pending').length,
+                    overdue: filteredInvoices.filter(i => i.status === 'overdue').length
+                };
+
+                invoiceCharts.statusChart = new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Paid', 'Pending', 'Overdue'],
+                        datasets: [{
+                            data: [statusCounts.paid, statusCounts.pending, statusCounts.overdue],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Category Breakdown (Pie Chart)
+            const categoryCtx = document.getElementById('invoice-category-chart');
+            if (categoryCtx) {
+                const categoryData = {};
+                filteredInvoices.forEach(inv => {
+                    const cat = inv.category || 'Other';
+                    categoryData[cat] = (categoryData[cat] || 0) + inv.amount;
+                });
+
+                const categoryLabels = Object.keys(categoryData);
+                const categoryValues = Object.values(categoryData);
+                const categoryColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+
+                invoiceCharts.categoryChart = new Chart(categoryCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: categoryLabels,
+                        datasets: [{
+                            data: categoryValues,
+                            backgroundColor: categoryColors.slice(0, categoryLabels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': $' + context.parsed.toLocaleString('en-US', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Amount Over Time (Bar Chart - Weekly)
+            const timeCtx = document.getElementById('invoice-time-chart');
+            if (timeCtx) {
+                // Get last 8 weeks of data
+                const weeks = [];
+                const now = new Date();
+
+                for (let i = 7; i >= 0; i--) {
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - (i * 7));
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+
+                    const weekInvoices = filteredInvoices.filter(inv => {
+                        const invDate = new Date(inv.dueDate);
+                        return invDate >= weekStart && invDate <= weekEnd;
+                    });
+
+                    const weekTotal = weekInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+
+                    weeks.push({
+                        label: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
+                        total: weekTotal
+                    });
+                }
+
+                invoiceCharts.timeChart = new Chart(timeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: weeks.map(w => w.label),
+                        datasets: [{
+                            label: 'Amount',
+                            data: weeks.map(w => w.total),
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return '$' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Trend Analysis (Line Chart)
+            const trendCtx = document.getElementById('invoice-trend-chart');
+            if (trendCtx) {
+                // Get last 12 weeks cumulative
+                const trendWeeks = [];
+                const now = new Date();
+                let cumulative = 0;
+
+                for (let i = 11; i >= 0; i--) {
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - (i * 7));
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+
+                    const weekInvoices = filteredInvoices.filter(inv => {
+                        const invDate = new Date(inv.dueDate);
+                        return invDate >= weekStart && invDate <= weekEnd;
+                    });
+
+                    const weekTotal = weekInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+                    cumulative += weekTotal;
+
+                    trendWeeks.push({
+                        label: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
+                        cumulative: cumulative
+                    });
+                }
+
+                invoiceCharts.trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: trendWeeks.map(w => w.label),
+                        datasets: [{
+                            label: 'Cumulative Amount',
+                            data: trendWeeks.map(w => w.cumulative),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return '$' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Top Vendors (Horizontal Bar Chart)
+            const vendorCtx = document.getElementById('invoice-vendor-chart');
+            if (vendorCtx) {
+                const vendorData = {};
+                filteredInvoices.forEach(inv => {
+                    vendorData[inv.vendor] = (vendorData[inv.vendor] || 0) + inv.amount;
+                });
+
+                const sortedVendors = Object.entries(vendorData)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10);
+
+                invoiceCharts.vendorChart = new Chart(vendorCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedVendors.map(v => v[0]),
+                        datasets: [{
+                            label: 'Total Amount',
+                            data: sortedVendors.map(v => v[1]),
+                            backgroundColor: '#8b5cf6',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return '$' + context.parsed.x.toLocaleString('en-US', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         async function renderInvoices() {
             const dashboard = document.querySelector('.dashboard');
 
             // Load invoices from Firebase if available
             await loadInvoicesFromFirebase();
 
-            const totalPending = invoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
-            const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + i.amount, 0);
-            const totalPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0);
+            // Get filtered invoices
+            const filteredInvoices = getFilteredInvoices();
+
+            // Calculate metrics
+            const totalAmount = filteredInvoices.reduce((sum, i) => sum + i.amount, 0);
+            const totalPaid = filteredInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0);
+            const totalPending = filteredInvoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+            const overdueCount = filteredInvoices.filter(i => i.status === 'overdue').length;
+
+            // Get unique values for filters
+            const stores = ['All Stores', ...new Set(invoices.filter(i => i.store).map(i => i.store))];
+            const vendors = [...new Set(invoices.map(i => i.vendor))].sort();
+            const categories = ['utilities', 'rent', 'supplies', 'inventory', 'services', 'equipment', 'other'];
 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Invoices</h2>
-                        <p class="section-subtitle">Track and manage payments</p>
+                        <p class="section-subtitle">Track and manage payments with insights</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('add-invoice')">
-                        <i class="fas fa-plus"></i>
-                        Add Invoice
+                        <i class="fas fa-plus"></i> Add Invoice
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%); color: #fff;">
-                        <div class="stat-icon" style="color: #fff;"><i class="fas fa-clock"></i></div>
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255,255,255,0.8);">Pending</div>
-                            <div class="stat-value" style="color: #fff;">$${totalPending.toFixed(2)}</div>
-                        </div>
+                <!-- Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Total Amount</div>
+                        <div style="font-size: 28px; font-weight: 700;">$${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); color: #fff;">
-                        <div class="stat-icon" style="color: #fff;"><i class="fas fa-exclamation-circle"></i></div>
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255,255,255,0.8);">Overdue</div>
-                            <div class="stat-value" style="color: #fff;">$${totalOverdue.toFixed(2)}</div>
-                        </div>
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Paid</div>
+                        <div style="font-size: 28px; font-weight: 700;">$${totalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--success) 0%, #10b981 100%); color: #fff;">
-                        <div class="stat-icon" style="color: #fff;"><i class="fas fa-check-circle"></i></div>
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255,255,255,0.8);">Paid This Month</div>
-                            <div class="stat-value" style="color: #fff;">$${totalPaid.toFixed(2)}</div>
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Pending</div>
+                        <div style="font-size: 28px; font-weight: 700;">$${totalPending.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 20px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Overdue</div>
+                        <div style="font-size: 28px; font-weight: 700;">${overdueCount}</div>
+                    </div>
+                </div>
+
+                <!-- Filters Bar -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Store</label>
+                                <select class="form-input" onchange="updateInvoiceFilter('store', this.value)">
+                                    ${stores.map(s => `<option value="${s === 'All Stores' ? 'all' : s}" ${invoiceFilters.store === (s === 'All Stores' ? 'all' : s) ? 'selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Time Period</label>
+                                <select class="form-input" onchange="updateInvoiceFilter('timePeriod', this.value)">
+                                    <option value="all">All Time</option>
+                                    <option value="7days">Last 7 Days</option>
+                                    <option value="thisMonth">This Month</option>
+                                    <option value="lastMonth">Last Month</option>
+                                    <option value="thisQuarter">This Quarter</option>
+                                    <option value="thisYear">This Year</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Vendor</label>
+                                <select class="form-input" onchange="updateInvoiceFilter('vendor', this.value)">
+                                    <option value="all">All Vendors</option>
+                                    ${vendors.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Category</label>
+                                <select class="form-input" onchange="updateInvoiceFilter('category', this.value)">
+                                    <option value="all">All Categories</option>
+                                    ${categories.map(c => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Status</label>
+                                <select class="form-input" onchange="updateInvoiceFilter('status', this.value)">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="overdue">Overdue</option>
+                                </select>
+                            </div>
+                            <button class="btn-secondary" onclick="resetInvoiceFilters()" style="height: 40px;">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="card">
+                <!-- Charts Section -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                    <!-- Status Breakdown (Donut) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-chart-pie"></i> Payment Status</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="invoice-status-chart" height="250"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-tags"></i> By Category</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="invoice-category-chart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Charts -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <!-- Amount Over Time (Bar) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-chart-bar"></i> Amount Over Time</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="invoice-time-chart" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Trend Line Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-chart-line"></i> Trend Analysis</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="invoice-trend-chart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Vendors -->
+                <div class="card" style="margin-bottom: 24px;">
                     <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            All Invoices
-                        </h3>
-                        <div style="display: flex; gap: 12px;">
-                            <select class="form-input" style="width: 150px;" onchange="filterInvoices(this.value)">
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="overdue">Overdue</option>
-                                <option value="paid">Paid</option>
-                            </select>
+                        <h3 class="card-title"><i class="fas fa-chart-bar"></i> Top Vendors by Amount</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="invoice-vendor-chart" height="150"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="card">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; gap: 16px;">
+                            <button class="btn-${invoiceFilters.activeTab === 'current' ? 'primary' : 'secondary'}" onclick="switchInvoiceTab('current')">
+                                <i class="fas fa-file-invoice"></i> Current Invoices
+                            </button>
+                            <button class="btn-${invoiceFilters.activeTab === 'recurring' ? 'primary' : 'secondary'}" onclick="switchInvoiceTab('recurring')">
+                                <i class="fas fa-sync-alt"></i> Recurring Projections
+                            </button>
                         </div>
                     </div>
                     <div class="card-body" style="padding: 0;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 60px;">Photo</th>
-                                    <th>Invoice #</th>
-                                    <th>Vendor</th>
-                                    <th>Category</th>
-                                    <th>Description</th>
-                                    <th>Amount</th>
-                                    <th>Account</th>
-                                    <th>Due Date</th>
-                                    <th>Status</th>
-                                    <th style="width: 120px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="invoicesTableBody">
-                                ${renderInvoicesTable()}
-                            </tbody>
-                        </table>
+                        <div id="invoice-tab-content">
+                            ${invoiceFilters.activeTab === 'current' ? renderCurrentInvoicesTable(filteredInvoices) : renderRecurringProjections()}
+                        </div>
                     </div>
                 </div>
             `;
+
+            // Initialize charts after DOM is ready
+            setTimeout(() => initializeInvoiceCharts(filteredInvoices), 100);
         }
 
         function renderInvoicesTable(filter = 'all') {
@@ -7323,6 +7985,7 @@
             const invoiceNumber = document.getElementById('invoice-number').value.trim();
             const vendor = document.getElementById('invoice-vendor').value.trim();
             const category = document.getElementById('invoice-category').value;
+            const store = document.getElementById('invoice-store').value || null;
             const amount = document.getElementById('invoice-amount').value;
             const description = document.getElementById('invoice-description').value.trim();
             const dueDate = document.getElementById('invoice-due-date').value;
@@ -7390,7 +8053,7 @@
 
                 if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving invoice...';
 
-                await createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
+                await createInvoiceRecord(invoiceNumber, vendor, category, store, amount, description, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
             } catch (error) {
                 console.error('Error saving invoice:', error);
                 alert('Error saving invoice. Please try again.');
@@ -7402,12 +8065,13 @@
             }
         }
 
-        async function createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
+        async function createInvoiceRecord(invoiceNumber, vendor, category, store, amount, description, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
             // Create invoice data object
             const invoiceData = {
                 invoiceNumber: invoiceNumber || '',
                 vendor: vendor || '',
                 category: category || '',
+                store: store || null,
                 description: description || '',
                 amount: parseFloat(amount) || 0,
                 dueDate: dueDate || '',
@@ -7732,8 +8396,26 @@
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label class="form-label">Store</label>
+                                <select class="form-input" id="edit-invoice-store">
+                                    <option value="" ${!invoice.store ? 'selected' : ''}>Unassigned</option>
+                                    <option value="Miramar" ${invoice.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                    <option value="Morena" ${invoice.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                    <option value="Kearny Mesa" ${invoice.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                    <option value="Chula Vista" ${invoice.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                    <option value="North Park" ${invoice.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                    <option value="Miramar Wine & Liquor" ${invoice.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label class="form-label">Amount *</label>
                                 <input type="number" step="0.01" class="form-input" id="edit-invoice-amount" value="${invoice.amount || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" class="form-input" id="edit-invoice-due-date" value="${invoice.dueDate || ''}">
                             </div>
                         </div>
                         <div class="form-group">
@@ -7742,10 +8424,6 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Due Date</label>
-                                <input type="date" class="form-input" id="edit-invoice-due-date" value="${invoice.dueDate || ''}">
-                            </div>
-                            <div class="form-group">
                                 <label class="form-label">Status</label>
                                 <select class="form-input" id="edit-invoice-status">
                                     <option value="pending" ${invoice.status === 'pending' ? 'selected' : ''}>Pending</option>
@@ -7753,8 +8431,6 @@
                                     <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Paid</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">Payment Account</label>
                                 <select class="form-input" id="edit-invoice-payment-account">
@@ -7768,12 +8444,12 @@
                                     <option value="Other" ${invoice.paymentAccount === 'Other' ? 'selected' : ''}>Other</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label" style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
-                                    <input type="checkbox" id="edit-invoice-recurring" ${invoice.recurring ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
-                                    Recurring Invoice
-                                </label>
-                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="edit-invoice-recurring" ${invoice.recurring ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
+                                Recurring Invoice
+                            </label>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Notes</label>
@@ -7878,6 +8554,7 @@
             const invoiceNumber = document.getElementById('edit-invoice-number').value.trim();
             const vendor = document.getElementById('edit-invoice-vendor').value.trim();
             const category = document.getElementById('edit-invoice-category').value;
+            const store = document.getElementById('edit-invoice-store').value || null;
             const amount = document.getElementById('edit-invoice-amount').value;
             const description = document.getElementById('edit-invoice-description').value.trim();
             const dueDate = document.getElementById('edit-invoice-due-date').value;
@@ -7930,6 +8607,7 @@
                 invoiceNumber: invoiceNumber || '',
                 vendor: vendor || '',
                 category: category || '',
+                store: store || null,
                 description: description || '',
                 amount: parseFloat(amount) || 0,
                 dueDate: dueDate || '',
@@ -13098,19 +13776,36 @@
                                     <label>Category</label>
                                     <select class="form-input" id="invoice-category">
                                         <option value="">Select category...</option>
-                                        <option value="Technology">Technology</option>
-                                        <option value="Office">Office</option>
-                                        <option value="Utilities">Utilities</option>
-                                        <option value="Rent">Rent</option>
-                                        <option value="Insurance">Insurance</option>
-                                        <option value="Supplies">Supplies</option>
-                                        <option value="Services">Services</option>
-                                        <option value="Other">Other</option>
+                                        <option value="utilities">Utilities</option>
+                                        <option value="rent">Rent</option>
+                                        <option value="supplies">Supplies</option>
+                                        <option value="inventory">Inventory</option>
+                                        <option value="services">Services</option>
+                                        <option value="equipment">Equipment</option>
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label>Store</label>
+                                    <select class="form-input" id="invoice-store">
+                                        <option value="">Unassigned</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
                                     <label>Amount ($)</label>
                                     <input type="number" step="0.01" class="form-input" id="invoice-amount" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Due Date</label>
+                                    <input type="date" class="form-input" id="invoice-due-date">
                                 </div>
                             </div>
                             <div class="form-group">
@@ -13119,10 +13814,6 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Due Date</label>
-                                    <input type="date" class="form-input" id="invoice-due-date">
-                                </div>
-                                <div class="form-group">
                                     <label>Status</label>
                                     <select class="form-input" id="invoice-status">
                                         <option value="pending">Pending</option>
@@ -13130,8 +13821,6 @@
                                         <option value="overdue">Overdue</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Payment Account</label>
                                     <select class="form-input" id="invoice-payment-account">
@@ -13145,12 +13834,12 @@
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
-                                        <input type="checkbox" id="invoice-recurring" style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
-                                        <span>Recurring Invoice</span>
-                                    </label>
-                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="invoice-recurring" style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
+                                    <span>Recurring Invoice</span>
+                                </label>
                             </div>
                             <div class="form-group">
                                 <label>Invoice File (Photo or PDF)</label>
@@ -14979,6 +15668,9 @@
                         // Remove from local array
                         employees = employees.filter(e => e.id !== id && e.firestoreId !== id);
 
+                        // Update employee count badge
+                        updateEmployeeCountBadge();
+
                         // Re-render page
                         renderPage(currentPage);
                         showNotification('Employee deleted successfully', 'success');
@@ -15098,6 +15790,9 @@
                         // Add to local array
                         employees.push(newEmployee);
 
+                        // Update employee count badge
+                        updateEmployeeCountBadge();
+
                         closeModal();
                         renderPage(currentPage);
 
@@ -15110,6 +15805,10 @@
                     // Fallback: save locally only
                     newEmployee.id = Date.now().toString();
                     employees.push(newEmployee);
+
+                    // Update employee count badge
+                    updateEmployeeCountBadge();
+
                     closeModal();
                     renderPage(currentPage);
                     showNotification('Employee added (offline mode)', 'warning');
