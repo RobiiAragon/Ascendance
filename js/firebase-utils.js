@@ -3,6 +3,1311 @@
  * Handles Firebase Firestore operations for employees and roles management
  */
 
+// ==================== BUTTON LOCK UTILITY ====================
+
+/**
+ * Global Button Lock Manager
+ * Prevents double-clicks on save/add/update buttons to avoid duplicate records
+ */
+class ButtonLockManager {
+    constructor() {
+        this.lockedButtons = new Set();
+        this.defaultLockDuration = 5000; // 5 seconds
+    }
+
+    /**
+     * Lock a button to prevent double-clicks
+     * @param {HTMLElement|string} button - Button element or selector
+     * @param {number} duration - Lock duration in milliseconds (default: 5000ms)
+     * @returns {boolean} - True if button was locked, false if already locked
+     */
+    lock(button, duration = this.defaultLockDuration) {
+        const btn = typeof button === 'string' ? document.querySelector(button) : button;
+        if (!btn) return false;
+
+        // Generate unique ID for tracking
+        const btnId = btn.id || btn.dataset.lockId || `btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        btn.dataset.lockId = btnId;
+
+        // Check if already locked
+        if (this.lockedButtons.has(btnId)) {
+            console.log('Button already locked:', btnId);
+            return false;
+        }
+
+        // Lock the button
+        this.lockedButtons.add(btnId);
+        btn.disabled = true;
+        btn.classList.add('btn-locked');
+
+        // Store original content
+        const originalContent = btn.innerHTML;
+        const originalText = btn.textContent.trim();
+        btn.dataset.originalContent = originalContent;
+
+        // Show loading state
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${this._getLoadingText(originalText)}`;
+
+        // Auto-unlock after duration
+        setTimeout(() => {
+            this.unlock(btn);
+        }, duration);
+
+        return true;
+    }
+
+    /**
+     * Get appropriate loading text based on original button text
+     */
+    _getLoadingText(originalText) {
+        const lowerText = originalText.toLowerCase();
+        if (lowerText.includes('save') || lowerText.includes('guardar')) return 'Saving...';
+        if (lowerText.includes('add') || lowerText.includes('añadir') || lowerText.includes('agregar')) return 'Adding...';
+        if (lowerText.includes('update') || lowerText.includes('actualizar')) return 'Updating...';
+        if (lowerText.includes('create') || lowerText.includes('crear')) return 'Creating...';
+        if (lowerText.includes('submit') || lowerText.includes('enviar')) return 'Submitting...';
+        if (lowerText.includes('delete') || lowerText.includes('eliminar') || lowerText.includes('borrar')) return 'Deleting...';
+        if (lowerText.includes('confirm') || lowerText.includes('confirmar')) return 'Processing...';
+        return 'Processing...';
+    }
+
+    /**
+     * Unlock a button
+     * @param {HTMLElement|string} button - Button element or selector
+     */
+    unlock(button) {
+        const btn = typeof button === 'string' ? document.querySelector(button) : button;
+        if (!btn) return;
+
+        const btnId = btn.dataset.lockId;
+        if (btnId) {
+            this.lockedButtons.delete(btnId);
+        }
+
+        btn.disabled = false;
+        btn.classList.remove('btn-locked');
+
+        // Restore original content
+        if (btn.dataset.originalContent) {
+            btn.innerHTML = btn.dataset.originalContent;
+            delete btn.dataset.originalContent;
+        }
+    }
+
+    /**
+     * Check if a button is locked
+     * @param {HTMLElement|string} button - Button element or selector
+     * @returns {boolean}
+     */
+    isLocked(button) {
+        const btn = typeof button === 'string' ? document.querySelector(button) : button;
+        if (!btn) return false;
+        const btnId = btn.dataset.lockId;
+        return btnId ? this.lockedButtons.has(btnId) : false;
+    }
+
+    /**
+     * Wrap a function to automatically lock the button during execution
+     * @param {HTMLElement} button - Button element
+     * @param {Function} asyncFn - Async function to execute
+     * @param {number} minLockDuration - Minimum lock duration in ms (default: 2000)
+     */
+    async withLock(button, asyncFn, minLockDuration = 2000) {
+        if (!this.lock(button, 30000)) { // Lock for max 30 seconds
+            return; // Button already locked
+        }
+
+        const startTime = Date.now();
+
+        try {
+            await asyncFn();
+        } finally {
+            // Ensure minimum lock duration
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, minLockDuration - elapsed);
+
+            setTimeout(() => {
+                this.unlock(button);
+            }, remaining);
+        }
+    }
+}
+
+// Global instance
+const buttonLockManager = new ButtonLockManager();
+
+/**
+ * Helper function to lock a button (can be called from onclick)
+ * @param {Event|HTMLElement} eventOrButton - Click event or button element
+ * @param {number} duration - Lock duration in ms
+ * @returns {boolean} - True if locked successfully, false if already locked
+ */
+function lockButton(eventOrButton, duration = 5000) {
+    const button = eventOrButton?.target || eventOrButton?.currentTarget || eventOrButton;
+    return buttonLockManager.lock(button, duration);
+}
+
+/**
+ * Helper function to unlock a button
+ * @param {HTMLElement|string} button - Button element or selector
+ */
+function unlockButton(button) {
+    buttonLockManager.unlock(button);
+}
+
+// Add CSS for locked buttons
+(function addButtonLockStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .btn-locked {
+            opacity: 0.7 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        .btn-locked i.fa-spinner {
+            margin-right: 6px;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+// ==================== FORM PROTECTION SYSTEM ====================
+
+/**
+ * Form Protection Manager
+ * Prevents accidental form closure when data has been entered
+ * Users must click the X button or Cancel to close
+ */
+class FormProtectionManager {
+    constructor() {
+        this.isInitialized = false;
+        this.formHasData = false;
+        this.protectedModals = new Set();
+    }
+
+    /**
+     * Initialize the form protection system
+     */
+    initialize() {
+        if (this.isInitialized) return;
+
+        // Add styles for protection indicator
+        const style = document.createElement('style');
+        style.textContent = `
+            /* Disable clicking outside modal when form has data */
+            .modal.form-protected::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: -1;
+                cursor: not-allowed;
+            }
+
+            /* Visual indicator that form has unsaved data */
+            .modal.form-has-data .modal-content {
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.5), 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }
+
+            .modal.form-has-data .modal-header {
+                border-bottom-color: #f59e0b;
+            }
+
+            /* Unsaved indicator badge */
+            .unsaved-indicator {
+                display: none;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 10px;
+                background: #f59e0b20;
+                color: #f59e0b;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-left: auto;
+                animation: pulseUnsaved 2s ease-in-out infinite;
+            }
+
+            .modal.form-has-data .unsaved-indicator {
+                display: flex;
+            }
+
+            @keyframes pulseUnsaved {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+
+            /* Confirmation overlay */
+            .form-close-confirm-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 100001;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s, visibility 0.2s;
+            }
+
+            .form-close-confirm-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .form-close-confirm-box {
+                background: var(--bg-primary, #1a1a2e);
+                border-radius: 16px;
+                padding: 24px;
+                max-width: 400px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+                border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+                transform: scale(0.9);
+                transition: transform 0.2s;
+            }
+
+            .form-close-confirm-overlay.active .form-close-confirm-box {
+                transform: scale(1);
+            }
+
+            .form-close-confirm-icon {
+                width: 64px;
+                height: 64px;
+                background: #f59e0b20;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 16px;
+            }
+
+            .form-close-confirm-icon i {
+                font-size: 28px;
+                color: #f59e0b;
+            }
+
+            .form-close-confirm-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--text-primary, #fff);
+                margin-bottom: 8px;
+            }
+
+            .form-close-confirm-message {
+                font-size: 14px;
+                color: var(--text-muted, #888);
+                margin-bottom: 20px;
+                line-height: 1.5;
+            }
+
+            .form-close-confirm-buttons {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+            }
+
+            .form-close-confirm-buttons button {
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+                border: none;
+            }
+
+            .form-close-confirm-buttons .btn-stay {
+                background: var(--accent-primary, #6366f1);
+                color: white;
+            }
+
+            .form-close-confirm-buttons .btn-stay:hover {
+                background: var(--accent-secondary, #8b5cf6);
+            }
+
+            .form-close-confirm-buttons .btn-discard {
+                background: var(--bg-secondary, #252542);
+                color: var(--text-primary, #fff);
+                border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+            }
+
+            .form-close-confirm-buttons .btn-discard:hover {
+                background: #ef4444;
+                border-color: #ef4444;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Create confirmation overlay
+        this.createConfirmOverlay();
+
+        // Listen for input changes in modals
+        document.addEventListener('input', (e) => this.handleInput(e), true);
+        document.addEventListener('change', (e) => this.handleInput(e), true);
+
+        // Intercept modal backdrop clicks
+        this.interceptModalClicks();
+
+        // Intercept Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.formHasData) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showConfirmDialog();
+            }
+        }, true);
+
+        this.isInitialized = true;
+        console.log('Form Protection Manager initialized');
+    }
+
+    /**
+     * Create the confirmation dialog overlay
+     */
+    createConfirmOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'form-close-confirm-overlay';
+        overlay.id = 'form-close-confirm';
+        overlay.innerHTML = `
+            <div class="form-close-confirm-box">
+                <div class="form-close-confirm-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="form-close-confirm-title">Unsaved Changes</div>
+                <div class="form-close-confirm-message">
+                    You have unsaved changes in this form. Are you sure you want to close without saving?
+                </div>
+                <div class="form-close-confirm-buttons">
+                    <button class="btn-discard" onclick="formProtectionManager.confirmDiscard()">
+                        <i class="fas fa-trash"></i> Discard
+                    </button>
+                    <button class="btn-stay" onclick="formProtectionManager.cancelDiscard()">
+                        <i class="fas fa-edit"></i> Keep Editing
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        this.confirmOverlay = overlay;
+    }
+
+    /**
+     * Get the currently active modal
+     */
+    getActiveModal() {
+        // Check main modal first
+        const mainModal = document.getElementById('modal');
+        if (mainModal && mainModal.classList.contains('active')) {
+            return mainModal;
+        }
+
+        // Check expense modal
+        const expenseModal = document.getElementById('expenseModal');
+        if (expenseModal && expenseModal.classList.contains('active')) {
+            return expenseModal;
+        }
+
+        // Check for any other modals with .modal.active class
+        const activeModal = document.querySelector('.modal.active');
+        if (activeModal) {
+            return activeModal;
+        }
+
+        return null;
+    }
+
+    /**
+     * Handle input events to detect form data
+     */
+    handleInput(e) {
+        const modal = this.getActiveModal();
+        if (!modal) return;
+
+        const target = e.target;
+
+        // Check if input is inside modal
+        if (!modal.contains(target)) return;
+
+        // Check if it's a form input
+        const isFormInput = target.matches('input, textarea, select');
+        if (!isFormInput) return;
+
+        // Check if form has any data
+        this.checkFormData(modal);
+    }
+
+    /**
+     * Check if form has data
+     */
+    checkFormData(modal) {
+        const inputs = modal.querySelectorAll('input:not([type="hidden"]):not([type="button"]):not([type="submit"]), textarea, select');
+        let hasData = false;
+
+        inputs.forEach(input => {
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                // Skip checkboxes/radios for now
+                return;
+            }
+            if (input.type === 'file') {
+                if (input.files && input.files.length > 0) {
+                    hasData = true;
+                }
+                return;
+            }
+            if (input.value && input.value.trim() !== '') {
+                // Check if it's a default/placeholder value
+                const defaultValue = input.getAttribute('data-default') || input.defaultValue || '';
+                if (input.value !== defaultValue) {
+                    hasData = true;
+                }
+            }
+        });
+
+        this.setFormHasData(hasData);
+    }
+
+    /**
+     * Set form has data state
+     */
+    setFormHasData(hasData) {
+        this.formHasData = hasData;
+        const modal = this.getActiveModal();
+        if (modal) {
+            if (hasData) {
+                modal.classList.add('form-has-data', 'form-protected');
+            } else {
+                modal.classList.remove('form-has-data', 'form-protected');
+            }
+        }
+    }
+
+    /**
+     * Intercept modal backdrop clicks
+     */
+    interceptModalClicks() {
+        // Intercept both click and mousedown (some handlers use mousedown)
+        const interceptHandler = (e) => {
+            const modal = this.getActiveModal();
+            if (!modal) return;
+
+            // Check if clicking on modal backdrop (not content)
+            const isBackdropClick = e.target === modal ||
+                                    e.target.classList.contains('modal-overlay') ||
+                                    (e.target.classList.contains('modal') && e.target === modal);
+
+            if (isBackdropClick && this.formHasData) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showConfirmDialog();
+                return false;
+            }
+        };
+
+        document.addEventListener('click', interceptHandler, true);
+        document.addEventListener('mousedown', interceptHandler, true);
+    }
+
+    /**
+     * Show confirmation dialog
+     */
+    showConfirmDialog() {
+        if (this.confirmOverlay) {
+            this.confirmOverlay.classList.add('active');
+        }
+    }
+
+    /**
+     * Hide confirmation dialog
+     */
+    hideConfirmDialog() {
+        if (this.confirmOverlay) {
+            this.confirmOverlay.classList.remove('active');
+        }
+    }
+
+    /**
+     * Confirm discard - close form without saving
+     */
+    confirmDiscard() {
+        // Store which modal was active before hiding dialog
+        const activeModal = this.getActiveModal();
+        const isExpenseModal = activeModal && activeModal.id === 'expenseModal';
+
+        this.hideConfirmDialog();
+        this.resetProtection();
+
+        // Close the appropriate modal
+        if (isExpenseModal && typeof closeExpenseModal === 'function') {
+            closeExpenseModal();
+        } else if (typeof closeModal === 'function') {
+            closeModal(true);
+        }
+    }
+
+    /**
+     * Cancel discard - keep editing
+     */
+    cancelDiscard() {
+        this.hideConfirmDialog();
+    }
+
+    /**
+     * Reset protection state (call when form is saved or properly closed)
+     */
+    resetProtection() {
+        this.formHasData = false;
+        // Reset main modal
+        const mainModal = document.getElementById('modal');
+        if (mainModal) {
+            mainModal.classList.remove('form-has-data', 'form-protected');
+        }
+        // Reset expense modal
+        const expenseModal = document.getElementById('expenseModal');
+        if (expenseModal) {
+            expenseModal.classList.remove('form-has-data', 'form-protected');
+        }
+        // Reset any other active modal
+        document.querySelectorAll('.modal.form-has-data, .modal.form-protected').forEach(m => {
+            m.classList.remove('form-has-data', 'form-protected');
+        });
+    }
+
+    /**
+     * Check if form needs protection before closing
+     * Returns true if should show confirmation, false if can close
+     */
+    shouldPreventClose() {
+        return this.formHasData;
+    }
+
+    /**
+     * Force close without confirmation (for cancel buttons)
+     */
+    forceClose() {
+        this.resetProtection();
+        if (typeof closeModal === 'function') {
+            closeModal(true);
+        }
+    }
+}
+
+// Global instance
+const formProtectionManager = new FormProtectionManager();
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => formProtectionManager.initialize());
+} else {
+    formProtectionManager.initialize();
+}
+
+/**
+ * Safe close modal function - shows confirmation if form has data
+ */
+function safeCloseModal() {
+    if (formProtectionManager.shouldPreventClose()) {
+        formProtectionManager.showConfirmDialog();
+    } else {
+        formProtectionManager.resetProtection();
+        if (typeof closeModal === 'function') {
+            closeModal(true);
+        }
+    }
+}
+
+/**
+ * Force close modal - bypasses protection (for cancel/X buttons)
+ */
+function forceCloseModal() {
+    formProtectionManager.forceClose();
+}
+
+/**
+ * Auto-lock buttons on click for save/add/create/update/submit actions
+ * This prevents double-clicks and duplicate records
+ */
+(function initAutoButtonLock() {
+    // Keywords that indicate a save/submit action
+    const actionKeywords = [
+        'save', 'guardar', 'add', 'añadir', 'agregar', 'create', 'crear',
+        'submit', 'enviar', 'update', 'actualizar', 'post', 'publicar',
+        'upload', 'subir', 'request', 'solicitar'
+    ];
+
+    // Function patterns to detect in onclick handlers
+    const functionPatterns = [
+        /^save/i, /^create/i, /^add/i, /^submit/i, /^update/i, /^post/i,
+        /guardar/i, /crear/i, /agregar/i, /añadir/i, /enviar/i, /actualizar/i
+    ];
+
+    /**
+     * Check if a button should be auto-locked
+     */
+    function shouldAutoLock(button) {
+        // Skip if already has no-auto-lock class
+        if (button.classList.contains('no-auto-lock')) return false;
+
+        // Skip if it's a cancel/close button
+        const text = button.textContent.toLowerCase();
+        if (text.includes('cancel') || text.includes('close') || text.includes('cancelar') || text.includes('cerrar')) {
+            return false;
+        }
+
+        // Check button text for action keywords
+        for (const keyword of actionKeywords) {
+            if (text.includes(keyword)) return true;
+        }
+
+        // Check onclick attribute for function patterns
+        const onclick = button.getAttribute('onclick') || '';
+        for (const pattern of functionPatterns) {
+            if (pattern.test(onclick)) return true;
+        }
+
+        // Check if it's a btn-primary with likely action
+        if (button.classList.contains('btn-primary')) {
+            // Check if inside a modal (likely a save action)
+            const modal = button.closest('.modal-content, .modal-body, .modal-footer, #modal');
+            if (modal) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle click events on buttons
+     */
+    function handleButtonClick(event) {
+        const button = event.target.closest('button, .btn-primary, .btn-secondary');
+        if (!button) return;
+
+        // Check if button should be auto-locked
+        if (!shouldAutoLock(button)) return;
+
+        // Check if already locked
+        if (buttonLockManager.isLocked(button) || button.classList.contains('btn-locked')) {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('Button click prevented - already locked');
+            return false;
+        }
+
+        // Lock the button
+        buttonLockManager.lock(button, 5000);
+    }
+
+    // Add global click listener (capture phase to intercept before onclick handlers)
+    document.addEventListener('click', handleButtonClick, true);
+
+    console.log('Auto button lock initialized');
+})();
+
+// ==================== UPLOAD LOADING OVERLAY ====================
+
+/**
+ * Global Upload Loading Overlay Manager
+ * Shows a loading indicator during file uploads to Firebase Storage
+ */
+class UploadLoadingOverlay {
+    constructor() {
+        this.overlay = null;
+        this.progressBar = null;
+        this.progressText = null;
+        this.statusText = null;
+        this.isVisible = false;
+    }
+
+    /**
+     * Create the overlay element if it doesn't exist
+     */
+    createOverlay() {
+        if (this.overlay) return;
+
+        this.overlay = document.createElement('div');
+        this.overlay.id = 'upload-loading-overlay';
+        this.overlay.innerHTML = `
+            <div class="upload-loading-content">
+                <div class="upload-loading-icon">
+                    <svg class="upload-spinner" viewBox="0 0 50 50">
+                        <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+                    </svg>
+                    <i class="fas fa-cloud-upload-alt upload-cloud-icon"></i>
+                </div>
+                <div class="upload-loading-text">
+                    <h3 id="upload-status-text">Uploading file...</h3>
+                    <p id="upload-progress-text">Please wait while we upload your file</p>
+                </div>
+                <div class="upload-progress-container">
+                    <div class="upload-progress-bar" id="upload-progress-bar"></div>
+                </div>
+                <div class="upload-progress-percent" id="upload-progress-percent">0%</div>
+            </div>
+        `;
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            #upload-loading-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(8px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+
+            #upload-loading-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .upload-loading-content {
+                background: var(--bg-primary, #1a1a2e);
+                border-radius: 20px;
+                padding: 40px 50px;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+                max-width: 400px;
+                width: 90%;
+                animation: uploadSlideUp 0.4s ease;
+            }
+
+            @keyframes uploadSlideUp {
+                from {
+                    transform: translateY(30px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            .upload-loading-icon {
+                position: relative;
+                width: 100px;
+                height: 100px;
+                margin: 0 auto 24px;
+            }
+
+            .upload-spinner {
+                width: 100px;
+                height: 100px;
+                animation: uploadRotate 1.5s linear infinite;
+            }
+
+            .upload-spinner .path {
+                stroke: var(--accent-primary, #6366f1);
+                stroke-linecap: round;
+                animation: uploadDash 1.5s ease-in-out infinite;
+            }
+
+            @keyframes uploadRotate {
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            @keyframes uploadDash {
+                0% {
+                    stroke-dasharray: 1, 150;
+                    stroke-dashoffset: 0;
+                }
+                50% {
+                    stroke-dasharray: 90, 150;
+                    stroke-dashoffset: -35;
+                }
+                100% {
+                    stroke-dasharray: 90, 150;
+                    stroke-dashoffset: -124;
+                }
+            }
+
+            .upload-cloud-icon {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 36px;
+                color: var(--accent-primary, #6366f1);
+                animation: uploadPulse 1.5s ease-in-out infinite;
+            }
+
+            @keyframes uploadPulse {
+                0%, 100% {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1);
+                }
+                50% {
+                    opacity: 0.7;
+                    transform: translate(-50%, -50%) scale(1.1);
+                }
+            }
+
+            .upload-loading-text h3 {
+                color: var(--text-primary, #fff);
+                font-size: 20px;
+                font-weight: 600;
+                margin: 0 0 8px 0;
+            }
+
+            .upload-loading-text p {
+                color: var(--text-muted, #888);
+                font-size: 14px;
+                margin: 0 0 24px 0;
+            }
+
+            .upload-progress-container {
+                background: var(--bg-secondary, #252542);
+                border-radius: 10px;
+                height: 8px;
+                overflow: hidden;
+                margin-bottom: 12px;
+            }
+
+            .upload-progress-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+                background-size: 200% 100%;
+                border-radius: 10px;
+                width: 0%;
+                transition: width 0.3s ease;
+                animation: uploadGradient 2s linear infinite;
+            }
+
+            @keyframes uploadGradient {
+                0% {
+                    background-position: 0% 50%;
+                }
+                100% {
+                    background-position: 200% 50%;
+                }
+            }
+
+            .upload-progress-percent {
+                color: var(--accent-primary, #6366f1);
+                font-size: 24px;
+                font-weight: 700;
+            }
+
+            /* Success state */
+            #upload-loading-overlay.success .upload-spinner {
+                animation: none;
+            }
+
+            #upload-loading-overlay.success .upload-spinner .path {
+                stroke: #10b981;
+                animation: none;
+                stroke-dasharray: 150;
+                stroke-dashoffset: 0;
+            }
+
+            #upload-loading-overlay.success .upload-cloud-icon {
+                animation: none;
+                color: #10b981;
+            }
+
+            #upload-loading-overlay.success .upload-cloud-icon::before {
+                content: "\\f00c";
+            }
+
+            #upload-loading-overlay.success .upload-progress-bar {
+                background: #10b981;
+                animation: none;
+            }
+        `;
+
+        document.head.appendChild(style);
+        document.body.appendChild(this.overlay);
+
+        this.progressBar = document.getElementById('upload-progress-bar');
+        this.progressText = document.getElementById('upload-progress-percent');
+        this.statusText = document.getElementById('upload-status-text');
+        this.descriptionText = document.getElementById('upload-progress-text');
+    }
+
+    /**
+     * Show the loading overlay
+     * @param {string} message - Custom status message
+     * @param {string} description - Custom description
+     */
+    show(message = 'Uploading file...', description = 'Please wait while we upload your file') {
+        this.createOverlay();
+        this.overlay.classList.remove('success');
+        this.statusText.textContent = message;
+        this.descriptionText.textContent = description;
+        this.updateProgress(0);
+        this.overlay.classList.add('active');
+        this.isVisible = true;
+    }
+
+    /**
+     * Update progress bar
+     * @param {number} percent - Progress percentage (0-100)
+     */
+    updateProgress(percent) {
+        if (!this.progressBar || !this.progressText) return;
+        const clampedPercent = Math.min(100, Math.max(0, percent));
+        this.progressBar.style.width = `${clampedPercent}%`;
+        this.progressText.textContent = `${Math.round(clampedPercent)}%`;
+    }
+
+    /**
+     * Show success state briefly before hiding
+     * @param {string} message - Success message
+     */
+    showSuccess(message = 'Upload complete!') {
+        if (!this.overlay) return;
+        this.statusText.textContent = message;
+        this.descriptionText.textContent = 'File uploaded successfully';
+        this.updateProgress(100);
+        this.overlay.classList.add('success');
+
+        setTimeout(() => {
+            this.hide();
+        }, 1200);
+    }
+
+    /**
+     * Hide the loading overlay
+     */
+    hide() {
+        if (this.overlay) {
+            this.overlay.classList.remove('active');
+            this.overlay.classList.remove('success');
+            this.isVisible = false;
+        }
+    }
+
+    /**
+     * Show error and hide
+     * @param {string} message - Error message
+     */
+    showError(message = 'Upload failed') {
+        if (!this.overlay) return;
+        this.statusText.textContent = message;
+        this.descriptionText.textContent = 'Please try again';
+
+        setTimeout(() => {
+            this.hide();
+        }, 2000);
+    }
+}
+
+// Global instance
+const uploadLoadingOverlay = new UploadLoadingOverlay();
+
+// ==================== FIREBASE STORAGE HELPER ====================
+
+/**
+ * Global Firebase Storage Helper
+ * Handles all file uploads to Firebase Storage
+ */
+class FirebaseStorageHelper {
+    constructor() {
+        this.storage = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize Firebase Storage
+     */
+    initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.storage) {
+                this.storage = firebase.storage();
+                this.isInitialized = true;
+                console.log('Firebase Storage initialized successfully');
+                return true;
+            } else {
+                console.error('Firebase Storage not available');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Storage:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Upload a file to Firebase Storage (internal - no loading overlay)
+     * @param {File|Blob|string} file - File object, Blob, or base64 string
+     * @param {string} path - Storage path (e.g., 'employees/photos/employeeId.jpg')
+     * @param {Function} onProgress - Optional progress callback
+     * @returns {Promise<{url: string, path: string}>} Download URL and storage path
+     */
+    async _uploadFileInternal(file, path, onProgress = null) {
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+
+        if (!this.storage) {
+            throw new Error('Firebase Storage not initialized');
+        }
+
+        try {
+            const storageRef = this.storage.ref(path);
+            let uploadTask;
+
+            // Handle base64 string
+            if (typeof file === 'string' && file.startsWith('data:')) {
+                uploadTask = storageRef.putString(file, 'data_url');
+            } else {
+                uploadTask = storageRef.put(file);
+            }
+
+            // Handle progress updates
+            if (onProgress) {
+                uploadTask.on('state_changed', (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    onProgress(progress);
+                });
+            }
+
+            // Wait for upload to complete
+            await uploadTask;
+
+            // Get download URL
+            const downloadURL = await storageRef.getDownloadURL();
+
+            console.log(`File uploaded to: ${path}`);
+            return {
+                url: downloadURL,
+                path: path
+            };
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Upload a file to Firebase Storage with loading overlay
+     * @param {File|Blob|string} file - File object, Blob, or base64 string
+     * @param {string} path - Storage path (e.g., 'employees/photos/employeeId.jpg')
+     * @param {Function} onProgress - Optional progress callback
+     * @param {boolean} showOverlay - Whether to show loading overlay (default: true)
+     * @returns {Promise<{url: string, path: string}>} Download URL and storage path
+     */
+    async uploadFile(file, path, onProgress = null, showOverlay = true) {
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+
+        if (!this.storage) {
+            throw new Error('Firebase Storage not initialized');
+        }
+
+        // Show loading overlay
+        if (showOverlay) {
+            uploadLoadingOverlay.show('Uploading file...', 'Please wait while we upload your file');
+        }
+
+        try {
+            const storageRef = this.storage.ref(path);
+            let uploadTask;
+
+            // Handle base64 string
+            if (typeof file === 'string' && file.startsWith('data:')) {
+                uploadTask = storageRef.putString(file, 'data_url');
+            } else {
+                uploadTask = storageRef.put(file);
+            }
+
+            // Handle progress updates - always update overlay
+            uploadTask.on('state_changed', (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                if (showOverlay) {
+                    uploadLoadingOverlay.updateProgress(progress);
+                }
+                if (onProgress) {
+                    onProgress(progress);
+                }
+            });
+
+            // Wait for upload to complete
+            await uploadTask;
+
+            // Get download URL
+            const downloadURL = await storageRef.getDownloadURL();
+
+            console.log(`File uploaded to: ${path}`);
+
+            // Show success
+            if (showOverlay) {
+                uploadLoadingOverlay.showSuccess('Upload complete!');
+            }
+
+            return {
+                url: downloadURL,
+                path: path
+            };
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            if (showOverlay) {
+                uploadLoadingOverlay.showError('Upload failed');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Upload an image with compression and loading overlay
+     * @param {string} base64Image - Base64 encoded image
+     * @param {string} folder - Storage folder (e.g., 'employees/photos')
+     * @param {string} fileName - File name without extension
+     * @param {number} maxSizeKB - Maximum size in KB (default 500KB)
+     * @param {boolean} showOverlay - Whether to show loading overlay (default: true)
+     * @returns {Promise<{url: string, path: string}>}
+     */
+    async uploadImage(base64Image, folder, fileName, maxSizeKB = 500, showOverlay = true) {
+        if (!base64Image || !base64Image.startsWith('data:')) {
+            throw new Error('Invalid base64 image');
+        }
+
+        // Show loading overlay
+        if (showOverlay) {
+            uploadLoadingOverlay.show('Uploading image...', 'Please wait while we upload your image');
+        }
+
+        try {
+            // Generate unique filename with timestamp
+            const timestamp = Date.now();
+            const extension = base64Image.includes('image/png') ? 'png' : 'jpg';
+            const path = `${folder}/${fileName}_${timestamp}.${extension}`;
+
+            // Use internal upload without showing overlay again
+            const result = await this._uploadFileInternal(base64Image, path, (progress) => {
+                if (showOverlay) {
+                    uploadLoadingOverlay.updateProgress(progress);
+                }
+            });
+
+            // Show success
+            if (showOverlay) {
+                uploadLoadingOverlay.showSuccess('Image uploaded!');
+            }
+
+            return result;
+        } catch (error) {
+            if (showOverlay) {
+                uploadLoadingOverlay.showError('Image upload failed');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Upload a document (PDF, etc.) with loading overlay
+     * @param {File} file - File object
+     * @param {string} folder - Storage folder
+     * @param {string} prefix - Optional prefix for filename
+     * @param {boolean} showOverlay - Whether to show loading overlay (default: true)
+     * @returns {Promise<{url: string, path: string, fileName: string, fileSize: number, fileType: string}>}
+     */
+    async uploadDocument(file, folder, prefix = '', showOverlay = true) {
+        // Show loading overlay
+        if (showOverlay) {
+            uploadLoadingOverlay.show('Uploading document...', `Uploading ${file.name}`);
+        }
+
+        try {
+            const timestamp = Date.now();
+            const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const path = `${folder}/${prefix}${timestamp}_${safeFileName}`;
+
+            // Use internal upload without showing overlay again
+            const result = await this._uploadFileInternal(file, path, (progress) => {
+                if (showOverlay) {
+                    uploadLoadingOverlay.updateProgress(progress);
+                }
+            });
+
+            // Show success
+            if (showOverlay) {
+                uploadLoadingOverlay.showSuccess('Document uploaded!');
+            }
+
+            return {
+                ...result,
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type
+            };
+        } catch (error) {
+            if (showOverlay) {
+                uploadLoadingOverlay.showError('Document upload failed');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Delete a file from Firebase Storage
+     * @param {string} path - Storage path to delete
+     * @returns {Promise<boolean>}
+     */
+    async deleteFile(path) {
+        if (!this.isInitialized || !this.storage) {
+            console.error('Firebase Storage not initialized');
+            return false;
+        }
+
+        try {
+            const storageRef = this.storage.ref(path);
+            await storageRef.delete();
+            console.log(`File deleted: ${path}`);
+            return true;
+        } catch (error) {
+            console.error('Error deleting file:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get download URL for a file
+     * @param {string} path - Storage path
+     * @returns {Promise<string>} Download URL
+     */
+    async getDownloadURL(path) {
+        if (!this.isInitialized || !this.storage) {
+            throw new Error('Firebase Storage not initialized');
+        }
+
+        try {
+            const storageRef = this.storage.ref(path);
+            return await storageRef.getDownloadURL();
+        } catch (error) {
+            console.error('Error getting download URL:', error);
+            throw error;
+        }
+    }
+}
+
+// Global instance
+const firebaseStorageHelper = new FirebaseStorageHelper();
+
+// ==================== END FIREBASE STORAGE HELPER ====================
+
 class FirebaseEmployeeManager {
     constructor() {
         this.db = null;

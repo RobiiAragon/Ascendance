@@ -394,3 +394,37 @@ class FirebaseSyncManager {
 
 // Initialize global Firebase sync manager
 const firebaseSyncManager = new FirebaseSyncManager();
+
+// Auto-initialize when DOM is ready
+(async function initFirebaseSyncManager() {
+    // Wait for Firebase SDK to be loaded
+    const waitForFirebase = () => {
+        return new Promise((resolve) => {
+            if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+                resolve();
+            } else {
+                const checkInterval = setInterval(() => {
+                    if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 10000);
+            }
+        });
+    };
+
+    await waitForFirebase();
+
+    // Initialize the sync manager
+    const initialized = await firebaseSyncManager.initialize();
+    if (initialized) {
+        console.log('✅ FirebaseSyncManager ready for Risk Notes');
+        // Dispatch event to notify other scripts
+        window.dispatchEvent(new CustomEvent('firebaseSyncReady'));
+    }
+})();

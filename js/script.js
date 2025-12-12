@@ -2898,15 +2898,90 @@
             const record = clockinAttendanceRecords.find(r => r.id === recordId);
             if (!record) return;
 
-            alert(`Employee: ${record.employeeName}
-Store: ${record.store}
-Date: ${record.date}
-Clock In: ${record.clockIn || '-'}
-Lunch Start: ${record.lunchStart || '-'}
-Lunch End: ${record.lunchEnd || '-'}
-Clock Out: ${record.clockOut || '-'}
-Total Hours: ${calculateAttendanceTotalHours(record)}
-${record.notes ? 'Notes: ' + record.notes : ''}`);
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+            const status = getAttendanceStatus(record);
+            const totalHours = calculateAttendanceTotalHours(record);
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-clock" style="color: var(--accent-primary);"></i>
+                        Attendance Details
+                    </h2>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Employee Info Header -->
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding: 20px; background: var(--bg-secondary); border-radius: 12px;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+                            ${record.employeeName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">${record.employeeName}</h3>
+                            <div style="font-size: 14px; color: var(--text-muted);">
+                                <span style="margin-right: 16px;"><i class="fas fa-briefcase"></i> ${record.employeeRole || 'Employee'}</span>
+                                <span><i class="fas fa-store"></i> ${record.store}</span>
+                            </div>
+                        </div>
+                        <span class="status-badge" style="background: ${status.color}20; color: ${status.color}; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                            ${status.text}
+                        </span>
+                    </div>
+
+                    <!-- Date and Total Hours -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                        <div style="padding: 20px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">
+                            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                                <i class="fas fa-calendar"></i> Date
+                            </div>
+                            <div style="font-size: 18px; font-weight: 600;">${record.date}</div>
+                        </div>
+                        <div style="padding: 20px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 12px; text-align: center; color: white;">
+                            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">
+                                <i class="fas fa-hourglass-half"></i> Total Hours
+                            </div>
+                            <div style="font-size: 24px; font-weight: 700;">${totalHours}</div>
+                        </div>
+                    </div>
+
+                    <!-- Time Details -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px;">
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 10px; border-left: 4px solid #10b981;">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Clock In</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #10b981;">${record.clockIn || '-'}</div>
+                        </div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 10px; border-left: 4px solid #f59e0b;">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Lunch Start</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #f59e0b;">${record.lunchStart || '-'}</div>
+                        </div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 10px; border-left: 4px solid #f59e0b;">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Lunch End</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #f59e0b;">${record.lunchEnd || '-'}</div>
+                        </div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 10px; border-left: 4px solid #ef4444;">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Clock Out</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #ef4444;">${record.clockOut || '-'}</div>
+                        </div>
+                    </div>
+
+                    ${record.notes ? `
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 10px;">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                                <i class="fas fa-sticky-note"></i> Notes
+                            </div>
+                            <div style="font-size: 14px; line-height: 1.6; color: var(--text-secondary);">${record.notes}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Close</button>
+                </div>
+            `;
+
+            modal.classList.add('active');
         }
 
         function refreshAttendance() {
@@ -6543,7 +6618,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
             `;
 
-            modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
         async function deleteThief(id) {
@@ -6648,26 +6723,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const status = document.getElementById('edit-thief-status').value;
             const photoInput = document.getElementById('edit-thief-photo');
 
-            // Get photo - use new one if uploaded, otherwise keep current
-            let photo = currentThief.photo;
-            const photoImg = document.getElementById('edit-thief-photo-img');
-            if (photoInput.files && photoInput.files.length > 0 && photoImg && photoImg.src) {
-                photo = photoImg.src;
-            }
-
-            const updatedData = {
-                name: name,
-                photo: photo,
-                date: date,
-                store: store,
-                crimeType: crimeType,
-                itemsStolen: items,
-                estimatedValue: value ? parseFloat(value) : currentThief.estimatedValue,
-                description: description,
-                policeReport: policeReport || currentThief.policeReport || null,
-                banned: status === 'banned'
-            };
-
             // Show saving indicator
             const saveBtn = document.querySelector('.modal-footer .btn-primary');
             const originalText = saveBtn ? saveBtn.innerHTML : '';
@@ -6677,6 +6732,56 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
 
             try {
+                // Get photo - use new one if uploaded, otherwise keep current
+                let photoUrl = currentThief.photo;
+                let photoPath = currentThief.photoPath || null;
+                const photoImg = document.getElementById('edit-thief-photo-img');
+
+                // Check if a new photo was uploaded (it will be base64)
+                if (photoInput.files && photoInput.files.length > 0 && photoImg && photoImg.src && photoImg.src.startsWith('data:')) {
+                    if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading photo...';
+
+                    // Initialize storage if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
+                    // Delete old photo from storage if it exists
+                    if (currentThief.photoPath) {
+                        try {
+                            await firebaseStorageHelper.deleteFile(currentThief.photoPath);
+                        } catch (e) {
+                            console.warn('Could not delete old photo:', e);
+                        }
+                    }
+
+                    // Upload new photo
+                    const tempId = currentThief.firestoreId || Date.now().toString();
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        photoImg.src,
+                        'thieves/photos',
+                        tempId
+                    );
+                    photoUrl = uploadResult.url;
+                    photoPath = uploadResult.path;
+                }
+
+                const updatedData = {
+                    name: name,
+                    photo: photoUrl,
+                    photoPath: photoPath,
+                    date: date,
+                    store: store,
+                    crimeType: crimeType,
+                    itemsStolen: items,
+                    estimatedValue: value ? parseFloat(value) : currentThief.estimatedValue,
+                    description: description,
+                    policeReport: policeReport || currentThief.policeReport || null,
+                    banned: status === 'banned'
+                };
+
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
                 // Update in Firebase
                 if (firebaseThievesManager.isInitialized && currentThief.firestoreId) {
                     const success = await firebaseThievesManager.updateThief(currentThief.firestoreId, updatedData);
@@ -6734,47 +6839,85 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            // Get photo as base64 if uploaded
-            let photo = null;
-            const photoImg = document.getElementById('thief-photo-img');
-            if (photoImg && photoImg.src && photoInput.files.length > 0) {
-                photo = photoImg.src;
+            // Show saving indicator
+            const saveBtn = document.querySelector('#add-thief-modal .btn-primary, .modal-footer .btn-primary');
+            const originalText = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                saveBtn.disabled = true;
             }
 
-            // Create thief data object
-            const thiefData = {
-                name: name,
-                photo: photo,
-                date: date,
-                store: store,
-                crimeType: crimeType,
-                itemsStolen: items,
-                estimatedValue: parseFloat(value),
-                description: description,
-                policeReport: policeReport || null,
-                banned: status === 'banned'
-            };
+            try {
+                // Get photo and upload to Firebase Storage if available
+                let photoUrl = null;
+                let photoPath = null;
+                const photoImg = document.getElementById('thief-photo-img');
+                if (photoImg && photoImg.src && photoInput.files.length > 0 && photoImg.src.startsWith('data:')) {
+                    if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading photo...';
 
-            // Try to save to Firebase
-            const firestoreId = await saveThiefToFirebase(thiefData);
+                    // Initialize storage if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
 
-            if (firestoreId) {
-                // Successfully saved to Firebase
-                thiefData.id = firestoreId;
-                thiefData.firestoreId = firestoreId;
-                console.log('Thief record saved to Firebase with ID:', firestoreId);
-            } else {
-                // Fallback to local ID
-                const newId = thieves.length > 0 ? Math.max(...thieves.map(t => typeof t.id === 'number' ? t.id : 0)) + 1 : 1;
-                thiefData.id = newId;
-                console.log('Thief record saved locally with ID:', newId);
+                    // Generate a temporary ID for the file name
+                    const tempId = Date.now().toString();
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        photoImg.src,
+                        'thieves/photos',
+                        tempId
+                    );
+                    photoUrl = uploadResult.url;
+                    photoPath = uploadResult.path;
+                }
+
+                // Create thief data object with Storage URL instead of base64
+                const thiefData = {
+                    name: name,
+                    photo: photoUrl,           // Now stores URL instead of base64
+                    photoPath: photoPath,      // Store path for future deletion
+                    date: date,
+                    store: store,
+                    crimeType: crimeType,
+                    itemsStolen: items,
+                    estimatedValue: parseFloat(value),
+                    description: description,
+                    policeReport: policeReport || null,
+                    banned: status === 'banned'
+                };
+
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving record...';
+
+                // Try to save to Firebase
+                const firestoreId = await saveThiefToFirebase(thiefData);
+
+                if (firestoreId) {
+                    // Successfully saved to Firebase
+                    thiefData.id = firestoreId;
+                    thiefData.firestoreId = firestoreId;
+                    console.log('Thief record saved to Firebase with ID:', firestoreId);
+                } else {
+                    // Fallback to local ID
+                    const newId = thieves.length > 0 ? Math.max(...thieves.map(t => typeof t.id === 'number' ? t.id : 0)) + 1 : 1;
+                    thiefData.id = newId;
+                    console.log('Thief record saved locally with ID:', newId);
+                }
+
+                // Add to local array
+                thieves.unshift(thiefData);
+
+                closeModal();
+                renderThieves();
+            } catch (error) {
+                console.error('Error saving thief:', error);
+                alert('Error saving record. Please try again.');
+            } finally {
+                // Restore button state
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalText || '<i class="fas fa-save"></i> Save';
+                    saveBtn.disabled = false;
+                }
             }
-
-            // Add to local array
-            thieves.unshift(thiefData);
-
-            closeModal();
-            renderThieves();
         }
 
         // Invoices database
@@ -7143,7 +7286,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
             `;
 
-            modal.style.display = 'flex';
             modal.classList.add('active');
 
             // Reset zoom level for new invoice
@@ -7195,39 +7337,72 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            // Get file if uploaded (Base64 encoding for both images and PDFs)
-            const fileInput = document.getElementById('invoice-photo');
-            let fileData = null;
-            let fileType = null;
-            let fileName = null;
-
-            if (fileInput && fileInput.files && fileInput.files[0]) {
-                const file = fileInput.files[0];
-
-                // Validate file size (max 1MB for Firestore)
-                if (file.size > 1024 * 1024) {
-                    alert('File is too large. Please use a file smaller than 1MB.');
-                    return;
-                }
-
-                // Determine file type
-                const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                fileType = isPdf ? 'pdf' : 'image';
-                fileName = file.name;
-
-                // Convert to Base64
-                fileData = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = (e) => reject(e);
-                    reader.readAsDataURL(file);
-                });
+            // Show saving indicator
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            const originalText = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                saveBtn.disabled = true;
             }
 
-            await createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, fileData, fileType, fileName);
+            try {
+                // Get file if uploaded - upload to Firebase Storage
+                const fileInput = document.getElementById('invoice-photo');
+                let fileUrl = null;
+                let filePath = null;
+                let fileType = null;
+                let fileName = null;
+
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+
+                    // Validate file size (max 10MB for Storage)
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert('File is too large. Please use a file smaller than 10MB.');
+                        if (saveBtn) {
+                            saveBtn.innerHTML = originalText;
+                            saveBtn.disabled = false;
+                        }
+                        return;
+                    }
+
+                    if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading file...';
+
+                    // Initialize storage if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
+                    // Determine file type
+                    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                    fileType = isPdf ? 'pdf' : 'image';
+                    fileName = file.name;
+
+                    // Upload to Firebase Storage
+                    const uploadResult = await firebaseStorageHelper.uploadDocument(
+                        file,
+                        'invoices/attachments',
+                        invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') + '_'
+                    );
+                    fileUrl = uploadResult.url;
+                    filePath = uploadResult.path;
+                }
+
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving invoice...';
+
+                await createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
+            } catch (error) {
+                console.error('Error saving invoice:', error);
+                alert('Error saving invoice. Please try again.');
+            } finally {
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalText || 'Save Invoice';
+                    saveBtn.disabled = false;
+                }
+            }
         }
 
-        async function createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null) {
+        async function createInvoiceRecord(invoiceNumber, vendor, category, amount, description, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
             // Create invoice data object
             const invoiceData = {
                 invoiceNumber: invoiceNumber || '',
@@ -7241,9 +7416,10 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 paymentAccount: paymentAccount || '',
                 recurring: recurring,
                 notes: notes || '',
-                photo: photo,
-                fileType: fileType,  // 'pdf' or 'image' or null
-                fileName: fileName   // Original filename for PDFs
+                photo: photo,           // Now stores URL instead of base64
+                filePath: filePath,     // Storage path for deletion
+                fileType: fileType,     // 'pdf' or 'image' or null
+                fileName: fileName      // Original filename for PDFs
             };
 
             // Save to Firebase
@@ -7647,7 +7823,6 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
             `;
 
-            modal.style.display = 'flex';
             modal.classList.add('active');
         }
 
@@ -8584,20 +8759,39 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 return;
             }
 
-            // Convert photo to base64 if provided and compress it
-            let photoBase64 = null;
+            // Upload photo to Firebase Storage if provided
+            let photoUrl = null;
+            let photoPath = null;
             if (photoInput && photoInput.files && photoInput.files[0]) {
                 const rawBase64 = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(photoInput.files[0]);
                 });
-                // Compress the image to ensure it's under Firestore's 1MB limit
+
+                // Initialize storage helper if needed
+                if (!firebaseStorageHelper.isInitialized) {
+                    firebaseStorageHelper.initialize();
+                }
+
                 try {
-                    photoBase64 = await compressImage(rawBase64);
+                    const tempId = Date.now().toString();
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        rawBase64,
+                        'change-records/photos',
+                        tempId
+                    );
+                    photoUrl = uploadResult.url;
+                    photoPath = uploadResult.path;
                 } catch (err) {
-                    console.error('Error compressing image:', err);
-                    photoBase64 = rawBase64; // Fallback to original if compression fails
+                    console.error('Error uploading change record photo to Storage:', err);
+                    // Fallback to compressed base64
+                    try {
+                        photoUrl = await compressImage(rawBase64);
+                    } catch (compressErr) {
+                        console.error('Error compressing image:', compressErr);
+                        photoUrl = rawBase64;
+                    }
                 }
             }
 
@@ -8608,7 +8802,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 leftBy,
                 receivedBy,
                 notes,
-                photo: photoBase64
+                photo: photoUrl,      // Now stores URL instead of base64
+                photoPath: photoPath  // For future deletion
             };
 
             try {
@@ -9246,8 +9441,50 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                             store,
                             date,
                             notes,
-                            photo: gift.photo || null
+                            photo: gift.photo || null,
+                            photoPath: gift.photoPath || null
                         };
+
+                        // Upload photo to Firebase Storage if new one provided
+                        if (photoInput && photoInput.files.length > 0) {
+                            const rawBase64 = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onload = (e) => resolve(e.target.result);
+                                reader.readAsDataURL(photoInput.files[0]);
+                            });
+
+                            // Initialize storage helper if needed
+                            if (!firebaseStorageHelper.isInitialized) {
+                                firebaseStorageHelper.initialize();
+                            }
+
+                            // Delete old photo from Storage if exists
+                            if (gift.photoPath) {
+                                try {
+                                    await firebaseStorageHelper.deleteFile(gift.photoPath);
+                                } catch (err) {
+                                    console.error('Error deleting old gift photo from Storage:', err);
+                                }
+                            }
+
+                            try {
+                                const uploadResult = await firebaseStorageHelper.uploadImage(
+                                    rawBase64,
+                                    'gifts/photos',
+                                    gift.firestoreId || numericGiftId.toString()
+                                );
+                                giftData.photo = uploadResult.url;
+                                giftData.photoPath = uploadResult.path;
+                            } catch (err) {
+                                console.error('Error uploading gift photo to Storage:', err);
+                                // Fallback to compressed base64
+                                try {
+                                    giftData.photo = await compressImage(rawBase64);
+                                } catch (compressErr) {
+                                    giftData.photo = rawBase64;
+                                }
+                            }
+                        }
 
                         // Update Firebase if it has a firestoreId
                         if (gift.firestoreId) {
@@ -9267,38 +9504,45 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         gift.store = store;
                         gift.date = date;
                         gift.notes = notes;
-                        // Convert and compress photo if new one provided
-                        if (photoInput && photoInput.files.length > 0) {
-                            const rawBase64 = await new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload = (e) => resolve(e.target.result);
-                                reader.readAsDataURL(photoInput.files[0]);
-                            });
-                            try {
-                                gift.photo = await compressImage(rawBase64);
-                            } catch (err) {
-                                console.error('Error compressing gift image:', err);
-                                gift.photo = rawBase64;
-                            }
-                        }
+                        gift.photo = giftData.photo;
+                        gift.photoPath = giftData.photoPath;
                     } else {
                         alert('Gift record not found');
                         return;
                     }
                 } else {
-                    // Convert and compress photo if provided
-                    let photoBase64 = null;
+                    // Upload photo to Firebase Storage if provided
+                    let photoUrl = null;
+                    let photoPath = null;
                     if (photoInput && photoInput.files.length > 0) {
                         const rawBase64 = await new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.onload = (e) => resolve(e.target.result);
                             reader.readAsDataURL(photoInput.files[0]);
                         });
+
+                        // Initialize storage helper if needed
+                        if (!firebaseStorageHelper.isInitialized) {
+                            firebaseStorageHelper.initialize();
+                        }
+
                         try {
-                            photoBase64 = await compressImage(rawBase64);
+                            const tempId = Date.now().toString();
+                            const uploadResult = await firebaseStorageHelper.uploadImage(
+                                rawBase64,
+                                'gifts/photos',
+                                tempId
+                            );
+                            photoUrl = uploadResult.url;
+                            photoPath = uploadResult.path;
                         } catch (err) {
-                            console.error('Error compressing gift image:', err);
-                            photoBase64 = rawBase64;
+                            console.error('Error uploading gift photo to Storage:', err);
+                            // Fallback to compressed base64
+                            try {
+                                photoUrl = await compressImage(rawBase64);
+                            } catch (compressErr) {
+                                photoUrl = rawBase64;
+                            }
                         }
                     }
 
@@ -9312,7 +9556,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                         store,
                         date,
                         notes,
-                        photo: photoBase64
+                        photo: photoUrl,       // Now stores URL instead of base64
+                        photoPath: photoPath   // For future deletion
                     };
 
                     // Save to Firebase
@@ -9553,20 +9798,38 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         async function processCloseCashOut(recordId, amountSpent, hasMoneyLeft, receiptInput, record) {
 
-            // Convert receipt to base64 if provided and compress it
-            let receiptBase64 = null;
+            // Upload receipt to Firebase Storage if provided
+            let receiptUrl = null;
+            let receiptPath = null;
             if (receiptInput && receiptInput.files && receiptInput.files[0]) {
                 const rawBase64 = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(receiptInput.files[0]);
                 });
-                // Compress the image to ensure it's under Firestore's 1MB limit
+
+                // Initialize storage helper if needed
+                if (!firebaseStorageHelper.isInitialized) {
+                    firebaseStorageHelper.initialize();
+                }
+
                 try {
-                    receiptBase64 = await compressImage(rawBase64);
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        rawBase64,
+                        'cashout/receipts',
+                        recordId.toString()
+                    );
+                    receiptUrl = uploadResult.url;
+                    receiptPath = uploadResult.path;
                 } catch (err) {
-                    console.error('Error compressing receipt image:', err);
-                    receiptBase64 = rawBase64;
+                    console.error('Error uploading cash out receipt to Storage:', err);
+                    // Fallback to compressed base64
+                    try {
+                        receiptUrl = await compressImage(rawBase64);
+                    } catch (compressErr) {
+                        console.error('Error compressing receipt image:', compressErr);
+                        receiptUrl = rawBase64;
+                    }
                 }
             }
 
@@ -9576,7 +9839,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 amountSpent: amountSpent,
                 moneyLeft: record.amount - amountSpent,
                 hasMoneyLeft: hasMoneyLeft,
-                receiptPhoto: receiptBase64
+                receiptPhoto: receiptUrl,     // Now stores URL instead of base64
+                receiptPath: receiptPath      // For future deletion
             };
 
             try {
@@ -9703,7 +9967,7 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 </div>
             `;
 
-            modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
         // Issues Functions
@@ -10997,19 +11261,34 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const imageInput = document.getElementById('vendor-image');
 
             try {
-                // Get image as base64 if uploaded and compress it
-                let image = null;
+                // Upload image to Firebase Storage if provided
+                let imageUrl = null;
+                let imagePath = null;
                 if (imageInput.files && imageInput.files.length > 0) {
+                    // Initialize storage helper if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
                     const rawBase64 = await new Promise((resolve) => {
                         const reader = new FileReader();
                         reader.onload = (e) => resolve(e.target.result);
                         reader.readAsDataURL(imageInput.files[0]);
                     });
+
                     try {
-                        image = await compressImage(rawBase64);
+                        const tempId = Date.now().toString();
+                        const uploadResult = await firebaseStorageHelper.uploadImage(
+                            rawBase64,
+                            'vendors/images',
+                            tempId
+                        );
+                        imageUrl = uploadResult.url;
+                        imagePath = uploadResult.path;
                     } catch (err) {
-                        console.error('Error compressing vendor image:', err);
-                        image = rawBase64;
+                        console.error('Error uploading vendor image to Storage:', err);
+                        // Fallback to compressed base64 for Firestore
+                        imageUrl = await compressImage(rawBase64);
                     }
                 }
 
@@ -11025,7 +11304,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     products,
                     orderMethods,
                     notes,
-                    image
+                    image: imageUrl,      // Now stores URL instead of base64
+                    imagePath: imagePath  // For future deletion
                 };
 
                 await firebaseVendorsManager.addVendor(newVendor);
@@ -11341,30 +11621,65 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const imagePreview = document.getElementById('edit-vendor-image-preview');
 
             try {
+                const existingVendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
+
                 // Determine image value
-                let image = null;
+                let imageUrl = null;
+                let imagePath = null;
                 const wasRemoved = imagePreview?.getAttribute('data-removed') === 'true';
 
                 if (wasRemoved) {
-                    // Image was explicitly removed
-                    image = null;
+                    // Image was explicitly removed - delete from Storage if exists
+                    if (existingVendor?.imagePath) {
+                        try {
+                            if (!firebaseStorageHelper.isInitialized) {
+                                firebaseStorageHelper.initialize();
+                            }
+                            await firebaseStorageHelper.deleteFile(existingVendor.imagePath);
+                        } catch (err) {
+                            console.error('Error deleting old vendor image from Storage:', err);
+                        }
+                    }
+                    imageUrl = null;
+                    imagePath = null;
                 } else if (imageInput?.files && imageInput.files.length > 0) {
-                    // New image uploaded - convert to base64 and compress
+                    // New image uploaded - upload to Firebase Storage
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
+                    // Delete old image from Storage if exists
+                    if (existingVendor?.imagePath) {
+                        try {
+                            await firebaseStorageHelper.deleteFile(existingVendor.imagePath);
+                        } catch (err) {
+                            console.error('Error deleting old vendor image from Storage:', err);
+                        }
+                    }
+
                     const rawBase64 = await new Promise((resolve) => {
                         const reader = new FileReader();
                         reader.onload = (e) => resolve(e.target.result);
                         reader.readAsDataURL(imageInput.files[0]);
                     });
+
                     try {
-                        image = await compressImage(rawBase64);
+                        const uploadResult = await firebaseStorageHelper.uploadImage(
+                            rawBase64,
+                            'vendors/images',
+                            firestoreId
+                        );
+                        imageUrl = uploadResult.url;
+                        imagePath = uploadResult.path;
                     } catch (err) {
-                        console.error('Error compressing vendor image:', err);
-                        image = rawBase64;
+                        console.error('Error uploading vendor image to Storage:', err);
+                        // Fallback to compressed base64
+                        imageUrl = await compressImage(rawBase64);
                     }
                 } else {
                     // Keep existing image
-                    const existingVendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
-                    image = existingVendor?.image || null;
+                    imageUrl = existingVendor?.image || null;
+                    imagePath = existingVendor?.imagePath || null;
                 }
 
                 const updateData = {
@@ -11379,7 +11694,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     products,
                     orderMethods,
                     notes,
-                    image
+                    image: imageUrl,
+                    imagePath: imagePath
                 };
 
                 await firebaseVendorsManager.updateVendor(firestoreId, updateData);
@@ -14287,7 +14603,12 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             }
         }
 
-        function closeModal() {
+        function closeModal(forceClose = false) {
+            // Reset form protection before closing
+            if (typeof formProtectionManager !== 'undefined') {
+                formProtectionManager.resetProtection();
+            }
+
             document.getElementById('modal').classList.remove('active');
         }
 
@@ -15307,11 +15628,30 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
             try {
-                // Get image as base64 if uploaded (same approach as thieves) - OPTIONAL
-                let image = null;
+                // Upload image to Firebase Storage if provided
+                let imageUrl = null;
+                let imagePath = null;
                 const imageImg = document.getElementById('product-image-img');
-                if (imageImg && imageImg.src && imageInput && imageInput.files && imageInput.files.length > 0) {
-                    image = imageImg.src;  // Base64 DataURL from preview
+                if (imageImg && imageImg.src && imageInput && imageInput.files && imageInput.files.length > 0 && imageImg.src.startsWith('data:')) {
+                    // Initialize storage helper if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
+                    try {
+                        const tempId = Date.now().toString();
+                        const uploadResult = await firebaseStorageHelper.uploadImage(
+                            imageImg.src,
+                            'products/images',
+                            tempId
+                        );
+                        imageUrl = uploadResult.url;
+                        imagePath = uploadResult.path;
+                    } catch (err) {
+                        console.error('Error uploading product image to Storage:', err);
+                        // Fallback to compressed base64
+                        imageUrl = await compressImage(imageImg.src);
+                    }
                 }
 
                 // Create product data object
@@ -15323,7 +15663,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                     estimatedDeals: estimatedDeals || '',
                     url: url || '',
                     supplier: supplier || '',
-                    image: image,  // Base64 image stored directly in Firestore (optional)
+                    image: imageUrl,      // Now stores URL instead of base64
+                    imagePath: imagePath, // For future deletion
                     status: 'pending'
                 };
 
@@ -15682,11 +16023,39 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
             const imageInput = document.getElementById('edit-product-image');
 
-            // Get image - use new one if uploaded, otherwise keep current (same approach as thieves)
-            let image = product.image;
+            // Upload image to Firebase Storage if new one provided
+            let imageUrl = product.image;
+            let imagePath = product.imagePath || null;
             const imageImg = document.getElementById('edit-product-image-img');
-            if (imageInput && imageInput.files && imageInput.files.length > 0 && imageImg && imageImg.src) {
-                image = imageImg.src;  // New Base64 DataURL
+            if (imageInput && imageInput.files && imageInput.files.length > 0 && imageImg && imageImg.src && imageImg.src.startsWith('data:')) {
+                // Initialize storage helper if needed
+                if (!firebaseStorageHelper.isInitialized) {
+                    firebaseStorageHelper.initialize();
+                }
+
+                // Delete old image from Storage if exists
+                if (product.imagePath) {
+                    try {
+                        await firebaseStorageHelper.deleteFile(product.imagePath);
+                    } catch (err) {
+                        console.error('Error deleting old product image from Storage:', err);
+                    }
+                }
+
+                try {
+                    const firestoreId = product.firestoreId || productId;
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        imageImg.src,
+                        'products/images',
+                        firestoreId
+                    );
+                    imageUrl = uploadResult.url;
+                    imagePath = uploadResult.path;
+                } catch (err) {
+                    console.error('Error uploading product image to Storage:', err);
+                    // Fallback to compressed base64
+                    imageUrl = await compressImage(imageImg.src);
+                }
             }
 
             // Update product with new values
@@ -15699,7 +16068,8 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 arrivalDate: document.getElementById('edit-product-arrival-date').value || product.arrivalDate,
                 supplier: document.getElementById('edit-product-supplier').value.trim() || product.supplier,
                 description: document.getElementById('edit-product-description').value.trim() || '',
-                image: image  // Base64 image
+                image: imageUrl,      // Now stores URL instead of base64
+                imagePath: imagePath  // For future deletion
             };
 
             // Update local product
@@ -15972,7 +16342,29 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         const modal = document.getElementById('modal');
         if (modal) {
             modal.addEventListener('mousedown', function(e) {
-                if (e.target === this) closeModal();
+                if (e.target === this) {
+                    // Check form protection before closing
+                    if (typeof formProtectionManager !== 'undefined' && formProtectionManager.shouldPreventClose()) {
+                        formProtectionManager.showConfirmDialog();
+                        return;
+                    }
+                    closeModal();
+                }
+            });
+        }
+
+        // Close expense modal on background click
+        const expenseModal = document.getElementById('expenseModal');
+        if (expenseModal) {
+            expenseModal.addEventListener('mousedown', function(e) {
+                if (e.target === this) {
+                    // Check form protection before closing
+                    if (typeof formProtectionManager !== 'undefined' && formProtectionManager.shouldPreventClose()) {
+                        formProtectionManager.showConfirmDialog();
+                        return;
+                    }
+                    closeExpenseModal();
+                }
             });
         }
 
@@ -17073,47 +17465,79 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
         // Load risk notes from Firebase when available
         async function loadRiskNotesFromFirebase() {
-            if (typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
+            // Wait for firebaseSyncManager to be initialized
+            if (typeof firebaseSyncManager === 'undefined') {
+                console.log('FirebaseSyncManager not available');
+                return;
+            }
+
+            // If not initialized yet, try to initialize
+            if (!firebaseSyncManager.isInitialized) {
                 try {
-                    const firebaseNotes = await firebaseSyncManager.loadRiskNotesFromFirestore();
-                    if (firebaseNotes && firebaseNotes.length > 0) {
-                        // Merge Firebase notes with local notes (Firebase takes priority)
-                        const localNotes = JSON.parse(localStorage.getItem('riskNotes')) || [];
-                        const mergedNotes = [...firebaseNotes];
+                    await firebaseSyncManager.initialize();
+                } catch (err) {
+                    console.error('Failed to initialize firebaseSyncManager:', err);
+                    return;
+                }
+            }
 
-                        // Add local notes that don't have a firestoreId (not yet synced)
-                        localNotes.forEach(localNote => {
-                            if (!localNote.firestoreId && !mergedNotes.find(n => n.id === localNote.id)) {
-                                mergedNotes.push(localNote);
-                                // Sync this local note to Firebase
-                                firebaseSyncManager.saveRiskNoteToFirestore(localNote).then(firestoreId => {
-                                    if (firestoreId) {
-                                        localNote.firestoreId = firestoreId;
-                                        saveRiskNotes();
-                                    }
-                                });
+            if (!firebaseSyncManager.isInitialized) {
+                console.log('FirebaseSyncManager could not be initialized');
+                return;
+            }
+
+            try {
+                console.log('📥 Loading risk notes from Firebase...');
+                const firebaseNotes = await firebaseSyncManager.loadRiskNotesFromFirestore();
+
+                // Merge Firebase notes with local notes (Firebase takes priority)
+                const localNotes = JSON.parse(localStorage.getItem('riskNotes')) || [];
+                const mergedNotes = [...(firebaseNotes || [])];
+
+                // Add local notes that don't have a firestoreId (not yet synced)
+                for (const localNote of localNotes) {
+                    if (!localNote.firestoreId && !mergedNotes.find(n => n.id === localNote.id)) {
+                        mergedNotes.push(localNote);
+                        // Sync this local note to Firebase
+                        try {
+                            const firestoreId = await firebaseSyncManager.saveRiskNoteToFirestore(localNote);
+                            if (firestoreId) {
+                                localNote.firestoreId = firestoreId;
+                                // Update in mergedNotes
+                                const noteInMerged = mergedNotes.find(n => n.id === localNote.id);
+                                if (noteInMerged) noteInMerged.firestoreId = firestoreId;
                             }
-                        });
-
-                        riskNotesState.notes = mergedNotes;
-                        saveRiskNotes();
-                        console.log('✅ Risk notes loaded from Firebase');
-
-                        // Re-render if on risknotes page
-                        if (window.currentPage === 'risknotes') {
-                            renderRiskNotes();
+                        } catch (syncErr) {
+                            console.error('Error syncing local note to Firebase:', syncErr);
                         }
                     }
-                } catch (error) {
-                    console.error('Error loading risk notes from Firebase:', error);
                 }
+
+                riskNotesState.notes = mergedNotes;
+                saveRiskNotes();
+                console.log(`✅ Risk notes loaded: ${mergedNotes.length} total`);
+
+                // Re-render if on risknotes page
+                if (window.currentPage === 'risknotes') {
+                    renderRiskNotes();
+                }
+            } catch (error) {
+                console.error('Error loading risk notes from Firebase:', error);
             }
         }
 
-        // Initialize Firebase risk notes loading after a short delay to ensure Firebase is ready
-        setTimeout(() => {
+        // Listen for Firebase sync ready event
+        window.addEventListener('firebaseSyncReady', () => {
+            console.log('🔥 Firebase sync ready - loading risk notes');
             loadRiskNotesFromFirebase();
-        }, 1500);
+        });
+
+        // Also try to load after a delay as fallback
+        setTimeout(() => {
+            if (riskNotesState.notes.length === 0 || !riskNotesState.notes.some(n => n.firestoreId)) {
+                loadRiskNotesFromFirebase();
+            }
+        }, 2000);
 
         function saveRiskNotes() {
             // Store notes WITHOUT photo data in localStorage (only metadata)
@@ -17362,10 +17786,21 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 onConfirm: async () => {
                     const note = riskNotesState.notes.find(n => n.id === noteId);
 
-                    // Delete from Firebase if it has a firestoreId
+                    // Delete photo from Firebase Storage first if it exists
+                    if (note && note.photoPath && typeof firebaseStorageHelper !== 'undefined') {
+                        try {
+                            await firebaseStorageHelper.deleteFile(note.photoPath);
+                            console.log('✅ Risk note photo deleted from Storage');
+                        } catch (storageErr) {
+                            console.error('Error deleting photo from Storage:', storageErr);
+                        }
+                    }
+
+                    // Delete from Firebase Firestore if it has a firestoreId
                     if (note && note.firestoreId && typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
                         try {
                             await firebaseSyncManager.deleteRiskNoteFromFirestore(note.firestoreId);
+                            console.log('✅ Risk note deleted from Firestore');
                         } catch (error) {
                             console.error('Error deleting risk note from Firebase:', error);
                         }
@@ -17373,15 +17808,20 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
 
                     riskNotesState.notes = riskNotesState.notes.filter(n => n.id !== noteId);
 
-                    // Delete photo from IndexedDB if it exists
-                    if (note && note.hasPhoto) {
+                    // Delete photo from IndexedDB if it exists (legacy fallback)
+                    if (note && note.hasPhoto && !note.photoPath) {
                         deletePhotoFromIndexedDB(noteId).catch(err => {
-                            console.error('Error deleting photo:', err);
+                            console.error('Error deleting photo from IndexedDB:', err);
                         });
                     }
 
                     saveRiskNotes();
                     renderRiskNotes();
+
+                    // Show success notification
+                    if (typeof showNotification === 'function') {
+                        showNotification('Risk note deleted successfully', 'success');
+                    }
                 }
             });
         }
@@ -17408,8 +17848,38 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
         }
 
         async function createRiskNote(date, store, behaviorType, description, level, reportedBy, managerNote, photo) {
+            const noteId = Date.now().toString();
+
+            // Upload photo to Firebase Storage if provided
+            let photoUrl = null;
+            let photoPath = null;
+            if (photo) {
+                // Initialize storage helper if needed
+                if (!firebaseStorageHelper.isInitialized) {
+                    firebaseStorageHelper.initialize();
+                }
+
+                try {
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        photo,
+                        'risk-notes/photos',
+                        noteId
+                    );
+                    photoUrl = uploadResult.url;
+                    photoPath = uploadResult.path;
+                } catch (err) {
+                    console.error('Error uploading risk note photo to Storage:', err);
+                    // Fallback to IndexedDB if Storage fails
+                    try {
+                        await savePhotoToIndexedDB(noteId, photo);
+                    } catch (indexedErr) {
+                        console.error('Error saving photo to IndexedDB:', indexedErr);
+                    }
+                }
+            }
+
             const newNote = {
-                id: Date.now().toString(),
+                id: noteId,
                 date,
                 store: store || 'Miramar',
                 behaviorType: behaviorType || 'other',
@@ -17418,34 +17888,45 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
                 reportedBy: reportedBy || 'Staff',
                 managerNote,
                 hasPhoto: !!photo,
+                photo: photoUrl,        // Firebase Storage URL
+                photoPath: photoPath,   // For future deletion
                 createdAt: new Date().toISOString()
             };
 
             // Save to Firebase first
-            if (typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
-                try {
-                    const firestoreId = await firebaseSyncManager.saveRiskNoteToFirestore(newNote);
-                    if (firestoreId) {
-                        newNote.firestoreId = firestoreId;
+            if (typeof firebaseSyncManager !== 'undefined') {
+                // Initialize if needed
+                if (!firebaseSyncManager.isInitialized) {
+                    try {
+                        await firebaseSyncManager.initialize();
+                    } catch (initErr) {
+                        console.error('Error initializing firebaseSyncManager:', initErr);
                     }
-                } catch (error) {
-                    console.error('Error saving risk note to Firebase:', error);
+                }
+
+                if (firebaseSyncManager.isInitialized) {
+                    try {
+                        const firestoreId = await firebaseSyncManager.saveRiskNoteToFirestore(newNote);
+                        if (firestoreId) {
+                            newNote.firestoreId = firestoreId;
+                            console.log('✅ Risk note saved to Firebase:', firestoreId);
+                        }
+                    } catch (error) {
+                        console.error('Error saving risk note to Firebase:', error);
+                    }
                 }
             }
 
             riskNotesState.notes.unshift(newNote);
 
-            // Save photo to IndexedDB if it exists
-            if (photo) {
-                savePhotoToIndexedDB(newNote.id, photo).catch(err => {
-                    console.error('Error saving photo:', err);
-                    alert('Warning: Photo could not be saved, but note was created.');
-                });
-            }
-
             saveRiskNotes();
             closeModal();
             renderRiskNotes();
+
+            // Show success notification
+            if (typeof showNotification === 'function') {
+                showNotification('Risk note created successfully!', 'success');
+            }
         }
 
         function previewRiskNotePhoto(input) {
@@ -17489,21 +17970,26 @@ ${record.notes ? 'Notes: ' + record.notes : ''}`);
             const createdDate = note.createdAt ? new Date(note.createdAt).toLocaleString('en-US') : 'Unknown';
 
             const modal = document.getElementById('modal');
-            
-            // Fetch photo from IndexedDB if it exists
+
+            // Load photo - prefer Firebase Storage URL, fallback to IndexedDB
             const loadPhotoAndRender = async () => {
                 let photoUrl = null;
-                if (note.hasPhoto) {
+
+                // First check if we have a Firebase Storage URL
+                if (note.photo) {
+                    photoUrl = note.photo;
+                } else if (note.hasPhoto) {
+                    // Fallback to IndexedDB for older notes
                     try {
                         photoUrl = await getPhotoFromIndexedDB(noteId);
                     } catch (err) {
-                        console.error('Error loading photo:', err);
+                        console.error('Error loading photo from IndexedDB:', err);
                     }
                 }
-                
+
                 renderNoteModal(modal, note, behaviorType, level, noteDate, createdDate, photoUrl);
             };
-            
+
             loadPhotoAndRender();
         }
 
@@ -18635,7 +19121,11 @@ function openAddExpenseModal() {
 }
 
 // Close expense modal
-function closeExpenseModal() {
+function closeExpenseModal(forceClose = false) {
+    // Reset form protection before closing
+    if (typeof formProtectionManager !== 'undefined') {
+        formProtectionManager.resetProtection();
+    }
     document.getElementById('expenseModal').classList.remove('active');
     gconomicsState.editingExpenseId = null;
 }
@@ -18708,14 +19198,33 @@ function saveExpense(event) {
 }
 
 async function saveExpenseWithPhoto(date, description, category, amount, photo) {
-    // Compress photo if provided
-    let compressedPhoto = photo;
+    // Upload photo to Firebase Storage if provided
+    let photoUrl = photo;
+    let photoPath = null;
+
     if (photo && photo.startsWith('data:image')) {
+        // Initialize storage helper if needed
+        if (!firebaseStorageHelper.isInitialized) {
+            firebaseStorageHelper.initialize();
+        }
+
         try {
-            compressedPhoto = await compressImage(photo, 700, 1200, 1200);
-            console.log('✅ Gconomics expense photo compressed successfully');
+            const expenseId = gconomicsState.editingExpenseId || Date.now().toString();
+            const uploadResult = await firebaseStorageHelper.uploadImage(
+                photo,
+                'expenses/receipts',
+                expenseId
+            );
+            photoUrl = uploadResult.url;
+            photoPath = uploadResult.path;
+            console.log('✅ Expense receipt uploaded to Firebase Storage');
         } catch (error) {
-            console.warn('Photo compression failed, using original:', error);
+            console.warn('Firebase Storage upload failed, using compressed base64:', error);
+            try {
+                photoUrl = await compressImage(photo, 700, 1200, 1200);
+            } catch (compressError) {
+                console.warn('Photo compression failed, using original:', compressError);
+            }
         }
     }
 
@@ -18723,13 +19232,23 @@ async function saveExpenseWithPhoto(date, description, category, amount, photo) 
         // Update existing expense
         const index = gconomicsState.expenses.findIndex(e => e.id === gconomicsState.editingExpenseId);
         if (index > -1) {
+            // Delete old photo from Storage if replacing with new one
+            if (photo && photo.startsWith('data:image') && gconomicsState.expenses[index].photoPath) {
+                try {
+                    await firebaseStorageHelper.deleteFile(gconomicsState.expenses[index].photoPath);
+                } catch (err) {
+                    console.error('Error deleting old expense photo:', err);
+                }
+            }
+
             gconomicsState.expenses[index] = {
                 ...gconomicsState.expenses[index],
                 date,
                 description: description || 'Expense',
                 category: category || 'other',
                 amount,
-                photo: compressedPhoto,
+                photo: photoUrl,       // Now stores URL instead of base64
+                photoPath: photoPath || gconomicsState.expenses[index].photoPath,
                 updatedAt: new Date().toISOString()
             };
         }
@@ -18741,7 +19260,8 @@ async function saveExpenseWithPhoto(date, description, category, amount, photo) 
             description: description || 'Expense',
             category: category || 'other',
             amount,
-            photo: compressedPhoto,
+            photo: photoUrl,       // Now stores URL instead of base64
+            photoPath: photoPath,  // For future deletion
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
