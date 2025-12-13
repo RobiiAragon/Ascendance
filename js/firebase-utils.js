@@ -1780,6 +1780,148 @@ class FirebaseEmployeeManager {
             return [];
         }
     }
+
+    /**
+     * Save day off request to Firestore
+     * @param {Object} dayOffData - Day off request data
+     * @returns {Promise<string>} Request ID
+     */
+    async saveDayOffRequest(dayOffData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase not initialized.');
+                return null;
+            }
+
+            const dayOffsCollection = window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests';
+            
+            const docRef = await this.db.collection(dayOffsCollection).add({
+                ...dayOffData,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            });
+
+            console.log('Day off request saved with ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error saving day off request:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get day off requests for an employee
+     * @param {string} employeeId - Employee ID
+     * @returns {Promise<Array>} Array of day off requests
+     */
+    async getDayOffRequests(employeeId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized.');
+                return [];
+            }
+
+            const dayOffsCollection = window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests';
+            const snapshot = await this.db.collection(dayOffsCollection)
+                .where('employeeId', '==', employeeId)
+                .get();
+
+            const requests = [];
+            snapshot.forEach(doc => {
+                requests.push({
+                    id: doc.id,
+                    ...doc.data(),
+                    firestoreId: doc.id
+                });
+            });
+
+            return requests;
+        } catch (error) {
+            console.error('Error getting day off requests:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get all day off requests from Firestore
+     * @returns {Promise<Array>} Array of all day off requests
+     */
+    async getAllDayOffRequests() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase not initialized.');
+                return [];
+            }
+
+            const dayOffsCollection = window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests';
+            const snapshot = await this.db.collection(dayOffsCollection).get();
+
+            const requests = [];
+            snapshot.forEach(doc => {
+                requests.push({
+                    id: doc.id,
+                    ...doc.data(),
+                    firestoreId: doc.id
+                });
+            });
+
+            console.log(`Loaded ${requests.length} day off requests from Firebase`);
+            return requests;
+        } catch (error) {
+            console.error('Error getting all day off requests:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Delete day off request from Firestore
+     * @param {string} requestId - Request ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteDayOffRequest(requestId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase not initialized.');
+                return false;
+            }
+
+            const dayOffsCollection = window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests';
+            await this.db.collection(dayOffsCollection).doc(requestId).delete();
+
+            console.log('Day off request deleted:', requestId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting day off request:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Update day off request status
+     * @param {string} requestId - Request ID
+     * @param {string} status - New status (pending, approved, denied)
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateDayOffRequestStatus(requestId, status) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase not initialized.');
+                return false;
+            }
+
+            const dayOffsCollection = window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests';
+            await this.db.collection(dayOffsCollection).doc(requestId).update({
+                status: status,
+                updatedAt: new Date()
+            });
+
+            console.log('Day off request status updated:', requestId, 'to', status);
+            return true;
+        } catch (error) {
+            console.error('Error updating day off request status:', error);
+            return false;
+        }
+    }
 }
 
 // Initialize global Firebase manager
@@ -4563,6 +4705,7 @@ class FirebaseIssuesManager {
                     customer: data.customer || 'Anonymous',
                     phone: data.phone || '',
                     type: data.type || 'In Store',
+                    store: data.store || '',
                     description: data.description || '',
                     incidentDate: data.incidentDate || '',
                     perception: data.perception || null,
@@ -4572,6 +4715,8 @@ class FirebaseIssuesManager {
                     solution: data.solution || null,
                     resolvedBy: data.resolvedBy || null,
                     resolutionDate: data.resolutionDate || null,
+                    followUpNotes: data.followUpNotes || '',
+                    statusHistory: data.statusHistory || [],
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt
                 });

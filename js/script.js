@@ -602,6 +602,12 @@
         ];
 
         // Cash Out Records
+        let currentCashOutStoreFilter = 'all';
+        let cashOutViewState = {
+            viewType: 'month',
+            expenseAnalysisExpanded: false
+        };
+        let cashOutCharts = {};
         let cashOutRecords = [
             {
                 id: 1,
@@ -1289,7 +1295,7 @@
                         <h2 class="section-title">Employee Directory</h2>
                         <p class="section-subtitle">Manage your team across all stores</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-employee')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-employee')">
                         <i class="fas fa-plus"></i> Add Employee
                     </button>
                 </div>
@@ -1381,6 +1387,7 @@
                         // Update employee count badge in sidebar
                         updateEmployeeCountBadge();
                     }
+
                 } catch (error) {
                     console.error('Error loading employees from Firebase:', error);
                 }
@@ -1490,7 +1497,7 @@
                         <h2 class="section-title">Training Center</h2>
                         <p class="section-subtitle">Videos, documents, and courses for your team</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-training')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-training')">
                         <i class="fas fa-plus"></i> Add Training
                     </button>
                 </div>
@@ -1521,7 +1528,7 @@
                         <h2 class="section-title">Training Center</h2>
                         <p class="section-subtitle">Videos, documents, and courses for your team</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-training')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-training')">
                         <i class="fas fa-plus"></i> Add Training
                     </button>
                 </div>
@@ -1697,94 +1704,186 @@
 
         function renderAnalytics() {
             const dashboard = document.querySelector('.dashboard');
+
+            // Calculate real totals from Cash Out records
+            const totalCashOut = cashOutRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+            // Monthly data for Income vs Expenses chart (sample data - would come from Shopify/POS in production)
+            const monthlyData = [
+                { month: 'Jan', income: 42500, expenses: 8200 },
+                { month: 'Feb', income: 38900, expenses: 7500 },
+                { month: 'Mar', income: 45200, expenses: 9100 },
+                { month: 'Apr', income: 41800, expenses: 8400 },
+                { month: 'May', income: 48600, expenses: 9800 },
+                { month: 'Jun', income: 52100, expenses: 10200 },
+                { month: 'Jul', income: 49800, expenses: 9600 },
+                { month: 'Aug', income: 54300, expenses: 10800 },
+                { month: 'Sep', income: 51200, expenses: 10100 },
+                { month: 'Oct', income: 56800, expenses: 11200 },
+                { month: 'Nov', income: 62400, expenses: 12100 },
+                { month: 'Dec', income: 68500, expenses: 13500 }
+            ];
+
+            // Calculate totals
+            const totalIncome = monthlyData.reduce((sum, m) => sum + m.income, 0);
+            const totalExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0);
+            const netProfit = totalIncome - totalExpenses;
+            const profitMargin = ((netProfit / totalIncome) * 100).toFixed(1);
+
+            // Find max values for chart scaling
+            const maxIncome = Math.max(...monthlyData.map(m => m.income));
+
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Sales Analytics</h2>
-                        <p class="section-subtitle">Performance insights from your Shopify stores</p>
+                        <p class="section-subtitle">Performance insights - Annual totals and monthly breakdown</p>
                     </div>
                     <div class="date-range-picker">
-                        <button class="date-btn active">Today</button>
-                        <button class="date-btn">This Week</button>
-                        <button class="date-btn">This Month</button>
+                        <button class="date-btn active">2024</button>
+                        <button class="date-btn">2023</button>
                         <button class="date-btn">Custom</button>
                     </div>
                 </div>
 
+                <!-- Annual Totals -->
                 <div class="analytics-grid">
                     <div class="analytics-card revenue">
                         <div class="analytics-card-header">
-                            <h3>Total Revenue</h3>
-                            <span class="trend up"><i class="fas fa-arrow-up"></i> 12.5%</span>
+                            <h3>Total Annual Revenue</h3>
+                            <span class="trend up"><i class="fas fa-arrow-up"></i> 18.2%</span>
                         </div>
-                        <div class="analytics-value">$48,200</div>
-                        <div class="analytics-chart">
-                            <div class="chart-bar" style="height: 40%;"></div>
-                            <div class="chart-bar" style="height: 55%;"></div>
-                            <div class="chart-bar" style="height: 45%;"></div>
-                            <div class="chart-bar" style="height: 70%;"></div>
-                            <div class="chart-bar" style="height: 65%;"></div>
-                            <div class="chart-bar" style="height: 80%;"></div>
-                            <div class="chart-bar active" style="height: 90%;"></div>
+                        <div class="analytics-value">$${(totalIncome / 1000).toFixed(1)}K</div>
+                        <div class="analytics-comparison">
+                            <span>All stores combined</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                        <div class="analytics-card-header">
+                            <h3 style="color: white;">Total Expenses</h3>
+                            <span class="trend" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-chart-line"></i></span>
+                        </div>
+                        <div class="analytics-value" style="color: white;">$${(totalExpenses / 1000).toFixed(1)}K</div>
+                        <div class="analytics-comparison" style="color: rgba(255,255,255,0.8);">
+                            <span>Cash outs: $${totalCashOut.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <div class="analytics-card-header">
+                            <h3 style="color: white;">Net Profit</h3>
+                            <span class="trend" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-arrow-up"></i> ${profitMargin}%</span>
+                        </div>
+                        <div class="analytics-value" style="color: white;">$${(netProfit / 1000).toFixed(1)}K</div>
+                        <div class="analytics-comparison" style="color: rgba(255,255,255,0.8);">
+                            <span>Profit margin: ${profitMargin}%</span>
                         </div>
                     </div>
 
                     <div class="analytics-card orders">
                         <div class="analytics-card-header">
                             <h3>Total Orders</h3>
-                            <span class="trend up"><i class="fas fa-arrow-up"></i> 8.3%</span>
+                            <span class="trend up"><i class="fas fa-arrow-up"></i> 12.5%</span>
                         </div>
-                        <div class="analytics-value">443</div>
+                        <div class="analytics-value">5,842</div>
                         <div class="analytics-breakdown">
                             <div class="breakdown-item">
-                                <span class="breakdown-label">Miramar</span>
-                                <span class="breakdown-value">142</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Kearny Mesa</span>
-                                <span class="breakdown-value">118</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Chula Vista</span>
-                                <span class="breakdown-value">96</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Morena</span>
-                                <span class="breakdown-value">87</span>
+                                <span class="breakdown-label">Avg/Month</span>
+                                <span class="breakdown-value">487</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="analytics-card aov">
-                        <div class="analytics-card-header">
-                            <h3>Avg. Order Value</h3>
-                            <span class="trend up"><i class="fas fa-arrow-up"></i> 4.2%</span>
-                        </div>
-                        <div class="analytics-value">$108.79</div>
-                        <div class="analytics-comparison">
-                            <span>vs last month: $104.35</span>
-                        </div>
+                <!-- Income vs Expenses Chart -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-chart-bar"></i> Income vs Expenses by Month</h3>
                     </div>
-
-                    <div class="analytics-card customers">
-                        <div class="analytics-card-header">
-                            <h3>New Customers</h3>
-                            <span class="trend up"><i class="fas fa-arrow-up"></i> 15.7%</span>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 4px;"></div>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Income</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 4px;"></div>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Expenses</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 3px; background: #10b981; border-radius: 2px;"></div>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Net Profit</span>
+                            </div>
                         </div>
-                        <div class="analytics-value">89</div>
-                        <div class="analytics-comparison">
-                            <span>Returning: 354</span>
+
+                        <div style="display: flex; align-items: flex-end; gap: 12px; height: 250px; padding: 20px 0; border-bottom: 2px solid var(--border-color);">
+                            ${monthlyData.map(m => {
+                                const incomeHeight = (m.income / maxIncome) * 100;
+                                const expenseHeight = (m.expenses / maxIncome) * 100;
+                                const profit = m.income - m.expenses;
+                                const profitPercent = ((profit / m.income) * 100).toFixed(0);
+                                return `
+                                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                        <div style="font-size: 11px; color: #10b981; font-weight: 600;">+${profitPercent}%</div>
+                                        <div style="display: flex; gap: 4px; align-items: flex-end; height: 180px;">
+                                            <div style="width: 20px; height: ${incomeHeight}%; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 4px 4px 0 0; transition: height 0.3s;" title="Income: $${m.income.toLocaleString()}"></div>
+                                            <div style="width: 20px; height: ${expenseHeight}%; background: linear-gradient(180deg, #ef4444, #dc2626); border-radius: 4px 4px 0 0; transition: height 0.3s;" title="Expenses: $${m.expenses.toLocaleString()}"></div>
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 500;">${m.month}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <!-- Monthly Summary Table -->
+                        <div style="margin-top: 20px; overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="background: var(--bg-secondary);">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color);">Month</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Income</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Expenses</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Net Profit</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Margin</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${monthlyData.map(m => {
+                                        const profit = m.income - m.expenses;
+                                        const margin = ((profit / m.income) * 100).toFixed(1);
+                                        return `
+                                            <tr>
+                                                <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-weight: 500;">${m.month}</td>
+                                                <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; color: var(--accent-primary);">$${m.income.toLocaleString()}</td>
+                                                <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; color: #ef4444;">$${m.expenses.toLocaleString()}</td>
+                                                <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; color: #10b981; font-weight: 600;">$${profit.toLocaleString()}</td>
+                                                <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right;">
+                                                    <span style="padding: 4px 8px; background: ${parseFloat(margin) > 80 ? '#10b98120' : '#f59e0b20'}; color: ${parseFloat(margin) > 80 ? '#10b981' : '#f59e0b'}; border-radius: 12px; font-size: 12px; font-weight: 600;">${margin}%</span>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                    <tr style="background: var(--bg-secondary); font-weight: 700;">
+                                        <td style="padding: 12px;">TOTAL</td>
+                                        <td style="padding: 12px; text-align: right; color: var(--accent-primary);">$${totalIncome.toLocaleString()}</td>
+                                        <td style="padding: 12px; text-align: right; color: #ef4444;">$${totalExpenses.toLocaleString()}</td>
+                                        <td style="padding: 12px; text-align: right; color: #10b981;">$${netProfit.toLocaleString()}</td>
+                                        <td style="padding: 12px; text-align: right;">${profitMargin}%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
                 <div class="analytics-stores">
-                    <h3 class="section-subtitle-alt">Store Performance Comparison</h3>
+                    <h3 class="section-subtitle-alt">Store Performance Comparison (Annual)</h3>
                     <div class="store-bars">
                         <div class="store-bar-item">
                             <div class="store-bar-label">
                                 <span>VSU Miramar</span>
-                                <span>$15,420</span>
+                                <span>$185,040</span>
                             </div>
                             <div class="store-bar-track">
                                 <div class="store-bar-fill miramar" style="width: 100%;"></div>
@@ -1793,7 +1892,7 @@
                         <div class="store-bar-item">
                             <div class="store-bar-label">
                                 <span>VSU Kearny Mesa</span>
-                                <span>$12,890</span>
+                                <span>$154,680</span>
                             </div>
                             <div class="store-bar-track">
                                 <div class="store-bar-fill kearny" style="width: 83%;"></div>
@@ -1802,7 +1901,7 @@
                         <div class="store-bar-item">
                             <div class="store-bar-label">
                                 <span>VSU Chula Vista</span>
-                                <span>$10,340</span>
+                                <span>$124,080</span>
                             </div>
                             <div class="store-bar-track">
                                 <div class="store-bar-fill chula" style="width: 67%;"></div>
@@ -1811,10 +1910,19 @@
                         <div class="store-bar-item">
                             <div class="store-bar-label">
                                 <span>VSU Morena</span>
-                                <span>$9,550</span>
+                                <span>$114,600</span>
                             </div>
                             <div class="store-bar-track">
                                 <div class="store-bar-fill morena" style="width: 62%;"></div>
+                            </div>
+                        </div>
+                        <div class="store-bar-item">
+                            <div class="store-bar-label">
+                                <span>VSU North Park</span>
+                                <span>$33,700</span>
+                            </div>
+                            <div class="store-bar-track">
+                                <div class="store-bar-fill" style="width: 18%; background: linear-gradient(90deg, #14b8a6, #0d9488);"></div>
                             </div>
                         </div>
                     </div>
@@ -1895,7 +2003,7 @@
                         <p class="section-subtitle">Company-wide communications</p>
                     </div>
                     <div class="page-header-right">
-                        <button class="btn-primary" onclick="openModal('add-announcement')">
+                        <button class="btn-primary floating-add-btn" onclick="openModal('add-announcement')">
                             <i class="fas fa-plus"></i> New Announcement
                         </button>
                     </div>
@@ -3072,7 +3180,7 @@
                         <h2 class="section-title">New Stuff</h2>
                         <p class="section-subtitle">Incoming products and inventory</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-product')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-product')">
                         <i class="fas fa-plus"></i> Add Product
                     </button>
                 </div>
@@ -3090,7 +3198,7 @@
                             <h2 class="section-title">New Stuff</h2>
                             <p class="section-subtitle">Incoming products</p>
                         </div>
-                        <button class="btn-primary" onclick="openModal('add-product')">
+                        <button class="btn-primary floating-add-btn" onclick="openModal('add-product')">
                             <i class="fas fa-plus"></i> Add Product
                         </button>
                     </div>
@@ -3100,7 +3208,7 @@
                             <i class="fas fa-box-open" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
                             <h3 style="color: var(--text-secondary);">No Products Yet</h3>
                             <p style="color: var(--text-muted); margin-bottom: 20px;">Add your first product to get started</p>
-                            <button class="btn-primary" onclick="openModal('add-product')">
+                            <button class="btn-primary floating-add-btn" onclick="openModal('add-product')">
                                 <i class="fas fa-plus"></i> Add First Product
                             </button>
                         </div>
@@ -3432,7 +3540,7 @@
                         <h2 class="section-title">Inventory & Restock</h2>
                         <p class="section-subtitle">Manage inventory and restock requests</p>
                     </div>
-                    <button class="btn-primary" onclick="openNewRestockRequestModal()">
+                    <button class="btn-primary floating-add-btn" onclick="openNewRestockRequestModal()">
                         <i class="fas fa-plus"></i> Create Restock Request
                     </button>
                 </div>
@@ -3907,6 +4015,7 @@
 
         // Schedules data array
         let schedules = [];
+        let daysOff = []; // Array to store employee days off: { employeeId, date, store }
         let currentWeekStart = getWeekStart(new Date());
         let draggedShift = null;
 
@@ -3949,6 +4058,15 @@
 
         function formatDateKey(date) {
             return date.toISOString().split('T')[0];
+        }
+
+        /**
+         * Convert number to ordinal (1st, 2nd, 3rd, etc.)
+         */
+        function getOrdinal(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
         }
 
         function renderSchedule() {
@@ -4264,6 +4382,98 @@
                     .assigned-employee-clone:hover {
                         background: var(--accent-secondary);
                         transform: scale(1.1);
+                    }
+
+                    /* Days Off Section */
+                    .day-off-section {
+                        margin-top: 12px;
+                        border-top: 1px solid var(--border-color);
+                        padding-top: 12px;
+                    }
+                    .day-off-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 12px;
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+                        border-radius: 8px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        border: 1px solid rgba(99, 102, 241, 0.15);
+                    }
+                    .day-off-header:hover {
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+                        border-color: var(--accent-primary);
+                    }
+                    .day-off-employees {
+                        margin-top: 8px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                    }
+                    .day-off-employee-badge {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 6px 10px;
+                        background: var(--bg-secondary);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        position: relative;
+                        transition: all 0.2s;
+                    }
+                    .day-off-employee-badge:hover {
+                        background: var(--bg-hover);
+                    }
+                    .day-off-avatar {
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .day-off-name {
+                        flex: 1;
+                        color: var(--text-primary);
+                        font-weight: 500;
+                        font-size: 12px;
+                    }
+                    .day-off-remove {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 50%;
+                        background: var(--danger);
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .day-off-employee-badge:hover .day-off-remove {
+                        opacity: 1;
+                    }
+                    .day-off-remove:hover {
+                        background: #dc2626;
+                        transform: scale(1.1);
+                    }
+                    .day-off-empty {
+                        padding: 12px;
+                        text-align: center;
+                        color: var(--text-muted);
+                        font-size: 12px;
+                        font-style: italic;
                     }
 
                     /* Time Slider */
@@ -4925,13 +5135,14 @@
                         border-bottom: none;
                     }
                     .store-day-label {
-                        width: 36px;
-                        font-size: 12px;
+                        width: 60px;
+                        font-size: 11px;
                         font-weight: 600;
                         color: var(--text-muted);
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        white-space: nowrap;
                     }
                     .store-day-label.today {
                         color: var(--accent-primary);
@@ -5021,6 +5232,229 @@
                     .store-shift-clone:hover {
                         background: var(--accent-primary);
                         color: white;
+                    }
+
+                    /* Days Off Section for All Stores View */
+                    .store-days-off-section {
+                        padding: 16px;
+                        border-top: 1px solid var(--border-color);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.02) 100%);
+                    }
+                    .store-days-off-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 12px;
+                        color: var(--text-secondary);
+                    }
+                    .store-days-off-header.clickable {
+                        cursor: pointer;
+                        padding: 8px 12px;
+                        background: rgba(99, 102, 241, 0.05);
+                        border-radius: 8px;
+                        border: 1px solid rgba(99, 102, 241, 0.15);
+                        transition: all 0.2s;
+                    }
+                    .store-days-off-header.clickable:hover {
+                        background: rgba(99, 102, 241, 0.1);
+                        border-color: var(--accent-primary);
+                        transform: translateY(-1px);
+                    }
+                    .store-days-off-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .store-day-off-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px 12px;
+                        background: var(--bg-card);
+                        border-radius: 8px;
+                        border: 1px solid var(--border-color);
+                        transition: all 0.2s;
+                        position: relative;
+                    }
+                    .store-day-off-item:hover {
+                        background: var(--bg-hover);
+                        border-color: var(--accent-primary);
+                    }
+                    .store-day-off-avatar {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .store-day-off-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .store-day-off-name {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .store-day-off-date {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                    }
+                    .store-day-off-remove {
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: var(--danger);
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .store-day-off-item:hover .store-day-off-remove {
+                        opacity: 1;
+                    }
+                    .store-day-off-remove:hover {
+                        background: #dc2626;
+                        transform: scale(1.1);
+                    }
+                    .store-days-off-empty {
+                        padding: 16px;
+                        text-align: center;
+                        color: var(--text-muted);
+                        font-size: 12px;
+                        font-style: italic;
+                    }
+
+                    /* Date Picker Modal for All Stores View */
+                    .date-picker-modal-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0, 0, 0, 0.5);
+                        backdrop-filter: blur(4px);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                        opacity: 0;
+                        transition: opacity 0.3s ease;
+                    }
+                    .date-picker-modal-overlay.active {
+                        opacity: 1;
+                    }
+                    .date-picker-modal {
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        max-width: 600px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow: hidden;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        transform: scale(0.9);
+                        transition: transform 0.3s ease;
+                    }
+                    .date-picker-modal-overlay.active .date-picker-modal {
+                        transform: scale(1);
+                    }
+                    .date-picker-header {
+                        padding: 20px 24px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        background: var(--bg-secondary);
+                    }
+                    .date-picker-header h3 {
+                        margin: 0;
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .close-modal-btn {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 8px;
+                        background: transparent;
+                        border: none;
+                        color: var(--text-muted);
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .close-modal-btn:hover {
+                        background: var(--bg-hover);
+                        color: var(--text-primary);
+                    }
+                    .date-picker-body {
+                        padding: 24px;
+                    }
+                    .date-picker-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                        gap: 12px;
+                    }
+                    .date-picker-option {
+                        padding: 16px;
+                        border: 2px solid var(--border-color);
+                        border-radius: 12px;
+                        cursor: pointer;
+                        text-align: center;
+                        transition: all 0.2s;
+                        background: var(--bg-secondary);
+                        position: relative;
+                    }
+                    .date-picker-option:hover {
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.05);
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+                    }
+                    .date-picker-option.today {
+                        border-color: var(--accent-primary);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+                    }
+                    .date-picker-day {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        margin-bottom: 4px;
+                    }
+                    .date-picker-date {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                    }
+                    .date-picker-today-badge {
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: var(--accent-primary);
+                        color: white;
+                        font-size: 9px;
+                        font-weight: 600;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        text-transform: uppercase;
                     }
                 </style>
 
@@ -5213,11 +5647,17 @@
             try {
                 // Make sure employees are loaded first
                 if (employees.length === 0) {
-                    console.log('Loading employees for schedule...');
+                    console.log('⏳ Loading employees for schedule...');
                     await loadEmployeesFromFirebase();
+                    console.log('✅ Employees loaded:', employees.length);
+                    console.log('📋 Employee details:', employees);
+                } else {
+                    console.log('✅ Employees already loaded:', employees.length);
                 }
 
                 const db = firebase.firestore();
+
+                // Load schedules
                 const schedulesRef = db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules');
                 const snapshot = await schedulesRef.get();
 
@@ -5226,8 +5666,18 @@
                     schedules.push({ id: doc.id, ...doc.data() });
                 });
 
-                console.log('Loaded schedules from Firestore:', schedules.length);
-                console.log('Employees available:', employees.length);
+                // Load days off
+                const daysOffRef = db.collection(window.FIREBASE_COLLECTIONS.daysOff || 'daysOff');
+                const daysOffSnapshot = await daysOffRef.get();
+
+                daysOff = [];
+                daysOffSnapshot.forEach(doc => {
+                    daysOff.push({ id: doc.id, ...doc.data() });
+                });
+
+                console.log('📅 Loaded schedules from Firestore:', schedules.length);
+                console.log('🏖️ Loaded days off from Firestore:', daysOff.length);
+                console.log('👥 Employees available:', employees.length);
                 renderScheduleGrid();
             } catch (error) {
                 console.error('Error loading schedules:', error);
@@ -5361,6 +5811,49 @@
 
                     html += `</div>`;
                 });
+
+                // Days off section for this date
+                const dayOffEmployees = daysOff.filter(d =>
+                    d.date === dateKey &&
+                    (storeFilter === 'all' || d.store === storeFilter)
+                );
+
+                html += `
+                    <div class="day-off-section">
+                        <div class="day-off-header" onclick="openDayOffPicker('${dateKey}', '${storeFilter}')">
+                            <i class="fas fa-umbrella-beach" style="color: var(--accent-primary);"></i>
+                            <span>Days Off</span>
+                            <i class="fas fa-plus" style="margin-left: auto; font-size: 12px;"></i>
+                        </div>
+                        <div class="day-off-employees">
+                `;
+
+                if (dayOffEmployees.length > 0) {
+                    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+                    dayOffEmployees.forEach(dayOff => {
+                        const emp = employees.find(e => e.id === dayOff.employeeId);
+                        if (emp) {
+                            const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                            const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+                            html += `
+                                <div class="day-off-employee-badge">
+                                    <div class="day-off-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                    <span class="day-off-name">${emp.name}</span>
+                                    <button class="day-off-remove" onclick="event.stopPropagation(); removeDayOff('${dayOff.id}')" title="Remove day off">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    });
+                } else {
+                    html += `<div class="day-off-empty">No days off</div>`;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
 
                 html += `
                         </div>
@@ -5641,10 +6134,12 @@
                     const dateKey = formatDateKey(date);
                     const isToday = dateKey === today;
                     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayNumber = date.getDate();
+                    const ordinalDay = getOrdinal(dayNumber);
 
                     html += `
                         <div class="store-day-row">
-                            <div class="store-day-label ${isToday ? 'today' : ''}">${dayName}</div>
+                            <div class="store-day-label ${isToday ? 'today' : ''}">${dayName} (${ordinalDay})</div>
                             <div class="store-shifts">
                     `;
 
@@ -5693,6 +6188,56 @@
                         </div>
                     `;
                 });
+
+                // Days Off section for All Stores view
+                html += `
+                    <div class="store-days-off-section">
+                        <div class="store-days-off-header clickable" onclick="openStoreDayOffPicker('${store}')">
+                            <i class="fas fa-umbrella-beach" style="color: var(--accent-primary); font-size: 14px;"></i>
+                            <span style="font-weight: 600; font-size: 13px;">Days Off This Week</span>
+                            <i class="fas fa-plus" style="margin-left: auto; font-size: 12px; color: var(--accent-primary);"></i>
+                        </div>
+                        <div class="store-days-off-list">
+                `;
+
+                // Get all days off for this store in the current week
+                const storeDaysOff = daysOff.filter(d => {
+                    const dateInWeek = weekDates.some(date => formatDateKey(date) === d.date);
+                    return d.store === store && dateInWeek;
+                });
+
+                if (storeDaysOff.length > 0) {
+                    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+                    storeDaysOff.forEach(dayOff => {
+                        const emp = employees.find(e => e.id === dayOff.employeeId);
+                        if (emp) {
+                            const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                            const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+                            const dateObj = new Date(dayOff.date + 'T12:00:00');
+                            const dayLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+                            html += `
+                                <div class="store-day-off-item">
+                                    <div class="store-day-off-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                    <div class="store-day-off-info">
+                                        <div class="store-day-off-name">${emp.name}</div>
+                                        <div class="store-day-off-date">${dayLabel}</div>
+                                    </div>
+                                    <button class="store-day-off-remove" onclick="event.stopPropagation(); removeDayOff('${dayOff.id}')" title="Remove day off">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    });
+                } else {
+                    html += `<div class="store-days-off-empty">No days off this week</div>`;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
 
                 html += `
                         </div>
@@ -6020,12 +6565,23 @@
 
         function closeEmployeePicker(event) {
             if (event && event.target !== event.currentTarget) return;
-            document.getElementById('employeePickerOverlay').classList.remove('active');
+            const overlay = document.getElementById('employeePickerOverlay');
+            const title = overlay.querySelector('h3');
+
+            // Reset title to default
+            if (title) title.textContent = 'Select Employee';
+
+            overlay.classList.remove('active');
             currentPickerContext = null;
+            currentDayOffContext = null;
         }
 
         function filterEmployeePicker() {
-            renderEmployeePickerList();
+            if (currentDayOffContext) {
+                renderDayOffPickerList();
+            } else {
+                renderEmployeePickerList();
+            }
         }
 
         function renderEmployeePickerList() {
@@ -6034,19 +6590,43 @@
 
             if (!currentPickerContext) return;
 
+            console.log('🔍 Employee Picker Debug:');
+            console.log('Total employees loaded:', employees.length);
+            console.log('Current store filter:', currentPickerContext.storeFilter);
+            console.log('Selected date:', currentPickerContext.dateKey);
+            console.log('All employees:', employees);
+
             let filteredEmployees = [...employees];
 
-            // Filter by store
-            if (currentPickerContext.storeFilter !== 'all') {
-                filteredEmployees = filteredEmployees.filter(e => e.store === currentPickerContext.storeFilter);
-            }
+            // REMOVED: Filter by store - Show ALL employees from Firebase regardless of store
+            // This allows assigning any employee to any shift at any store
+            // if (currentPickerContext.storeFilter !== 'all') {
+            //     filteredEmployees = filteredEmployees.filter(e => e.store === currentPickerContext.storeFilter);
+            //     console.log(`After store filter (${currentPickerContext.storeFilter}):`, filteredEmployees.length, 'employees');
+            // }
 
-            // Filter by search
+            // Filter by search only
             if (search) {
                 filteredEmployees = filteredEmployees.filter(e =>
                     e.name?.toLowerCase().includes(search)
                 );
+                console.log(`After search filter (${search}):`, filteredEmployees.length, 'employees');
             }
+
+            // Filter out inactive employees
+            filteredEmployees = filteredEmployees.filter(e => e.status === 'active');
+
+            // Filter out employees who have a day off on this date
+            if (currentPickerContext.dateKey) {
+                const employeesWithDayOff = daysOff
+                    .filter(d => d.date === currentPickerContext.dateKey)
+                    .map(d => d.employeeId);
+
+                filteredEmployees = filteredEmployees.filter(e => !employeesWithDayOff.includes(e.id));
+                console.log('Employees with day off on this date:', employeesWithDayOff.length);
+            }
+
+            console.log('Final filtered employees:', filteredEmployees);
 
             const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
 
@@ -6073,6 +6653,17 @@
             const emp = employees.find(e => e.id === employeeId);
             const shiftConfig = SHIFT_TYPES[shiftType];
             const store = storeFilter !== 'all' ? storeFilter : emp?.store || '';
+
+            // Check if employee has a day off on this date
+            const hasDayOff = daysOff.some(d =>
+                d.date === dateKey &&
+                d.employeeId === employeeId
+            );
+
+            if (hasDayOff) {
+                showNotification('This employee has a day off on this date', 'warning');
+                return;
+            }
 
             // Check if there's already a schedule for this slot
             const existingSchedule = schedules.find(s =>
@@ -6164,6 +6755,195 @@
                 console.error('Error removing schedule:', error);
                 showNotification('Error removing shift', 'error');
             }
+        }
+
+        // Days Off Management
+        let currentDayOffContext = null;
+
+        function openDayOffPicker(dateKey, storeFilter) {
+            currentDayOffContext = { dateKey, storeFilter };
+
+            const overlay = document.getElementById('employeePickerOverlay');
+            const list = document.getElementById('employeePickerList');
+            const search = document.getElementById('employeePickerSearch');
+            const title = overlay.querySelector('h3');
+
+            if (title) title.textContent = 'Select Employee for Day Off';
+            if (search) search.value = '';
+            renderDayOffPickerList();
+
+            overlay.classList.add('active');
+        }
+
+        function renderDayOffPickerList() {
+            const list = document.getElementById('employeePickerList');
+            const search = document.getElementById('employeePickerSearch')?.value?.toLowerCase() || '';
+
+            if (!currentDayOffContext) return;
+
+            let filteredEmployees = [...employees];
+
+            // Filter by search
+            if (search) {
+                filteredEmployees = filteredEmployees.filter(e =>
+                    e.name?.toLowerCase().includes(search)
+                );
+            }
+
+            // Filter out inactive employees
+            filteredEmployees = filteredEmployees.filter(e => e.status === 'active');
+
+            // Filter out employees who already have a day off on this date
+            const existingDayOffs = daysOff.filter(d => d.date === currentDayOffContext.dateKey);
+            filteredEmployees = filteredEmployees.filter(e =>
+                !existingDayOffs.some(d => d.employeeId === e.id)
+            );
+
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+            list.innerHTML = filteredEmployees.map(emp => {
+                const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                return `
+                    <div class="employee-picker-item" onclick="assignDayOff('${emp.id}')">
+                        <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                        <div class="employee-picker-info">
+                            <div class="employee-picker-name">${emp.name}</div>
+                            <div class="employee-picker-store">${emp.store || ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No employees available</div>';
+        }
+
+        async function assignDayOff(employeeId) {
+            if (!currentDayOffContext) return;
+
+            const { dateKey, storeFilter } = currentDayOffContext;
+            const emp = employees.find(e => e.id === employeeId);
+            const store = storeFilter !== 'all' ? storeFilter : emp?.store || '';
+
+            // Check if employee already has a day off
+            const existingDayOff = daysOff.find(d =>
+                d.date === dateKey &&
+                d.employeeId === employeeId
+            );
+
+            if (existingDayOff) {
+                showNotification('Employee already has a day off on this date', 'warning');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+
+            try {
+                const db = firebase.firestore();
+                const dayOffData = {
+                    employeeId,
+                    employeeName: emp?.name || '',
+                    store,
+                    date: dateKey,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUser?.name || 'Unknown'
+                };
+
+                const docRef = await db.collection(window.FIREBASE_COLLECTIONS.daysOff || 'daysOff').add(dayOffData);
+                daysOff.push({ id: docRef.id, ...dayOffData });
+
+                showNotification('Day off assigned!', 'success');
+                closeEmployeePicker();
+                currentDayOffContext = null;
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error assigning day off:', error);
+                showNotification('Error assigning day off', 'error');
+            }
+        }
+
+        async function removeDayOff(dayOffId) {
+            if (!confirm('Remove this day off?')) return;
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS.daysOff || 'daysOff').doc(dayOffId).delete();
+
+                daysOff = daysOff.filter(d => d.id !== dayOffId);
+                showNotification('Day off removed', 'success');
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error removing day off:', error);
+                showNotification('Error removing day off', 'error');
+            }
+        }
+
+        // Open day off picker for All Stores view - shows date selector modal
+        function openStoreDayOffPicker(store) {
+            // Create a modal to select the date for the day off
+            const weekDates = getWeekDates(currentWeekStart);
+            const today = formatDateKey(new Date());
+
+            let modalHTML = `
+                <div class="date-picker-modal-overlay" id="datePickerOverlay" onclick="closeDatePicker(event)">
+                    <div class="date-picker-modal">
+                        <div class="date-picker-header">
+                            <h3><i class="fas fa-calendar-day" style="color: var(--accent-primary);"></i> Select Day Off Date</h3>
+                            <button onclick="closeDatePicker()" class="close-modal-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="date-picker-body">
+                            <p style="margin-bottom: 16px; color: var(--text-secondary);">Select a date for the day off at <strong>${store}</strong></p>
+                            <div class="date-picker-grid">
+            `;
+
+            weekDates.forEach(date => {
+                const dateKey = formatDateKey(date);
+                const isToday = dateKey === today;
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                modalHTML += `
+                    <div class="date-picker-option ${isToday ? 'today' : ''}" onclick="selectDayOffDate('${dateKey}', '${store}')">
+                        <div class="date-picker-day">${dayName}</div>
+                        <div class="date-picker-date">${monthDay}</div>
+                        ${isToday ? '<div class="date-picker-today-badge">Today</div>' : ''}
+                    </div>
+                `;
+            });
+
+            modalHTML += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Insert modal into document
+            const existingModal = document.getElementById('datePickerOverlay');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            setTimeout(() => {
+                document.getElementById('datePickerOverlay').classList.add('active');
+            }, 10);
+        }
+
+        function closeDatePicker(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const overlay = document.getElementById('datePickerOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+                setTimeout(() => overlay.remove(), 300);
+            }
+        }
+
+        function selectDayOffDate(dateKey, store) {
+            closeDatePicker();
+            // Now open the employee picker for this specific date and store
+            openDayOffPicker(dateKey, store);
         }
 
         // Drag and drop for employees between shifts
@@ -6477,7 +7257,7 @@
                         <h2 class="section-title">Thieves Database</h2>
                         <p class="section-subtitle">Track and manage theft incidents</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-thief')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-thief')">
                         <i class="fas fa-plus"></i>
                         Add New Record
                     </button>
@@ -7555,7 +8335,7 @@
                         <h2 class="section-title">Invoices</h2>
                         <p class="section-subtitle">Track and manage payments with insights</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-invoice')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-invoice')">
                         <i class="fas fa-plus"></i> Add Invoice
                     </button>
                 </div>
@@ -8489,8 +9269,8 @@
                             </div>
                         </div>
                         <div class="form-actions" style="margin-top: 24px;">
-                            <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button type="submit" class="btn-primary">
+                            <button type="button" class="btn-secondary" onclick="closeModal()">Close</button>
+                            <button type="button" class="btn-primary" onclick="saveInvoiceChanges('${invoiceId}')">
                                 <i class="fas fa-save"></i>
                                 Save Changes
                             </button>
@@ -8565,7 +9345,7 @@
 
             // Validate required fields
             if (!invoiceNumber || !vendor || !amount) {
-                alert('Please fill in all required fields (Invoice #, Vendor, Amount)');
+                showNotification('Please fill in all required fields (Invoice #, Vendor, Amount)', 'error');
                 return;
             }
 
@@ -8584,7 +9364,7 @@
 
                 // Validate file size (max 1MB for Firestore)
                 if (file.size > 1024 * 1024) {
-                    alert('File is too large. Please use a file smaller than 1MB.');
+                    showNotification('File is too large. Please use a file smaller than 1MB.', 'error');
                     return;
                 }
 
@@ -8621,28 +9401,35 @@
                 fileName: fileName
             };
 
-            // Update in Firebase
-            if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
-                const success = await firebaseInvoiceManager.updateInvoice(invoiceId, updateData);
-                if (success) {
-                    // Update local state
+            try {
+                // Update in Firebase
+                if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
+                    const success = await firebaseInvoiceManager.updateInvoice(invoiceId, updateData);
+                    if (success) {
+                        // Update local state
+                        const idx = invoices.findIndex(i => i.id === invoiceId || i.firestoreId === invoiceId);
+                        if (idx !== -1) {
+                            invoices[idx] = { ...invoices[idx], ...updateData };
+                        }
+                        closeModal();
+                        renderInvoices();
+                        showNotification('Invoice updated successfully', 'success');
+                    } else {
+                        showNotification('Error updating invoice', 'error');
+                    }
+                } else {
+                    // Fallback to local only
                     const idx = invoices.findIndex(i => i.id === invoiceId || i.firestoreId === invoiceId);
                     if (idx !== -1) {
                         invoices[idx] = { ...invoices[idx], ...updateData };
                     }
                     closeModal();
                     renderInvoices();
-                } else {
-                    alert('Error updating invoice');
+                    showNotification('Invoice updated locally', 'success');
                 }
-            } else {
-                // Fallback to local only
-                const idx = invoices.findIndex(i => i.id === invoiceId || i.firestoreId === invoiceId);
-                if (idx !== -1) {
-                    invoices[idx] = { ...invoices[idx], ...updateData };
-                }
-                closeModal();
-                renderInvoices();
+            } catch (error) {
+                console.error('Error saving invoice changes:', error);
+                showNotification('Error saving invoice changes', 'error');
             }
         }
 
@@ -8743,7 +9530,7 @@
                         <h2 class="section-title">Treasury - Select Pieces</h2>
                         <p class="section-subtitle">Manage your valuable collection</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-treasury')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-treasury')">
                         <i class="fas fa-plus"></i>
                         Add Piece
                     </button>
@@ -9146,139 +9933,445 @@
             }
         }
 
-        // Change Functions - Cambio dejado en Campos
+        // Change Functions - Daily Change Register
+        const CHANGE_DENOMINATIONS = {
+            coins: [
+                { id: 'pennies', label: 'Pennies', value: 0.01, icon: '1¢' },
+                { id: 'nickels', label: 'Nickels', value: 0.05, icon: '5¢' },
+                { id: 'dimes', label: 'Dimes', value: 0.10, icon: '10¢' },
+                { id: 'quarters', label: 'Quarters', value: 0.25, icon: '25¢' },
+                { id: 'dollars_coin', label: 'Dollar Coins', value: 1.00, icon: '$1' }
+            ],
+            bills: [
+                { id: 'ones', label: '$1 Bills', value: 1, icon: '$1' },
+                { id: 'fives', label: '$5 Bills', value: 5, icon: '$5' },
+                { id: 'tens', label: '$10 Bills', value: 10, icon: '$10' },
+                { id: 'twenties', label: '$20 Bills', value: 20, icon: '$20' }
+            ]
+        };
+
+        let changeFilterStore = 'all';
+
         function renderChange() {
             const dashboard = document.querySelector('.dashboard');
+            const today = new Date().toISOString().split('T')[0];
 
-            const totalChange = changeRecords.reduce((sum, r) => sum + r.amount, 0);
-            const recordsByStore = {};
-            changeRecords.forEach(r => {
-                recordsByStore[r.store] = (recordsByStore[r.store] || 0) + r.amount;
-            });
+            // Filter records
+            const filteredRecords = changeFilterStore === 'all'
+                ? changeRecords
+                : changeRecords.filter(r => r.store === changeFilterStore);
+
+            // Sort by date descending
+            const sortedRecords = [...filteredRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Today's records
+            const todayRecords = changeRecords.filter(r => r.date === today);
+            const todayTotal = todayRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Change Management</h2>
-                        <p class="section-subtitle">Track change left at Campos</p>
+                        <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-coins" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            Daily Change Register
+                        </h2>
+                        <p class="section-subtitle">Record daily change by denomination</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-change')">
-                        <i class="fas fa-plus"></i>
-                        Add Change Record
+                    <button class="btn-primary" onclick="openDailyChangeForm()">
+                        <i class="fas fa-plus"></i> New Daily Record
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); text-align: center; padding: 32px 24px;">
-                        <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-coins"></i></div>
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Change</div>
-                            <div class="stat-value" style="color: white;">$${totalChange.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                        </div>
+                <!-- Quick Stats -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 16px; padding: 20px; color: white;">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Today's Total</div>
+                        <div style="font-size: 28px; font-weight: 700;">$${todayTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${todayRecords.length} record${todayRecords.length !== 1 ? 's' : ''}</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); text-align: center; padding: 32px 24px;">
-                        <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-receipt"></i></div>
-                        <div class="stat-content">
-                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Records</div>
-                            <div class="stat-value" style="color: white;">${changeRecords.length}</div>
-                        </div>
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px; padding: 20px; color: white;">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Total Records</div>
+                        <div style="font-size: 28px; font-weight: 700;">${changeRecords.length}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">All time</div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-list"></i>
-                            Change Records
-                        </h3>
-                        <div style="display: flex; gap: 12px;">
-                            <select class="form-input" style="width: 200px;" onchange="filterChangeRecords(this.value)">
-                                <option value="all">All Stores</option>
-                                <option value="Miramar">VSU Miramar</option>
-                                <option value="Morena">VSU Morena</option>
-                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                <option value="Chula Vista">VSU Chula Vista</option>
-                                <option value="North Park">VSU North Park</option>
-                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                            </select>
+                <!-- Daily Change Form (hidden by default) -->
+                <div id="daily-change-form" style="display: none; margin-bottom: 24px;"></div>
+
+                <!-- Filter -->
+                <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center;">
+                    <select class="form-input" style="width: 200px;" onchange="filterChangeByStore(this.value)">
+                        <option value="all" ${changeFilterStore === 'all' ? 'selected' : ''}>All Stores</option>
+                        <option value="Miramar" ${changeFilterStore === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                        <option value="Morena" ${changeFilterStore === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                        <option value="Kearny Mesa" ${changeFilterStore === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                        <option value="Chula Vista" ${changeFilterStore === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                        <option value="Miramar Wine & Liquor" ${changeFilterStore === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                    </select>
+                    <span style="font-size: 13px; color: var(--text-muted);">${filteredRecords.length} records</span>
+                </div>
+
+                <!-- Records List -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${sortedRecords.length === 0 ? `
+                        <div class="card">
+                            <div class="card-body" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                                <i class="fas fa-coins" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.3;"></i>
+                                <div style="font-size: 16px; margin-bottom: 8px;">No change records yet</div>
+                                <div style="font-size: 13px;">Click "New Daily Record" to add one</div>
+                            </div>
                         </div>
+                    ` : sortedRecords.map(record => renderChangeRecordRow(record)).join('')}
+                </div>
+            `;
+        }
+
+        function renderDailyChangeForm() {
+            const today = new Date().toISOString().split('T')[0];
+            return `
+                <div class="card" style="border: 2px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, var(--bg-secondary) 100%);">
+                    <div class="card-header" style="background: transparent;">
+                        <h3 class="card-title" style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-coins" style="color: #f59e0b;"></i>
+                            New Daily Change Record
+                        </h3>
+                        <button onclick="closeDailyChangeForm()" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px;">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <div class="card-body" style="padding: 0;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 80px;">Photo</th>
-                                    <th>Store</th>
-                                    <th>Amount</th>
-                                    <th>Date</th>
-                                    <th>Left By</th>
-                                    <th>Received By</th>
-                                    <th>Notes</th>
-                                    <th style="width: 100px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="changeTableBody">
-                                ${renderChangeTable()}
-                            </tbody>
-                        </table>
+                    <div class="card-body" style="padding: 24px;">
+                        <!-- Basic Info -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                            <div>
+                                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Date</label>
+                                <input type="date" id="change-date" class="form-input" value="${today}">
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Store</label>
+                                <select id="change-store" class="form-input">
+                                    <option value="Miramar">VSU Miramar</option>
+                                    <option value="Morena">VSU Morena</option>
+                                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                    <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Recorded By</label>
+                                <input type="text" id="change-recorded-by" class="form-input" placeholder="Your name">
+                            </div>
+                        </div>
+
+                        <!-- Coins Section -->
+                        <div style="margin-bottom: 24px;">
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-circle" style="color: #f59e0b; font-size: 10px;"></i> Coins
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                                ${CHANGE_DENOMINATIONS.coins.map(d => `
+                                    <div style="background: var(--bg-primary); border-radius: 12px; padding: 14px; text-align: center;">
+                                        <div style="font-size: 18px; font-weight: 700; color: #f59e0b; margin-bottom: 6px;">${d.icon}</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">${d.label}</div>
+                                        <input type="number" id="change-${d.id}" class="form-input" value="0" min="0"
+                                            style="text-align: center; font-weight: 600;" onchange="calculateChangeTotal()">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Bills Section -->
+                        <div style="margin-bottom: 24px;">
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-money-bill" style="color: #10b981; font-size: 10px;"></i> Bills
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                                ${CHANGE_DENOMINATIONS.bills.map(d => `
+                                    <div style="background: var(--bg-primary); border-radius: 12px; padding: 14px; text-align: center;">
+                                        <div style="font-size: 18px; font-weight: 700; color: #10b981; margin-bottom: 6px;">${d.icon}</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">${d.label}</div>
+                                        <input type="number" id="change-${d.id}" class="form-input" value="0" min="0"
+                                            style="text-align: center; font-weight: 600;" onchange="calculateChangeTotal()">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Total -->
+                        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 13px; color: rgba(255,255,255,0.9); margin-bottom: 6px;">TOTAL</div>
+                            <div id="change-total-display" style="font-size: 32px; font-weight: 700; color: white;">$0.00</div>
+                        </div>
+
+                        <!-- Photo Upload -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Photo (optional)</label>
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <label style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border-color)'">
+                                        <i class="fas fa-camera" style="font-size: 20px; color: var(--text-muted);"></i>
+                                        <span style="font-size: 13px; color: var(--text-muted);">Upload envelope photo</span>
+                                        <input type="file" id="change-photo" accept="image/*" style="display: none;" onchange="previewChangePhoto(this)">
+                                    </label>
+                                </div>
+                                <div id="change-photo-preview" style="display: none; width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary);">
+                                    <img id="change-photo-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Notes (optional)</label>
+                            <textarea id="change-notes" class="form-input" placeholder="Any additional notes..." style="min-height: 60px; resize: vertical;"></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                            <button class="btn-secondary" onclick="closeDailyChangeForm()">Cancel</button>
+                            <button class="btn-primary" onclick="saveDailyChange()">
+                                <i class="fas fa-save"></i> Save Record
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        function renderChangeTable(filter = 'all') {
-            const filteredRecords = filter === 'all' ? changeRecords : changeRecords.filter(r => r.store === filter);
+        function renderChangeRecordRow(record) {
+            const recordId = record.firestoreId || record.id;
+            const recordDate = new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const isToday = record.date === new Date().toISOString().split('T')[0];
 
-            if (filteredRecords.length === 0) {
-                return `
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fas fa-coins" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                            No change records found
-                        </td>
-                    </tr>
-                `;
+            return `
+                <div class="card" style="border-radius: 12px; overflow: hidden; ${isToday ? 'border-left: 4px solid #f59e0b;' : ''}">
+                    <div onclick="toggleChangeDetails('${recordId}')" style="display: flex; align-items: center; padding: 16px 20px; gap: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                        <!-- Date -->
+                        <div style="min-width: 80px;">
+                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${recordDate}</div>
+                            ${isToday ? '<div style="font-size: 10px; color: #f59e0b; font-weight: 600;">TODAY</div>' : ''}
+                        </div>
+
+                        <!-- Store -->
+                        <div style="background: var(--accent-primary); color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            ${record.store}
+                        </div>
+
+                        <!-- Amount -->
+                        <div style="flex: 1; text-align: right;">
+                            <div style="font-size: 20px; font-weight: 700; color: #10b981;">$${(record.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        </div>
+
+                        <!-- Recorded By -->
+                        <div style="font-size: 13px; color: var(--text-muted); min-width: 100px; display: flex; align-items: center; gap: 8px;">
+                            <span><i class="fas fa-user" style="margin-right: 6px;"></i>${record.recordedBy || record.leftBy || 'Unknown'}</span>
+                            ${record.photo ? '<i class="fas fa-image" style="color: #f59e0b;" title="Has photo"></i>' : ''}
+                        </div>
+
+                        <!-- Arrow -->
+                        <div style="color: var(--text-muted);" id="change-arrow-${recordId}">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+
+                    <!-- Expanded Details -->
+                    <div id="change-details-${recordId}" style="display: none; padding: 0 20px 20px; border-top: 1px solid var(--border-color);">
+                        <div style="padding-top: 16px;">
+                            <!-- Denomination Breakdown -->
+                            ${record.denominations && Object.keys(record.denominations).length > 0 ? `
+                                <div style="margin-bottom: 16px;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <!-- Bills (left side, highest to lowest) -->
+                                        <div>
+                                            <div style="font-size: 12px; font-weight: 600; color: #10b981; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                                <i class="fas fa-money-bill"></i> Bills
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                                ${[...CHANGE_DENOMINATIONS.bills].reverse().map(d => {
+                                                    const count = record.denominations[d.id] || 0;
+                                                    if (count === 0) return '';
+                                                    const total = count * d.value;
+                                                    return `
+                                                        <div style="background: rgba(16, 185, 129, 0.1); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                                <div style="font-size: 18px; font-weight: 700; color: #10b981;">${d.icon}</div>
+                                                                <div style="font-size: 12px; color: var(--text-muted);">x${count}</div>
+                                                            </div>
+                                                            <div style="font-size: 14px; color: var(--text-primary); font-weight: 600;">$${total.toFixed(2)}</div>
+                                                        </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                        </div>
+                                        <!-- Coins (right side, highest to lowest) -->
+                                        <div>
+                                            <div style="font-size: 12px; font-weight: 600; color: #f59e0b; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                                <i class="fas fa-coins"></i> Coins
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                                ${[...CHANGE_DENOMINATIONS.coins].reverse().map(d => {
+                                                    const count = record.denominations[d.id] || 0;
+                                                    if (count === 0) return '';
+                                                    const total = count * d.value;
+                                                    return `
+                                                        <div style="background: rgba(245, 158, 11, 0.1); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(245, 158, 11, 0.2);">
+                                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                                <div style="font-size: 18px; font-weight: 700; color: #f59e0b;">${d.icon}</div>
+                                                                <div style="font-size: 12px; color: var(--text-muted);">x${count}</div>
+                                                            </div>
+                                                            <div style="font-size: 14px; color: var(--text-primary); font-weight: 600;">$${total.toFixed(2)}</div>
+                                                        </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="background: var(--bg-secondary); border-radius: 10px; padding: 16px; margin-bottom: 16px; text-align: center;">
+                                    <div style="font-size: 24px; font-weight: 700; color: #10b981;">$${(record.amount || 0).toFixed(2)}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Total Amount</div>
+                                </div>
+                            `}
+
+                            ${record.photo ? `
+                                <div style="margin-bottom: 16px;">
+                                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+                                        <i class="fas fa-image"></i> Envelope Photo
+                                    </div>
+                                    <div style="border-radius: 10px; overflow: hidden; background: var(--bg-secondary);">
+                                        <img src="${record.photo}" alt="Envelope" style="width: 100%; max-height: 200px; object-fit: contain; cursor: pointer;" onclick="window.open('${record.photo}', '_blank')">
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${record.notes ? `
+                                <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Notes</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">${record.notes}</div>
+                                </div>
+                            ` : ''}
+
+                            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                <button onclick="event.stopPropagation(); deleteChangeRecord('${recordId}')" class="btn-secondary" style="font-size: 12px; color: #ef4444; border-color: #ef444450;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openDailyChangeForm() {
+            const form = document.getElementById('daily-change-form');
+            form.style.display = 'block';
+            form.innerHTML = renderDailyChangeForm();
+            form.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeDailyChangeForm() {
+            document.getElementById('daily-change-form').style.display = 'none';
+        }
+
+        function previewChangePhoto(input) {
+            const preview = document.getElementById('change-photo-preview');
+            const img = document.getElementById('change-photo-img');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function calculateChangeTotal() {
+            let total = 0;
+            [...CHANGE_DENOMINATIONS.coins, ...CHANGE_DENOMINATIONS.bills].forEach(d => {
+                const count = parseInt(document.getElementById(`change-${d.id}`)?.value) || 0;
+                total += count * d.value;
+            });
+            document.getElementById('change-total-display').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+            return total;
+        }
+
+        function saveDailyChange() {
+            const date = document.getElementById('change-date').value;
+            const store = document.getElementById('change-store').value;
+            const recordedBy = document.getElementById('change-recorded-by').value.trim();
+            const notes = document.getElementById('change-notes').value.trim();
+            const photoInput = document.getElementById('change-photo');
+            const photoImg = document.getElementById('change-photo-img');
+            const photo = photoImg && photoImg.src && !photoImg.src.includes('undefined') ? photoImg.src : null;
+
+            if (!recordedBy) {
+                alert('Please enter your name');
+                return;
             }
 
-            return filteredRecords.map(record => {
-                const recordId = record.firestoreId || record.id;
-                const photoDisplay = record.photo
-                    ? `<img src="${record.photo}" style="width: 100%; height: 100%; object-fit: cover;" alt="Change photo">`
-                    : `<i class="fas fa-image" style="color: var(--text-muted); font-size: 24px;"></i>`;
+            const denominations = {};
+            let total = 0;
+            [...CHANGE_DENOMINATIONS.coins, ...CHANGE_DENOMINATIONS.bills].forEach(d => {
+                const count = parseInt(document.getElementById(`change-${d.id}`)?.value) || 0;
+                if (count > 0) {
+                    denominations[d.id] = count;
+                    total += count * d.value;
+                }
+            });
 
-                return `
-                    <tr>
-                        <td>
-                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: ${record.photo ? 'pointer' : 'default'};" ${record.photo ? `onclick="viewChangePhoto('${recordId}')"` : ''}>
-                                ${photoDisplay}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge" style="background: var(--accent-primary);">VSU ${record.store}</span>
-                        </td>
-                        <td style="font-weight: 600; color: var(--success);">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>${formatDate(record.date)}</td>
-                        <td>${record.leftBy}</td>
-                        <td>${record.receivedBy}</td>
-                        <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${record.notes || ''}">${record.notes || '-'}</td>
-                        <td>
-                            <button class="btn-icon" onclick="viewChangeRecord('${recordId}')" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon" onclick="deleteChangeRecord('${recordId}')" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            if (total === 0) {
+                alert('Please enter at least one denomination');
+                return;
+            }
+
+            const newRecord = {
+                id: Date.now().toString(),
+                date,
+                store,
+                recordedBy,
+                amount: total,
+                denominations,
+                notes,
+                photo,
+                createdAt: new Date().toISOString()
+            };
+
+            changeRecords.unshift(newRecord);
+            localStorage.setItem('changeRecords', JSON.stringify(changeRecords));
+            closeDailyChangeForm();
+            renderChange();
+        }
+
+        function toggleChangeDetails(id) {
+            const details = document.getElementById(`change-details-${id}`);
+            const arrow = document.getElementById(`change-arrow-${id}`);
+
+            if (details.style.display === 'none') {
+                // Collapse all others
+                document.querySelectorAll('[id^="change-details-"]').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('[id^="change-arrow-"]').forEach(el => el.style.transform = 'rotate(0deg)');
+
+                details.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                details.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function filterChangeByStore(store) {
+            changeFilterStore = store;
+            renderChange();
         }
 
         function filterChangeRecords(store) {
-            const tbody = document.getElementById('changeTableBody');
-            if (tbody) {
-                tbody.innerHTML = renderChangeTable(store);
-            }
+            filterChangeByStore(store);
         }
 
         function viewChangeRecord(id) {
@@ -9296,6 +10389,53 @@
                     No photo available
                 </div>`;
 
+            // Build denominations display if available
+            let denominationsDisplay = '';
+            if (record.denominations) {
+                const d = record.denominations;
+                const billsItems = [];
+                const coinsItems = [];
+
+                // Bills
+                if (d.bills?.hundreds > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$100</strong> × ${d.bills.hundreds}</span>`);
+                if (d.bills?.fifties > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$50</strong> × ${d.bills.fifties}</span>`);
+                if (d.bills?.twenties > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$20</strong> × ${d.bills.twenties}</span>`);
+                if (d.bills?.tens > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$10</strong> × ${d.bills.tens}</span>`);
+                if (d.bills?.fives > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$5</strong> × ${d.bills.fives}</span>`);
+                if (d.bills?.twos > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$2</strong> × ${d.bills.twos}</span>`);
+                if (d.bills?.ones > 0) billsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$1</strong> × ${d.bills.ones}</span>`);
+
+                // Coins
+                if (d.coins?.dollars > 0) coinsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>$1</strong> × ${d.coins.dollars}</span>`);
+                if (d.coins?.halfDollars > 0) coinsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>50¢</strong> × ${d.coins.halfDollars}</span>`);
+                if (d.coins?.quarters > 0) coinsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>25¢</strong> × ${d.coins.quarters}</span>`);
+                if (d.coins?.dimes > 0) coinsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>10¢</strong> × ${d.coins.dimes}</span>`);
+                if (d.coins?.nickels > 0) coinsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>5¢</strong> × ${d.coins.nickels}</span>`);
+                if (d.coins?.pennies > 0) coinsItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;"><strong>1¢</strong> × ${d.coins.pennies}</span>`);
+
+                if (billsItems.length > 0 || coinsItems.length > 0) {
+                    denominationsDisplay = `
+                        <div style="margin-top: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--success);"></i> Currency Breakdown
+                            </label>
+                            ${billsItems.length > 0 ? `
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Bills</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">${billsItems.join('')}</div>
+                                </div>
+                            ` : ''}
+                            ${coinsItems.length > 0 ? `
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Coins</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">${coinsItems.join('')}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            }
+
             modalContent.innerHTML = `
                 <div class="modal-header">
                     <h2><i class="fas fa-coins"></i> Change Record Details</h2>
@@ -9312,7 +10452,7 @@
                             <p style="margin: 0; font-weight: 500;">VSU ${record.store}</p>
                         </div>
                         <div>
-                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Amount</label>
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Total Amount</label>
                             <p style="margin: 0; font-weight: 600; color: var(--success); font-size: 20px;">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                         </div>
                         <div>
@@ -9328,6 +10468,22 @@
                             <p style="margin: 0; font-weight: 500;">${record.receivedBy}</p>
                         </div>
                     </div>
+
+                    ${denominationsDisplay}
+
+                    ${record.changeInStore !== undefined && record.changeInStore !== null ? `
+                        <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #10b98115, #10b98108); border: 2px solid #10b98140; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; background: #10b98120; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-cash-register" style="color: #10b981; font-size: 18px;"></i>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Change in Store</label>
+                                    <p style="margin: 0; font-weight: 700; font-size: 24px; color: #10b981;">$${record.changeInStore.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
 
                     ${record.notes ? `
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
@@ -9423,17 +10579,84 @@
             }
         }
 
+        // Calculate total from currency breakdown
+        function calculateChangeTotal() {
+            let total = 0;
+
+            // Bills
+            const bills100 = parseInt(document.getElementById('change-bills-100')?.value) || 0;
+            const bills50 = parseInt(document.getElementById('change-bills-50')?.value) || 0;
+            const bills20 = parseInt(document.getElementById('change-bills-20')?.value) || 0;
+            const bills10 = parseInt(document.getElementById('change-bills-10')?.value) || 0;
+            const bills5 = parseInt(document.getElementById('change-bills-5')?.value) || 0;
+            const bills2 = parseInt(document.getElementById('change-bills-2')?.value) || 0;
+            const bills1 = parseInt(document.getElementById('change-bills-1')?.value) || 0;
+
+            // Coins
+            const coins100 = parseInt(document.getElementById('change-coins-100')?.value) || 0;
+            const coins50 = parseInt(document.getElementById('change-coins-50')?.value) || 0;
+            const coins25 = parseInt(document.getElementById('change-coins-25')?.value) || 0;
+            const coins10 = parseInt(document.getElementById('change-coins-10')?.value) || 0;
+            const coins5 = parseInt(document.getElementById('change-coins-5')?.value) || 0;
+            const coins1 = parseInt(document.getElementById('change-coins-1')?.value) || 0;
+
+            total = (bills100 * 100) + (bills50 * 50) + (bills20 * 20) + (bills10 * 10) +
+                    (bills5 * 5) + (bills2 * 2) + (bills1 * 1) +
+                    (coins100 * 1) + (coins50 * 0.50) + (coins25 * 0.25) +
+                    (coins10 * 0.10) + (coins5 * 0.05) + (coins1 * 0.01);
+
+            // Update display
+            const displayEl = document.getElementById('change-total-display');
+            if (displayEl) {
+                displayEl.textContent = total.toFixed(2);
+            }
+
+            return total;
+        }
+
+        // Get currency breakdown object
+        function getChangeDenominations() {
+            return {
+                bills: {
+                    hundreds: parseInt(document.getElementById('change-bills-100')?.value) || 0,
+                    fifties: parseInt(document.getElementById('change-bills-50')?.value) || 0,
+                    twenties: parseInt(document.getElementById('change-bills-20')?.value) || 0,
+                    tens: parseInt(document.getElementById('change-bills-10')?.value) || 0,
+                    fives: parseInt(document.getElementById('change-bills-5')?.value) || 0,
+                    twos: parseInt(document.getElementById('change-bills-2')?.value) || 0,
+                    ones: parseInt(document.getElementById('change-bills-1')?.value) || 0
+                },
+                coins: {
+                    dollars: parseInt(document.getElementById('change-coins-100')?.value) || 0,
+                    halfDollars: parseInt(document.getElementById('change-coins-50')?.value) || 0,
+                    quarters: parseInt(document.getElementById('change-coins-25')?.value) || 0,
+                    dimes: parseInt(document.getElementById('change-coins-10')?.value) || 0,
+                    nickels: parseInt(document.getElementById('change-coins-5')?.value) || 0,
+                    pennies: parseInt(document.getElementById('change-coins-1')?.value) || 0
+                }
+            };
+        }
+
         async function saveChangeRecord() {
             const store = document.getElementById('change-store').value;
-            const amount = parseFloat(document.getElementById('change-amount').value);
             const date = document.getElementById('change-date').value;
             const leftBy = document.getElementById('change-left-by').value.trim();
             const receivedBy = document.getElementById('change-received-by').value.trim();
             const notes = document.getElementById('change-notes').value.trim();
+            const changeInStore = parseFloat(document.getElementById('change-in-store')?.value) || 0;
             const photoInput = document.getElementById('change-photo');
 
-            if (!store || !amount || !date || !leftBy || !receivedBy) {
+            // Calculate amount from denominations
+            const amount = calculateChangeTotal();
+            const denominations = getChangeDenominations();
+
+            if (!store || !date || !leftBy || !receivedBy) {
                 alert('Please fill in all required fields');
+                return;
+            }
+
+            if (amount <= 0) {
+                alert('Please enter at least one denomination');
                 return;
             }
 
@@ -9480,6 +10703,8 @@
                 leftBy,
                 receivedBy,
                 notes,
+                changeInStore,
+                denominations,
                 photo: photoUrl,      // Now stores URL instead of base64
                 photoPath: photoPath  // For future deletion
             };
@@ -9630,6 +10855,7 @@
                                 customer: issue.customer || 'Anonymous',
                                 phone: issue.phone || '',
                                 type: issue.type || 'In Store',
+                                store: issue.store || '',
                                 description: issue.description || '',
                                 incidentDate: issue.incidentDate || '',
                                 perception: issue.perception || null,
@@ -9638,7 +10864,9 @@
                                 createdDate: issue.createdDate || '',
                                 solution: issue.solution || null,
                                 resolvedBy: issue.resolvedBy || null,
-                                resolutionDate: issue.resolutionDate || null
+                                resolutionDate: issue.resolutionDate || null,
+                                followUpNotes: issue.followUpNotes || '',
+                                statusHistory: issue.statusHistory || []
                             }));
 
                             console.log(`Successfully loaded ${issues.length} issues from Firestore`);
@@ -9798,7 +11026,7 @@
                         <h2 class="section-title">Customer Care</h2>
                         <p class="section-subtitle">Control de Regalos en Especie</p>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-gift')">
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-gift')">
                         <i class="fas fa-plus"></i>
                         Register Gift
                     </button>
@@ -10261,11 +11489,17 @@
         function renderCashOut() {
             const dashboard = document.querySelector('.dashboard');
 
-            // Calculate monthly total
+            // Filter by store first
+            let filteredRecords = [...cashOutRecords];
+            if (currentCashOutStoreFilter !== 'all') {
+                filteredRecords = cashOutRecords.filter(r => r.store === currentCashOutStoreFilter);
+            }
+
+            // Calculate monthly total (from filtered records)
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
-            const monthlyRecords = cashOutRecords.filter(r => {
+            const monthlyRecords = filteredRecords.filter(r => {
                 const date = new Date(r.createdDate);
                 return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
             });
@@ -10288,15 +11522,109 @@
                 <div style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border-radius: 16px; padding: 30px 40px; margin-bottom: 24px; position: relative; overflow: hidden;">
                     <div style="position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.1);"></div>
                     <div style="position: relative; z-index: 1;">
-                        <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px;">${monthName}</div>
+                        <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px;">
+                            ${monthName} ${currentCashOutStoreFilter !== 'all' ? `· ${currentCashOutStoreFilter}` : ''}
+                        </div>
                         <div style="color: white; font-size: 42px; font-weight: 700; margin-bottom: 4px;">$${monthlyTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                         <div style="color: rgba(255,255,255,0.8); font-size: 14px;">${monthlyRecords.length} expense${monthlyRecords.length !== 1 ? 's' : ''} this month</div>
                     </div>
                 </div>
 
+                <!-- Store Filter -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-body" style="padding: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-store" style="color: var(--text-muted);"></i>
+                                <span style="font-weight: 500; color: var(--text-secondary);">Filter by Store:</span>
+                            </div>
+                            <select id="cashout-store-filter" class="form-input" onchange="filterCashOutByStore(this.value)" style="width: 220px;">
+                                <option value="all" ${currentCashOutStoreFilter === 'all' ? 'selected' : ''}>All Stores</option>
+                                <option value="Miramar" ${currentCashOutStoreFilter === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                <option value="Morena" ${currentCashOutStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                <option value="Kearny Mesa" ${currentCashOutStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                <option value="Chula Vista" ${currentCashOutStoreFilter === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                <option value="North Park" ${currentCashOutStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                <option value="Miramar Wine & Liquor" ${currentCashOutStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                            </select>
+                            ${currentCashOutStoreFilter !== 'all' ? `
+                                <button onclick="filterCashOutByStore('all')" class="btn-secondary" style="padding: 8px 12px;">
+                                    <i class="fas fa-times"></i> Clear Filter
+                                </button>
+                                <span style="margin-left: auto; font-size: 13px; color: var(--text-muted);">
+                                    Showing ${filteredRecords.length} of ${cashOutRecords.length} records
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Card -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header" style="cursor: pointer; user-select: none;" onclick="toggleCashOutExpenseAnalysis()">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <i class="fas fa-chart-line"></i>
+                            <h3 class="card-title" style="margin: 0;">Expense Analysis</h3>
+                            <i class="fas fa-chevron-down" style="transition: transform 0.3s ease; transform: ${cashOutViewState.expenseAnalysisExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; margin-left: auto;"></i>
+                        </div>
+                    </div>
+
+                    ${cashOutViewState.expenseAnalysisExpanded ? `
+                    <div class="card-body" style="padding: 16px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                            <!-- View Toggle Buttons -->
+                            <button class="cashout-filter-btn ${cashOutViewState.viewType === 'week' ? 'active' : ''}"
+                                    onclick="switchCashOutView('week')"
+                                    id="cashout-week-btn">
+                                <i class="fas fa-calendar-week"></i> Week
+                            </button>
+                            <button class="cashout-filter-btn ${cashOutViewState.viewType === 'month' ? 'active' : ''}"
+                                    onclick="switchCashOutView('month')"
+                                    id="cashout-month-btn">
+                                <i class="fas fa-calendar"></i> Month
+                            </button>
+                        </div>
+
+                        ${cashOutRecords.length === 0 ? `
+                            <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                                <i class="fas fa-chart-line" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.5;"></i>
+                                <p>No expense data available yet</p>
+                            </div>
+                        ` : `
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                                <!-- Daily/Weekly Expenses Chart -->
+                                <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
+                                    <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">
+                                        ${cashOutViewState.viewType === 'week' ? 'Daily Expenses This Week' : 'Daily Expenses This Month'}
+                                    </div>
+                                    <canvas id="cashout-daily-chart" style="max-height: 200px;"></canvas>
+                                </div>
+
+                                <!-- Store Breakdown Chart -->
+                                <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
+                                    <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">
+                                        Expenses by Store
+                                    </div>
+                                    <canvas id="cashout-store-chart" style="max-height: 200px;"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Trend Chart (Full Width) -->
+                            <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">
+                                    Expense Trend
+                                </div>
+                                <canvas id="cashout-trend-chart" style="max-height: 250px;"></canvas>
+                            </div>
+                        `}
+                    </div>
+                    ` : ''}
+                </div>
+
+                <!-- Data Table Card -->
                 <div class="card">
                     <div class="card-body" style="padding: 0;">
-                        ${cashOutRecords.length === 0 ? `
+                        ${filteredRecords.length === 0 ? `
                             <div style="text-align: center; padding: 60px; color: var(--text-muted);">
                                 <i class="fas fa-money-bill-wave" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
                                 <h3 style="margin-bottom: 8px; color: var(--text-secondary);">No Cash Outs Yet</h3>
@@ -10315,7 +11643,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${cashOutRecords.map(record => {
+                                    ${filteredRecords.map(record => {
                                         const recordId = record.firestoreId || record.id;
                                         return `
                                         <tr>
@@ -10347,6 +11675,279 @@
                     </div>
                 </div>
             `;
+
+            // Initialize charts after DOM is rendered
+            setTimeout(() => initializeCashOutCharts(), 100);
+        }
+
+        // Filter cash out by store
+        function filterCashOutByStore(store) {
+            currentCashOutStoreFilter = store;
+            renderCashOut();
+        }
+
+        // Switch cash out view between week and month
+        function switchCashOutView(viewType) {
+            cashOutViewState.viewType = viewType;
+            renderCashOut();
+        }
+
+        // Toggle expense analysis expansion
+        function toggleCashOutExpenseAnalysis() {
+            cashOutViewState.expenseAnalysisExpanded = !cashOutViewState.expenseAnalysisExpanded;
+            renderCashOut();
+            
+            // Initialize charts after expansion if needed
+            if (cashOutViewState.expenseAnalysisExpanded) {
+                setTimeout(() => initializeCashOutCharts(), 100);
+            }
+        }
+
+        // Get date range based on view type
+        function getCashOutDateRange() {
+            const now = new Date();
+            let startDate, endDate = new Date(now);
+
+            if (cashOutViewState.viewType === 'week') {
+                // Get start of current week (Sunday)
+                const day = now.getDay();
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - day);
+                startDate.setHours(0, 0, 0, 0);
+            } else {
+                // Get start of current month
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+
+            endDate.setHours(23, 59, 59, 999);
+            return { startDate, endDate };
+        }
+
+        // Initialize cashout charts
+        function initializeCashOutCharts() {
+            // Destroy existing charts
+            Object.values(cashOutCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+
+            // Apply store filter
+            let filtered = cashOutRecords;
+            if (currentCashOutStoreFilter !== 'all') {
+                filtered = cashOutRecords.filter(r => r.store === currentCashOutStoreFilter);
+            }
+
+            if (filtered.length === 0) return;
+
+            const { startDate, endDate } = getCashOutDateRange();
+
+            // Filter records by date range
+            const rangeFiltered = filtered.filter(r => {
+                const recordDate = new Date(r.createdDate);
+                return recordDate >= startDate && recordDate <= endDate;
+            });
+
+            // 1. Daily Expenses Chart
+            initializeDailyExpensesChart(rangeFiltered);
+
+            // 2. Store Breakdown Chart (use all records for store breakdown, but respect store filter)
+            initializeStoreBreakdownChart(filtered);
+
+            // 3. Trend Chart
+            initializeTrendChart(filtered);
+        }
+
+        // Daily expenses bar chart
+        function initializeDailyExpensesChart(records) {
+            const dailyCtx = document.getElementById('cashout-daily-chart');
+            if (!dailyCtx) return;
+
+            // Group by day
+            const dailyData = {};
+            records.forEach(r => {
+                const dateStr = new Date(r.createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                dailyData[dateStr] = (dailyData[dateStr] || 0) + r.amount;
+            });
+
+            const labels = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b));
+            const data = labels.map(label => dailyData[label]);
+
+            cashOutCharts.dailyChart = new Chart(dailyCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Amount ($)',
+                        data: data,
+                        backgroundColor: '#8b5cf6',
+                        borderColor: '#7c3aed',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'x',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Store breakdown pie chart
+        function initializeStoreBreakdownChart(records) {
+            const storeCtx = document.getElementById('cashout-store-chart');
+            if (!storeCtx) return;
+
+            // Group by store
+            const storeData = {};
+            records.forEach(r => {
+                const store = r.store || 'Unknown';
+                storeData[store] = (storeData[store] || 0) + r.amount;
+            });
+
+            const labels = Object.keys(storeData);
+            const data = Object.values(storeData);
+
+            // Color palette
+            const colors = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#06b6d4'];
+
+            cashOutCharts.storeChart = new Chart(storeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 12,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Trend line chart (last 30 days)
+        function initializeTrendChart(records) {
+            const trendCtx = document.getElementById('cashout-trend-chart');
+            if (!trendCtx) return;
+
+            // Get last 30 days
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+            const trendData = {};
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                trendData[dateStr] = 0;
+            }
+
+            records.forEach(r => {
+                const recordDate = new Date(r.createdDate);
+                if (recordDate >= thirtyDaysAgo) {
+                    const dateStr = recordDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    if (trendData.hasOwnProperty(dateStr)) {
+                        trendData[dateStr] += r.amount;
+                    }
+                }
+            });
+
+            const labels = Object.keys(trendData);
+            const data = Object.values(trendData);
+
+            // Calculate cumulative sum
+            let cumulative = 0;
+            const cumulativeData = data.map(val => cumulative += val);
+
+            cashOutCharts.trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cumulative Total ($)',
+                        data: cumulativeData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         async function deleteCashOut(id) {
@@ -10549,11 +12150,26 @@
         }
 
         function viewCashOutDetails(recordId) {
-            const record = cashOutRecords.find(r => r.id === recordId || r.firestoreId === recordId);
-            if (!record) return;
+            console.log('viewCashOutDetails called with:', recordId);
+            console.log('cashOutRecords:', cashOutRecords);
+
+            const record = cashOutRecords.find(r => r.id === recordId || r.firestoreId === recordId || String(r.id) === String(recordId) || String(r.firestoreId) === String(recordId));
+
+            console.log('Found record:', record);
+
+            if (!record) {
+                console.error('Record not found for ID:', recordId);
+                showNotification('Record not found', 'error');
+                return;
+            }
 
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
+
+            if (!modal || !modalContent) {
+                console.error('Modal elements not found');
+                return;
+            }
 
             const receiptDisplay = record.receiptPhoto
                 ? `<img src="${record.receiptPhoto}" style="width: 100%; max-width: 400px; border-radius: 8px; margin-top: 8px;" alt="Receipt">`
@@ -10566,9 +12182,17 @@
                 </div>
                 <div class="modal-body">
                     <div style="display: grid; gap: 16px;">
-                        <div>
-                            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Cash Out Name</div>
-                            <div style="font-size: 18px; font-weight: 600;">${record.name}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Cash Out Name</div>
+                                <div style="font-size: 18px; font-weight: 600;">${record.name}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Store</div>
+                                <span class="badge" style="background: var(--accent-primary);">
+                                    <i class="fas fa-store"></i> ${record.store || 'N/A'}
+                                </span>
+                            </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -10584,14 +12208,14 @@
 
                         <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Reason</div>
-                            <div style="font-size: 14px;">${record.reason}</div>
+                            <div style="font-size: 14px;">${record.reason || 'No reason provided'}</div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; text-align: center;">
                                 <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Amount Given</div>
                                 <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">
-                                    $${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                    $${record.amount ? record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}
                                 </div>
                             </div>
                             <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; text-align: center;">
@@ -10610,13 +12234,13 @@
                                     <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; text-align: center;">
                                         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Amount Spent</div>
                                         <div style="font-size: 20px; font-weight: 700; color: var(--danger);">
-                                            $${record.amountSpent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                            $${(record.amountSpent || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                         </div>
                                     </div>
                                     <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; text-align: center;">
                                         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Money Left</div>
                                         <div style="font-size: 20px; font-weight: 700; color: ${record.hasMoneyLeft ? 'var(--success)' : 'var(--text-muted)'};">
-                                            $${record.moneyLeft.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                            $${(record.moneyLeft || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                         </div>
                                     </div>
                                     <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; text-align: center;">
@@ -10747,15 +12371,18 @@
                     </div>
                 </div>
 
-                <!-- Store Filter -->
+                <!-- Customer Perception Chart -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-body" style="padding: 16px;">
-                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <i class="fas fa-store" style="color: var(--text-muted);"></i>
-                                <span style="font-weight: 500; color: var(--text-secondary);">Filter by Store:</span>
-                            </div>
-                            <select id="issue-store-filter" class="form-input" onchange="filterIssuesByStore(this.value)" style="width: 220px;">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 class="card-title">
+                                <i class="fas fa-smile"></i>
+                                Customer Perception
+                            </h3>
+                            <span style="font-size: 13px; color: var(--text-muted);">How customers felt when leaving</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                            <select id="issue-store-filter" class="form-input" onchange="filterIssuesByStore(this.value)" style="width: 200px; padding: 8px 12px; font-size: 13px;">
                                 <option value="all" ${currentIssueStoreFilter === 'all' ? 'selected' : ''}>All Stores</option>
                                 <option value="Miramar" ${currentIssueStoreFilter === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
                                 <option value="Morena" ${currentIssueStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
@@ -10764,23 +12391,7 @@
                                 <option value="North Park" ${currentIssueStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                 <option value="Miramar Wine & Liquor" ${currentIssueStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                             </select>
-                            ${currentIssueStoreFilter !== 'all' ? `
-                                <button onclick="filterIssuesByStore('all')" class="btn-secondary" style="padding: 8px 12px;">
-                                    <i class="fas fa-times"></i> Clear Filter
-                                </button>
-                            ` : ''}
                         </div>
-                    </div>
-                </div>
-
-                <!-- Customer Perception Chart -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-smile"></i>
-                            Customer Perception
-                        </h3>
-                        <span style="font-size: 13px; color: var(--text-muted);">How customers felt when leaving</span>
                     </div>
                     <div class="card-body">
                         ${renderPerceptionGanttChart()}
@@ -10954,7 +12565,6 @@
                     badge.className = 'issues-badge';
                     badge.style.cssText = `
                         position: absolute;
-                        top: 8px;
                         right: 8px;
                         background: ${followUpCount > 0 ? '#f59e0b' : '#ef4444'};
                         color: white;
@@ -11068,9 +12678,17 @@
         }
 
         function renderPerceptionGanttChart() {
-            // Get ALL issues with perception data (not just recent)
-            const issuesWithPerception = issues
+            // Get issues with perception data, filtered by store
+            let issuesWithPerception = issues
                 .filter(i => i.perception !== null && i.perception !== undefined);
+
+            // Apply store filter
+            if (currentIssueStoreFilter !== 'all') {
+                issuesWithPerception = issuesWithPerception.filter(i => i.store === currentIssueStoreFilter);
+            }
+
+            // Determine the store label for display
+            const storeLabel = currentIssueStoreFilter === 'all' ? 'All Stores' : `VSU ${currentIssueStoreFilter}`;
 
             if (issuesWithPerception.length === 0) {
                 return `
@@ -11082,7 +12700,7 @@
                 `;
             }
 
-            // Calculate perception distribution for ALL issues
+            // Calculate perception distribution for filtered issues
             const perceptionCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
             let totalSum = 0;
             issuesWithPerception.forEach(i => {
@@ -11106,7 +12724,7 @@
                         <div style="font-size: 64px; line-height: 1;">${averageEmoji}</div>
                     </div>
                     <div style="text-align: left;">
-                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Average Score</div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Average Score for ${storeLabel}</div>
                         <div style="font-size: 48px; font-weight: 800; color: ${averageColor}; line-height: 1;">${averageRounded}</div>
                         <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">out of 5.0 · ${total} interactions</div>
                     </div>
@@ -11468,10 +13086,164 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    <button class="btn-primary" onclick="editIssueDetails('${issue.firestoreId || issue.id}')">
+                        <i class="fas fa-edit"></i> Edit Issue
+                    </button>
+                    <button class="btn-primary" onclick="closeModal()" style="background: var(--success);">
+                        <i class="fas fa-check"></i> Accept
+                    </button>
                 </div>
             `;
 
             modal.classList.add('active');
+        }
+
+        // Edit issue details modal
+        function editIssueDetails(issueId) {
+            const issue = issues.find(i => i.id === issueId || i.firestoreId === issueId);
+            if (!issue) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit"></i> Edit Issue</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: grid; gap: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" class="form-input" id="edit-issue-customer" value="${issue.customer || ''}" placeholder="Customer name">
+                            </div>
+                            <div>
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-input" id="edit-issue-phone" value="${issue.phone || ''}" placeholder="Phone number">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Store</label>
+                                <select class="form-input" id="edit-issue-store">
+                                    <option value="" ${!issue.store ? 'selected' : ''}>Select Store</option>
+                                    <option value="Miramar" ${issue.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                    <option value="Morena" ${issue.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                    <option value="Kearny Mesa" ${issue.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                    <option value="Chula Vista" ${issue.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                    <option value="North Park" ${issue.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                    <option value="Miramar Wine & Liquor" ${issue.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Issue Type</label>
+                                <select class="form-input" id="edit-issue-type">
+                                    <option value="In Store" ${issue.type === 'In Store' ? 'selected' : ''}>In Store</option>
+                                    <option value="Online" ${issue.type === 'Online' ? 'selected' : ''}>Online</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Incident Date</label>
+                            <input type="date" class="form-input" id="edit-issue-incident-date" value="${issue.incidentDate || ''}">
+                        </div>
+
+                        <div>
+                            <label class="form-label">Description</label>
+                            <textarea class="form-input" id="edit-issue-description" rows="4" placeholder="Describe the issue...">${issue.description || ''}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Customer Perception</label>
+                            <div style="display: flex; justify-content: space-between; gap: 8px;">
+                                ${[1, 2, 3, 4, 5].map(level => `
+                                    <button type="button"
+                                        class="edit-issue-perception-btn"
+                                        data-value="${level}"
+                                        onclick="selectEditIssuePerception(${level})"
+                                        style="flex: 1; padding: 12px 8px; border: 2px solid ${issue.perception === level ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 12px; background: ${issue.perception === level ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-secondary)'}; cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-size: 28px; margin-bottom: 4px;">${getPerceptionEmoji(level)}</div>
+                                        <div style="font-size: 10px; color: var(--text-muted);">${getPerceptionLabel(level)}</div>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <input type="hidden" id="edit-issue-perception" value="${issue.perception || ''}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="viewIssueDetails('${issueId}')">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button class="btn-primary" onclick="saveIssueEdit('${issue.firestoreId || issue.id}')">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Select perception in edit mode
+        function selectEditIssuePerception(level) {
+            document.getElementById('edit-issue-perception').value = level;
+            document.querySelectorAll('.edit-issue-perception-btn').forEach(btn => {
+                const btnLevel = parseInt(btn.dataset.value);
+                if (btnLevel === level) {
+                    btn.style.borderColor = 'var(--accent-primary)';
+                    btn.style.background = 'rgba(99, 102, 241, 0.1)';
+                } else {
+                    btn.style.borderColor = 'var(--border-color)';
+                    btn.style.background = 'var(--bg-secondary)';
+                }
+            });
+        }
+
+        // Save issue edit
+        async function saveIssueEdit(issueId) {
+            const customer = document.getElementById('edit-issue-customer').value.trim();
+            const phone = document.getElementById('edit-issue-phone').value.trim();
+            const store = document.getElementById('edit-issue-store').value;
+            const type = document.getElementById('edit-issue-type').value;
+            const incidentDate = document.getElementById('edit-issue-incident-date').value;
+            const description = document.getElementById('edit-issue-description').value.trim();
+            const perception = document.getElementById('edit-issue-perception').value;
+
+            const updateData = {
+                customer: customer || 'Anonymous',
+                phone: phone || '',
+                store: store || '',
+                type: type || 'In Store',
+                incidentDate: incidentDate || '',
+                description: description || '',
+                perception: perception ? parseInt(perception) : null
+            };
+
+            // Update in Firebase
+            if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
+                const success = await firebaseIssuesManager.updateIssue(issueId, updateData);
+                if (success) {
+                    // Update local array
+                    const issueIndex = issues.findIndex(i => i.id === issueId || i.firestoreId === issueId);
+                    if (issueIndex !== -1) {
+                        issues[issueIndex] = { ...issues[issueIndex], ...updateData };
+                    }
+                    showNotification('Issue updated successfully', 'success');
+                    viewIssueDetails(issueId);
+                    return;
+                }
+            }
+
+            // Fallback to local update
+            const issueIndex = issues.findIndex(i => i.id === issueId || i.firestoreId === issueId);
+            if (issueIndex !== -1) {
+                issues[issueIndex] = { ...issues[issueIndex], ...updateData };
+            }
+            showNotification('Issue updated successfully', 'success');
+            viewIssueDetails(issueId);
         }
 
         // Update issue status from modal
@@ -11595,6 +13367,7 @@
         // Vendors Functions
         let vendorSearchTerm = '';
         let vendorCategoryFilter = 'all';
+        let vendorTypeFilter = 'all'; // 'all', 'vendor', 'service'
         let firebaseVendors = [];
 
         async function initVendors() {
@@ -11637,7 +13410,7 @@
                         <h2 class="section-title">Vendors & Suppliers</h2>
                         <p class="section-subtitle">Manage your supplier contacts and information</p>
                     </div>
-                    <button class="btn-primary" onclick="openAddVendorModal()">
+                    <button class="btn-primary floating-add-btn" onclick="openAddVendorModal()">
                         <i class="fas fa-plus"></i>
                         Add Vendor
                     </button>
@@ -11645,6 +13418,17 @@
 
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="card-body">
+                        <div class="vendor-type-filters" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                            <button class="vendor-filter-btn ${vendorTypeFilter === 'all' ? 'active' : ''}" onclick="filterVendorsByType('all')">
+                                <i class="fas fa-th-large"></i> All
+                            </button>
+                            <button class="vendor-filter-btn ${vendorTypeFilter === 'vendor' ? 'active' : ''}" onclick="filterVendorsByType('vendor')">
+                                <i class="fas fa-truck"></i> Vendors
+                            </button>
+                            <button class="vendor-filter-btn ${vendorTypeFilter === 'service' ? 'active' : ''}" onclick="filterVendorsByType('service')">
+                                <i class="fas fa-wrench"></i> Services
+                            </button>
+                        </div>
                         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                             <div style="flex: 1; min-width: 250px;">
                                 <div style="position: relative;">
@@ -11679,6 +13463,11 @@
 
         function renderVendorsList() {
             let filteredVendors = firebaseVendors;
+
+            // Apply type filter (vendor/service)
+            if (vendorTypeFilter !== 'all') {
+                filteredVendors = filteredVendors.filter(v => (v.type || 'vendor') === vendorTypeFilter);
+            }
 
             // Apply category filter
             if (vendorCategoryFilter !== 'all') {
@@ -11794,6 +13583,20 @@
 
         function filterVendorsByCategory(category) {
             vendorCategoryFilter = category;
+            const vendorsList = document.getElementById('vendors-list');
+            if (vendorsList) {
+                vendorsList.innerHTML = renderVendorsList();
+            }
+        }
+
+        function filterVendorsByType(type) {
+            vendorTypeFilter = type;
+            // Update button active states
+            document.querySelectorAll('.vendor-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            // Re-render the vendors list
             const vendorsList = document.getElementById('vendors-list');
             if (vendorsList) {
                 vendorsList.innerHTML = renderVendorsList();
@@ -12692,8 +14495,39 @@
 
         // Helper functions
         function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            // Format date string directly without using Date object to avoid timezone issues
+            if (!dateStr) return '';
+
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            // Handle Date objects
+            if (dateStr instanceof Date) {
+                const monthName = monthNames[dateStr.getMonth()];
+                const dayNum = dateStr.getDate();
+                const year = dateStr.getFullYear();
+                return `${monthName} ${dayNum}, ${year}`;
+            }
+
+            // Handle Firestore Timestamp objects
+            if (dateStr && typeof dateStr.toDate === 'function') {
+                const date = dateStr.toDate();
+                const monthName = monthNames[date.getMonth()];
+                const dayNum = date.getDate();
+                const year = date.getFullYear();
+                return `${monthName} ${dayNum}, ${year}`;
+            }
+
+            // Handle string format "YYYY-MM-DD"
+            if (typeof dateStr === 'string' && dateStr.includes('-')) {
+                const [year, month, day] = dateStr.split('-');
+                const monthIndex = parseInt(month, 10) - 1;
+                const monthName = monthNames[monthIndex];
+                const dayNum = parseInt(day, 10);
+                return `${monthName} ${dayNum}, ${year}`;
+            }
+
+            return String(dateStr);
         }
 
         // Format phone number to US format (XXX) XXX-XXXX
@@ -13869,7 +15703,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-secondary" onclick="closeModal()">Close</button>
                             <button class="btn-primary" onclick="saveInvoice()">
                                 <i class="fas fa-plus"></i> Add Invoice
                             </button>
@@ -14806,16 +16640,106 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Amount *</label>
-                                    <input type="number" step="0.01" class="form-input" id="change-amount" placeholder="0.00">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
                                     <label>Date *</label>
                                     <input type="date" class="form-input" id="change-date" value="${new Date().toISOString().split('T')[0]}">
                                 </div>
                             </div>
+
+                            <!-- Currency Breakdown Section -->
+                            <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin: 16px 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <label style="font-weight: 600; color: var(--text-primary); margin: 0;">
+                                        <i class="fas fa-money-bill-wave" style="color: var(--success);"></i> Currency Breakdown *
+                                    </label>
+                                    <div style="font-size: 18px; font-weight: 700; color: var(--accent-primary);">
+                                        Total: $<span id="change-total-display">0.00</span>
+                                    </div>
+                                </div>
+
+                                <!-- Bills -->
+                                <div style="margin-bottom: 16px;">
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Bills</div>
+                                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$100</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="100" id="change-bills-100" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$50</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="50" id="change-bills-50" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$20</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="20" id="change-bills-20" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$10</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="10" id="change-bills-10" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$5</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="5" id="change-bills-5" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$2</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="2" id="change-bills-2" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$1</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="1" id="change-bills-1" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Coins -->
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Coins</div>
+                                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">$1 coin</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="1" id="change-coins-100" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">50¢</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="0.50" id="change-coins-50" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">25¢</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="0.25" id="change-coins-25" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">10¢</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="0.10" id="change-coins-10" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">5¢</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="0.05" id="change-coins-5" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">1¢</div>
+                                            <input type="number" min="0" class="form-input change-denomination" data-value="0.01" id="change-coins-1" placeholder="0" style="text-align: center; padding: 8px;" onchange="calculateChangeTotal()" oninput="calculateChangeTotal()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Change in Store Section -->
+                            <div style="background: linear-gradient(135deg, #10b98115, #10b98108); border: 2px solid #10b98140; border-radius: 12px; padding: 16px; margin: 16px 0;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <div style="width: 40px; height: 40px; background: #10b98120; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-cash-register" style="color: #10b981; font-size: 18px;"></i>
+                                    </div>
+                                    <div>
+                                        <label style="font-weight: 600; color: var(--text-primary); margin: 0; display: block;">Change in Store</label>
+                                        <span style="font-size: 12px; color: var(--text-muted);">Amount of change currently available in the register</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 24px; font-weight: 600; color: #10b981;">$</span>
+                                    <input type="number" step="0.01" min="0" class="form-input" id="change-in-store" placeholder="0.00" style="font-size: 20px; font-weight: 600; text-align: center; max-width: 200px;">
+                                </div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Left By (Person who left the change) *</label>
@@ -15371,6 +17295,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    <button class="btn-secondary" onclick="requestDayOff('${emp.id}')"><i class="fas fa-calendar-xmark"></i> Day Off Request</button>
                     <button class="btn-primary" onclick="editEmployee('${emp.id}')"><i class="fas fa-edit"></i> Edit</button>
                 </div>
             `;
@@ -18285,7 +20210,7 @@
                         <p class="section-subtitle">Document unusual activity and stay alert</p>
                     </div>
                     <div class="page-header-right">
-                        <button class="btn-primary" onclick="openModal('add-risknote')">
+                        <button class="btn-primary floating-add-btn" onclick="openModal('add-risknote')">
                             <i class="fas fa-plus"></i> New Risk Note
                         </button>
                     </div>
@@ -19430,7 +21355,7 @@ function renderGconomics() {
                         return `<option value="${month}" ${month === gconomicsState.currentMonth ? 'selected' : ''}>${monthName}</option>`;
                     }).join('')}
                 </select>
-                <button class="btn-primary" onclick="openAddExpenseModal()">
+                <button class="btn-primary floating-add-btn" onclick="openAddExpenseModal()">
                     <i class="fas fa-plus"></i> New Expense
                 </button>
             </div>
@@ -19521,11 +21446,11 @@ function renderGconomics() {
 
         <!-- Category Filter Pills -->
         <div style="display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap;">
-            <button onclick="filterGconomicsByCategory('all')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === 'all' ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+            <button onclick="filterGconomicsByCategory('all')" style="padding: 10px 20px; font-family: Outfit; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === 'all' ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
                 <i class="fas fa-th-large"></i> All
             </button>
             ${GCONOMICS_CATEGORIES.map(cat => `
-                <button onclick="filterGconomicsByCategory('${cat.id}')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === cat.id ? cat.color : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === cat.id ? cat.color : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === cat.id ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+                <button onclick="filterGconomicsByCategory('${cat.id}')" style="font-family: Outfit; padding: 10px 20px; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === cat.id ? cat.color : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === cat.id ? cat.color : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === cat.id ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
                     <i class="fas ${cat.icon}"></i> ${cat.name}
                 </button>
             `).join('')}
@@ -20213,79 +22138,105 @@ async function renderPasswordManager() {
                 <p class="section-subtitle">Securely store and manage all your business passwords</p>
             </div>
             <div class="page-header-right" style="display: flex; gap: 12px;">
-                <button class="btn-primary" onclick="openAddPasswordModal()" style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn-primary" onclick="toggleAddPasswordInline()" style="display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-plus"></i>
                     Add Password
                 </button>
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="stats-grid" style="margin-bottom: 24px;">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
-                        <i class="fas fa-key"></i>
-                    </div>
+        <!-- Inline Add Form (hidden by default) -->
+        <div id="inline-add-password" style="display: none; margin-bottom: 24px;">
+            <div class="card" style="border: 2px solid var(--accent-primary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, var(--bg-secondary) 100%);">
+                <div class="card-header" style="background: transparent; border-bottom: 1px solid var(--border-color);">
+                    <h3 class="card-title" style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-plus-circle" style="color: var(--accent-primary);"></i>
+                        Add New Password
+                    </h3>
+                    <button onclick="toggleAddPasswordInline()" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="stat-value" id="total-passwords-count">${firebasePasswords.length}</div>
-                <div class="stat-label">Total Passwords</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                        <i class="fas fa-folder"></i>
-                    </div>
-                </div>
-                <div class="stat-value" id="categories-count">${new Set(firebasePasswords.map(p => p.category)).size}</div>
-                <div class="stat-label">Categories Used</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <div class="stat-value" id="recent-added-count">${firebasePasswords.filter(p => {
-                    const created = p.createdAt?.toDate?.() || new Date(p.createdAt);
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    return created > weekAgo;
-                }).length}</div>
-                <div class="stat-label">Added This Week</div>
-            </div>
-        </div>
-
-        <!-- Filter & Search -->
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="card-body" style="padding: 16px;">
-                <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
-                    <div style="flex: 1; min-width: 250px;">
-                        <div style="position: relative;">
-                            <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
-                            <input type="text" id="password-search" class="form-input" placeholder="Search by name, username, or URL..."
-                                style="padding-left: 42px; width: 100%;" oninput="filterPasswords()">
+                <div class="card-body" style="padding: 24px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Service Name</label>
+                            <input type="text" id="inline-pwd-name" class="form-input" placeholder="e.g., AT&T Business">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Category</label>
+                            <select id="inline-pwd-category" class="form-input">
+                                <option value="">Select category</option>
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Username</label>
+                            <input type="text" id="inline-pwd-username" class="form-input" placeholder="Username or ID">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Email</label>
+                            <input type="email" id="inline-pwd-email" class="form-input" placeholder="email@example.com">
                         </div>
                     </div>
-                    <div style="min-width: 200px;">
-                        <select id="password-category-filter" class="form-input" onchange="filterPasswords()" style="width: 100%;">
-                            <option value="">All Categories</option>
-                            ${categoryOptions}
-                        </select>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Password</label>
+                            <div style="display: flex; gap: 8px;">
+                                <div style="flex: 1; position: relative;">
+                                    <input type="password" id="inline-pwd-password" class="form-input" placeholder="Enter password" style="padding-right: 44px;">
+                                    <button type="button" onclick="togglePasswordVisibility('inline-pwd-password', 'inline-pwd-toggle-icon')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                                        <i class="fas fa-eye" id="inline-pwd-toggle-icon"></i>
+                                    </button>
+                                </div>
+                                <button type="button" onclick="generateInlinePassword()" class="btn-secondary" title="Generate">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Website URL</label>
+                            <input type="url" id="inline-pwd-url" class="form-input" placeholder="https://example.com">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Notes</label>
+                        <textarea id="inline-pwd-notes" class="form-input" placeholder="Additional notes..." style="min-height: 60px; resize: vertical;"></textarea>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                        <button class="btn-secondary" onclick="toggleAddPasswordInline()">Cancel</button>
+                        <button class="btn-primary" onclick="saveInlinePassword()">
+                            <i class="fas fa-save"></i> Save Password
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Passwords Grid -->
+        <!-- Search Bar -->
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="flex: 1; position: relative;">
+                    <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                    <input type="text" id="password-search" class="form-input" placeholder="Search passwords..."
+                        style="padding-left: 46px; height: 48px; font-size: 15px; border-radius: 12px;" oninput="filterPasswords()">
+                </div>
+                <select id="password-category-filter" class="form-input" onchange="filterPasswords()" style="width: 180px; height: 48px; border-radius: 12px;">
+                    <option value="">All Categories</option>
+                    ${categoryOptions}
+                </select>
+            </div>
+        </div>
+
+        <!-- Passwords List -->
         <div id="passwords-container">
-            ${renderPasswordsGrid()}
+            ${renderPasswordsList()}
         </div>
     `;
 }
 
-// Render passwords in a nice grid
-function renderPasswordsGrid() {
+// Render passwords as expandable list
+function renderPasswordsList() {
     if (firebasePasswords.length === 0) {
         return `
             <div class="card">
@@ -20295,7 +22246,7 @@ function renderPasswordsGrid() {
                     </div>
                     <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Passwords Yet</h3>
                     <p style="color: var(--text-muted); margin-bottom: 20px;">Start adding your business passwords to keep them organized and secure.</p>
-                    <button class="btn-primary" onclick="openAddPasswordModal()">
+                    <button class="btn-primary" onclick="toggleAddPasswordInline()">
                         <i class="fas fa-plus"></i> Add Your First Password
                     </button>
                 </div>
@@ -20303,33 +22254,125 @@ function renderPasswordsGrid() {
         `;
     }
 
-    // Group by category
-    const grouped = {};
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+
     firebasePasswords.forEach(pwd => {
-        const cat = pwd.category || 'other';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(pwd);
-    });
-
-    let html = '<div style="display: flex; flex-direction: column; gap: 24px;">';
-
-    Object.entries(grouped).forEach(([category, passwords]) => {
-        const catInfo = passwordCategories[category] || passwordCategories.other;
+        const catInfo = passwordCategories[pwd.category] || passwordCategories.other;
+        const escapedPassword = (pwd.password || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
         html += `
-            <div class="card password-category-card" data-category="${category}">
-                <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
-                    <h3 class="card-title" style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 36px; height: 36px; background: ${catInfo.color}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas ${catInfo.icon}" style="color: ${catInfo.color}; font-size: 16px;"></i>
+            <div class="password-list-item" data-id="${pwd.firestoreId}" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.2s;">
+                <!-- Main Row (always visible) -->
+                <div onclick="togglePasswordExpand('${pwd.firestoreId}')" style="display: flex; align-items: center; padding: 16px 20px; gap: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                    <!-- Icon -->
+                    <div style="width: 48px; height: 48px; background: ${catInfo.color}15; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas ${catInfo.icon}" style="color: ${catInfo.color}; font-size: 20px;"></i>
+                    </div>
+
+                    <!-- Info -->
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 10px;">
+                            ${pwd.name || 'Unnamed'}
+                            ${pwd.url ? `<a href="${pwd.url}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary); font-size: 12px;"><i class="fas fa-external-link-alt"></i></a>` : ''}
                         </div>
+                        <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            ${pwd.username ? `<span><i class="fas fa-user" style="margin-right: 4px; opacity: 0.6;"></i>${pwd.username}</span>` : ''}
+                            ${pwd.email ? `<span><i class="fas fa-envelope" style="margin-right: 4px; opacity: 0.6;"></i>${pwd.email}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Category Badge -->
+                    <div style="background: ${catInfo.color}15; color: ${catInfo.color}; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                         ${catInfo.label}
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--text-muted);">${passwords.length}</span>
-                    </h3>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div style="display: flex; gap: 6px;" onclick="event.stopPropagation()">
+                        <button onclick="copyPasswordToClipboard('${escapedPassword}', 'Password')" style="width: 38px; height: 38px; border-radius: 10px; border: none; background: var(--accent-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; transition: all 0.2s;" title="Copy Password">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+
+                    <!-- Expand Arrow -->
+                    <div style="color: var(--text-muted); transition: transform 0.3s;" id="arrow-${pwd.firestoreId}">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
                 </div>
-                <div class="card-body" style="padding: 0;">
-                    <div class="password-items-list">
-                        ${passwords.map(pwd => renderPasswordItem(pwd, catInfo)).join('')}
+
+                <!-- Expanded Details (hidden by default) -->
+                <div id="expand-${pwd.firestoreId}" style="display: none; padding: 0 20px 20px; border-top: 1px solid var(--border-color); margin-top: 0;">
+                    <div style="padding-top: 20px;">
+                        <!-- Password Display -->
+                        <div style="background: var(--bg-primary); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Password</div>
+                                    <div style="font-family: 'Space Mono', monospace; font-size: 16px; color: var(--text-primary);" id="pwd-display-${pwd.firestoreId}">••••••••••••</div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="togglePasswordDisplay('${pwd.firestoreId}', '${escapedPassword}')" style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);" title="Show/Hide">
+                                        <i class="fas fa-eye" id="pwd-icon-${pwd.firestoreId}"></i>
+                                    </button>
+                                    <button onclick="copyPasswordToClipboard('${escapedPassword}', 'Password')" style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);" title="Copy">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Details Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                            ${pwd.username ? `
+                                <div style="background: var(--bg-primary); border-radius: 10px; padding: 12px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Username</div>
+                                    <div style="font-size: 14px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+                                        <span>${pwd.username}</span>
+                                        <button onclick="copyPasswordToClipboard('${pwd.username}', 'Username')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                                            <i class="fas fa-copy" style="font-size: 12px;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${pwd.email ? `
+                                <div style="background: var(--bg-primary); border-radius: 10px; padding: 12px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Email</div>
+                                    <div style="font-size: 14px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+                                        <span style="overflow: hidden; text-overflow: ellipsis;">${pwd.email}</span>
+                                        <button onclick="copyPasswordToClipboard('${pwd.email}', 'Email')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                                            <i class="fas fa-copy" style="font-size: 12px;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${pwd.url ? `
+                                <div style="background: var(--bg-primary); border-radius: 10px; padding: 12px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Website</div>
+                                    <div style="font-size: 14px;">
+                                        <a href="${pwd.url}" target="_blank" style="color: var(--accent-primary); text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fas fa-external-link-alt" style="font-size: 10px;"></i>
+                                            Open Site
+                                        </a>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${pwd.notes ? `
+                            <div style="background: var(--bg-primary); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+                                <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Notes</div>
+                                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">${pwd.notes}</div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Action Buttons -->
+                        <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <button onclick="startEditPasswordInline('${pwd.firestoreId}')" class="btn-secondary" style="font-size: 13px;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button onclick="deletePasswordConfirm('${pwd.firestoreId}')" class="btn-secondary" style="font-size: 13px; color: #ef4444; border-color: #ef444450;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -20340,52 +22383,202 @@ function renderPasswordsGrid() {
     return html;
 }
 
-// Render single password item
-function renderPasswordItem(pwd, catInfo) {
-    const maskedPassword = '••••••••••••';
-    const escapedPassword = (pwd.password || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+// For backwards compatibility
+function renderPasswordsGrid() {
+    return renderPasswordsList();
+}
 
-    return `
-        <div class="password-item" data-id="${pwd.firestoreId}" style="display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); gap: 16px; transition: background 0.2s;">
-            <!-- Icon -->
-            <div style="width: 44px; height: 44px; background: ${catInfo.color}15; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i class="fas ${catInfo.icon}" style="color: ${catInfo.color}; font-size: 18px;"></i>
-            </div>
+// Toggle password expand/collapse
+function togglePasswordExpand(id) {
+    const expandDiv = document.getElementById(`expand-${id}`);
+    const arrow = document.getElementById(`arrow-${id}`);
 
-            <!-- Info -->
-            <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                    ${pwd.name || 'Unnamed'}
-                    ${pwd.url ? `<a href="${pwd.url}" target="_blank" style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-external-link-alt"></i></a>` : ''}
+    if (expandDiv.style.display === 'none') {
+        // Collapse all others first
+        document.querySelectorAll('[id^="expand-"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('[id^="arrow-"]').forEach(el => {
+            el.style.transform = 'rotate(0deg)';
+        });
+
+        // Expand this one
+        expandDiv.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        expandDiv.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Toggle add password inline form
+function toggleAddPasswordInline() {
+    const form = document.getElementById('inline-add-password');
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        document.getElementById('inline-pwd-name').focus();
+    } else {
+        form.style.display = 'none';
+        // Clear form
+        document.getElementById('inline-pwd-name').value = '';
+        document.getElementById('inline-pwd-category').value = '';
+        document.getElementById('inline-pwd-username').value = '';
+        document.getElementById('inline-pwd-email').value = '';
+        document.getElementById('inline-pwd-password').value = '';
+        document.getElementById('inline-pwd-url').value = '';
+        document.getElementById('inline-pwd-notes').value = '';
+    }
+}
+
+// Generate password for inline form
+function generateInlinePassword() {
+    const password = generateRandomPassword(16);
+    const input = document.getElementById('inline-pwd-password');
+    input.value = password;
+    input.type = 'text';
+    document.getElementById('inline-pwd-toggle-icon').classList.remove('fa-eye');
+    document.getElementById('inline-pwd-toggle-icon').classList.add('fa-eye-slash');
+}
+
+// Save password from inline form
+async function saveInlinePassword() {
+    const name = document.getElementById('inline-pwd-name').value.trim();
+    const category = document.getElementById('inline-pwd-category').value;
+    const username = document.getElementById('inline-pwd-username').value.trim();
+    const email = document.getElementById('inline-pwd-email').value.trim();
+    const password = document.getElementById('inline-pwd-password').value;
+    const url = document.getElementById('inline-pwd-url').value.trim();
+    const notes = document.getElementById('inline-pwd-notes').value.trim();
+
+    if (!name) {
+        showPasswordToast('Please enter a service name', 'error');
+        return;
+    }
+
+    if (!password) {
+        showPasswordToast('Please enter a password', 'error');
+        return;
+    }
+
+    try {
+        const newPassword = {
+            name,
+            category: category || 'other',
+            username,
+            email,
+            password,
+            url,
+            notes
+        };
+
+        await firebasePasswordsManager.addPassword(newPassword);
+        firebasePasswords = await firebasePasswordsManager.loadPasswords();
+
+        toggleAddPasswordInline();
+        renderPasswordManager();
+        showPasswordToast('Password saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving password:', error);
+        showPasswordToast('Error saving password. Please try again.', 'error');
+    }
+}
+
+// Start inline edit
+function startEditPasswordInline(firestoreId) {
+    const pwd = firebasePasswords.find(p => p.firestoreId === firestoreId);
+    if (!pwd) return;
+
+    const categoryOptions = Object.entries(passwordCategories)
+        .map(([value, cat]) => `<option value="${value}" ${pwd.category === value ? 'selected' : ''}>${cat.label}</option>`)
+        .join('');
+
+    const expandDiv = document.getElementById(`expand-${firestoreId}`);
+    expandDiv.innerHTML = `
+        <div style="padding-top: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Service Name</label>
+                    <input type="text" id="edit-inline-name-${firestoreId}" class="form-input" value="${pwd.name || ''}">
                 </div>
-                <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    ${pwd.username ? `<span><i class="fas fa-user" style="margin-right: 4px;"></i>${pwd.username}</span>` : ''}
-                    ${pwd.email ? `<span><i class="fas fa-envelope" style="margin-right: 4px;"></i>${pwd.email}</span>` : ''}
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Category</label>
+                    <select id="edit-inline-category-${firestoreId}" class="form-input">
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Username</label>
+                    <input type="text" id="edit-inline-username-${firestoreId}" class="form-input" value="${pwd.username || ''}">
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Email</label>
+                    <input type="email" id="edit-inline-email-${firestoreId}" class="form-input" value="${pwd.email || ''}">
                 </div>
             </div>
-
-            <!-- Password Display -->
-            <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); padding: 8px 12px; border-radius: 8px;">
-                <span id="pwd-display-${pwd.firestoreId}" style="font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text-secondary);">${maskedPassword}</span>
-                <button onclick="togglePasswordDisplay('${pwd.firestoreId}', '${escapedPassword}')" class="icon-btn" title="Show/Hide Password" style="background: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-muted);">
-                    <i class="fas fa-eye" id="pwd-icon-${pwd.firestoreId}"></i>
-                </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Password</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="edit-inline-password-${firestoreId}" class="form-input" value="${pwd.password || ''}" style="flex: 1;">
+                        <button type="button" onclick="document.getElementById('edit-inline-password-${firestoreId}').value = generateRandomPassword(16)" class="btn-secondary" title="Generate">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Website URL</label>
+                    <input type="url" id="edit-inline-url-${firestoreId}" class="form-input" value="${pwd.url || ''}">
+                </div>
             </div>
-
-            <!-- Actions -->
-            <div style="display: flex; gap: 8px;">
-                <button onclick="copyPasswordToClipboard('${escapedPassword}', 'Password')" class="btn-icon" title="Copy Password" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.2s;">
-                    <i class="fas fa-copy"></i>
-                </button>
-                <button onclick="openEditPasswordModal('${pwd.firestoreId}')" class="btn-icon" title="Edit" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.2s;">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button onclick="deletePasswordConfirm('${pwd.firestoreId}')" class="btn-icon" title="Delete" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #ef444450; background: #ef444410; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #ef4444; transition: all 0.2s;">
-                    <i class="fas fa-trash"></i>
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Notes</label>
+                <textarea id="edit-inline-notes-${firestoreId}" class="form-input" style="min-height: 60px; resize: vertical;">${pwd.notes || ''}</textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="renderPasswordManager()" class="btn-secondary" style="font-size: 13px;">Cancel</button>
+                <button onclick="saveEditPasswordInline('${firestoreId}')" class="btn-primary" style="font-size: 13px;">
+                    <i class="fas fa-save"></i> Save Changes
                 </button>
             </div>
         </div>
     `;
+}
+
+// Save inline edit
+async function saveEditPasswordInline(firestoreId) {
+    const name = document.getElementById(`edit-inline-name-${firestoreId}`).value.trim();
+    const category = document.getElementById(`edit-inline-category-${firestoreId}`).value;
+    const username = document.getElementById(`edit-inline-username-${firestoreId}`).value.trim();
+    const email = document.getElementById(`edit-inline-email-${firestoreId}`).value.trim();
+    const password = document.getElementById(`edit-inline-password-${firestoreId}`).value;
+    const url = document.getElementById(`edit-inline-url-${firestoreId}`).value.trim();
+    const notes = document.getElementById(`edit-inline-notes-${firestoreId}`).value.trim();
+
+    if (!name) {
+        showPasswordToast('Please enter a service name', 'error');
+        return;
+    }
+
+    try {
+        const updatedData = {
+            name,
+            category: category || 'other',
+            username,
+            email,
+            password,
+            url,
+            notes
+        };
+
+        await firebasePasswordsManager.updatePassword(firestoreId, updatedData);
+        firebasePasswords = await firebasePasswordsManager.loadPasswords();
+
+        renderPasswordManager();
+        showPasswordToast('Password updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating password:', error);
+        showPasswordToast('Error updating password. Please try again.', 'error');
+    }
 }
 
 // Toggle password display in list
@@ -20409,11 +22602,7 @@ function filterPasswords() {
     const searchTerm = document.getElementById('password-search')?.value.toLowerCase() || '';
     const categoryFilter = document.getElementById('password-category-filter')?.value || '';
 
-    const cards = document.querySelectorAll('.password-category-card');
-    const items = document.querySelectorAll('.password-item');
-
-    // First hide all
-    cards.forEach(card => card.style.display = 'none');
+    const items = document.querySelectorAll('.password-list-item');
 
     items.forEach(item => {
         const id = item.dataset.id;
@@ -20430,10 +22619,7 @@ function filterPasswords() {
         const matchesCategory = !categoryFilter || pwd.category === categoryFilter;
 
         if (matchesSearch && matchesCategory) {
-            item.style.display = 'flex';
-            // Show parent card
-            const parentCard = item.closest('.password-category-card');
-            if (parentCard) parentCard.style.display = 'block';
+            item.style.display = 'block';
         } else {
             item.style.display = 'none';
         }

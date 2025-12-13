@@ -1366,7 +1366,7 @@
         .quick-action:hover {
             transform: translateY(-4px);
             border-color: var(--accent-primary);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.101);
         }
 
         .quick-action-icon {
@@ -1693,14 +1693,42 @@
             z-index: 10;
         }
 
-        /* Ensure page header buttons don't overlap modals */
-        .modal.active ~ .main-content .page-header-right,
-        .modal.active ~ * .page-header-right,
-        body:has(.modal.active) .page-header-right,
-        body:has(.modal.active) .page-header .btn-primary,
-        body:has(.modal.active) .dashboard .btn-primary:not(.modal-content .btn-primary) {
-            z-index: 1 !important;
-            position: relative;
+        /* Floating Add Button - Always visible at top right */
+        .floating-add-btn {
+            position: fixed !important;
+            top: 90px;
+            right: 24px;
+            z-index: 500;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
+            animation: floatBtnPulse 3s ease-in-out infinite;
+            transition: all 0.3s ease;
+        }
+
+        .floating-add-btn:hover {
+            transform: translateY(-2px) scale(1.05) !important;
+            box-shadow: 0 12px 40px rgba(163, 164, 255, 0.5), 0 6px 20px rgba(0, 0, 0, 0.25);
+            animation: none;
+        }
+
+        @keyframes floatBtnPulse {
+            0%, 100% { box-shadow: 0 8px 32px rgba(181, 181, 255, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2); }
+        }
+
+        /* Hide floating button when modal is open */
+        body:has(.modal.active) .floating-add-btn {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(-20px) scale(0.8) !important;
+        }
+
+        /* Responsive - adjust position on mobile */
+        @media (max-width: 768px) {
+            .floating-add-btn {
+                top: 80px;
+                right: 16px;
+                padding: 10px 16px !important;
+                font-size: 13px !important;
+            }
         }
 
         .section-title {
@@ -1802,14 +1830,15 @@
         }
 
         .btn-icon:hover {
-            background: var(--accent-primary);
+            background: var(--bg-hover);
             border-color: var(--accent-primary);
-            color: white;
+            color: var(--accent-primary);
         }
 
         .btn-icon.danger:hover {
-            background: var(--danger);
+            background: var(--bg-hover);
             border-color: var(--danger);
+            color: var(--danger);
         }
 
         /* Filters Bar */
@@ -1893,7 +1922,7 @@
         .employee-card:hover {
             transform: translateY(-4px);
             border-color: var(--accent-primary);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.061);
         }
 
         .employee-card-header {
@@ -2483,6 +2512,7 @@
         .date-range-picker {
             display: flex;
             gap: 8px;
+            flex-direction: column-reverse;
         }
 
         .date-btn {
@@ -4772,4 +4802,287 @@
     .toast-notification.show {
         transform: translateY(0);
     }
+}
+/* Cash Out Page Styles */
+.btn-toggle {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.btn-toggle.active {
+    background: var(--accent-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.cashout-store-filter {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.cashout-store-filter:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.cashout-store-filter.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+/* Date Range Calendar Picker */
+.date-range-picker {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    color: #1a1a2e;
+    user-select: none;
+    border: 1px solid var(--border-color);
+}
+
+.date-range-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.date-range-picker-header .date-display {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a1a2e;
+}
+
+.date-range-picker-header .arrow {
+    color: #666;
+}
+
+.date-range-calendars {
+    display: flex;
+    gap: 24px;
+}
+
+.date-range-calendar {
+    flex: 1;
+    min-width: 200px;
+}
+
+.calendar-month-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.calendar-month-header h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+.calendar-nav-btn {
+    background: #f0f0f0;
+    border: none;
+    color: #1a1a2e;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.calendar-nav-btn:hover {
+    background: #e0e0e0;
+}
+
+.calendar-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 8px;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    padding: 4px 0;
+    text-transform: uppercase;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    color: #1a1a2e;
+}
+
+.calendar-day:hover:not(.disabled):not(.empty) {
+    background: #f0f0f0;
+}
+
+.calendar-day.empty {
+    cursor: default;
+}
+
+.calendar-day.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.calendar-day.other-month {
+    color: #bbb;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--accent-primary);
+}
+
+.calendar-day.selected {
+    background: var(--accent-primary);
+    color: white;
+    font-weight: 600;
+}
+
+.calendar-day.in-range {
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 0;
+}
+
+.calendar-day.range-start {
+    background: var(--accent-primary);
+    color: white;
+    font-weight: 600;
+    border-radius: 50% 0 0 50%;
+}
+
+.calendar-day.range-end {
+    background: var(--accent-primary);
+    color: white;
+    font-weight: 600;
+    border-radius: 0 50% 50% 0;
+}
+
+.calendar-day.range-start.range-end {
+    border-radius: 50%;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 500px) {
+    .date-range-calendars {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+/* Vendor Type Filter Buttons */
+.vendor-filter-btn {
+    font-family: 'Outfit', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vendor-filter-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.vendor-filter-btn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.vendor-filter-btn i {
+    font-size: 12px;
+}
+
+/* Cash Out Filter Buttons */
+.cashout-filter-btn {
+    font-family: 'Outfit', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cashout-filter-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.cashout-filter-btn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.cashout-filter-btn i {
+    font-size: 12px;
 }

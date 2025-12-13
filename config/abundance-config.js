@@ -62,6 +62,7 @@ window.FIREBASE_COLLECTIONS = {
     products: 'products',       // Firestore collection for products
     trainings: 'trainings',     // Firestore collection for trainings
     schedules: 'schedules',     // Firestore collection for employee schedules
+    dayOffRequests: 'dayOffRequests', // Firestore collection for day off requests
     treasury: 'treasury',       // Firestore collection for treasury pieces
     announcements: 'announcements', // Firestore collection for announcements
     changeRecords: 'changeRecords', // Firestore collection for change records
