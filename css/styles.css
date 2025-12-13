@@ -1653,6 +1653,25 @@
             .employees-grid { grid-template-columns: 1fr; }
             .training-grid { grid-template-columns: 1fr; }
             .license-stores-grid { grid-template-columns: 1fr !important; }
+
+            /* Announcements dropdown mobile */
+            .announcements-dropdown {
+                position: fixed;
+                top: 70px;
+                left: 16px;
+                right: 16px;
+                width: auto;
+                max-height: calc(100vh - 100px);
+                border-radius: 16px;
+            }
+
+            .announcements-dropdown-list {
+                max-height: calc(100vh - 200px);
+            }
+
+            .header-notification-container {
+                position: static;
+            }
         }
 
         /* Scrollbar */
@@ -1839,6 +1858,12 @@
             background: var(--bg-hover);
             border-color: var(--danger);
             color: var(--danger);
+        }
+
+        .btn-icon.success:hover {
+            background: var(--bg-hover);
+            border-color: #10b981;
+            color: #10b981;
         }
 
         /* Filters Bar */
@@ -5085,4 +5110,377 @@
 
 .cashout-filter-btn i {
     font-size: 12px;
+}
+
+/* Treasury Responsive Styles */
+@media (max-width: 768px) {
+    /* Hide table header on mobile */
+    .treasury-table thead {
+        display: none;
+    }
+
+    .treasury-table,
+    .treasury-table tbody,
+    .treasury-table tr,
+    .treasury-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .treasury-table tr {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 16px;
+        position: relative;
+    }
+
+    .treasury-table td {
+        border: none !important;
+        padding: 4px 0 !important;
+        text-align: left !important;
+    }
+
+    .treasury-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .treasury-table td:first-child {
+        padding-bottom: 12px !important;
+    }
+
+    .treasury-table td:first-child::before {
+        display: none;
+    }
+
+    .treasury-table td:first-child > div {
+        width: 100% !important;
+        height: 150px !important;
+        border-radius: 10px !important;
+    }
+
+    .treasury-table td:last-child {
+        padding-top: 12px !important;
+        border-top: 1px solid var(--border-color) !important;
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .treasury-table td:last-child::before {
+        display: none;
+    }
+
+    /* Treasury filter dropdown full width on mobile */
+    .treasury-filter-container {
+        width: 100% !important;
+    }
+
+    .treasury-filter-container select {
+        width: 100% !important;
+    }
+
+    /* Treasury card header adjustments */
+    .treasury-card-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch !important;
+    }
+
+    .treasury-card-header > div {
+        width: 100%;
+    }
+
+    /* Treasury stats cards on mobile */
+    .treasury-stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Treasury info grid in modal */
+    .treasury-info-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Treasury modal buttons on mobile */
+    .treasury-modal-actions {
+        flex-direction: column;
+    }
+
+    .treasury-modal-actions button {
+        width: 100%;
+    }
+}
+
+/* Gconomics Responsive Styles */
+@media (max-width: 768px) {
+    /* Gconomics header responsive */
+    .gconomics-page-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch !important;
+    }
+
+    .gconomics-page-header .page-header-right {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .gconomics-page-header .page-header-right select {
+        width: 100% !important;
+    }
+
+    .gconomics-page-header .floating-add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Gconomics chart grid responsive */
+    .gconomics-chart-grid {
+        grid-template-columns: 1fr !important;
+        gap: 24px !important;
+    }
+
+    .gconomics-chart-grid > div:first-child {
+        margin: 0 auto;
+    }
+
+    /* Gconomics summary card responsive */
+    .gconomics-summary-content {
+        flex-direction: column !important;
+        text-align: center;
+    }
+
+    .gconomics-summary-content > div:last-child {
+        justify-content: center;
+    }
+
+    /* Category pills responsive */
+    .gconomics-category-pills {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .gconomics-category-pills button {
+        flex-shrink: 0;
+    }
+
+    /* Expense cards responsive */
+    .gconomics-expenses-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Issues Module Responsive Styles */
+@media (max-width: 768px) {
+    /* Issues table to cards on mobile */
+    .issues-table thead {
+        display: none;
+    }
+
+    .issues-table,
+    .issues-table tbody,
+    .issues-table tr,
+    .issues-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .issues-table tr {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 16px;
+        position: relative;
+    }
+
+    .issues-table td {
+        border: none !important;
+        padding: 6px 0 !important;
+        text-align: left !important;
+    }
+
+    .issues-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    /* Status badge at top */
+    .issues-table td:first-child {
+        padding-bottom: 12px !important;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+
+    .issues-table td:first-child::before {
+        display: none;
+    }
+
+    /* Actions at bottom */
+    .issues-table td:last-child {
+        padding-top: 12px !important;
+        margin-top: 8px;
+        border-top: 1px solid var(--border-color) !important;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-start;
+    }
+
+    .issues-table td:last-child::before {
+        display: none;
+    }
+
+    /* Perception emoji centered */
+    .issues-table td[data-label="Perception"] {
+        text-align: center !important;
+    }
+
+    /* Issues card header responsive */
+    .issues-card-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch !important;
+    }
+
+    .issues-card-header > div:last-child {
+        width: 100%;
+    }
+
+    .issues-card-header select {
+        width: 100% !important;
+    }
+
+    /* Issues perception chart responsive */
+    .issues-perception-chart {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Status cards smaller text on mobile */
+    .issues-status-cards .card-body {
+        padding: 16px !important;
+    }
+
+    .issues-status-cards .card-body > div:last-child > div:first-child {
+        font-size: 24px !important;
+    }
+}
+
+/* Restock Module Responsive Styles */
+@media (max-width: 768px) {
+    /* Restock tabs responsive */
+    .restock-tabs {
+        flex-wrap: wrap;
+        gap: 8px !important;
+    }
+
+    .restock-tabs button {
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+    }
+
+    /* Inventory filter header responsive */
+    .restock-filter-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+
+    .restock-filter-header > div:first-child {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 8px;
+    }
+
+    .restock-filter-header select {
+        width: 100% !important;
+    }
+
+    /* Inventory table to cards */
+    .restock-inventory-table thead {
+        display: none;
+    }
+
+    .restock-inventory-table,
+    .restock-inventory-table tbody,
+    .restock-inventory-table tr,
+    .restock-inventory-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .restock-inventory-table tr {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 16px;
+    }
+
+    .restock-inventory-table td {
+        border: none !important;
+        padding: 6px 0 !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .restock-inventory-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    /* Request type filter pills responsive */
+    .restock-type-filters {
+        flex-wrap: wrap;
+    }
+
+    .restock-type-filters button {
+        flex: 1;
+        min-width: 100px;
+        justify-content: center;
+    }
+
+    /* Request card details grid responsive */
+    .restock-request-details {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Request card header responsive */
+    .restock-request-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    /* Request card actions responsive */
+    .restock-request-actions {
+        flex-wrap: wrap;
+        justify-content: flex-start !important;
+    }
+
+    .restock-request-actions .btn-secondary {
+        flex: 1;
+        min-width: 100px;
+        justify-content: center;
+    }
 }

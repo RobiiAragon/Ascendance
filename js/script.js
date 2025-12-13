@@ -2,6 +2,7 @@
         const pages = {
             dashboard: document.getElementById('page-dashboard'),
             employees: null,
+            employeeInspection: null,
             training: null,
             licenses: null,
             analytics: null,
@@ -996,6 +997,7 @@
             const titles = {
                 dashboard: 'Dashboard',
                 employees: 'Employees',
+                employeeInspection: 'Employee Inspection',
                 training: 'Training Center',
                 licenses: 'Licenses & Documents',
                 analytics: 'Sales Analytics',
@@ -1011,7 +1013,7 @@
                 vendors: 'Vendors & Suppliers',
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
-                cashout: 'Cash Out',
+                cashout: 'Expenses Control',
                 treasury: 'Treasury - Select Pieces',
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
@@ -1043,6 +1045,9 @@
                     break;
                 case 'employees':
                     renderEmployees();
+                    break;
+                case 'employeeInspection':
+                    renderEmployeeInspection();
                     break;
                 case 'training':
                     renderTraining();
@@ -1480,11 +1485,299 @@
                         </div>
                     </div>
                     <div class="employee-card-footer">
+                        <button class="btn-icon" onclick="event.stopPropagation(); inspectEmployeeDocuments('${empId}')" title="View Documents"><i class="fas fa-file-pdf"></i></button>
                         <button class="btn-icon" onclick="event.stopPropagation(); editEmployee('${empId}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon danger" onclick="event.stopPropagation(); deleteEmployee('${empId}')"><i class="fas fa-trash"></i></button>
+                        ${emp.status === 'inactive' ? `
+                            <button class="btn-icon success" onclick="event.stopPropagation(); activateEmployee('${empId}')" title="Activate Employee"><i class="fas fa-check"></i></button>
+                        ` : `
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); deleteEmployee('${empId}')"><i class="fas fa-trash"></i></button>
+                        `}
                     </div>
                 </div>
             `;
+        }
+
+        /**
+         * Render Employee Inspection Page
+         * Allows managers to view and inspect employee documents (paperwork)
+         */
+        async function renderEmployeeInspection() {
+            const dashboard = document.querySelector('.dashboard');
+
+            // Load employees if not already loaded
+            await loadEmployeesFromFirebase();
+
+            // Show page header
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title"><i class="fas fa-magnifying-glass"></i> Employee Inspection</h2>
+                        <p class="section-subtitle">Review employee documents and paperwork</p>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="search-filter">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search employees..." id="inspection-search" onkeyup="filterInspectionEmployees()">
+                    </div>
+                    <select class="filter-select" id="inspection-store-filter" onchange="filterInspectionEmployees()">
+                        <option value="">All Stores</option>
+                        <option value="Miramar">VSU Miramar</option>
+                        <option value="Morena">VSU Morena</option>
+                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                        <option value="Chula Vista">VSU Chula Vista</option>
+                        <option value="North Park">VSU North Park</option>
+                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                    </select>
+                    <button class="btn-secondary" onclick="refreshEmployeesFromFirebase()" title="Refresh from database">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+                <div class="employees-grid" id="inspection-grid">
+                    ${employees.length === 0 ? `
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h3>No employees</h3>
+                            <p>No employees found to inspect</p>
+                        </div>
+                    ` : employees.map(emp => `
+                        <div class="card" style="cursor: pointer; overflow: hidden;" onclick="inspectEmployeeDocuments('${emp.firestoreId || emp.id}')">
+                            <div class="card-header" style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                    <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${emp.name}</h3>
+                                        <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="status-badge ${emp.status}">${emp.status}</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                    <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Email</div>
+                                        <div style="font-size: 13px; font-weight: 500;">${emp.email}</div>
+                                    </div>
+                                    <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Phone</div>
+                                        <div style="font-size: 13px; font-weight: 500;">${emp.phone}</div>
+                                    </div>
+                                </div>
+                                <div style="padding: 12px; background: var(--accent-primary)20; border-radius: 6px; border-left: 3px solid var(--accent-primary);">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-file-pdf" style="color: var(--accent-primary); font-size: 16px;"></i>
+                                        <span style="font-size: 13px; font-weight: 500; color: var(--accent-primary);">Click to review documents →</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        /**
+         * Filter employees in inspection view
+         */
+        function filterInspectionEmployees() {
+            const searchTerm = document.getElementById('inspection-search')?.value.toLowerCase() || '';
+            const storeFilter = document.getElementById('inspection-store-filter')?.value || '';
+
+            const filtered = employees.filter(emp => {
+                const matchesSearch = emp.name.toLowerCase().includes(searchTerm) || 
+                                    emp.email.toLowerCase().includes(searchTerm) ||
+                                    emp.role.toLowerCase().includes(searchTerm);
+                const matchesStore = !storeFilter || emp.store === storeFilter;
+                return matchesSearch && matchesStore;
+            });
+
+            const grid = document.getElementById('inspection-grid');
+            if (grid) {
+                grid.innerHTML = filtered.length === 0 ? `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>No employees found</h3>
+                        <p>Try adjusting your search filters</p>
+                    </div>
+                ` : filtered.map(emp => `
+                    <div class="card" style="cursor: pointer; overflow: hidden;" onclick="inspectEmployeeDocuments('${emp.firestoreId || emp.id}')">
+                        <div class="card-header" style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
+                                <div>
+                                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${emp.name}</h3>
+                                    <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="status-badge ${emp.status}">${emp.status}</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Email</div>
+                                    <div style="font-size: 13px; font-weight: 500;">${emp.email}</div>
+                                </div>
+                                <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Phone</div>
+                                    <div style="font-size: 13px; font-weight: 500;">${emp.phone}</div>
+                                </div>
+                            </div>
+                            <div style="padding: 12px; background: var(--accent-primary)20; border-radius: 6px; border-left: 3px solid var(--accent-primary);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-file-pdf" style="color: var(--accent-primary); font-size: 16px;"></i>
+                                    <span style="font-size: 13px; font-weight: 500; color: var(--accent-primary);">Click to review documents →</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        /**
+         * Inspect employee documents (paperwork)
+         */
+        async function inspectEmployeeDocuments(employeeId) {
+            const emp = employees.find(e => (e.firestoreId || e.id) === employeeId);
+            if (!emp) return;
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            // Show loading state
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2>Document Inspection</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 16px;"></i>
+                        <p style="color: var(--text-muted);">Loading documents...</p>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+
+            try {
+                // Get paperwork from Firebase
+                let paperwork = [];
+                if (firebaseEmployeeManager.isInitialized) {
+                    paperwork = await firebaseEmployeeManager.getPaperwork(employeeId);
+                }
+
+                // Render document inspection modal
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
+                            <div>
+                                <h2 style="margin: 0; font-size: 20px;">${emp.name}</h2>
+                                <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
+                            </div>
+                        </div>
+                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-file-contract" style="color: var(--accent-primary);"></i>
+                                Employee Paperwork & Documents
+                            </h3>
+                            <p style="color: var(--text-muted); font-size: 13px; margin: 0;">
+                                Registered documents: ${paperwork.length}
+                            </p>
+                        </div>
+
+                        ${paperwork && paperwork.length > 0 ? `
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                ${paperwork.map((doc, index) => `
+                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color); transition: all 0.2s;">
+                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                            <div style="width: 48px; height: 48px; background: ${getDocumentColor(doc.fileType)}; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas ${getFileIcon(doc.fileType)}" style="color: white; font-size: 20px;"></i>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">
+                                                    ${doc.fileName}
+                                                </div>
+                                                <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-muted);">
+                                                    <span>${doc.documentType || 'Document'}</span>
+                                                    <span>•</span>
+                                                    <span>${formatFileSize(doc.fileSize)}</span>
+                                                    <span>•</span>
+                                                    <span>Uploaded ${formatDate(doc.uploadedAt.toDate ? doc.uploadedAt.toDate() : doc.uploadedAt)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View Document">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 8px;">
+                                <i class="fas fa-inbox" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px; display: block;"></i>
+                                <h3 style="color: var(--text-muted); font-size: 16px; margin-bottom: 8px;">No Documents Yet</h3>
+                                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">No paperwork has been uploaded for this employee yet.</p>
+                            </div>
+                        `}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <h2>Document Inspection</h2>
+                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #ef4444; margin-bottom: 16px;"></i>
+                            <p>Error loading documents</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Get color for document type
+         */
+        function getDocumentColor(fileType) {
+            if (!fileType) return '#6b7280';
+            if (fileType.includes('pdf')) return '#ef4444';
+            if (fileType.includes('word') || fileType.includes('doc')) return '#3b82f6';
+            if (fileType.includes('image') || fileType.includes('jpg') || fileType.includes('jpeg') || fileType.includes('png')) return '#10b981';
+            return '#6b7280';
+        }
+
+        /**
+         * Download document
+         */
+        function downloadDocument(url, fileName) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         async function renderTraining() {
@@ -1740,8 +2033,8 @@
                         <p class="section-subtitle">Performance insights - Annual totals and monthly breakdown</p>
                     </div>
                     <div class="date-range-picker">
-                        <button class="date-btn active">2024</button>
-                        <button class="date-btn">2023</button>
+                        <button class="date-btn active">2025</button>
+                        <button class="date-btn">2024</button>
                         <button class="date-btn">Custom</button>
                     </div>
                 </div>
@@ -3545,7 +3838,7 @@
                     </button>
                 </div>
 
-                <div style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color);">
+                <div class="restock-tabs" style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color);">
                     <button onclick="switchRestockTab('inventory')" class="tab-btn ${currentRestockTab === 'inventory' ? 'active' : ''}" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid ${currentRestockTab === 'inventory' ? 'var(--accent-primary)' : 'transparent'}; color: ${currentRestockTab === 'inventory' ? 'var(--accent-primary)' : 'var(--text-secondary)'}; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: -2px; transition: all 0.2s;">
                         <i class="fas fa-boxes"></i> Inventory
                     </button>
@@ -3566,7 +3859,7 @@
                 : inventory.filter(item => item.store === selectedStoreFilter);
 
             return `
-                <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="restock-filter-header" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <label style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">
                             <i class="fas fa-filter"></i> Filter by Store:
@@ -3587,7 +3880,7 @@
                 </div>
 
                 <div class="licenses-table-container">
-                    <table class="data-table">
+                    <table class="data-table restock-inventory-table">
                         <thead>
                             <tr>
                                 <th>Brand</th>
@@ -3602,17 +3895,17 @@
                         <tbody>
                             ${filteredInventory.map(item => `
                                 <tr>
-                                    <td style="font-weight: 600;">${item.brand}</td>
-                                    <td>${item.productName}</td>
-                                    <td>${item.flavor}</td>
-                                    <td style="font-weight: 600; color: var(--success);">$${item.unitPrice}</td>
-                                    <td>${item.minStock}</td>
-                                    <td>
+                                    <td data-label="Brand" style="font-weight: 600;">${item.brand}</td>
+                                    <td data-label="Product">${item.productName}</td>
+                                    <td data-label="Flavor">${item.flavor}</td>
+                                    <td data-label="Price" style="font-weight: 600; color: var(--success);">$${item.unitPrice}</td>
+                                    <td data-label="Min Stock">${item.minStock}</td>
+                                    <td data-label="Stock">
                                         <span style="font-weight: 600; color: ${item.stock < item.minStock ? 'var(--danger)' : 'var(--success)'};">
                                             ${item.stock}
                                         </span>
                                     </td>
-                                    <td style="font-weight: 500; font-size: 12px;">${item.store}</td>
+                                    <td data-label="Store" style="font-weight: 500; font-size: 12px;">${item.store}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -3629,7 +3922,7 @@
 
             // Type filter buttons
             const typeFilterButtons = `
-                <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <div class="restock-type-filters" style="display: flex; gap: 8px; margin-bottom: 20px;">
                     <button onclick="filterRestockByType('all')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'transparent'}; color: ${selectedRestockTypeFilter === 'all' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
                         <i class="fas fa-layer-group" style="margin-right: 6px;"></i>All
                     </button>
@@ -3663,9 +3956,9 @@
                         return `
                         <div class="card">
                             <div class="card-body">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                                <div class="restock-request-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
                                     <div>
-                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
                                             <div style="font-weight: 700; font-size: 16px;">${request.productName}</div>
                                             <span style="background: ${typeColor}; color: white; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
                                                 <i class="fas ${typeIcon}" style="font-size: 9px;"></i>${typeLabel}
@@ -3691,7 +3984,7 @@
                                         `}
                                     </div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                                <div class="restock-request-details" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
                                     <div>
                                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Quantity</div>
                                         <div style="font-weight: 600; font-size: 14px; color: var(--accent-primary);">${request.quantity} units</div>
@@ -3715,7 +4008,7 @@
                                         <div style="font-size: 13px; color: var(--text-secondary);">${request.notes}</div>
                                     </div>
                                 ` : ''}
-                                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                <div class="restock-request-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                                     ${request.status === 'pending' ? `
                                         <button class="btn-secondary" style="font-size: 13px;" onclick="approveRestockRequest('${request.firestoreId || request.id}')">
                                             <i class="fas fa-check"></i> Approve
@@ -4057,7 +4350,11 @@
         }
 
         function formatDateKey(date) {
-            return date.toISOString().split('T')[0];
+            // Use local date components to avoid timezone offset issues
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
         /**
@@ -6618,12 +6915,18 @@
 
             // Filter out employees who have a day off on this date
             if (currentPickerContext.dateKey) {
-                const employeesWithDayOff = daysOff
-                    .filter(d => d.date === currentPickerContext.dateKey)
-                    .map(d => d.employeeId);
+                console.log('🏖️ Checking days off for date:', currentPickerContext.dateKey);
+                console.log('🏖️ All days off in memory:', daysOff);
 
+                const daysOffOnThisDate = daysOff.filter(d => d.date === currentPickerContext.dateKey);
+                console.log('🏖️ Days off matching this date:', daysOffOnThisDate);
+
+                const employeesWithDayOff = daysOffOnThisDate.map(d => d.employeeId);
+                console.log('🏖️ Employee IDs with day off:', employeesWithDayOff);
+
+                const beforeFilter = filteredEmployees.length;
                 filteredEmployees = filteredEmployees.filter(e => !employeesWithDayOff.includes(e.id));
-                console.log('Employees with day off on this date:', employeesWithDayOff.length);
+                console.log(`🏖️ Filtered out ${beforeFilter - filteredEmployees.length} employees with days off`);
             }
 
             console.log('Final filtered employees:', filteredEmployees);
@@ -9536,7 +9839,7 @@
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
+                <div class="treasury-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
                     <div class="stat-card" style="background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%); text-align: center; padding: 32px 24px;">
                         <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-vault"></i></div>
                         <div class="stat-content">
@@ -9554,12 +9857,12 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header treasury-card-header">
                         <h3 class="card-title">
                             <i class="fas fa-images"></i>
                             Collection Inventory
                         </h3>
-                        <div style="display: flex; gap: 12px;">
+                        <div class="treasury-filter-container" style="display: flex; gap: 12px;">
                             <select class="form-input" style="width: 200px;" onchange="filterTreasury(this.value)">
                                 <option value="all">All Locations</option>
                                 <option value="VSU Kearny Mesa">VSU Kearny Mesa (${itemsByLocation['VSU Kearny Mesa']})</option>
@@ -9569,8 +9872,8 @@
                             </select>
                         </div>
                     </div>
-                    <div class="card-body" style="padding: 0;">
-                        <table class="data-table">
+                    <div class="card-body" style="padding: 0; overflow-x: auto;">
+                        <table class="data-table treasury-table">
                             <thead>
                                 <tr>
                                     <th style="width: 80px;">Photo</th>
@@ -9620,19 +9923,19 @@
 
                 return `
                     <tr>
-                        <td>
+                        <td data-label="Photo">
                             <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color);">
                                 ${photoDisplay}
                             </div>
                         </td>
-                        <td><strong>${itemName}</strong></td>
-                        <td>${itemArtist}</td>
-                        <td>${formatDate(itemDate)}</td>
-                        <td style="font-weight: 600; color: var(--success);">$${itemValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>
+                        <td data-label="Artwork Name"><strong>${itemName}</strong></td>
+                        <td data-label="Artist">${itemArtist}</td>
+                        <td data-label="Acquisition Date">${formatDate(itemDate)}</td>
+                        <td data-label="Value" style="font-weight: 600; color: var(--success);">$${itemValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td data-label="Location">
                             <span class="badge" style="background: var(--accent-primary);">${itemLocation}</span>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <button class="btn-icon" onclick="viewTreasuryItem('${item.id}')" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
@@ -9684,7 +9987,7 @@
                     <div class="card" style="margin-bottom: 16px;">
                         <div class="card-body">
                             <h4 style="margin: 0 0 16px; font-size: 14px; color: var(--text-muted);">Piece Information</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;">
+                            <div class="treasury-info-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 16px;">
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Artist</label>
                                     <div style="font-weight: 500;">${item.artist || 'Unknown'}</div>
@@ -9712,7 +10015,7 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 12px;">
+                    <div class="treasury-modal-actions" style="display: flex; gap: 12px;">
                         <button class="btn-secondary" style="flex: 1;" onclick="editTreasuryItem('${item.id}')">
                             <i class="fas fa-edit"></i>
                             Edit Piece
@@ -11024,7 +11327,7 @@
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Customer Care</h2>
-                        <p class="section-subtitle">Control de Regalos en Especie</p>
+                        <p class="section-subtitle">In-Kind Gifts & Product Giveaways</p>
                     </div>
                     <button class="btn-primary floating-add-btn" onclick="openModal('add-gift')">
                         <i class="fas fa-plus"></i>
@@ -11509,12 +11812,12 @@
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Cash Out</h2>
-                        <p class="section-subtitle">Cash disbursements record</p>
+                        <h2 class="section-title">Expenses Control</h2>
+                        <p class="section-subtitle">Track and manage store expenses</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-cashout')">
                         <i class="fas fa-plus"></i>
-                        Add Cash Out
+                        Add Expense
                     </button>
                 </div>
 
@@ -12324,7 +12627,7 @@
                 </div>
 
                 <!-- Status Summary Cards -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="issues-status-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <div class="card" onclick="filterIssuesByStatus('open')" style="cursor: pointer; transition: all 0.2s; ${currentIssueStatusFilter === 'open' ? 'border: 2px solid #ef4444;' : ''}">
                         <div class="card-body" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
                             <div style="width: 50px; height: 50px; background: #ef444420; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -12373,7 +12676,7 @@
 
                 <!-- Customer Perception Chart -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                    <div class="card-header issues-card-header" style="flex-wrap: wrap; gap: 12px;">
                         <div>
                             <h3 class="card-title">
                                 <i class="fas fa-smile"></i>
@@ -12393,7 +12696,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body issues-perception-chart">
                         ${renderPerceptionGanttChart()}
                     </div>
                 </div>
@@ -12414,7 +12717,7 @@
                                 No issues ${currentIssueStatusFilter !== 'all' ? 'with this status' : 'recorded yet'}
                             </div>
                         ` : `
-                            <table class="data-table">
+                            <table class="data-table issues-table">
                                 <thead>
                                     <tr>
                                         <th>Status</th>
@@ -12434,14 +12737,14 @@
                                         const statusConfig = issueStatusConfig[status];
                                         return `
                                         <tr>
-                                            <td>
+                                            <td data-label="Status">
                                                 <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: ${statusConfig.bg}; color: ${statusConfig.color}; border-radius: 20px; font-size: 12px; font-weight: 600;">
                                                     <i class="fas ${statusConfig.icon}"></i>
                                                     ${statusConfig.label}
                                                 </span>
                                             </td>
-                                            <td style="white-space: nowrap;">${formatDate(issue.incidentDate)}</td>
-                                            <td>
+                                            <td data-label="Date" style="white-space: nowrap;">${formatDate(issue.incidentDate)}</td>
+                                            <td data-label="Store">
                                                 ${issue.store ? `
                                                     <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary);">
                                                         <i class="fas fa-store" style="color: var(--accent-primary);"></i>
@@ -12449,21 +12752,21 @@
                                                     </span>
                                                 ` : '<span style="color: var(--text-muted);">-</span>'}
                                             </td>
-                                            <td><strong>${issue.customer}</strong></td>
-                                            <td>
+                                            <td data-label="Customer"><strong>${issue.customer}</strong></td>
+                                            <td data-label="Phone">
                                                 ${issue.phone ? `<a href="tel:${issue.phone}" style="color: var(--accent-primary); text-decoration: none;"><i class="fas fa-phone"></i> ${issue.phone}</a>` : '-'}
                                             </td>
-                                            <td>
+                                            <td data-label="Type">
                                                 <span class="badge" style="background: ${issue.type === 'In Store' ? 'var(--accent-primary)' : 'var(--info)'};">
                                                     <i class="fas fa-${issue.type === 'In Store' ? 'store' : 'globe'}"></i>
                                                     ${issue.type}
                                                 </span>
                                             </td>
-                                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${issue.description || '-'}</td>
-                                            <td style="text-align: center; font-size: 24px;">
+                                            <td data-label="Description" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${issue.description || '-'}</td>
+                                            <td data-label="Perception" style="text-align: center; font-size: 24px;">
                                                 ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
                                             </td>
-                                            <td>
+                                            <td data-label="Actions">
                                                 <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                                                     ${status !== 'follow-up' ? `
                                                         <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'follow-up')" title="Mark as Need Follow Up" style="background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b50;">
@@ -14215,282 +14518,6 @@
             } catch (error) {
                 console.error('Error deleting vendor:', error);
             }
-        }
-
-        // Gconomics Functions
-        function renderGconomics() {
-            const dashboard = document.querySelector('.dashboard');
-
-            const filteredExpenses = getFilteredExpenses();
-            const monthTotal = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-
-            const categories = ['Food', 'Home', 'Subscriptions', 'Health', 'Gifts', 'Others'];
-            const categoryTotals = {};
-            categories.forEach(cat => {
-                categoryTotals[cat] = filteredExpenses
-                    .filter(e => e.category === cat)
-                    .reduce((sum, e) => sum + e.amount, 0);
-            });
-
-            const availableMonths = [...new Set(expenses.map(e => e.month))].sort().reverse();
-
-            dashboard.innerHTML = `
-                <div class="page-header">
-                    <div class="page-header-left">
-                        <h2 class="section-title">Gconomics - Expense Planner</h2>
-                        <p class="section-subtitle">Track and manage your monthly expenses</p>
-                    </div>
-                    <button class="btn-primary" onclick="openModal('add-expense')">
-                        <i class="fas fa-plus"></i>
-                        New Expense
-                    </button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 300px; gap: 24px;">
-                    <!-- Main Content -->
-                    <div style="display: flex; flex-direction: column; gap: 24px;">
-                        <!-- Expenses Table -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-receipt"></i>
-                                    Expenses
-                                </h3>
-                                <div style="display: flex; gap: 12px;">
-                                    <select class="form-input" style="width: 150px;" onchange="filterExpensesByMonth(this.value)">
-                                        ${availableMonths.map(month => `
-                                            <option value="${month}" ${currentExpenseMonth === month ? 'selected' : ''}>
-                                                ${new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                            </option>
-                                        `).join('')}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding: 0;">
-                                ${renderExpensesTable()}
-                            </div>
-                        </div>
-
-                        <!-- Monthly Total -->
-                        <div class="card" style="background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%); color: white;">
-                            <div class="card-body" style="text-align: center; padding: 32px;">
-                                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total This Month</div>
-                                <div style="font-size: 48px; font-weight: 700;">
-                                    $${monthTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sidebar -->
-                    <div style="display: flex; flex-direction: column; gap: 24px;">
-                        <!-- Categories Filter -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-filter"></i>
-                                    Categories
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div style="display: flex; flex-direction: column; gap: 8px;">
-                                    <button
-                                        class="btn-secondary"
-                                        style="${currentExpenseCategory === 'all' ? 'background: var(--accent-primary); color: white; border-color: var(--accent-primary);' : ''}"
-                                        onclick="filterExpensesByCategory('all')"
-                                    >
-                                        All Categories
-                                    </button>
-                                    ${categories.map(cat => `
-                                        <button
-                                            class="btn-secondary"
-                                            style="${currentExpenseCategory === cat ? 'background: var(--accent-primary); color: white; border-color: var(--accent-primary);' : ''}"
-                                            onclick="filterExpensesByCategory('${cat}')"
-                                        >
-                                            ${cat}
-                                            <span style="float: right; font-weight: 600;">$${categoryTotals[cat].toFixed(2)}</span>
-                                        </button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Chart -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-chart-pie"></i>
-                                    Breakdown
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                ${renderExpenseChart(categoryTotals, monthTotal)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function getFilteredExpenses() {
-            return expenses.filter(exp => {
-                const monthMatch = exp.month === currentExpenseMonth;
-                const categoryMatch = currentExpenseCategory === 'all' || exp.category === currentExpenseCategory;
-                return monthMatch && categoryMatch;
-            });
-        }
-
-        function renderExpensesTable() {
-            const filteredExpenses = getFilteredExpenses();
-
-            if (filteredExpenses.length === 0) {
-                return `
-                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
-                        <i class="fas fa-receipt" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                        <div style="font-size: 16px;">No expenses found</div>
-                        <div style="font-size: 14px; margin-top: 8px;">Add your first expense to get started</div>
-                    </div>
-                `;
-            }
-
-            const categoryColors = {
-                'Food': '#10b981',
-                'Home': '#3b82f6',
-                'Subscriptions': '#8b5cf6',
-                'Health': '#ef4444',
-                'Gifts': '#f59e0b',
-                'Others': '#6b7280'
-            };
-
-            return `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Category</th>
-                            <th>Amount</th>
-                            <th style="width: 80px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(expense => `
-                            <tr>
-                                <td>${formatDate(expense.date)}</td>
-                                <td><strong>${expense.description}</strong></td>
-                                <td>
-                                    <span class="badge" style="background: ${categoryColors[expense.category] || '#6b7280'};">
-                                        ${expense.category}
-                                    </span>
-                                </td>
-                                <td style="font-weight: 600; color: var(--danger);">
-                                    $${expense.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                </td>
-                                <td>
-                                    <button class="btn-icon" onclick="deleteExpense('${expense.id}')" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function renderExpenseChart(categoryTotals, total) {
-            if (total === 0) {
-                return `<div style="text-align: center; padding: 20px; color: var(--text-muted);">No data to display</div>`;
-            }
-
-            const categoryColors = {
-                'Food': '#10b981',
-                'Home': '#3b82f6',
-                'Subscriptions': '#8b5cf6',
-                'Health': '#ef4444',
-                'Gifts': '#f59e0b',
-                'Others': '#6b7280'
-            };
-
-            return `
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    ${Object.entries(categoryTotals)
-                        .filter(([_, amount]) => amount > 0)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([category, amount]) => {
-                            const percentage = (amount / total * 100).toFixed(1);
-                            return `
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
-                                        <span style="font-weight: 500;">${category}</span>
-                                        <span style="color: var(--text-muted);">${percentage}%</span>
-                                    </div>
-                                    <div style="background: var(--bg-secondary); height: 8px; border-radius: 4px; overflow: hidden;">
-                                        <div style="background: ${categoryColors[category]}; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
-                                    </div>
-                                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-                                        $${amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                </div>
-            `;
-        }
-
-        function filterExpensesByMonth(month) {
-            currentExpenseMonth = month;
-            renderGconomics();
-        }
-
-        function filterExpensesByCategory(category) {
-            currentExpenseCategory = category;
-            renderGconomics();
-        }
-
-        function addExpense() {
-            const description = document.getElementById('expense-description').value.trim();
-            const amount = parseFloat(document.getElementById('expense-amount').value);
-            const category = document.getElementById('expense-category').value;
-            const date = document.getElementById('expense-date').value;
-
-            if (!description || !amount || !category || !date) {
-                alert('Please fill in all required fields');
-                return;
-            }
-
-            if (amount <= 0) {
-                alert('Amount must be greater than zero');
-                return;
-            }
-
-            const month = date.substring(0, 7); // Extract YYYY-MM
-
-            const newExpense = {
-                id: expenses.length > 0 ? Math.max(...expenses.map(e => e.id)) + 1 : 1,
-                description,
-                amount,
-                category,
-                date,
-                month
-            };
-
-            expenses.push(newExpense);
-            closeModal();
-            renderGconomics();
-        }
-
-        function deleteExpense(expenseId) {
-            showConfirmModal({
-                title: 'Delete Expense',
-                message: 'Are you sure you want to delete this expense? This action cannot be undone.',
-                confirmText: 'Delete',
-                type: 'danger',
-                onConfirm: () => {
-                    expenses = expenses.filter(e => e.id !== expenseId);
-                    renderGconomics();
-                }
-            });
         }
 
         // Helper functions
@@ -17295,7 +17322,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    <button class="btn-secondary" onclick="requestDayOff('${emp.id}')"><i class="fas fa-calendar-xmark"></i> Day Off Request</button>
+                    <button class="btn-secondary" style="display:none;" onclick="requestDayOff('${emp.id}')"><i class="fas fa-calendar-xmark"></i> Day Off Request</button>
                     <button class="btn-primary" onclick="editEmployee('${emp.id}')"><i class="fas fa-edit"></i> Edit</button>
                 </div>
             `;
@@ -17575,32 +17602,81 @@
             if (!emp) return;
 
             showConfirmModal({
-                title: 'Delete Employee',
-                message: `Are you sure you want to delete "${emp.name}"? This action cannot be undone.`,
-                confirmText: 'Delete',
-                type: 'danger',
+                title: 'Deactivate Employee',
+                message: `Are you sure you want to deactivate "${emp.name}"? The employee record will be marked as inactive but not deleted.`,
+                confirmText: 'Deactivate',
+                type: 'warning',
                 onConfirm: async () => {
                     try {
-                        // Delete from Firebase first
+                        // Mark as inactive in Firebase
                         const firestoreId = emp.firestoreId || emp.id;
                         if (firebaseEmployeeManager.isInitialized) {
-                            const deleted = await firebaseEmployeeManager.deleteEmployee(firestoreId);
-                            if (!deleted) {
-                                throw new Error('Failed to delete from Firebase');
+                            const updated = await firebaseEmployeeManager.updateEmployee(firestoreId, { status: 'inactive' });
+                            if (!updated) {
+                                throw new Error('Failed to deactivate employee');
                             }
                         }
 
-                        // Remove from local array
-                        employees = employees.filter(e => e.id !== id && e.firestoreId !== id);
+                        // Update in local array
+                        const empIndex = employees.findIndex(e => e.id === id || e.firestoreId === id);
+                        if (empIndex !== -1) {
+                            employees[empIndex].status = 'inactive';
+                        }
 
                         // Update employee count badge
                         updateEmployeeCountBadge();
 
                         // Re-render page
                         renderPage(currentPage);
-                        showNotification('Employee deleted successfully', 'success');
+                        showNotification('Employee marked as inactive', 'success');
                     } catch (error) {
-                        console.error('Error deleting employee:', error);
+                        console.error('Error deactivating employee:', error);
+                    }
+                }
+            });
+        }
+
+        function activateEmployee(id) {
+            // Check permission
+            if (!checkPermission('canEditAllEmployees')) {
+                showPermissionDenied('activate employees');
+                return;
+            }
+
+            // Find employee by id or firestoreId
+            const emp = employees.find(e => e.id === id || e.firestoreId === id);
+            if (!emp) return;
+
+            showConfirmModal({
+                title: 'Activate Employee',
+                message: `Are you sure you want to activate "${emp.name}"? The employee status will be changed to active.`,
+                confirmText: 'Activate',
+                type: 'info',
+                onConfirm: async () => {
+                    try {
+                        // Mark as active in Firebase
+                        const firestoreId = emp.firestoreId || emp.id;
+                        if (firebaseEmployeeManager.isInitialized) {
+                            const updated = await firebaseEmployeeManager.updateEmployee(firestoreId, { status: 'active' });
+                            if (!updated) {
+                                throw new Error('Failed to activate employee');
+                            }
+                        }
+
+                        // Update in local array
+                        const empIndex = employees.findIndex(e => e.id === id || e.firestoreId === id);
+                        if (empIndex !== -1) {
+                            employees[empIndex].status = 'active';
+                        }
+
+                        // Update employee count badge
+                        updateEmployeeCountBadge();
+
+                        // Re-render page
+                        renderPage(currentPage);
+                        showNotification('Employee activated successfully', 'success');
+                    } catch (error) {
+                        console.error('Error activating employee:', error);
                     }
                 }
             });
@@ -21203,7 +21279,7 @@ const GCONOMICS_CATEGORIES = [
 // Gconomics state
 let gconomicsState = {
     expenses: JSON.parse(localStorage.getItem('gconomicsExpenses')) || [],
-    currentMonth: new Date().toISOString().slice(0, 7), // YYYY-MM format
+    currentMonth: '2025-12', // December 2025
     selectedCategory: 'all',
     editingExpenseId: null
 };
@@ -21340,7 +21416,7 @@ function renderGconomics() {
     const currentMonthName = new Date(gconomicsState.currentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     dashboard.innerHTML = `
-        <div class="page-header">
+        <div class="page-header gconomics-page-header">
             <div class="page-header-left">
                 <h2 class="section-title">
                     <i class="fas fa-wallet" style="color: var(--accent-primary);"></i>
@@ -21366,7 +21442,7 @@ function renderGconomics() {
             <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
             <div style="position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
             <div class="card-body" style="padding: 32px; position: relative; z-index: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;">
+                <div class="gconomics-summary-content" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;">
                     <div>
                         <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">${currentMonthName}</div>
                         <div style="font-size: 42px; font-weight: 700;">${formatCurrencyGconomics(monthlyTotal)}</div>
@@ -21403,7 +21479,7 @@ function renderGconomics() {
                         <p>No expenses to display</p>
                     </div>
                 ` : `
-                    <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: center;">
+                    <div class="gconomics-chart-grid" style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: center;">
                         <!-- Donut Chart -->
                         <div style="position: relative; width: 180px; height: 180px; margin: 0 auto;">
                             <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
@@ -21445,7 +21521,7 @@ function renderGconomics() {
         </div>
 
         <!-- Category Filter Pills -->
-        <div style="display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap;">
+        <div class="gconomics-category-pills" style="display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap;">
             <button onclick="filterGconomicsByCategory('all')" style="padding: 10px 20px; font-family: Outfit; border-radius: 25px; border: 2px solid ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${gconomicsState.selectedCategory === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${gconomicsState.selectedCategory === 'all' ? 'white' : 'var(--text-primary)'}; cursor: pointer; font-weight: 500; transition: all 0.2s;">
                 <i class="fas fa-th-large"></i> All
             </button>
@@ -21473,7 +21549,7 @@ function renderGconomics() {
                         <div style="font-size: 14px;">Click "New Expense" to start tracking</div>
                     </div>
                 ` : `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                    <div class="gconomics-expenses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
                         ${displayExpenses.map(expense => {
                             const category = GCONOMICS_CATEGORIES.find(c => c.id === expense.category) || GCONOMICS_CATEGORIES[5];
                             const expenseDate = new Date(expense.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -21927,26 +22003,33 @@ let firebasePasswords = [];
 
 const firebasePasswordsManager = {
     isInitialized: false,
+    db: null,
 
     async initialize() {
-        if (!window.db) {
-            console.warn('Firebase not available for Passwords');
+        try {
+            if (typeof firebase === 'undefined' || !firebase.firestore) {
+                console.warn('Firebase not available for Passwords');
+                return false;
+            }
+            this.db = firebase.firestore();
+            this.isInitialized = true;
+            console.log('Password Manager Firebase initialized');
+            return true;
+        } catch (error) {
+            console.error('Error initializing Password Manager Firebase:', error);
             return false;
         }
-        this.isInitialized = true;
-        console.log('Password Manager Firebase initialized');
-        return true;
     },
 
     async loadPasswords() {
-        if (!this.isInitialized || !window.db) {
+        if (!this.isInitialized || !this.db) {
             console.warn('Passwords Firebase not initialized');
             return [];
         }
 
         try {
             const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
-            const snapshot = await window.db.collection(collectionName)
+            const snapshot = await this.db.collection(collectionName)
                 .orderBy('createdAt', 'desc')
                 .get();
 
@@ -21967,13 +22050,13 @@ const firebasePasswordsManager = {
     },
 
     async addPassword(passwordData) {
-        if (!this.isInitialized || !window.db) {
+        if (!this.isInitialized || !this.db) {
             throw new Error('Passwords Firebase not initialized');
         }
 
         try {
             const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
-            const docRef = await window.db.collection(collectionName).add({
+            const docRef = await this.db.collection(collectionName).add({
                 ...passwordData,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -21988,13 +22071,13 @@ const firebasePasswordsManager = {
     },
 
     async updatePassword(firestoreId, updateData) {
-        if (!this.isInitialized || !window.db) {
+        if (!this.isInitialized || !this.db) {
             throw new Error('Passwords Firebase not initialized');
         }
 
         try {
             const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
-            await window.db.collection(collectionName).doc(firestoreId).update({
+            await this.db.collection(collectionName).doc(firestoreId).update({
                 ...updateData,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -22008,13 +22091,13 @@ const firebasePasswordsManager = {
     },
 
     async deletePassword(firestoreId) {
-        if (!this.isInitialized || !window.db) {
+        if (!this.isInitialized || !this.db) {
             throw new Error('Passwords Firebase not initialized');
         }
 
         try {
             const collectionName = window.FIREBASE_COLLECTIONS?.passwords || 'passwords';
-            await window.db.collection(collectionName).doc(firestoreId).delete();
+            await this.db.collection(collectionName).doc(firestoreId).delete();
 
             console.log('Password deleted:', firestoreId);
             return true;
