@@ -132,7 +132,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords']
+        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
     },
     'manager': {
         // Action Permissions

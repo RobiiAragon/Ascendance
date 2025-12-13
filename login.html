@@ -215,7 +215,12 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
+                    <div style="position: relative;">
+                        <input type="password" id="password" placeholder="Enter your password" required style="padding-right: 40px; width: 100%; box-sizing: border-box;">
+                        <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; font-size: 14px;">
+                            <i class="fas fa-eye" id="password-toggle-icon"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-options">
@@ -261,6 +266,24 @@
     <script src="js/auth-manager.js"></script>
     <script src="js/script.js"></script>
     <script>
+        /**
+         * Toggle password visibility
+         */
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('password-toggle-icon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
         /**
          * Fill login form with demo credentials
          */
@@ -478,6 +501,16 @@
                 console.log(`✅ Employee found: ${employeeData.name}`);
                 console.log(`   Role: ${employeeData.employeeType}`);
                 console.log(`   Store: ${employeeData.store}`);
+                console.log(`   Status: ${employeeData.status}`);
+
+                // Check if employee is inactive (fired/terminated)
+                if (employeeData.status === 'inactive') {
+                    console.warn('❌ Employee is inactive/terminated');
+                    // Sign out from Firebase Auth since they can't access the system
+                    await firebase.auth().signOut();
+                    alert('Your account has been deactivated. You no longer have access to this system. Please contact your manager if you believe this is an error.');
+                    return null;
+                }
 
                 // Create user object from employee data + Firebase Auth
                 const user = {

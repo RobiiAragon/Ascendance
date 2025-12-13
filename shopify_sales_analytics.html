@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Sales Analytics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls select, .controls button {
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .controls select {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+        }
+
+        .controls button {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .controls button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            color: #333;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .table-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            color: #666;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        canvas {
+            max-height: 400px;
+        }
+
+        .progress {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Shopify Sales Analytics</h1>
+            <p class="subtitle">Análisis de ventas de tu tienda</p>
+        </div>
+
+        <div class="warning">
+            <strong>ℹ️ Usando API REST de Shopify</strong>
+            <p>Tu tienda no tiene acceso a ShopifyQL (requiere Shopify Plus). Usando método alternativo con REST API.</p>
+        </div>
+
+        <div class="controls">
+            <select id="periodSelect">
+                <option value="month">Este mes</option>
+                <option value="week">Esta semana</option>
+                <option value="today">Hoy</option>
+            </select>
+            <button id="loadBtn" onclick="loadData()">Cargar datos</button>
+        </div>
+
+        <div id="statsContainer" class="stats-grid" style="display:none;">
+            <div class="stat-card">
+                <div class="stat-label">Ventas totales</div>
+                <div class="stat-value" id="totalSales">$0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Órdenes</div>
+                <div class="stat-value" id="totalOrders">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Promedio por orden</div>
+                <div class="stat-value" id="avgOrder">$0</div>
+            </div>
+        </div>
+
+        <div id="chartContainer" class="chart-container" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #333; margin: 0;">Ventas</h2>
+                <select id="chartTypeSelect" onchange="updateChartView()" style="padding: 8px 15px; border: 2px solid #667eea; border-radius: 5px; font-size: 14px; cursor: pointer;">
+                    <option value="daily">Por día</option>
+                    <option value="hourly">Por hora</option>
+                </select>
+            </div>
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <div id="tableContainer" class="table-container" style="display:none;">
+            <div class="table-header">
+                <h2 style="color: #333;">Órdenes (<span id="totalOrdersTable">0</span> total)</h2>
+                <div class="pagination">
+                    <button onclick="previousPage()" id="prevBtn">← Anterior</button>
+                    <span id="pageInfo">Página 1</span>
+                    <button onclick="nextPage()" id="nextBtn">Siguiente →</button>
+                </div>
+            </div>
+            <table id="salesTable">
+                <thead>
+                    <tr>
+                        <th>Número de orden</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="loadingContainer" class="loading" style="display:none;">
+            <div class="spinner"></div>
+            <p id="loadingText">Cargando datos...</p>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+            </div>
+        </div>
+
+        <div id="errorContainer" class="error" style="display:none;"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        const CONFIG = {
+            storeUrl: 'k1xm3v-v0.myshopify.com',
+            accessToken: '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',
+            apiVersion: '2024-01'
+        };
+
+        let salesChart = null;
+        let allOrdersData = [];
+        let currentPage = 1;
+        const ordersPerPage = 50;
+        let chartData = { daily: {}, hourly: {} };
+
+        function getDateRange(period) {
+            const now = new Date();
+            let since, until;
+
+            switch(period) {
+                case 'month':
+                    since = new Date(now.getFullYear(), now.getMonth(), 1);
+                    until = new Date();
+                    break;
+                case 'week':
+                    since = new Date(now);
+                    since.setDate(now.getDate() - now.getDay());
+                    since.setHours(0, 0, 0, 0);
+                    until = new Date();
+                    break;
+                case 'today':
+                    since = new Date(now);
+                    since.setHours(0, 0, 0, 0);
+                    until = new Date();
+                    break;
+            }
+
+            return {
+                since: since.toISOString(),
+                until: until.toISOString()
+            };
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressBar').textContent = percent + '%';
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        async function fetchAllOrders(createdAtMin, createdAtMax) {
+            const allOrders = [];
+            const proxyUrl = 'https://corsproxy.io/?';
+            
+            const start = new Date(createdAtMin);
+            const end = new Date(createdAtMax);
+            const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            
+            let daysPerBlock;
+            if (totalDays <= 1) {
+                daysPerBlock = 1;
+            } else if (totalDays <= 7) {
+                daysPerBlock = Math.ceil(totalDays / 3);
+            } else {
+                daysPerBlock = Math.ceil(totalDays / 10);
+            }
+            
+            let currentStart = new Date(start);
+            let blockNumber = 0;
+            const totalBlocks = Math.ceil(totalDays / daysPerBlock);
+            
+            while (currentStart < end) {
+                blockNumber++;
+                
+                let currentEnd = new Date(currentStart);
+                currentEnd.setDate(currentEnd.getDate() + daysPerBlock);
+                
+                if (currentEnd > end) {
+                    currentEnd = new Date(end);
+                }
+                
+                const blockStart = currentStart.toISOString();
+                const blockEnd = currentEnd.toISOString();
+                
+                const progress = Math.round((blockNumber / totalBlocks) * 90);
+                updateProgress(progress, `Cargando bloque ${blockNumber} de ${totalBlocks}...`);
+                
+                const url = `https://${CONFIG.storeUrl}/admin/api/${CONFIG.apiVersion}/orders.json?status=any&created_at_min=${blockStart}&created_at_max=${blockEnd}&limit=250`;
+                
+                try {
+                    const response = await fetch(proxyUrl + encodeURIComponent(url), {
+                        headers: {
+                            'X-Shopify-Access-Token': CONFIG.accessToken
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    allOrders.push(...data.orders);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                } catch (error) {
+                    console.error(`Error en bloque ${blockNumber}:`, error);
+                }
+                
+                currentStart = new Date(currentEnd);
+            }
+
+            return allOrders;
+        }
+
+        async function loadData() {
+            const period = document.getElementById('periodSelect').value;
+            const dateRange = getDateRange(period);
+            
+            document.getElementById('loadingContainer').style.display = 'block';
+            document.getElementById('errorContainer').style.display = 'none';
+            document.getElementById('statsContainer').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'none';
+            document.getElementById('loadBtn').disabled = true;
+
+            updateProgress(10, 'Conectando con Shopify...');
+
+            try {
+                const orders = await fetchAllOrders(dateRange.since, dateRange.until);
+                
+                updateProgress(100, 'Procesando datos...');
+                
+                if (orders.length === 0) {
+                    throw new Error('No se encontraron órdenes en el período seleccionado');
+                }
+
+                processOrders(orders);
+
+            } catch (error) {
+                document.getElementById('errorContainer').textContent = `Error: ${error.message}`;
+                document.getElementById('errorContainer').style.display = 'block';
+                console.error('Error completo:', error);
+            } finally {
+                document.getElementById('loadingContainer').style.display = 'none';
+                document.getElementById('loadBtn').disabled = false;
+            }
+        }
+
+        function processOrders(orders) {
+            allOrdersData = orders;
+            let totalSales = 0;
+            let totalOrders = orders.length;
+            const dailyData = {};
+            const hourlyData = {};
+
+            orders.forEach(order => {
+                const orderDate = new Date(order.created_at);
+                const day = orderDate.toISOString().split('T')[0];
+                const hour = orderDate.getHours();
+                const amount = parseFloat(order.total_price);
+
+                totalSales += amount;
+
+                if (!dailyData[day]) {
+                    dailyData[day] = { sales: 0, orders: 0 };
+                }
+                dailyData[day].sales += amount;
+                dailyData[day].orders += 1;
+
+                if (!hourlyData[hour]) {
+                    hourlyData[hour] = { sales: 0, orders: 0 };
+                }
+                hourlyData[hour].sales += amount;
+                hourlyData[hour].orders += 1;
+            });
+
+            chartData.daily = dailyData;
+            chartData.hourly = hourlyData;
+
+            displayStats(totalSales, totalOrders);
+            displayChart('daily');
+            currentPage = 1;
+            displayTable();
+        }
+
+        function displayStats(totalSales, totalOrders) {
+            document.getElementById('totalSales').textContent = `$${totalSales.toFixed(2)}`;
+            document.getElementById('totalOrders').textContent = totalOrders;
+            document.getElementById('avgOrder').textContent = totalOrders > 0 
+                ? `$${(totalSales / totalOrders).toFixed(2)}` 
+                : '$0';
+            document.getElementById('statsContainer').style.display = 'grid';
+        }
+
+        function displayChart(type) {
+            let labels, data, labelText;
+
+            if (type === 'hourly') {
+                labels = Array.from({length: 24}, (_, i) => {
+                    const hour = i;
+                    const ampm = hour >= 12 ? 'PM' : 'AM';
+                    const displayHour = hour % 12 || 12;
+                    return `${displayHour} ${ampm}`;
+                });
+                
+                data = Array.from({length: 24}, (_, i) => {
+                    return chartData.hourly[i] ? chartData.hourly[i].sales : 0;
+                });
+                
+                labelText = 'Ventas por hora ($)';
+            } else {
+                labels = Object.keys(chartData.daily).sort();
+                data = labels.map(day => chartData.daily[day].sales);
+                labelText = 'Ventas por día ($)';
+            }
+
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            if (salesChart) {
+                salesChart.destroy();
+            }
+
+            salesChart = new Chart(ctx, {
+                type: type === 'hourly' ? 'bar' : 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: labelText,
+                        data: data,
+                        borderColor: '#667eea',
+                        backgroundColor: type === 'hourly' ? 'rgba(102, 126, 234, 0.7)' : 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: type === 'hourly' ? 45 : 0,
+                                minRotation: type === 'hourly' ? 45 : 0
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('chartContainer').style.display = 'block';
+        }
+
+        function updateChartView() {
+            const chartType = document.getElementById('chartTypeSelect').value;
+            displayChart(chartType);
+        }
+
+        function displayTable() {
+            const start = (currentPage - 1) * ordersPerPage;
+            const end = start + ordersPerPage;
+            const ordersToShow = allOrdersData.slice(start, end);
+            const totalPages = Math.ceil(allOrdersData.length / ordersPerPage);
+
+            const tbody = document.querySelector('#salesTable tbody');
+            tbody.innerHTML = '';
+
+            ordersToShow.forEach(order => {
+                const date = new Date(order.created_at).toLocaleDateString();
+                const customer = order.customer ? 
+                    `${order.customer.first_name} ${order.customer.last_name}` : 
+                    'Invitado';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${order.order_number}</td>
+                    <td>${date}</td>
+                    <td>${customer}</td>
+                    <td>$${parseFloat(order.total_price).toFixed(2)}</td>
+                    <td>${order.financial_status}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('totalOrdersTable').textContent = allOrdersData.length;
+            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+            document.getElementById('tableContainer').style.display = 'block';
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(allOrdersData.length / ordersPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayTable();
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayTable();
+            }
+        }
+
+        window.addEventListener('load', () => {
+            loadData();
+        });
+    </script>
+</body>
+</html>

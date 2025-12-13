@@ -74,71 +74,95 @@ function formatDateTime(dateString) {
     });
 }
 
-// Fetch Sales Analytics
-async function fetchSalesAnalytics() {
+// Fetch Sales Analytics (LEGACY - uses backend API)
+async function fetchSalesAnalyticsBackend() {
     return await fetchAPI('/api/analytics/sales');
 }
 
-// Fetch Products Analytics
-async function fetchProductsAnalytics() {
+// Fetch Products Analytics (LEGACY - uses backend API)
+async function fetchProductsAnalyticsBackend() {
     return await fetchAPI('/api/analytics/products');
 }
 
-// Fetch Customers Analytics
-async function fetchCustomersAnalytics() {
+// Fetch Customers Analytics (LEGACY - uses backend API)
+async function fetchCustomersAnalyticsBackend() {
     return await fetchAPI('/api/analytics/customers');
 }
 
+// NOTE: The main fetchSalesAnalytics() function is now defined in shopify-analytics.js
+// and connects directly to Shopify's API (frontend implementation)
+
 // Render Analytics Page with Real Data
-async function renderAnalyticsWithData() {
+async function renderAnalyticsWithData(period = 'month') {
     const dashboard = document.querySelector('.dashboard');
 
     // Show loading state
     dashboard.innerHTML = `
         <div class="page-header">
             <div class="page-header-left">
-                <h2 class="section-title">Sales Analytics</h2>
+                <h2 class="section-title">Sales & Analytics</h2>
                 <p class="section-subtitle">Loading data from Shopify...</p>
             </div>
         </div>
         <div style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
             <div style="text-align: center;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: var(--accent-primary); margin-bottom: 16px;"></i>
-                <p style="color: var(--text-muted);">Fetching analytics data...</p>
+                <div style="width: 48px; height: 48px; border: 4px solid var(--border-color); border-top: 4px solid var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                <p style="color: var(--text-muted);" id="analytics-loading-text">Fetching analytics data...</p>
+                <div style="background: var(--bg-tertiary); border-radius: 10px; height: 30px; width: 300px; margin: 20px auto; overflow: hidden;">
+                    <div id="analytics-progress-bar" style="background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9em;"></div>
+                </div>
             </div>
         </div>
     `;
 
     try {
-        // Fetch all data in parallel
-        const [salesData, customersData, productsData] = await Promise.all([
-            fetchSalesAnalytics(),
-            fetchCustomersAnalytics(),
-            fetchProductsAnalytics()
-        ]);
+        // Use the new frontend Shopify API
+        const salesData = await fetchSalesAnalytics(period, (progress, text) => {
+            const progressBar = document.getElementById('analytics-progress-bar');
+            const loadingText = document.getElementById('analytics-loading-text');
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+            }
+            if (loadingText) {
+                loadingText.textContent = text;
+            }
+        });
 
         // Calculate average order value
-        const avgOrderValue = salesData.summary.totalOrders > 0
-            ? (parseFloat(salesData.summary.totalSales) / salesData.summary.totalOrders).toFixed(2)
-            : '0.00';
+        const avgOrderValue = salesData.summary.avgOrderValue;
 
-        // Generate monthly chart bars (max height based on highest month)
-        const maxSales = Math.max(...salesData.byMonth.map(m => parseFloat(m.totalSales)), 1);
-        const chartBars = salesData.byMonth.map((month, index) => {
-            const height = (parseFloat(month.totalSales) / maxSales) * 100;
-            const isLast = index === salesData.byMonth.length - 1;
-            return `<div class="chart-bar ${isLast ? 'active' : ''}" style="height: ${height}%;" title="${month.month}: ${formatCurrency(month.totalSales)}"></div>`;
+        // Generate daily chart bars (max height based on highest day)
+        const dailyDataArray = Object.entries(salesData.daily).map(([date, data]) => ({
+            date,
+            sales: data.sales,
+            orders: data.orders,
+            tax: data.tax
+        })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const maxSales = Math.max(...dailyDataArray.map(d => d.sales), 1);
+        const chartBars = dailyDataArray.map((day, index) => {
+            const height = (day.sales / maxSales) * 100;
+            const isLast = index === dailyDataArray.length - 1;
+            const formattedDate = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `<div class="chart-bar ${isLast ? 'active' : ''}" style="height: ${height}%;" title="${formattedDate}: ${formatCurrency(day.sales)}"></div>`;
         }).join('');
 
         // Render the analytics page
         dashboard.innerHTML = `
             <div class="page-header">
                 <div class="page-header-left">
-                    <h2 class="section-title">Sales Analytics</h2>
-                    <p class="section-subtitle">Live data from Shopify (${salesData.summary.period})</p>
+                    <h2 class="section-title">Sales & Analytics</h2>
+                    <p class="section-subtitle">Live data from Shopify</p>
                 </div>
-                <div class="date-range-picker">
-                    <button class="date-btn" onclick="renderAnalyticsWithData()">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select id="period-select" onchange="renderAnalyticsWithData(this.value)" class="btn-secondary" style="padding: 10px 16px; font-family: 'Outfit', sans-serif; font-weight: 500;">
+                        <option value="today" ${period === 'today' ? 'selected' : ''}>Today</option>
+                        <option value="week" ${period === 'week' ? 'selected' : ''}>This Week</option>
+                        <option value="month" ${period === 'month' ? 'selected' : ''}>This Month</option>
+                        <option value="year" ${period === 'year' ? 'selected' : ''}>This Year</option>
+                    </select>
+                    <button class="btn-secondary" onclick="renderAnalyticsWithData('${period}')">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                 </div>
@@ -188,36 +212,44 @@ async function renderAnalyticsWithData() {
                     </div>
                 </div>
 
-                <div class="analytics-card customers">
-                    <div class="analytics-card-header">
-                        <h3>Customers</h3>
-                        <span class="trend up"><i class="fas fa-check-circle"></i> Live</span>
-                    </div>
-                    <div class="analytics-value">${customersData.summary.totalCustomers}</div>
-                    <div class="analytics-comparison">
-                        <span>New: ${customersData.summary.newCustomers} | Returning: ${customersData.summary.returningCustomers}</span>
+            </div>
+
+            <!-- Sales Chart -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 class="card-title"><i class="fas fa-chart-line"></i> Sales Chart</h3>
+                    <select id="chartTypeSelect" onchange="updateChartView()" class="btn-secondary" style="padding: 8px 16px; font-family: 'Outfit', sans-serif; font-weight: 500;">
+                        <option value="daily">By Day</option>
+                        <option value="hourly">By Hour</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="salesChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Monthly Breakdown -->
+            <!-- Daily Breakdown -->
             <div class="analytics-stores">
-                <h3 class="section-subtitle-alt">Monthly Sales Breakdown</h3>
+                <h3 class="section-subtitle-alt">Daily Sales Breakdown</h3>
                 <div class="store-bars">
-                    ${salesData.byMonth.map(month => `
-                        <div class="store-bar-item">
-                            <div class="store-bar-label">
-                                <span>${month.month}</span>
-                                <span>${formatCurrency(month.totalSales)}</span>
+                    ${dailyDataArray.slice(-10).map(day => {
+                        const formattedDate = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        return `
+                        <div class="store-bar-item" style="margin-bottom: 12px;">
+                            <div class="store-bar-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span style="font-weight: 500;">${formattedDate}</span>
+                                    <span style="font-size: 12px; color: var(--text-muted);">${day.orders} orders • Tax: ${formatCurrency(day.tax)}</span>
+                                </div>
+                                <span style="font-weight: 600;">${formatCurrency(day.sales)}</span>
                             </div>
                             <div class="store-bar-track">
-                                <div class="store-bar-fill miramar" style="width: ${(parseFloat(month.totalSales) / maxSales) * 100}%;"></div>
-                            </div>
-                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                                ${month.orders} orders | Tax: ${formatCurrency(month.tax)}
+                                <div class="store-bar-fill miramar" style="width: ${(day.sales / maxSales) * 100}%;"></div>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             </div>
 
@@ -232,6 +264,7 @@ async function renderAnalyticsWithData() {
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--border-color);">
                                     <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Order</th>
+                                    <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Customer</th>
                                     <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Date</th>
                                     <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Status</th>
                                     <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Fulfillment</th>
@@ -242,6 +275,7 @@ async function renderAnalyticsWithData() {
                                 ${salesData.recentOrders.map(order => `
                                     <tr style="border-bottom: 1px solid var(--border-color);">
                                         <td style="padding: 12px 8px; font-weight: 500;">${order.name}</td>
+                                        <td style="padding: 12px 8px; color: var(--text-secondary);">${order.customer}</td>
                                         <td style="padding: 12px 8px; color: var(--text-secondary);">${formatDateTime(order.createdAt)}</td>
                                         <td style="padding: 12px 8px;">
                                             <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${order.status === 'PAID' ? 'var(--success)' : 'var(--warning)'}; color: white;">
@@ -262,40 +296,26 @@ async function renderAnalyticsWithData() {
                 </div>
             </div>
 
-            <!-- Top Customers -->
-            <div class="card" style="margin-top: 24px;">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-users"></i> Top Customers by Spending</h3>
-                </div>
-                <div class="card-body">
-                    <div style="display: grid; gap: 12px;">
-                        ${customersData.topCustomers.slice(0, 5).map((customer, index) => `
-                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
-                                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">
-                                    ${index + 1}
-                                </div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500;">${customer.name}</div>
-                                    <div style="font-size: 12px; color: var(--text-muted);">${customer.email || 'No email'} • ${customer.orders} orders</div>
-                                </div>
-                                <div style="font-weight: 600; color: var(--success);">${formatCurrency(customer.totalSpent)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-
             <div class="shopify-connect" style="background: linear-gradient(135deg, var(--success), #2ecc71); margin-top: 24px;">
                 <div class="shopify-icon"><i class="fab fa-shopify"></i></div>
                 <div class="shopify-text">
                     <h4 style="color: white;">Connected to Shopify</h4>
-                    <p style="color: rgba(255,255,255,0.8);">Showing live data from your store</p>
+                    <p style="color: rgba(255,255,255,0.8);">Showing live data from your store (${salesData.summary.totalOrders} orders loaded)</p>
                 </div>
-                <button class="btn-primary" onclick="renderAnalyticsWithData()" style="background: white; color: var(--success);">
+                <button class="btn-primary" onclick="renderAnalyticsWithData('${period}')" style="background: white; color: var(--success);">
                     <i class="fas fa-sync-alt"></i> Refresh Data
                 </button>
             </div>
         `;
+
+        // Store chart data globally for switching between views
+        window.analyticsChartData = {
+            daily: salesData.daily,
+            hourly: salesData.hourly
+        };
+
+        // Initialize the chart with daily view
+        displaySalesChart('daily');
 
     } catch (error) {
         console.error('Failed to load analytics:', error);
@@ -304,7 +324,7 @@ async function renderAnalyticsWithData() {
         dashboard.innerHTML = `
             <div class="page-header">
                 <div class="page-header-left">
-                    <h2 class="section-title">Sales Analytics</h2>
+                    <h2 class="section-title">Sales & Analytics</h2>
                     <p class="section-subtitle">Unable to load data</p>
                 </div>
             </div>
@@ -314,9 +334,9 @@ async function renderAnalyticsWithData() {
                     <h3 style="margin-bottom: 8px;">Failed to Load Analytics</h3>
                     <p style="color: var(--text-muted); margin-bottom: 24px;">${error.message}</p>
                     <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 13px;">
-                        Make sure the Next.js backend is running on <code>http://localhost:3000</code>
+                        Check the console for more details. Make sure the Shopify API credentials are correct.
                     </p>
-                    <button class="btn-primary" onclick="renderAnalyticsWithData()">
+                    <button class="btn-primary" onclick="renderAnalyticsWithData('month')">
                         <i class="fas fa-redo"></i> Try Again
                     </button>
                 </div>
@@ -374,6 +394,143 @@ function getCurrentUserName() {
         console.warn('Could not get current user name:', e);
     }
     return 'Staff';
+}
+
+// =============================================================================
+// Sales Chart Functions
+// =============================================================================
+
+let salesChart = null;
+
+function displaySalesChart(type) {
+    const ctx = document.getElementById('salesChart');
+    if (!ctx) return;
+
+    let labels, data, labelText;
+
+    if (type === 'hourly') {
+        // Generate 24 hour labels
+        labels = Array.from({length: 24}, (_, i) => {
+            const hour = i;
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour % 12 || 12;
+            return `${displayHour} ${ampm}`;
+        });
+
+        // Map hourly data
+        data = Array.from({length: 24}, (_, i) => {
+            return window.analyticsChartData.hourly[i] ? window.analyticsChartData.hourly[i].sales : 0;
+        });
+
+        labelText = 'Sales by Hour ($)';
+    } else {
+        // Daily view
+        const dailyData = window.analyticsChartData.daily;
+        const sortedDates = Object.keys(dailyData).sort();
+        labels = sortedDates.map(date => {
+            return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        data = sortedDates.map(date => dailyData[date].sales);
+        labelText = 'Sales by Day ($)';
+    }
+
+    // Destroy existing chart if it exists
+    if (salesChart) {
+        salesChart.destroy();
+    }
+
+    // Create new chart
+    salesChart = new Chart(ctx, {
+        type: type === 'hourly' ? 'bar' : 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: labelText,
+                data: data,
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: type === 'hourly' ? 'rgba(102, 126, 234, 0.7)' : 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2,
+                pointRadius: type === 'hourly' ? 0 : 6,
+                pointHoverRadius: type === 'hourly' ? 0 : 8,
+                pointBackgroundColor: 'rgb(102, 126, 234)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            family: "'Outfit', sans-serif",
+                            size: 12
+                        },
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        family: "'Outfit', sans-serif",
+                        size: 13
+                    },
+                    bodyFont: {
+                        family: "'Outfit', sans-serif",
+                        size: 13
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            family: "'Outfit', sans-serif",
+                            size: 11
+                        },
+                        callback: function(value) {
+                            return '$' + value.toFixed(0);
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            family: "'Outfit', sans-serif",
+                            size: 11
+                        },
+                        maxRotation: type === 'hourly' ? 45 : 0,
+                        minRotation: type === 'hourly' ? 45 : 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartView() {
+    const chartType = document.getElementById('chartTypeSelect').value;
+    displaySalesChart(chartType);
 }
 
 console.log('API Client loaded - use renderAnalyticsWithData() to fetch live Shopify data');

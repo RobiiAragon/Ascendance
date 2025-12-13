@@ -2,7 +2,6 @@
         const pages = {
             dashboard: document.getElementById('page-dashboard'),
             employees: null,
-            employeeInspection: null,
             training: null,
             licenses: null,
             analytics: null,
@@ -23,7 +22,8 @@
             clockin: null,
             dailysales: null,
             cashout: null,
-            change: null
+            change: null,
+            projectanalytics: null
         };
 
         // Current state
@@ -57,6 +57,9 @@
             { id: 2, date: '2025-11-28', title: 'New Product Line', content: 'New product line arriving next week - mandatory training session on Thursday.', author: 'Carlos Admin' },
             { id: 3, date: '2025-11-25', title: 'Q4 Achievement', content: 'Congratulations to VSU Miramar for hitting Q4 sales targets! 🎉', author: 'Carlos Admin' }
         ];
+
+        // Track which announcements the current user has read
+        let readAnnouncementIds = [];
 
         /**
          * Show a confirmation modal dialog
@@ -330,6 +333,9 @@
                         }
                         console.log('Migrated fallback announcements to Firestore');
                     }
+
+                    // Load read announcements for current user
+                    await loadReadAnnouncementsForUser();
                 } catch (error) {
                     console.error('Error loading announcements from Firestore:', error);
                 }
@@ -342,22 +348,48 @@
             populateAnnouncementsDropdown();
         }
 
-        // Update announcement badge counts in sidebar and header
+        /**
+         * Load read announcements for the current user from Firebase
+         */
+        async function loadReadAnnouncementsForUser() {
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            const userId = user?.userId || user?.id || user?.email;
+
+            if (!userId) {
+                console.warn('No user logged in, cannot load read announcements');
+                return;
+            }
+
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    readAnnouncementIds = await firebaseAnnouncementsManager.getReadAnnouncements(userId);
+                    console.log('Loaded read announcements for user:', readAnnouncementIds);
+                }
+            } catch (error) {
+                console.error('Error loading read announcements:', error);
+            }
+        }
+
+        // Update announcement badge counts in sidebar and header (only unread)
         function updateAnnouncementsBadge() {
-            const count = announcements.length;
+            // Count only unread announcements
+            const unreadCount = announcements.filter(ann => {
+                const annId = ann.firestoreId || ann.id;
+                return !readAnnouncementIds.includes(annId) && !readAnnouncementIds.includes(String(annId));
+            }).length;
 
             // Update sidebar badge
             const sidebarBadge = document.getElementById('announcements-badge');
             if (sidebarBadge) {
-                sidebarBadge.textContent = count;
-                sidebarBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+                sidebarBadge.textContent = unreadCount;
+                sidebarBadge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
             }
 
             // Update header bell badge
             const headerBadge = document.getElementById('header-announcements-badge');
             if (headerBadge) {
-                headerBadge.textContent = count > 99 ? '99+' : count;
-                headerBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+                headerBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                headerBadge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
             }
         }
 
@@ -393,10 +425,53 @@
         }
 
         // Toggle announcements dropdown visibility
-        function toggleAnnouncementsDropdown() {
+        async function toggleAnnouncementsDropdown() {
             const dropdown = document.getElementById('announcements-dropdown');
             if (dropdown) {
+                const isOpening = !dropdown.classList.contains('active');
                 dropdown.classList.toggle('active');
+
+                // Mark all announcements as read when opening the dropdown
+                if (isOpening) {
+                    await markAllAnnouncementsAsRead();
+                }
+            }
+        }
+
+        // Mark all announcements as read for the current user
+        async function markAllAnnouncementsAsRead() {
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            const userId = user?.userId || user?.id || user?.email;
+
+            if (!userId) {
+                console.warn('No user logged in, cannot mark announcements as read');
+                return;
+            }
+
+            // Get all announcement IDs
+            const allAnnouncementIds = announcements.map(ann => String(ann.firestoreId || ann.id));
+
+            // Filter out already read ones
+            const newlyReadIds = allAnnouncementIds.filter(id =>
+                !readAnnouncementIds.includes(id) && !readAnnouncementIds.includes(String(id))
+            );
+
+            if (newlyReadIds.length === 0) {
+                return; // Nothing new to mark as read
+            }
+
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    await firebaseAnnouncementsManager.markAnnouncementsAsRead(userId, newlyReadIds);
+                }
+
+                // Update local state
+                readAnnouncementIds = [...new Set([...readAnnouncementIds, ...newlyReadIds])];
+
+                // Update badge to reflect read status
+                updateAnnouncementsBadge();
+            } catch (error) {
+                console.error('Error marking announcements as read:', error);
             }
         }
 
@@ -997,7 +1072,6 @@
             const titles = {
                 dashboard: 'Dashboard',
                 employees: 'Employees',
-                employeeInspection: 'Employee Inspection',
                 training: 'Training Center',
                 licenses: 'Licenses & Documents',
                 analytics: 'Sales Analytics',
@@ -1022,7 +1096,8 @@
                 change: 'Change',
                 gifts: 'Customer Care',
                 risknotes: 'Risk Notes',
-                passwords: 'Password Manager'
+                passwords: 'Password Manager',
+                projectanalytics: 'Project Analytics'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
@@ -1045,9 +1120,6 @@
                     break;
                 case 'employees':
                     renderEmployees();
-                    break;
-                case 'employeeInspection':
-                    renderEmployeeInspection();
                     break;
                 case 'training':
                     renderTraining();
@@ -1117,6 +1189,9 @@
                     break;
                 case 'passwords':
                     renderPasswordManager();
+                    break;
+                case 'projectanalytics':
+                    renderProjectAnalytics();
                     break;
                 default:
                     renderDashboard();
@@ -1300,9 +1375,14 @@
                         <h2 class="section-title">Employee Directory</h2>
                         <p class="section-subtitle">Manage your team across all stores</p>
                     </div>
-                    <button class="btn-primary floating-add-btn" onclick="openModal('add-employee')">
-                        <i class="fas fa-plus"></i> Add Employee
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-secondary" onclick="openInactiveEmployeesModal()" title="View Inactive Employees">
+                            <i class="fas fa-user-slash"></i> Inactive
+                        </button>
+                        <button class="btn-primary floating-add-btn" onclick="openModal('add-employee')">
+                            <i class="fas fa-plus"></i> Add Employee
+                        </button>
+                    </div>
                 </div>
 
                 <div class="filters-bar">
@@ -1377,6 +1457,7 @@
                             firestoreId: emp.firestoreId || emp.id,
                             name: emp.name || '',
                             email: emp.email || '',
+                            authEmail: emp.authEmail || emp.email || '',
                             phone: emp.phone || '',
                             store: emp.store || 'Miramar',
                             status: emp.status || 'active',
@@ -1386,7 +1467,8 @@
                             emergencyContact: emp.emergencyContact || '',
                             allergies: emp.allergies || 'None',
                             initials: (emp.name || 'XX').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase(),
-                            color: emp.color || ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)]
+                            color: emp.color || ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)],
+                            offboarding: emp.offboarding || null
                         }));
                         console.log(`Loaded ${employees.length} employees from Firebase`);
                         // Update employee count badge in sidebar
@@ -1485,7 +1567,10 @@
                         </div>
                     </div>
                     <div class="employee-card-footer">
-                        <button class="btn-icon" onclick="event.stopPropagation(); inspectEmployeeDocuments('${empId}')" title="View Documents"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn-icon" onclick="event.stopPropagation(); viewEmployeePaperwork('${empId}')" title="View Documents"><i class="fas fa-file-pdf"></i></button>
+                        ${emp.status === 'inactive' && emp.offboarding ? `
+                            <button class="btn-icon" onclick="event.stopPropagation(); viewOffboardingDetails('${empId}')" title="View Offboarding Info" style="color: #ef4444;"><i class="fas fa-user-minus"></i></button>
+                        ` : ''}
                         <button class="btn-icon" onclick="event.stopPropagation(); editEmployee('${empId}')"><i class="fas fa-edit"></i></button>
                         ${emp.status === 'inactive' ? `
                             <button class="btn-icon success" onclick="event.stopPropagation(); activateEmployee('${empId}')" title="Activate Employee"><i class="fas fa-check"></i></button>
@@ -1495,265 +1580,6 @@
                     </div>
                 </div>
             `;
-        }
-
-        /**
-         * Render Employee Inspection Page
-         * Allows managers to view and inspect employee documents (paperwork)
-         */
-        async function renderEmployeeInspection() {
-            const dashboard = document.querySelector('.dashboard');
-
-            // Load employees if not already loaded
-            await loadEmployeesFromFirebase();
-
-            // Show page header
-            dashboard.innerHTML = `
-                <div class="page-header">
-                    <div class="page-header-left">
-                        <h2 class="section-title"><i class="fas fa-magnifying-glass"></i> Employee Inspection</h2>
-                        <p class="section-subtitle">Review employee documents and paperwork</p>
-                    </div>
-                </div>
-
-                <div class="filters-bar">
-                    <div class="search-filter">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search employees..." id="inspection-search" onkeyup="filterInspectionEmployees()">
-                    </div>
-                    <select class="filter-select" id="inspection-store-filter" onchange="filterInspectionEmployees()">
-                        <option value="">All Stores</option>
-                        <option value="Miramar">VSU Miramar</option>
-                        <option value="Morena">VSU Morena</option>
-                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                        <option value="Chula Vista">VSU Chula Vista</option>
-                        <option value="North Park">VSU North Park</option>
-                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                    </select>
-                    <button class="btn-secondary" onclick="refreshEmployeesFromFirebase()" title="Refresh from database">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-
-                <div class="employees-grid" id="inspection-grid">
-                    ${employees.length === 0 ? `
-                        <div class="empty-state">
-                            <i class="fas fa-inbox"></i>
-                            <h3>No employees</h3>
-                            <p>No employees found to inspect</p>
-                        </div>
-                    ` : employees.map(emp => `
-                        <div class="card" style="cursor: pointer; overflow: hidden;" onclick="inspectEmployeeDocuments('${emp.firestoreId || emp.id}')">
-                            <div class="card-header" style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                    <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
-                                    <div>
-                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${emp.name}</h3>
-                                        <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
-                                    </div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div class="status-badge ${emp.status}">${emp.status}</div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                                    <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
-                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Email</div>
-                                        <div style="font-size: 13px; font-weight: 500;">${emp.email}</div>
-                                    </div>
-                                    <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
-                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Phone</div>
-                                        <div style="font-size: 13px; font-weight: 500;">${emp.phone}</div>
-                                    </div>
-                                </div>
-                                <div style="padding: 12px; background: var(--accent-primary)20; border-radius: 6px; border-left: 3px solid var(--accent-primary);">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-file-pdf" style="color: var(--accent-primary); font-size: 16px;"></i>
-                                        <span style="font-size: 13px; font-weight: 500; color: var(--accent-primary);">Click to review documents →</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        /**
-         * Filter employees in inspection view
-         */
-        function filterInspectionEmployees() {
-            const searchTerm = document.getElementById('inspection-search')?.value.toLowerCase() || '';
-            const storeFilter = document.getElementById('inspection-store-filter')?.value || '';
-
-            const filtered = employees.filter(emp => {
-                const matchesSearch = emp.name.toLowerCase().includes(searchTerm) || 
-                                    emp.email.toLowerCase().includes(searchTerm) ||
-                                    emp.role.toLowerCase().includes(searchTerm);
-                const matchesStore = !storeFilter || emp.store === storeFilter;
-                return matchesSearch && matchesStore;
-            });
-
-            const grid = document.getElementById('inspection-grid');
-            if (grid) {
-                grid.innerHTML = filtered.length === 0 ? `
-                    <div class="empty-state">
-                        <i class="fas fa-search"></i>
-                        <h3>No employees found</h3>
-                        <p>Try adjusting your search filters</p>
-                    </div>
-                ` : filtered.map(emp => `
-                    <div class="card" style="cursor: pointer; overflow: hidden;" onclick="inspectEmployeeDocuments('${emp.firestoreId || emp.id}')">
-                        <div class="card-header" style="display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
-                                <div>
-                                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${emp.name}</h3>
-                                    <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="status-badge ${emp.status}">${emp.status}</div>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                                <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
-                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Email</div>
-                                    <div style="font-size: 13px; font-weight: 500;">${emp.email}</div>
-                                </div>
-                                <div style="padding: 8px; background: var(--bg-hover); border-radius: 6px;">
-                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Phone</div>
-                                    <div style="font-size: 13px; font-weight: 500;">${emp.phone}</div>
-                                </div>
-                            </div>
-                            <div style="padding: 12px; background: var(--accent-primary)20; border-radius: 6px; border-left: 3px solid var(--accent-primary);">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <i class="fas fa-file-pdf" style="color: var(--accent-primary); font-size: 16px;"></i>
-                                    <span style="font-size: 13px; font-weight: 500; color: var(--accent-primary);">Click to review documents →</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        /**
-         * Inspect employee documents (paperwork)
-         */
-        async function inspectEmployeeDocuments(employeeId) {
-            const emp = employees.find(e => (e.firestoreId || e.id) === employeeId);
-            if (!emp) return;
-
-            const modal = document.getElementById('modal');
-            const modalContent = document.getElementById('modal-content');
-
-            // Show loading state
-            modalContent.innerHTML = `
-                <div class="modal-header">
-                    <h2>Document Inspection</h2>
-                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="modal-body">
-                    <div style="text-align: center; padding: 40px;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 16px;"></i>
-                        <p style="color: var(--text-muted);">Loading documents...</p>
-                    </div>
-                </div>
-            `;
-            modal.classList.add('active');
-
-            try {
-                // Get paperwork from Firebase
-                let paperwork = [];
-                if (firebaseEmployeeManager.isInitialized) {
-                    paperwork = await firebaseEmployeeManager.getPaperwork(employeeId);
-                }
-
-                // Render document inspection modal
-                modalContent.innerHTML = `
-                    <div class="modal-header">
-                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                            <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
-                            <div>
-                                <h2 style="margin: 0; font-size: 20px;">${emp.name}</h2>
-                                <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
-                            </div>
-                        </div>
-                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="margin-bottom: 24px;">
-                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                                <i class="fas fa-file-contract" style="color: var(--accent-primary);"></i>
-                                Employee Paperwork & Documents
-                            </h3>
-                            <p style="color: var(--text-muted); font-size: 13px; margin: 0;">
-                                Registered documents: ${paperwork.length}
-                            </p>
-                        </div>
-
-                        ${paperwork && paperwork.length > 0 ? `
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
-                                ${paperwork.map((doc, index) => `
-                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color); transition: all 0.2s;">
-                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                            <div style="width: 48px; height: 48px; background: ${getDocumentColor(doc.fileType)}; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas ${getFileIcon(doc.fileType)}" style="color: white; font-size: 20px;"></i>
-                                            </div>
-                                            <div style="flex: 1;">
-                                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">
-                                                    ${doc.fileName}
-                                                </div>
-                                                <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-muted);">
-                                                    <span>${doc.documentType || 'Document'}</span>
-                                                    <span>•</span>
-                                                    <span>${formatFileSize(doc.fileSize)}</span>
-                                                    <span>•</span>
-                                                    <span>Uploaded ${formatDate(doc.uploadedAt.toDate ? doc.uploadedAt.toDate() : doc.uploadedAt)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style="display: flex; gap: 8px;">
-                                            <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View Document">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : `
-                            <div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 8px;">
-                                <i class="fas fa-inbox" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px; display: block;"></i>
-                                <h3 style="color: var(--text-muted); font-size: 16px; margin-bottom: 8px;">No Documents Yet</h3>
-                                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">No paperwork has been uploaded for this employee yet.</p>
-                            </div>
-                        `}
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    </div>
-                `;
-            } catch (error) {
-                console.error('Error loading documents:', error);
-                modalContent.innerHTML = `
-                    <div class="modal-header">
-                        <h2>Document Inspection</h2>
-                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="text-align: center; padding: 40px;">
-                            <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #ef4444; margin-bottom: 16px;"></i>
-                            <p>Error loading documents</p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    </div>
-                `;
-            }
         }
 
         /**
@@ -1888,7 +1714,7 @@
         }
 
         function renderLicenses() {
-            const stores = ['Miramar', 'Miramar Wine & Liquor', 'Morena', 'Kearny Mesa', 'Chula Vista'];
+            const stores = ['Miramar', 'Miramar Wine & Liquor', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park'];
 
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
@@ -2237,7 +2063,8 @@
                 { name: 'VSU Miramar', address: '8250 Camino Santa Fe, San Diego, CA 92121', manager: 'Marcus Rodriguez', employees: 6, status: 'open', isHQ: true },
                 { name: 'VSU Morena', address: '5050 Morena Blvd, San Diego, CA 92117', manager: 'Sarah Kim', employees: 5, status: 'open', isHQ: false },
                 { name: 'VSU Kearny Mesa', address: '4747 Convoy St, San Diego, CA 92111', manager: 'James Thompson', employees: 5, status: 'open', isHQ: false },
-                { name: 'VSU Chula Vista', address: '555 Broadway, Chula Vista, CA 91910', manager: 'Amanda Lopez', employees: 4, status: 'open', isHQ: false }
+                { name: 'VSU Chula Vista', address: '555 Broadway, Chula Vista, CA 91910', manager: 'Amanda Lopez', employees: 4, status: 'open', isHQ: false },
+                { name: 'VSU North Park', address: '3000 University Ave, San Diego, CA 92104', manager: 'Pending', employees: 3, status: 'open', isHQ: false }
             ];
 
             const dashboard = document.querySelector('.dashboard');
@@ -6411,7 +6238,7 @@
 
         // All Stores View
         function renderAllStoresView(container, weekDates, today) {
-            const stores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'Miramar Wine & Liquor'];
+            const stores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park', 'Miramar Wine & Liquor'];
 
             let html = '<div class="stores-grid">';
 
@@ -14887,8 +14714,8 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Email *</label>
-                                    <input type="email" class="form-input" id="edit-emp-email" value="${data.email || ''}" placeholder="john@vsu.com">
+                                    <label>Login Email *</label>
+                                    <input type="email" class="form-input" id="edit-emp-email" value="${data.authEmail || data.email || ''}" placeholder="john@vsu.com">
                                 </div>
                                 <div class="form-group">
                                     <label>Phone *</label>
@@ -14989,6 +14816,235 @@
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
                             <button class="btn-primary" onclick="saveEditedEmployee()">Save Changes</button>
+                        </div>
+                    `;
+                    break;
+                case 'offboarding':
+                    const offboardingEmp = data;
+                    content = `
+                        <div class="modal-header">
+                            <h2 style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-user-minus" style="color: #ef4444;"></i>
+                                Employee Offboarding
+                            </h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-info-circle" style="color: #ef4444;"></i>
+                                    <span style="font-size: 13px; color: #991b1b;">Documenting exit for <strong>${offboardingEmp.name}</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Reason for Leaving *</label>
+                                <select class="form-input" id="offboard-reason" required>
+                                    <option value="">Select reason...</option>
+                                    <option value="resignation">Resignation</option>
+                                    <option value="termination">Termination</option>
+                                    <option value="contract_end">End of Contract</option>
+                                    <option value="abandonment">Job Abandonment</option>
+                                    <option value="mutual">Mutual Agreement</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="offboard-other-reason-container" style="display: none;">
+                                <label>Specify Reason *</label>
+                                <input type="text" class="form-input" id="offboard-other-reason" placeholder="Please specify...">
+                            </div>
+                            <div class="form-group">
+                                <label>Last Day Worked *</label>
+                                <input type="date" class="form-input" id="offboard-last-day" value="${new Date().toISOString().split('T')[0]}" required>
+                            </div>
+
+                            <div class="form-divider"></div>
+
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="offboard-keys" style="width: 18px; height: 18px;">
+                                    <span><i class="fas fa-key" style="color: var(--accent-primary); margin-right: 4px;"></i> Keys Returned</span>
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Received By *</label>
+                                <input type="text" class="form-input" id="offboard-received-by" placeholder="Name of person who received items" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Notes</label>
+                                <textarea class="form-input" id="offboard-notes" rows="2" placeholder="Any additional notes..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="cancelOffboarding()">Cancel</button>
+                            <button class="btn-primary" style="background: #ef4444; border-color: #ef4444;" onclick="confirmOffboarding()">
+                                <i class="fas fa-check"></i> Complete
+                            </button>
+                        </div>
+                    `;
+
+                    // Add event listener for reason change after modal renders
+                    setTimeout(() => {
+                        const reasonSelect = document.getElementById('offboard-reason');
+                        if (reasonSelect) {
+                            reasonSelect.addEventListener('change', function() {
+                                const otherContainer = document.getElementById('offboard-other-reason-container');
+                                otherContainer.style.display = this.value === 'other' ? 'block' : 'none';
+                            });
+                        }
+                    }, 100);
+                    break;
+                case 'inactive-employees':
+                    const inactiveEmps = data || [];
+                    content = `
+                        <div class="modal-header">
+                            <h2 style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-user-slash" style="color: #ef4444;"></i>
+                                Inactive Employees
+                            </h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                            ${inactiveEmps.length === 0 ? `
+                                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                    <i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 16px; color: var(--success);"></i>
+                                    <p>No inactive employees</p>
+                                </div>
+                            ` : `
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    ${inactiveEmps.map(emp => {
+                                        const empId = emp.firestoreId || emp.id;
+                                        const hasOffboarding = emp.offboarding && emp.offboarding.reason;
+                                        return `
+                                            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                                        <div class="avatar avatar-${emp.color || 'a'}" style="width: 40px; height: 40px; font-size: 14px;">${emp.initials || 'XX'}</div>
+                                                        <div>
+                                                            <div style="font-weight: 600; color: var(--text-primary);">${emp.name || 'Unknown'}</div>
+                                                            <div style="font-size: 12px; color: var(--text-muted);">${emp.role || 'N/A'} - ${emp.store || 'N/A'}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div style="display: flex; gap: 8px;">
+                                                        ${hasOffboarding ? `
+                                                            <button class="btn-secondary" onclick="viewOffboardingDetails('${empId}')" style="font-size: 12px; padding: 6px 12px;">
+                                                                <i class="fas fa-file-alt"></i> View Details
+                                                            </button>
+                                                        ` : `
+                                                            <span style="font-size: 11px; color: var(--text-muted); padding: 6px 12px;">No offboarding data</span>
+                                                        `}
+                                                        <button class="btn-icon success" onclick="activateEmployee('${empId}'); closeModal();" title="Reactivate">
+                                                            <i class="fas fa-user-check"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                ${hasOffboarding ? `
+                                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary);">
+                                                        <span style="background: #fef2f2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-weight: 500;">
+                                                            ${emp.offboarding.reasonText || emp.offboarding.reason}
+                                                        </span>
+                                                        <span style="margin-left: 12px;">Last day: ${formatDate(emp.offboarding.lastDayWorked)}</span>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            `}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'offboarding-details':
+                    const offEmp = data;
+                    const offData = offEmp.offboarding || {};
+                    content = `
+                        <div class="modal-header">
+                            <h2 style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-file-alt" style="color: var(--accent-primary);"></i>
+                                Offboarding Details
+                            </h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <div class="avatar avatar-${offEmp.color || 'a'}" style="width: 48px; height: 48px; font-size: 16px;">${offEmp.initials || 'XX'}</div>
+                                    <div>
+                                        <div style="font-weight: 600; font-size: 18px; color: var(--text-primary);">${offEmp.name || 'Unknown'}</div>
+                                        <div style="font-size: 13px; color: var(--text-muted);">${offEmp.role || 'N/A'} - ${offEmp.store || 'N/A'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; gap: 16px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Reason for Leaving</label>
+                                        <div style="background: #fef2f2; color: #991b1b; padding: 8px 12px; border-radius: 6px; font-weight: 500;">
+                                            ${offData.reasonText || offData.reason || 'Not specified'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Last Day Worked</label>
+                                        <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px; font-weight: 500;">
+                                            ${offData.lastDayWorked ? formatDate(offData.lastDayWorked) : 'Not specified'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Keys Returned</label>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <i class="fas ${offData.keysReturned ? 'fa-check-circle' : 'fa-times-circle'}" style="color: ${offData.keysReturned ? 'var(--success)' : 'var(--danger)'}; font-size: 18px;"></i>
+                                            <span>${offData.keysReturned ? 'Yes' : 'No'}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Received By</label>
+                                        <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px;">
+                                            ${offData.receivedBy || 'Not specified'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Offboarding Date</label>
+                                        <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px;">
+                                            ${offData.offboardingDate ? formatDate(offData.offboardingDate.split('T')[0]) : 'Not specified'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Processed By</label>
+                                        <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px;">
+                                            ${offData.offboardingBy || 'Not specified'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                ${offData.notes ? `
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Notes</label>
+                                        <div style="background: var(--bg-secondary); padding: 12px; border-radius: 6px; white-space: pre-wrap;">
+                                            ${offData.notes}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="openInactiveEmployeesModal()">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </button>
+                            <button class="btn-primary" onclick="activateEmployee('${offEmp.firestoreId || offEmp.id}'); closeModal();">
+                                <i class="fas fa-user-check"></i> Reactivate Employee
+                            </button>
                         </div>
                     `;
                     break;
@@ -17473,7 +17529,7 @@
 
             const firstName = document.getElementById('edit-emp-first-name').value.trim() || currentFirstName;
             const lastName = document.getElementById('edit-emp-last-name').value.trim() || currentLastName;
-            const email = document.getElementById('edit-emp-email').value.trim() || currentEmployee.email;
+            const authEmail = document.getElementById('edit-emp-email').value.trim() || currentEmployee.authEmail || currentEmployee.email;
             const phone = document.getElementById('edit-emp-phone').value.trim() || currentEmployee.phone;
             const password = document.getElementById('edit-emp-password').value.trim();
             const confirmPassword = document.getElementById('edit-emp-confirm-password').value.trim();
@@ -17485,6 +17541,25 @@
             const emergencyName = document.getElementById('edit-emp-emergency-name').value.trim();
             const emergencyPhone = document.getElementById('edit-emp-emergency-phone').value.trim();
             const allergies = document.getElementById('edit-emp-allergies').value.trim();
+
+            // Check if status is changing from active to inactive - trigger offboarding
+            if (currentEmployee.status === 'active' && status === 'inactive') {
+                // Store the pending update data temporarily
+                window.pendingOffboardingData = {
+                    employeeId,
+                    currentEmployee,
+                    updatedData: {
+                        firstName, lastName, authEmail, phone, password, confirmPassword,
+                        role, employeeType, store, status, hireDate, emergencyName, emergencyPhone, allergies
+                    }
+                };
+                // Close current modal and open offboarding modal
+                closeModal();
+                setTimeout(() => {
+                    openModal('offboarding', currentEmployee);
+                }, 100);
+                return;
+            }
 
             // If new password is provided, validate it
             if (password && !confirmPassword) {
@@ -17505,7 +17580,7 @@
             const updatedData = {
                 name: `${firstName} ${lastName}`,
                 initials: `${firstName[0]}${lastName[0]}`.toUpperCase(),
-                email,
+                authEmail,
                 phone,
                 role,
                 employeeType,
@@ -17590,6 +17665,139 @@
             }
         }
 
+        // Offboarding Functions
+        function cancelOffboarding() {
+            window.pendingOffboardingData = null;
+            closeModal();
+            showNotification('Offboarding cancelled. Employee status unchanged.', 'info');
+        }
+
+        async function confirmOffboarding() {
+            const pendingData = window.pendingOffboardingData;
+            if (!pendingData) {
+                alert('No pending offboarding data found');
+                closeModal();
+                return;
+            }
+
+            // Validate required fields
+            const reason = document.getElementById('offboard-reason').value;
+            const lastDay = document.getElementById('offboard-last-day').value;
+            const receivedBy = document.getElementById('offboard-received-by').value.trim();
+            const otherReason = document.getElementById('offboard-other-reason')?.value || '';
+
+            if (!reason) {
+                alert('Please select a reason for leaving');
+                return;
+            }
+
+            if (reason === 'other' && !otherReason.trim()) {
+                alert('Please specify the reason for leaving');
+                return;
+            }
+
+            if (!lastDay) {
+                alert('Please enter the last day worked');
+                return;
+            }
+
+            if (!receivedBy) {
+                alert('Please enter who received the items');
+                return;
+            }
+
+            // Collect offboarding data
+            const offboardingData = {
+                reason: reason,
+                reasonText: reason === 'other' ? otherReason : getOffboardingReasonText(reason),
+                lastDayWorked: lastDay,
+                keysReturned: document.getElementById('offboard-keys').checked,
+                receivedBy: receivedBy,
+                notes: document.getElementById('offboard-notes').value.trim(),
+                offboardingDate: new Date().toISOString(),
+                offboardingBy: getCurrentUser().name || 'Admin'
+            };
+
+            // Show saving indicator
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            const originalText = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                saveBtn.disabled = true;
+            }
+
+            try {
+                const { employeeId, currentEmployee, updatedData } = pendingData;
+
+                // Build the full update object
+                const fullUpdatedData = {
+                    name: `${updatedData.firstName} ${updatedData.lastName}`,
+                    initials: `${updatedData.firstName[0]}${updatedData.lastName[0]}`.toUpperCase(),
+                    authEmail: updatedData.authEmail,
+                    phone: updatedData.phone,
+                    role: updatedData.role,
+                    employeeType: updatedData.employeeType,
+                    store: updatedData.store,
+                    status: 'inactive',
+                    hireDate: updatedData.hireDate || new Date().toISOString().split('T')[0],
+                    emergencyContact: combineEmergencyContact(updatedData.emergencyName, updatedData.emergencyPhone) || currentEmployee.emergencyContact || 'Not provided',
+                    allergies: updatedData.allergies || currentEmployee.allergies || 'None',
+                    offboarding: offboardingData
+                };
+
+                // Only include password if it's being changed
+                if (updatedData.password) {
+                    fullUpdatedData.password = updatedData.password;
+                }
+
+                // Update in Firebase
+                if (firebaseEmployeeManager.isInitialized) {
+                    const success = await firebaseEmployeeManager.updateEmployee(employeeId, fullUpdatedData);
+                    if (!success) {
+                        throw new Error('Failed to update in Firebase');
+                    }
+                }
+
+                // Update local array
+                const index = employees.findIndex(e => e.id === employeeId || e.firestoreId === employeeId);
+                if (index !== -1) {
+                    employees[index] = {
+                        ...employees[index],
+                        ...fullUpdatedData
+                    };
+                }
+
+                // Clear pending data
+                window.pendingOffboardingData = null;
+                editingEmployeeId = null;
+
+                closeModal();
+                renderPage(currentPage);
+                updateEmployeeCountBadge();
+                showNotification(`${currentEmployee.name} has been deactivated and offboarding documented.`, 'success');
+            } catch (error) {
+                console.error('Error during offboarding:', error);
+                alert('Error completing offboarding. Please try again.');
+
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                }
+            }
+        }
+
+        function getOffboardingReasonText(reason) {
+            const reasons = {
+                'resignation': 'Resignation',
+                'termination': 'Termination',
+                'contract_end': 'End of Contract',
+                'abandonment': 'Job Abandonment',
+                'mutual': 'Mutual Agreement',
+                'other': 'Other'
+            };
+            return reasons[reason] || reason;
+        }
+
         function deleteEmployee(id) {
             // Check permission
             if (!checkPermission('canDeleteEmployees')) {
@@ -17601,39 +17809,28 @@
             const emp = employees.find(e => e.id === id || e.firestoreId === id);
             if (!emp) return;
 
-            showConfirmModal({
-                title: 'Deactivate Employee',
-                message: `Are you sure you want to deactivate "${emp.name}"? The employee record will be marked as inactive but not deleted.`,
-                confirmText: 'Deactivate',
-                type: 'warning',
-                onConfirm: async () => {
-                    try {
-                        // Mark as inactive in Firebase
-                        const firestoreId = emp.firestoreId || emp.id;
-                        if (firebaseEmployeeManager.isInitialized) {
-                            const updated = await firebaseEmployeeManager.updateEmployee(firestoreId, { status: 'inactive' });
-                            if (!updated) {
-                                throw new Error('Failed to deactivate employee');
-                            }
-                        }
-
-                        // Update in local array
-                        const empIndex = employees.findIndex(e => e.id === id || e.firestoreId === id);
-                        if (empIndex !== -1) {
-                            employees[empIndex].status = 'inactive';
-                        }
-
-                        // Update employee count badge
-                        updateEmployeeCountBadge();
-
-                        // Re-render page
-                        renderPage(currentPage);
-                        showNotification('Employee marked as inactive', 'success');
-                    } catch (error) {
-                        console.error('Error deactivating employee:', error);
-                    }
+            // Store pending offboarding data and open offboarding modal
+            window.pendingOffboardingData = {
+                employeeId: emp.firestoreId || emp.id,
+                currentEmployee: emp,
+                updatedData: {
+                    firstName: emp.name?.split(' ')[0] || '',
+                    lastName: emp.name?.split(' ').slice(1).join(' ') || '',
+                    email: emp.email,
+                    phone: emp.phone,
+                    role: emp.role,
+                    employeeType: emp.employeeType || 'employee',
+                    store: emp.store,
+                    status: 'inactive',
+                    hireDate: emp.hireDate,
+                    emergencyName: emp.emergencyContact?.split(' - ')[0] || '',
+                    emergencyPhone: emp.emergencyContact?.split(' - ')[1] || '',
+                    allergies: emp.allergies
                 }
-            });
+            };
+
+            // Open offboarding modal
+            openModal('offboarding', emp);
         }
 
         function activateEmployee(id) {
@@ -17695,6 +17892,144 @@
             });
 
             document.getElementById('employees-grid').innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
+        }
+
+        /**
+         * Open modal showing inactive employees with their offboarding details
+         */
+        function openInactiveEmployeesModal() {
+            const inactiveEmployees = employees.filter(emp => emp.status === 'inactive');
+            openModal('inactive-employees', inactiveEmployees);
+        }
+
+        /**
+         * View offboarding details for a specific employee
+         */
+        function viewOffboardingDetails(employeeId) {
+            const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+            if (!emp || !emp.offboarding) {
+                showNotification('No offboarding information available', 'warning');
+                return;
+            }
+            openModal('offboarding-details', emp);
+        }
+
+        /**
+         * View employee paperwork/documents
+         */
+        async function viewEmployeePaperwork(employeeId) {
+            const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+            if (!emp) {
+                showNotification('Employee not found', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            // Show loading state
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2>Employee Documents</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 16px;"></i>
+                        <p style="color: var(--text-muted);">Loading documents...</p>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+
+            try {
+                // Get paperwork from Firebase
+                let paperwork = [];
+                if (firebaseEmployeeManager.isInitialized) {
+                    paperwork = await firebaseEmployeeManager.getPaperwork(employeeId);
+                }
+
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
+                            <div>
+                                <h2 style="margin: 0; font-size: 20px;">${emp.name}</h2>
+                                <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">${emp.role} @ ${emp.store}</p>
+                            </div>
+                        </div>
+                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-file-contract" style="color: var(--accent-primary);"></i>
+                                Employee Paperwork & Documents
+                            </h3>
+                            <p style="color: var(--text-muted); font-size: 13px; margin: 0;">
+                                Registered documents: ${paperwork.length}
+                            </p>
+                        </div>
+
+                        ${paperwork && paperwork.length > 0 ? `
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                ${paperwork.map((doc, index) => `
+                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--surface-secondary); border-radius: 8px; border: 1px solid var(--border-color); transition: all 0.2s;">
+                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                            <div style="width: 48px; height: 48px; background: ${getDocumentColor(doc.fileType)}; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas ${getFileIcon(doc.fileType)}" style="color: white; font-size: 20px;"></i>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">
+                                                    ${doc.fileName}
+                                                </div>
+                                                <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-muted);">
+                                                    <span>${doc.documentType || 'Document'}</span>
+                                                    <span>•</span>
+                                                    <span>${formatFileSize(doc.fileSize)}</span>
+                                                    <span>•</span>
+                                                    <span>Uploaded ${formatDate(doc.uploadedAt?.toDate ? doc.uploadedAt.toDate() : doc.uploadedAt)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View Document">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 8px;">
+                                <i class="fas fa-inbox" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px; display: block;"></i>
+                                <h3 style="color: var(--text-muted); font-size: 16px; margin-bottom: 8px;">No Documents Yet</h3>
+                                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">No paperwork has been uploaded for this employee yet.</p>
+                            </div>
+                        `}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <h2>Employee Documents</h2>
+                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #ef4444; margin-bottom: 16px;"></i>
+                            <p>Error loading documents</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeModal()">Close</button>
+                    </div>
+                `;
+            }
         }
 
         // Save functions
@@ -20096,6 +20431,7 @@
             'Morena',
             'Kearny Mesa',
             'Chula Vista',
+            'North Park',
             'Miramar Wine & Liquor'
         ];
 
@@ -23084,3 +23420,255 @@ pwdToastStyles.textContent = `
     }
 `;
 document.head.appendChild(pwdToastStyles);
+
+// =====================================================
+// PROJECT ANALYTICS MODULE
+// =====================================================
+
+function renderProjectAnalytics() {
+    const dashboard = document.querySelector('.dashboard');
+
+    // Project statistics
+    const projectStats = {
+        totalLines: 42045,
+        jsLines: 32165,
+        htmlLines: 3059,
+        cssLines: 6125,
+        configLines: 696,
+        totalFunctions: 557,
+        totalFiles: 20,
+        totalModules: 26,
+        projectSize: '4.4 MB',
+        stores: 5,
+        lastUpdate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+
+    // Module list with descriptions
+    const modules = [
+        { name: 'Dashboard', icon: 'fa-th-large', status: 'active', description: 'Overview & KPIs' },
+        { name: 'Employees', icon: 'fa-users', status: 'active', description: 'Staff management & profiles' },
+        { name: 'Schedule', icon: 'fa-calendar-alt', status: 'active', description: 'Shift scheduling system' },
+        { name: 'Clock In/Out', icon: 'fa-clock', status: 'active', description: 'Time tracking' },
+        { name: 'Training Center', icon: 'fa-graduation-cap', status: 'active', description: 'Video & document training' },
+        { name: 'Licenses & Docs', icon: 'fa-folder-open', status: 'active', description: 'Compliance management' },
+        { name: 'Sales Analytics', icon: 'fa-chart-line', status: 'active', description: 'Shopify integration' },
+        { name: 'New Stuff', icon: 'fa-box', status: 'active', description: 'Incoming inventory' },
+        { name: 'Restock Requests', icon: 'fa-boxes', status: 'active', description: 'Stock replenishment' },
+        { name: 'Abundance Cloud', icon: 'fa-cloud', status: 'active', description: 'Order management engine' },
+        { name: 'Announcements', icon: 'fa-bullhorn', status: 'active', description: 'Internal communications' },
+        { name: 'Thieves Database', icon: 'fa-user-secret', status: 'active', description: 'Incident tracking' },
+        { name: 'Invoices', icon: 'fa-file-invoice-dollar', status: 'active', description: 'Payment management' },
+        { name: 'Issues Registry', icon: 'fa-exclamation-triangle', status: 'active', description: 'Customer complaints' },
+        { name: 'Gconomics', icon: 'fa-wallet', status: 'active', description: 'Financial tracking' },
+        { name: 'Vendors', icon: 'fa-truck', status: 'active', description: 'Supplier directory' },
+        { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', description: 'Cash out tracking' },
+        { name: 'Treasury', icon: 'fa-vault', status: 'active', description: 'Asset collection' },
+        { name: 'Change Records', icon: 'fa-coins', status: 'active', description: 'Cash flow between stores' },
+        { name: 'Customer Care', icon: 'fa-gift', status: 'active', description: 'Gift tracking' },
+        { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', description: 'Security alerts' },
+        { name: 'Password Manager', icon: 'fa-key', status: 'active', description: 'Credentials vault' },
+        { name: 'G Force', icon: 'fa-bolt', status: 'active', description: 'Daily motivation' },
+        { name: 'Store Management', icon: 'fa-store', status: 'active', description: 'Multi-location control' },
+        { name: 'Authentication', icon: 'fa-lock', status: 'active', description: 'Role-based access' },
+        { name: 'Project Analytics', icon: 'fa-code', status: 'active', description: 'This module!' }
+    ];
+
+    // Store locations
+    const storeLocations = [
+        { name: 'VSU Miramar', status: 'HQ', employees: 6 },
+        { name: 'VSU Morena', status: 'Active', employees: 5 },
+        { name: 'VSU Kearny Mesa', status: 'Active', employees: 5 },
+        { name: 'VSU Chula Vista', status: 'Active', employees: 4 },
+        { name: 'VSU North Park', status: 'Active', employees: 3 }
+    ];
+
+    // Build stores HTML
+    const storesHtml = storeLocations.map(store =>
+        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid ' + (store.status === 'HQ' ? '#ef4444' : '#10b981') + ';">' +
+            '<div style="font-weight: 600; margin-bottom: 4px;">' + store.name + '</div>' +
+            '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                '<span style="font-size: 12px; padding: 4px 8px; background: ' + (store.status === 'HQ' ? '#fef2f2' : '#ecfdf5') + '; color: ' + (store.status === 'HQ' ? '#ef4444' : '#10b981') + '; border-radius: 6px; font-weight: 500;">' + store.status + '</span>' +
+                '<span style="color: var(--text-muted); font-size: 13px;"><i class="fas fa-users"></i> ' + store.employees + '</span>' +
+            '</div>' +
+        '</div>'
+    ).join('');
+
+    // Build modules HTML
+    const modulesHtml = modules.map(mod =>
+        '<div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.1)\';" onmouseout="this.style.transform=\'none\'; this.style.boxShadow=\'none\';">' +
+            '<div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">' +
+                '<i class="fas ' + mod.icon + '" style="color: white; font-size: 14px;"></i>' +
+            '</div>' +
+            '<div style="flex: 1; min-width: 0;">' +
+                '<div style="font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + mod.name + '</div>' +
+                '<div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + mod.description + '</div>' +
+            '</div>' +
+            '<div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></div>' +
+        '</div>'
+    ).join('');
+
+    dashboard.innerHTML =
+        '<div class="page-header" style="margin-bottom: 24px;">' +
+            '<div class="page-header-left">' +
+                '<h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">' +
+                    '<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 14px; display: flex; align-items: center; justify-content: center;">' +
+                        '<i class="fas fa-code" style="color: white; font-size: 20px;"></i>' +
+                    '</div>' +
+                    'Project Analytics' +
+                '</h2>' +
+                '<p class="section-subtitle">Ascendance Hub - Enterprise Management System Statistics</p>' +
+            '</div>' +
+        '</div>' +
+
+        '<!-- Hero Stats -->' +
+        '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">' +
+            '<div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; padding: 24px; border-radius: 16px;">' +
+                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.totalLines.toLocaleString() + '</div>' +
+                '<div style="opacity: 0.9; font-size: 14px;">Lines of Code</div>' +
+            '</div>' +
+            '<div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 16px;">' +
+                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.totalFunctions + '</div>' +
+                '<div style="opacity: 0.9; font-size: 14px;">Functions</div>' +
+            '</div>' +
+            '<div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 16px;">' +
+                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.totalModules + '</div>' +
+                '<div style="opacity: 0.9; font-size: 14px;">Modules</div>' +
+            '</div>' +
+            '<div class="stat-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 16px;">' +
+                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.projectSize + '</div>' +
+                '<div style="opacity: 0.9; font-size: 14px;">Total Size</div>' +
+            '</div>' +
+            '<div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 24px; border-radius: 16px;">' +
+                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.stores + '</div>' +
+                '<div style="opacity: 0.9; font-size: 14px;">Store Locations</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">' +
+            '<!-- Code Breakdown -->' +
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title"><i class="fas fa-chart-pie"></i> Code Breakdown</h3>' +
+                '</div>' +
+                '<div class="card-body">' +
+                    '<div style="display: flex; flex-direction: column; gap: 16px;">' +
+                        '<div>' +
+                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
+                                '<span style="font-weight: 500;">JavaScript</span>' +
+                                '<span style="color: var(--text-muted);">' + projectStats.jsLines.toLocaleString() + ' lines</span>' +
+                            '</div>' +
+                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
+                                '<div style="width: 76%; height: 100%; background: linear-gradient(90deg, #f7df1e, #f0d000); border-radius: 5px;"></div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div>' +
+                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
+                                '<span style="font-weight: 500;">CSS</span>' +
+                                '<span style="color: var(--text-muted);">' + projectStats.cssLines.toLocaleString() + ' lines</span>' +
+                            '</div>' +
+                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
+                                '<div style="width: 15%; height: 100%; background: linear-gradient(90deg, #264de4, #2965f1); border-radius: 5px;"></div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div>' +
+                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
+                                '<span style="font-weight: 500;">HTML</span>' +
+                                '<span style="color: var(--text-muted);">' + projectStats.htmlLines.toLocaleString() + ' lines</span>' +
+                            '</div>' +
+                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
+                                '<div style="width: 7%; height: 100%; background: linear-gradient(90deg, #e34f26, #f06529); border-radius: 5px;"></div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div>' +
+                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
+                                '<span style="font-weight: 500;">Config</span>' +
+                                '<span style="color: var(--text-muted);">' + projectStats.configLines.toLocaleString() + ' lines</span>' +
+                            '</div>' +
+                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
+                                '<div style="width: 2%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 5px;"></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+
+            '<!-- Tech Stack -->' +
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title"><i class="fas fa-layer-group"></i> Technology Stack</h3>' +
+                '</div>' +
+                '<div class="card-body">' +
+                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
+                            '<i class="fab fa-js" style="font-size: 32px; color: #f7df1e; margin-bottom: 8px;"></i>' +
+                            '<div style="font-weight: 600;">Vanilla JS</div>' +
+                            '<div style="font-size: 12px; color: var(--text-muted);">No frameworks</div>' +
+                        '</div>' +
+                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
+                            '<i class="fas fa-fire" style="font-size: 32px; color: #ffca28; margin-bottom: 8px;"></i>' +
+                            '<div style="font-weight: 600;">Firebase</div>' +
+                            '<div style="font-size: 12px; color: var(--text-muted);">Real-time sync</div>' +
+                        '</div>' +
+                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
+                            '<i class="fas fa-chart-bar" style="font-size: 32px; color: #ff6384; margin-bottom: 8px;"></i>' +
+                            '<div style="font-weight: 600;">Chart.js</div>' +
+                            '<div style="font-size: 12px; color: var(--text-muted);">Data visualization</div>' +
+                        '</div>' +
+                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
+                            '<i class="fab fa-font-awesome" style="font-size: 32px; color: #339af0; margin-bottom: 8px;"></i>' +
+                            '<div style="font-weight: 600;">Font Awesome</div>' +
+                            '<div style="font-size: 12px; color: var(--text-muted);">Icon library</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<!-- Store Locations -->' +
+        '<div class="card" style="margin-bottom: 24px;">' +
+            '<div class="card-header">' +
+                '<h3 class="card-title"><i class="fas fa-store"></i> Store Network (' + storeLocations.length + ' Locations)</h3>' +
+            '</div>' +
+            '<div class="card-body">' +
+                '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">' +
+                    storesHtml +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<!-- All Modules -->' +
+        '<div class="card">' +
+            '<div class="card-header">' +
+                '<h3 class="card-title"><i class="fas fa-puzzle-piece"></i> System Modules (' + modules.length + ')</h3>' +
+            '</div>' +
+            '<div class="card-body">' +
+                '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">' +
+                    modulesHtml +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<!-- Footer -->' +
+        '<div style="margin-top: 24px; padding: 20px; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); border-radius: 16px; text-align: center;">' +
+            '<div style="font-size: 24px; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #8b5cf6, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">' +
+                'Ascendance Hub' +
+            '</div>' +
+            '<div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">' +
+                'Enterprise-grade retail management built from scratch' +
+            '</div>' +
+            '<div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;">' +
+                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
+                    '<i class="fas fa-code"></i> 100% Custom Code' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
+                    '<i class="fas fa-rocket"></i> Zero Dependencies' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
+                    '<i class="fas fa-cloud"></i> Real-time Sync' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
+                    '<i class="fas fa-shield-alt"></i> Role-based Auth' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+}

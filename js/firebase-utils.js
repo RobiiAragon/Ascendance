@@ -3867,6 +3867,68 @@ class FirebaseAnnouncementsManager {
     }
 
     /**
+     * Get read announcements for a specific user
+     * @param {string} userId - User ID
+     * @returns {Promise<Array>} Array of read announcement IDs
+     */
+    async getReadAnnouncements(userId) {
+        try {
+            if (!this.isInitialized || !this.db || !userId) {
+                return [];
+            }
+
+            const readAnnouncementsCollection = window.FIREBASE_COLLECTIONS?.readAnnouncements || 'readAnnouncements';
+            const doc = await this.db.collection(readAnnouncementsCollection).doc(userId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                return data.readIds || [];
+            }
+            return [];
+        } catch (error) {
+            console.error('Error getting read announcements:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Mark announcements as read for a specific user
+     * @param {string} userId - User ID
+     * @param {Array} announcementIds - Array of announcement IDs to mark as read
+     * @returns {Promise<boolean>} Success status
+     */
+    async markAnnouncementsAsRead(userId, announcementIds) {
+        try {
+            if (!this.isInitialized || !this.db || !userId || !announcementIds.length) {
+                return false;
+            }
+
+            const readAnnouncementsCollection = window.FIREBASE_COLLECTIONS?.readAnnouncements || 'readAnnouncements';
+            const docRef = this.db.collection(readAnnouncementsCollection).doc(userId);
+            const doc = await docRef.get();
+
+            let existingIds = [];
+            if (doc.exists) {
+                existingIds = doc.data().readIds || [];
+            }
+
+            // Merge existing and new IDs (avoid duplicates)
+            const mergedIds = [...new Set([...existingIds, ...announcementIds])];
+
+            await docRef.set({
+                readIds: mergedIds,
+                updatedAt: new Date()
+            });
+
+            console.log('Marked announcements as read for user:', userId);
+            return true;
+        } catch (error) {
+            console.error('Error marking announcements as read:', error);
+            return false;
+        }
+    }
+
+    /**
      * Listen to announcements collection for real-time updates
      * @param {Function} callback - Function to call with updated announcements array
      * @returns {Function} Unsubscribe function

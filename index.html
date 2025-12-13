@@ -146,11 +146,6 @@
                 <span class="nav-badge" id="employees-count-badge">0</span>
             </a>
 
-            <a href="#" class="nav-item" data-page="employeeInspection" onclick="navigateTo('employeeInspection'); return false;">
-                <span class="nav-icon"><i class="fas fa-magnifying-glass"></i></span>
-                Inspection
-            </a>
-
             <a href="#" class="nav-item" onclick="navigateTo('schedule'); return false;">
                 <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
                 Schedule
@@ -170,23 +165,11 @@
                 Licenses & Docs
             </a>
 
-            <!-- Sales Analytics with dropdown (HIDDEN)
-            <div>
-                <a href="#" class="nav-item has-dropdown" data-page="analytics" onclick="toggleDropdown(event, 'sales'); return false;">
-                    <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
-                    Sales Analytics
-                    <i class="fas fa-chevron-down dropdown-icon"></i>
-                </a>
-                <div class="nav-dropdown" id="dropdown-sales">
-                    <a href="#" class="nav-dropdown-item" data-page="analytics" onclick="navigateTo('analytics'); return false;">
-                        <span>Overview</span>
-                    </a>
-                    <a href="#" class="nav-dropdown-item" data-page="dailysales" onclick="navigateTo('dailysales'); return false;">
-                        <span>Daily Sales</span>
-                    </a>
-                </div>
-            </div>
-            -->
+            <!-- Sales Analytics -->
+            <a href="#" class="nav-item" data-page="analytics" onclick="navigateTo('analytics'); return false;">
+                <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
+                Sales & Analytics
+            </a>
             <a href="#" class="nav-item">
                 <span class="nav-icon"><i class="fas fa-box"></i></span>
                 New Stuff
@@ -251,6 +234,10 @@
             <a href="#" class="nav-item" data-page="gforce" onclick="navigateTo('gforce'); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
                 G Force
+            </a>
+            <a href="#" class="nav-item" data-page="projectanalytics" onclick="navigateTo('projectanalytics'); return false;">
+                <span class="nav-icon"><i class="fas fa-code"></i></span>
+                Project Analytics
             </a>
         </nav>
 
@@ -623,6 +610,9 @@
 
     <!-- Main Application Script -->
     <script src="js/script.js"></script>
+
+    <!-- Shopify Analytics (Frontend API) -->
+    <script src="js/shopify-analytics.js"></script>
 
     <!-- Shopify API Client -->
     <script src="js/api-client.js"></script>
