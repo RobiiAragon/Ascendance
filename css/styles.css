@@ -408,6 +408,46 @@
             pointer-events: none;
         }
 
+        /* Mobile header search - hidden by default, shown on mobile */
+        .mobile-header-search {
+            display: none;
+            position: relative;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .mobile-header-search input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .mobile-header-search input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .mobile-header-search input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .mobile-header-search i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 13px;
+            pointer-events: none;
+        }
+
         .search-bar-container {
             position: relative;
             flex: 1;
@@ -415,10 +455,12 @@
         }
 
         .search-results-dropdown {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
+            position: fixed;
+            top: calc(var(--header-height) + 8px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            width: calc(100% - 32px);
+            max-width: 500px;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 12px;
@@ -426,7 +468,6 @@
             overflow: hidden;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-10px);
             transition: all 0.2s ease;
             z-index: 1001;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
@@ -435,7 +476,7 @@
         .search-results-dropdown.show {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0);
+            transform: translateX(-50%) translateY(0);
         }
 
         .search-results-list {
@@ -1694,6 +1735,26 @@
 
             .header-notification-container {
                 position: static;
+                margin-left: 12px;
+            }
+
+            /* Hide user menu on mobile, show mobile search instead */
+            .user-menu-container {
+                display: none;
+            }
+
+            .mobile-header-search {
+                display: flex;
+            }
+
+            /* Search results dropdown mobile - only adjust sizing */
+            .search-results-dropdown {
+                width: calc(100% - 32px);
+                max-height: calc(100vh - 100px);
+            }
+
+            .search-results-list {
+                max-height: calc(100vh - 120px);
             }
         }
 
@@ -5688,6 +5749,52 @@
     .treasury-modal-actions button {
         width: 100%;
     }
+}
+
+/* Treasury Image Lazy Loading Styles */
+.treasury-img-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: treasuryShimmer 1.5s infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.treasury-img-placeholder::after {
+    content: '\f03e';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 32px;
+    color: var(--text-muted);
+    opacity: 0.3;
+}
+
+.treasury-img-placeholder.small::after {
+    font-size: 18px;
+}
+
+.treasury-img-placeholder.large::after {
+    font-size: 48px;
+}
+
+@keyframes treasuryShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.treasury-lazy-img {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}
+
+.treasury-lazy-img.loaded {
+    opacity: 1;
 }
 
 /* Gconomics Responsive Styles */

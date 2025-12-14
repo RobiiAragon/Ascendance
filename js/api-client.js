@@ -56,6 +56,26 @@ async function postAPI(endpoint, data) {
     }
 }
 
+// Analytics request tracking - used to cancel/ignore stale requests
+let analyticsRequestId = 0;
+let currentAnalyticsPage = false;
+
+// Cancel any pending analytics request by incrementing the request ID
+function cancelAnalyticsRequest() {
+    analyticsRequestId++;
+    console.log(`[Analytics] Cancelled pending requests. New request ID: ${analyticsRequestId}`);
+}
+
+// Check if we're still on the analytics page
+function isOnAnalyticsPage() {
+    const dashboard = document.querySelector('.dashboard');
+    if (!dashboard) return false;
+    // Check if the page still has analytics content or loading indicator
+    return dashboard.querySelector('.section-title')?.textContent?.includes('Sales') ||
+           dashboard.querySelector('#analytics-content') !== null ||
+           dashboard.querySelector('#store-selector-container') !== null;
+}
+
 // Format currency helper
 function formatCurrency(amount, currency = 'USD') {
     return new Intl.NumberFormat('en-US', {
@@ -220,6 +240,12 @@ function updateStoreSelectorState() {
 
 // Render Analytics Page with Real Data
 async function renderAnalyticsWithData(period = 'month', storeKey = null, locationId = null) {
+    // Cancel any previous pending request and get a new request ID
+    cancelAnalyticsRequest();
+    const thisRequestId = analyticsRequestId;
+
+    console.log(`[Analytics] Starting request #${thisRequestId} - Period: ${period}, Store: ${storeKey || selectedStore}, Location: ${locationId}`);
+
     // Update global state if parameters provided
     if (storeKey) {
         selectedStore = storeKey;
@@ -230,6 +256,12 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
     // Initialize VSU locations if needed
     await initializeVSULocations();
+
+    // Check if this request is still valid
+    if (thisRequestId !== analyticsRequestId) {
+        console.log(`[Analytics] Request #${thisRequestId} cancelled (newer request exists)`);
+        return;
+    }
 
     const dashboard = document.querySelector('.dashboard');
 
@@ -295,6 +327,9 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
         // Use the new frontend Shopify API with selected store and location
         const salesData = await fetchSalesAnalytics(selectedStore, selectedLocation, period, (progress, text) => {
+            // Check if this request is still valid before updating progress
+            if (thisRequestId !== analyticsRequestId) return;
+
             const progressBar = document.getElementById('analytics-progress-bar');
             const loadingText = document.getElementById('analytics-loading-text');
             if (progressBar) {
@@ -305,6 +340,20 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                 loadingText.textContent = text;
             }
         }, customRange);
+
+        // Check if this request is still valid after data fetch
+        if (thisRequestId !== analyticsRequestId) {
+            console.log(`[Analytics] Request #${thisRequestId} cancelled after fetch (newer request exists)`);
+            return;
+        }
+
+        // Check if user navigated away from analytics page
+        if (!isOnAnalyticsPage()) {
+            console.log(`[Analytics] Request #${thisRequestId} ignored - user left analytics page`);
+            return;
+        }
+
+        console.log(`[Analytics] Request #${thisRequestId} completed - rendering data`);
 
         // Calculate average order value
         const avgOrderValue = salesData.summary.avgOrderValue;
@@ -609,6 +658,16 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
         displaySalesChart('daily', SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
 
     } catch (error) {
+        // Check if request was cancelled or user left page - don't show error
+        if (thisRequestId !== analyticsRequestId) {
+            console.log(`[Analytics] Request #${thisRequestId} error ignored (request was cancelled)`);
+            return;
+        }
+        if (!isOnAnalyticsPage()) {
+            console.log(`[Analytics] Request #${thisRequestId} error ignored (user left page)`);
+            return;
+        }
+
         console.error('Failed to load analytics:', error);
 
         // Update page header

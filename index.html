@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ascendance Hub | VSU Management</title>
+    <link rel="icon" type="image/x-icon" href="img/AH.ico">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
@@ -437,10 +438,12 @@
                     <input type="text" id="global-search" placeholder="Search employees, thieves, invoices..." oninput="handleGlobalSearch(this.value)" onfocus="showSearchResults()" autocomplete="off">
                     <span class="search-shortcut">Ctrl+K</span>
                 </div>
-                <div class="search-results-dropdown" id="search-results-dropdown">
-                    <div class="search-results-list" id="search-results-list">
-                        <!-- Results will be populated here -->
-                    </div>
+            </div>
+
+            <!-- Search results dropdown - shared between desktop and mobile search -->
+            <div class="search-results-dropdown" id="search-results-dropdown">
+                <div class="search-results-list" id="search-results-list">
+                    <!-- Results will be populated here -->
                 </div>
             </div>
 
@@ -460,6 +463,12 @@
                             <!-- Announcements will be populated here -->
                         </div>
                     </div>
+                </div>
+
+                <!-- Mobile search (replaces user menu on mobile) -->
+                <div class="mobile-header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="mobile-global-search" placeholder="Search..." oninput="handleGlobalSearch(this.value)" onfocus="showSearchResults()" autocomplete="off">
                 </div>
 
                 <div class="user-menu-container">

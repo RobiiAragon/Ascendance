@@ -11,6 +11,13 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Force HTTPS - redirect all HTTP to HTTPS
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
 # Redirect root to Login page (use lowercase for case-sensitive servers)
 [[redirects]]
   from = "/"

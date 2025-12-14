@@ -339,6 +339,56 @@
         }
 
         /**
+         * Generate optimized thumbnail for fast loading in grids/lists
+         * @param {string} base64String - The base64 encoded image string
+         * @param {number} maxSize - Maximum width/height in pixels (default 300)
+         * @param {number} quality - JPEG quality 0-1 (default 0.7)
+         * @returns {Promise<string>} - Thumbnail base64 image string
+         */
+        async function generateThumbnail(base64String, maxSize = 300, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions maintaining aspect ratio
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height = Math.round(height * (maxSize / width));
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width = Math.round(width * (maxSize / height));
+                            height = maxSize;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    // Use better image smoothing for thumbnails
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const result = canvas.toDataURL('image/jpeg', quality);
+                    console.log(`📸 Thumbnail generated: ${width}x${height}, ${Math.round(result.length / 1024)}KB`);
+                    resolve(result);
+                };
+
+                img.onerror = function() {
+                    reject(new Error('Failed to load image for thumbnail generation'));
+                };
+
+                img.src = base64String;
+            });
+        }
+
+        /**
          * Initialize Firebase and load announcements from Firestore
          */
         async function initializeFirebaseAnnouncements() {
@@ -720,7 +770,8 @@
         let currentCashOutStoreFilter = 'all';
         let cashOutViewState = {
             viewType: 'month',
-            expenseAnalysisExpanded: false
+            expenseAnalysisExpanded: false,
+            displayMode: 'list' // 'list' or 'grid'
         };
         let cashOutCharts = {};
         let cashOutRecords = [
@@ -1171,13 +1222,18 @@
             }
         });
 
-        function renderPage(page) {
+        async function renderPage(page) {
             console.log('renderPage called with:', page);
             const dashboard = document.querySelector('.dashboard');
 
             // Stop clock in polling when navigating away from clockin page
             if (page !== 'clockin' && typeof stopClockInPolling === 'function') {
                 stopClockInPolling();
+            }
+
+            // Cancel pending analytics requests when navigating away from analytics page
+            if (page !== 'analytics' && typeof cancelAnalyticsRequest === 'function') {
+                cancelAnalyticsRequest();
             }
 
             switch(page) {
@@ -1227,7 +1283,7 @@
                     renderInvoices();
                     break;
                 case 'issues':
-                    renderIssues();
+                    await renderIssues();
                     break;
                 case 'gconomics':
                     renderGconomics();
@@ -9085,34 +9141,7 @@ window.viewChecklistHistory = async function() {
         }
 
         // Thieves database
-        let thieves = [
-            {
-                id: 1,
-                name: 'John Doe',
-                photo: null,
-                date: '2025-11-15',
-                store: 'Miramar',
-                crimeType: 'Shoplifting',
-                itemsStolen: 'Vape devices (2x)',
-                estimatedValue: 89.98,
-                description: 'Subject entered store around 3:45 PM, concealed two vape devices in jacket pocket. Left without paying.',
-                policeReport: 'PR-2025-11-15-001',
-                banned: true
-            },
-            {
-                id: 2,
-                name: 'Jane Smith',
-                photo: null,
-                date: '2025-10-28',
-                store: 'Morena',
-                crimeType: 'Attempted Theft',
-                itemsStolen: 'E-liquid bottles (3x)',
-                estimatedValue: 65.00,
-                description: 'Individual attempted to leave with items in bag. Stopped by staff, returned items and left premises.',
-                policeReport: null,
-                banned: true
-            }
-        ];
+        let thieves = [];
 
         /**
          * Initialize Firebase and load thieves from Firestore
@@ -9130,15 +9159,16 @@ window.viewChecklistHistory = async function() {
                         console.log('Loaded thieves from Firestore:', firestoreThieves);
                         thieves = firestoreThieves;
                         console.log(`Successfully loaded ${thieves.length} thief records from Firestore`);
-                        return true;
                     } else {
-                        console.log('No thieves found in Firestore, using fallback data');
+                        thieves = [];
+                        console.log('No thieves found in Firestore');
                     }
+                    return true;
                 } catch (error) {
                     console.error('Error loading thieves from Firestore:', error);
                 }
             } else {
-                console.warn('Firebase not available for thieves. Using fallback data.');
+                console.warn('Firebase not available for thieves.');
             }
 
             return false;
@@ -10879,6 +10909,166 @@ window.viewChecklistHistory = async function() {
             previewInvoiceFile(input);
         }
 
+        // OpenAI API for Invoice Image Analysis
+        async function scanInvoiceWithAI() {
+            const fileInput = document.getElementById('invoice-photo');
+
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Please upload an invoice image or PDF first.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+            if (isPdf) {
+                alert('PDF scanning is not supported yet. Please upload an image file (JPG, PNG, etc.).');
+                return;
+            }
+
+            // Show loading state
+            const scanBtn = document.getElementById('ai-scan-btn');
+            const originalText = scanBtn ? scanBtn.innerHTML : '';
+            if (scanBtn) {
+                scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+                scanBtn.disabled = true;
+            }
+
+            try {
+                // Convert image to base64
+                const base64Image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                // Get API key from settings
+                const apiKey = getOpenAIKey();
+                if (!apiKey) {
+                    alert('Please configure your OpenAI API key in Project Analytics > Settings (key icon)');
+                    return;
+                }
+
+                // Call OpenAI API
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Analyze this invoice/bill image and extract the following information. Return ONLY a JSON object with these fields (use null for any field you cannot find):
+
+{
+    "invoiceNumber": "the invoice number, receipt number, or bill number",
+    "total": "the total amount as a number (no currency symbols)",
+    "date": "the date in YYYY-MM-DD format",
+    "vendor": "the vendor, company, or seller name",
+    "category": "one of: utilities, rent, supplies, inventory, services, equipment, other",
+    "status": "paid or pending (based on whether it shows as paid/completed)",
+    "description": "a brief description of what this invoice is for"
+}
+
+Return ONLY the JSON object, no additional text.`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                let invoiceData;
+                try {
+                    // Try to extract JSON from the response (in case there's extra text)
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        invoiceData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    throw new Error('Could not parse invoice data from AI response');
+                }
+
+                // Fill in the form fields
+                if (invoiceData.invoiceNumber) {
+                    document.getElementById('invoice-number').value = invoiceData.invoiceNumber;
+                }
+                if (invoiceData.vendor) {
+                    document.getElementById('invoice-vendor').value = invoiceData.vendor;
+                }
+                if (invoiceData.category) {
+                    const categorySelect = document.getElementById('invoice-category');
+                    const categoryValue = invoiceData.category.toLowerCase();
+                    // Find matching option
+                    for (let option of categorySelect.options) {
+                        if (option.value.toLowerCase() === categoryValue) {
+                            categorySelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+                if (invoiceData.total) {
+                    const amount = parseFloat(invoiceData.total.toString().replace(/[^0-9.]/g, ''));
+                    if (!isNaN(amount)) {
+                        document.getElementById('invoice-amount').value = amount.toFixed(2);
+                    }
+                }
+                if (invoiceData.date) {
+                    document.getElementById('invoice-due-date').value = invoiceData.date;
+                }
+                if (invoiceData.status) {
+                    const statusSelect = document.getElementById('invoice-status');
+                    const statusValue = invoiceData.status.toLowerCase();
+                    if (statusValue === 'paid') {
+                        statusSelect.value = 'paid';
+                    } else {
+                        statusSelect.value = 'pending';
+                    }
+                }
+                if (invoiceData.description) {
+                    document.getElementById('invoice-description').value = invoiceData.description;
+                }
+
+                // Show success message
+                alert('Invoice scanned successfully! Please review and adjust the extracted information as needed.');
+
+            } catch (error) {
+                console.error('Error scanning invoice:', error);
+                alert('Error scanning invoice: ' + error.message);
+            } finally {
+                if (scanBtn) {
+                    scanBtn.innerHTML = originalText || '<i class="fas fa-magic"></i> Scan with AI';
+                    scanBtn.disabled = false;
+                }
+            }
+        }
+
         // Open PDF in a new browser tab
         function openPdfInNewTab(base64Data) {
             // Create a blob from the base64 data
@@ -11542,7 +11732,8 @@ window.viewChecklistHistory = async function() {
             return `
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; padding: 20px;">
                     ${filteredItems.map(item => {
-                        const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
+                        // Use thumbnail for grid (faster loading), fallback to full image if no thumbnail
+                        const itemThumbnail = item.thumbnail || item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
                         const itemValue = parseFloat(item.value) || 0;
                         const itemName = item.artworkName || 'Unknown';
                         const itemArtist = item.artist || 'Unknown Artist';
@@ -11551,9 +11742,9 @@ window.viewChecklistHistory = async function() {
                             <div onclick="viewTreasuryItem('${item.firestoreId || item.id}')" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.3s; border: 2px solid transparent;"
                                 onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(0,0,0,0.15)'; this.style.borderColor='var(--accent-primary)';"
                                 onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
-                                <div style="height: 180px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                    ${itemImage
-                                        ? `<img src="${itemImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="${itemName}">`
+                                <div style="height: 180px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                                    ${itemThumbnail
+                                        ? `<div class="treasury-img-placeholder"></div><img src="${itemThumbnail}" loading="lazy" class="treasury-lazy-img" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';" style="width: 100%; height: 100%; object-fit: cover;" alt="${itemName}">`
                                         : `<i class="fas fa-image" style="font-size: 48px; color: var(--text-muted); opacity: 0.3;"></i>`
                                     }
                                 </div>
@@ -11599,9 +11790,10 @@ window.viewChecklistHistory = async function() {
                     </thead>
                     <tbody>
                         ${filteredItems.map(item => {
-                            const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
-                            const photoDisplay = itemImage
-                                ? `<img src="${itemImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
+                            // Use thumbnail for list (faster loading), fallback to full image if no thumbnail
+                            const itemThumbnail = item.thumbnail || item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
+                            const photoDisplay = itemThumbnail
+                                ? `<div class="treasury-img-placeholder small"></div><img src="${itemThumbnail}" loading="lazy" class="treasury-lazy-img" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
                                 : `<i class="fas fa-gem" style="color: var(--text-muted); font-size: 24px;"></i>`;
 
                             const itemValue = parseFloat(item.value) || 0;
@@ -11613,7 +11805,7 @@ window.viewChecklistHistory = async function() {
                             return `
                                 <tr>
                                     <td data-label="Photo">
-                                        <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color);">
+                                        <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color); position: relative;">
                                             ${photoDisplay}
                                         </div>
                                     </td>
@@ -11694,7 +11886,7 @@ window.viewChecklistHistory = async function() {
             // Support both 'image' field and legacy 'photos' array
             const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
             const imageDisplay = itemImage
-                ? `<img src="${itemImage}" style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px;" alt="${item.artworkName}">`
+                ? `<div style="position: relative; min-height: 200px;"><div class="treasury-img-placeholder large"></div><img src="${itemImage}" loading="lazy" class="treasury-lazy-img" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';" style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px;" alt="${item.artworkName}"></div>`
                 : `<div style="text-align: center; padding: 60px; background: var(--bg-secondary); border-radius: 12px; color: var(--text-muted);">
                     <i class="fas fa-gem" style="font-size: 64px; margin-bottom: 16px; display: block;"></i>
                     No image available
@@ -11839,32 +12031,47 @@ window.viewChecklistHistory = async function() {
             const imageInput = document.getElementById('treasury-image');
             const imagePreview = document.getElementById('treasury-image-preview');
 
-            // Determine image value
+            // Determine image value - now with thumbnail support
             let imageUrl = null;
+            let thumbnailUrl = null;
             const wasRemoved = imagePreview?.getAttribute('data-removed') === 'true';
 
             if (wasRemoved) {
                 // Image was explicitly removed
                 imageUrl = null;
+                thumbnailUrl = null;
             } else if (imageInput?.files && imageInput.files.length > 0) {
-                // New image uploaded - upload to Firebase Storage (sin límite de tamaño)
+                // New image uploaded - upload both original and thumbnail to Firebase Storage
                 const rawBase64 = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(imageInput.files[0]);
                 });
                 try {
-                    const fileName = `treasury-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
-                    imageUrl = await uploadImageToFirebaseStorage(rawBase64, `treasury/${fileName}`);
+                    const baseFileName = `treasury-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                    // Generate thumbnail (300px, quality 0.7)
+                    const thumbnailBase64 = await generateThumbnail(rawBase64, 300, 0.7);
+
+                    // Upload both in parallel for speed
+                    const [originalUrl, thumbUrl] = await Promise.all([
+                        uploadImageToFirebaseStorage(rawBase64, `treasury/${baseFileName}.jpg`),
+                        uploadImageToFirebaseStorage(thumbnailBase64, `treasury/thumbnails/${baseFileName}_thumb.jpg`)
+                    ]);
+
+                    imageUrl = originalUrl;
+                    thumbnailUrl = thumbUrl;
+                    console.log('✅ Uploaded original + thumbnail to Firebase Storage');
                 } catch (err) {
                     console.error('Error uploading treasury image:', err);
                     showNotification('Error uploading image to Firebase Storage', 'error');
                     return;
                 }
             } else if (isEdit) {
-                // Keep existing image
+                // Keep existing images
                 const existingItem = treasuryItems.find(t => t.firestoreId === itemId || t.id === itemId);
                 imageUrl = existingItem?.image || (existingItem?.photos && existingItem.photos.length > 0 ? existingItem.photos[0] : null);
+                thumbnailUrl = existingItem?.thumbnail || null;
             }
 
             if (!artworkName || !location) {
@@ -11883,6 +12090,7 @@ window.viewChecklistHistory = async function() {
                         item.location = location;
                         item.description = description;
                         item.image = imageUrl;
+                        item.thumbnail = thumbnailUrl;
 
                         // Update in Firebase
                         if (typeof firebase !== 'undefined' && firebase.firestore) {
@@ -11899,6 +12107,7 @@ window.viewChecklistHistory = async function() {
                                     location,
                                     description,
                                     image: imageUrl,
+                                    thumbnail: thumbnailUrl,
                                     updatedAt: new Date()
                                 });
                                 console.log('✅ Treasury item updated in Firebase');
@@ -11912,6 +12121,7 @@ window.viewChecklistHistory = async function() {
                                     location,
                                     description,
                                     image: imageUrl,
+                                    thumbnail: thumbnailUrl,
                                     createdAt: new Date(),
                                     updatedAt: new Date()
                                 });
@@ -11929,7 +12139,8 @@ window.viewChecklistHistory = async function() {
                         value,
                         location,
                         description,
-                        image: imageUrl
+                        image: imageUrl,
+                        thumbnail: thumbnailUrl
                     };
 
                     // Save to Firebase
@@ -11945,6 +12156,7 @@ window.viewChecklistHistory = async function() {
                             location,
                             description,
                             image: imageUrl,
+                            thumbnail: thumbnailUrl,
                             createdAt: new Date(),
                             updatedAt: new Date()
                         });
@@ -11984,6 +12196,7 @@ window.viewChecklistHistory = async function() {
         };
 
         let changeFilterStore = 'all';
+        let changeViewMode = 'list'; // 'list' or 'grid'
 
         function renderChange() {
             const dashboard = document.querySelector('.dashboard');
@@ -12045,10 +12258,19 @@ window.viewChecklistHistory = async function() {
                         <option value="Miramar Wine & Liquor" ${changeFilterStore === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                     </select>
                     <span style="font-size: 13px; color: var(--text-muted);">${filteredRecords.length} records</span>
+                    <!-- View Toggle -->
+                    <div style="display: flex; background: var(--bg-secondary); border-radius: 8px; padding: 3px; border: 1px solid var(--border-color); margin-left: auto;">
+                        <button onclick="setChangeViewMode('list')" id="change-view-list-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${changeViewMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button onclick="setChangeViewMode('grid')" id="change-view-grid-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${changeViewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="Grid View">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Records List -->
-                <div style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Records List/Grid -->
+                <div id="change-records-container">
                     ${sortedRecords.length === 0 ? `
                         <div class="card">
                             <div class="card-body" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
@@ -12057,7 +12279,15 @@ window.viewChecklistHistory = async function() {
                                 <div style="font-size: 13px;">Click "New Daily Record" to add one</div>
                             </div>
                         </div>
-                    ` : sortedRecords.map(record => renderChangeRecordRow(record)).join('')}
+                    ` : changeViewMode === 'grid' ? `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                            ${sortedRecords.map(record => renderChangeRecordCard(record)).join('')}
+                        </div>
+                    ` : `
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${sortedRecords.map(record => renderChangeRecordRow(record)).join('')}
+                        </div>
+                    `}
                 </div>
             `;
         }
@@ -12299,6 +12529,103 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
             `;
+        }
+
+        // Render change record as grid card
+        function renderChangeRecordCard(record) {
+            const recordId = record.firestoreId || record.id;
+            const recordDate = new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const isToday = record.date === new Date().toISOString().split('T')[0];
+
+            // Count denominations
+            let billsCount = 0;
+            let coinsCount = 0;
+            if (record.denominations) {
+                CHANGE_DENOMINATIONS.bills.forEach(d => { billsCount += record.denominations[d.id] || 0; });
+                CHANGE_DENOMINATIONS.coins.forEach(d => { coinsCount += record.denominations[d.id] || 0; });
+            }
+
+            return `
+                <div class="change-grid-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.2s; ${isToday ? 'border-top: 4px solid #f59e0b;' : ''}" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px; color: white;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">${recordDate} ${isToday ? '• TODAY' : ''}</div>
+                                <div style="font-size: 28px; font-weight: 700;">$${(record.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            </div>
+                            <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-coins" style="font-size: 20px;"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Body -->
+                    <div style="padding: 16px 20px;">
+                        <!-- Store Badge -->
+                        <div style="margin-bottom: 12px;">
+                            <span style="background: var(--accent-primary); color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                ${record.store}
+                            </span>
+                        </div>
+
+                        <!-- Denominations Summary -->
+                        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                            <div style="flex: 1; background: rgba(16, 185, 129, 0.1); border-radius: 10px; padding: 12px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: 700; color: #10b981;">${billsCount}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Bills</div>
+                            </div>
+                            <div style="flex: 1; background: rgba(245, 158, 11, 0.1); border-radius: 10px; padding: 12px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">${coinsCount}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Coins</div>
+                            </div>
+                        </div>
+
+                        <!-- Recorded By -->
+                        <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user"></i>
+                            <span>${record.recordedBy || record.leftBy || 'Unknown'}</span>
+                            ${record.photo ? '<i class="fas fa-image" style="color: #f59e0b; margin-left: auto;" title="Has photo"></i>' : ''}
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; justify-content: flex-end;">
+                        <button onclick="viewChangeRecord('${recordId}')" class="btn-icon" title="View Details" style="width: 32px; height: 32px;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="deleteChangeRecord('${recordId}')" class="btn-icon" title="Delete" style="width: 32px; height: 32px; color: var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Set Change Records view mode (list or grid)
+        function setChangeViewMode(mode) {
+            changeViewMode = mode;
+
+            // Update button styles
+            const listBtn = document.getElementById('change-view-list-btn');
+            const gridBtn = document.getElementById('change-view-grid-btn');
+
+            if (listBtn && gridBtn) {
+                if (mode === 'list') {
+                    listBtn.style.background = 'var(--accent-primary)';
+                    listBtn.style.color = 'white';
+                    gridBtn.style.background = 'transparent';
+                    gridBtn.style.color = 'var(--text-muted)';
+                } else {
+                    gridBtn.style.background = 'var(--accent-primary)';
+                    gridBtn.style.color = 'white';
+                    listBtn.style.background = 'transparent';
+                    listBtn.style.color = 'var(--text-muted)';
+                }
+            }
+
+            // Re-render the page
+            renderChange();
         }
 
         function openDailyChangeForm() {
@@ -12938,6 +13265,7 @@ window.viewChecklistHistory = async function() {
                         // Load issues from Firestore
                         const firestoreIssues = await firebaseIssuesManager.loadIssues();
 
+                        // Replace local issues with Firestore data (even if empty, to clear dummy data)
                         if (firestoreIssues && firestoreIssues.length > 0) {
                             console.log('Loaded issues from Firestore:', firestoreIssues);
 
@@ -12963,8 +13291,12 @@ window.viewChecklistHistory = async function() {
                             }));
 
                             console.log(`Successfully loaded ${issues.length} issues from Firestore`);
-                            return true;
+                        } else {
+                            // Clear local dummy data if Firebase is connected but empty
+                            issues = [];
+                            console.log('No issues in Firestore, cleared local data');
                         }
+                        return true;
                     } catch (error) {
                         console.error('Error loading issues from Firestore:', error);
                     }
@@ -13661,6 +13993,9 @@ window.viewChecklistHistory = async function() {
             giftsCurrentMonth = todayMonthKey;
         }
 
+        // Gifts view mode state
+        let giftsViewMode = 'list'; // 'list' or 'grid'
+
         // Renderizar inicial
         renderGifts();
 
@@ -13738,18 +14073,31 @@ window.viewChecklistHistory = async function() {
                                     <option value="other">Other</option>
                                 </select>
                             </div>
+                            <!-- View Toggle -->
+                            <div style="display: flex; background: var(--bg-primary); border-radius: 8px; padding: 3px; border: 1px solid var(--border-color); margin-left: auto;">
+                                <button onclick="setGiftsViewMode('list')" id="gifts-view-list-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${giftsViewMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                                <button onclick="setGiftsViewMode('grid')" id="gifts-view-grid-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${giftsViewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="Grid View">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Gifts Table -->
+                <!-- Gifts Table/Grid -->
                 <div class="card">
-                    <div class="card-body" style="padding: 0;">
+                    <div class="card-body" style="padding: ${giftsViewMode === 'grid' ? '20px' : '0'};" id="gifts-container">
                         ${monthlyRecords.length === 0 ? `
                             <div style="padding: 60px; text-align: center; color: var(--text-muted);">
                                 <i class="fas fa-gift" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
                                 <h3 style="margin-bottom: 8px; color: var(--text-secondary);">No Gifts This Month</h3>
                                 <p>Click "Register Gift" to add a new record</p>
+                            </div>
+                        ` : giftsViewMode === 'grid' ? `
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;" id="giftsGridContainer">
+                                ${renderGiftsGridCards(monthlyRecords)}
                             </div>
                         ` : `
                             <table class="data-table" style="width: 100%;">
@@ -13843,10 +14191,120 @@ window.viewChecklistHistory = async function() {
                 filteredRecords = filteredRecords.filter(r => r.recipientType === typeFilter);
             }
 
-            const tbody = document.getElementById('giftsTableBody');
-            if (tbody) {
-                tbody.innerHTML = renderGiftsTableRows(filteredRecords);
+            // Update based on current view mode
+            if (giftsViewMode === 'grid') {
+                const gridContainer = document.getElementById('giftsGridContainer');
+                if (gridContainer) {
+                    gridContainer.innerHTML = renderGiftsGridCards(filteredRecords);
+                }
+            } else {
+                const tbody = document.getElementById('giftsTableBody');
+                if (tbody) {
+                    tbody.innerHTML = renderGiftsTableRows(filteredRecords);
+                }
             }
+        }
+
+        // Render gifts as grid cards
+        function renderGiftsGridCards(records) {
+            if (records.length === 0) return '';
+
+            return records.map(gift => {
+                const typeColors = {
+                    customer: { bg: '#10b98120', color: '#10b981' },
+                    vendor: { bg: '#f59e0b20', color: '#f59e0b' },
+                    employee: { bg: '#6366f120', color: '#6366f1' },
+                    other: { bg: '#64748b20', color: '#64748b' }
+                };
+                const typeStyle = typeColors[gift.recipientType] || typeColors.other;
+
+                return `
+                    <div class="gift-grid-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.2s; display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <!-- Header -->
+                        <div style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); padding: 16px 20px; color: white;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">${new Date(gift.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                    <div style="font-size: 24px; font-weight: 700;">$${gift.value.toFixed(2)}</div>
+                                </div>
+                                <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-gift" style="font-size: 20px;"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Body -->
+                        <div style="padding: 16px 20px; flex: 1;">
+                            <!-- Product -->
+                            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gift.product}</span>
+                                <span style="background: var(--bg-primary); padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; color: var(--text-muted);">×${gift.quantity}</span>
+                            </div>
+
+                            <!-- Recipient Info -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                                <span style="background: ${typeStyle.bg}; color: ${typeStyle.color}; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+                                    ${gift.recipientType}
+                                </span>
+                                <span style="background: var(--bg-primary); padding: 4px 10px; border-radius: 12px; font-size: 11px; color: var(--text-secondary);">
+                                    ${gift.store}
+                                </span>
+                            </div>
+
+                            <!-- Recipient Name -->
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">
+                                <i class="fas fa-user" style="margin-right: 6px; opacity: 0.6;"></i>${gift.recipient}
+                            </div>
+
+                            <!-- Reason -->
+                            ${gift.reason ? `
+                                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                    ${gift.reason}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Footer -->
+                        <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn-icon" onclick="viewGiftDetails('${String(gift.id).replace(/'/g, "\\'")}');" title="View Details" style="width: 32px; height: 32px;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon" onclick="editGift('${String(gift.id).replace(/'/g, "\\'")}');" title="Edit" style="width: 32px; height: 32px;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon" onclick="deleteGift('${String(gift.id).replace(/'/g, "\\'")}');" title="Delete" style="width: 32px; height: 32px; color: var(--danger);">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Set Gifts view mode (list or grid)
+        function setGiftsViewMode(mode) {
+            giftsViewMode = mode;
+
+            // Update button styles
+            const listBtn = document.getElementById('gifts-view-list-btn');
+            const gridBtn = document.getElementById('gifts-view-grid-btn');
+
+            if (listBtn && gridBtn) {
+                if (mode === 'list') {
+                    listBtn.style.background = 'var(--accent-primary)';
+                    listBtn.style.color = 'white';
+                    gridBtn.style.background = 'transparent';
+                    gridBtn.style.color = 'var(--text-muted)';
+                } else {
+                    gridBtn.style.background = 'var(--accent-primary)';
+                    gridBtn.style.color = 'white';
+                    listBtn.style.background = 'transparent';
+                    listBtn.style.color = 'var(--text-muted)';
+                }
+            }
+
+            // Re-render the page
+            renderGifts();
         }
 
         function viewGiftDetails(id) {
@@ -14244,13 +14702,24 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
+                <!-- Money Flying Animation Container -->
+                <div id="money-flying-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden;"></div>
+
                 <!-- Charts Card -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header" style="cursor: pointer; user-select: none;" onclick="toggleCashOutExpenseAnalysis()">
+                <div class="card" style="margin-bottom: 24px; ${cashOutViewState.expenseAnalysisExpanded ? 'border: 2px solid var(--accent-primary); box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);' : ''}">
+                    <div class="card-header" style="cursor: pointer; user-select: none; ${cashOutViewState.expenseAnalysisExpanded ? 'background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);' : ''}" onclick="toggleCashOutExpenseAnalysisWithEffect()">
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                            <i class="fas fa-chart-line"></i>
-                            <h3 class="card-title" style="margin: 0;">Expense Analysis</h3>
-                            <i class="fas fa-chevron-down" style="transition: transform 0.3s ease; transform: ${cashOutViewState.expenseAnalysisExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; margin-left: auto;"></i>
+                            <div style="width: 40px; height: 40px; background: ${cashOutViewState.expenseAnalysisExpanded ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : 'var(--bg-secondary)'}; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+                                <i class="fas fa-chart-line" style="color: ${cashOutViewState.expenseAnalysisExpanded ? 'white' : 'var(--accent-primary)'}; font-size: 16px;"></i>
+                            </div>
+                            <div>
+                                <h3 class="card-title" style="margin: 0; font-size: 16px;">Expense Analysis</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">${cashOutViewState.expenseAnalysisExpanded ? 'Click to collapse' : 'Click to expand charts & insights'}</span>
+                            </div>
+                            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                                ${!cashOutViewState.expenseAnalysisExpanded ? '<span style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">VIEW CHARTS</span>' : ''}
+                                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease; transform: ${cashOutViewState.expenseAnalysisExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--text-muted);"></i>
+                            </div>
                         </div>
                     </div>
 
@@ -14306,14 +14775,35 @@ window.viewChecklistHistory = async function() {
                     ` : ''}
                 </div>
 
-                <!-- Data Table Card -->
+                <!-- Data Table/Grid Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary);">
+                        <i class="fas fa-receipt" style="margin-right: 8px; color: var(--accent-primary);"></i>
+                        Expense Records
+                    </h3>
+                    <!-- View Toggle -->
+                    <div style="display: flex; background: var(--bg-secondary); border-radius: 8px; padding: 3px; border: 1px solid var(--border-color);">
+                        <button onclick="setCashOutDisplayMode('list')" id="cashout-view-list-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${cashOutViewState.displayMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button onclick="setCashOutDisplayMode('grid')" id="cashout-view-grid-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${cashOutViewState.displayMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="Grid View">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data Table/Grid Card -->
                 <div class="card">
-                    <div class="card-body" style="padding: 0;">
+                    <div class="card-body" style="padding: ${cashOutViewState.displayMode === 'grid' ? '20px' : '0'};">
                         ${filteredRecords.length === 0 ? `
                             <div style="text-align: center; padding: 60px; color: var(--text-muted);">
                                 <i class="fas fa-money-bill-wave" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                                <h3 style="margin-bottom: 8px; color: var(--text-secondary);">No Cash Outs Yet</h3>
-                                <p>Click "Add Cash Out" to create a new record</p>
+                                <h3 style="margin-bottom: 8px; color: var(--text-secondary);">No Expenses Yet</h3>
+                                <p>Click "Add Expense" to create a new record</p>
+                            </div>
+                        ` : cashOutViewState.displayMode === 'grid' ? `
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                                ${filteredRecords.map(record => renderCashOutCard(record)).join('')}
                             </div>
                         ` : `
                             <table class="data-table">
@@ -14381,11 +14871,156 @@ window.viewChecklistHistory = async function() {
         function toggleCashOutExpenseAnalysis() {
             cashOutViewState.expenseAnalysisExpanded = !cashOutViewState.expenseAnalysisExpanded;
             renderCashOut();
-            
+
             // Initialize charts after expansion if needed
             if (cashOutViewState.expenseAnalysisExpanded) {
                 setTimeout(() => initializeCashOutCharts(), 100);
             }
+        }
+
+        // Toggle expense analysis with flying money effect
+        function toggleCashOutExpenseAnalysisWithEffect() {
+            // Trigger flying money effect
+            createFlyingMoneyEffect();
+
+            // Toggle after a small delay for effect
+            setTimeout(() => {
+                toggleCashOutExpenseAnalysis();
+            }, 100);
+        }
+
+        // Create flying money effect
+        function createFlyingMoneyEffect() {
+            const container = document.getElementById('money-flying-container');
+            if (!container) return;
+
+            // Clear any existing money
+            container.innerHTML = '';
+
+            const moneyEmojis = ['💵', '💸', '💰', '🤑', '💲', '🪙', '💎'];
+            const numBills = 20;
+
+            for (let i = 0; i < numBills; i++) {
+                setTimeout(() => {
+                    const money = document.createElement('div');
+                    const emoji = moneyEmojis[Math.floor(Math.random() * moneyEmojis.length)];
+                    const startX = 20 + Math.random() * 60; // Start from middle area
+                    const endX = (Math.random() - 0.5) * 200; // Drift left or right
+                    const duration = 1.5 + Math.random() * 1;
+                    const size = 24 + Math.random() * 24;
+                    const rotation = (Math.random() - 0.5) * 720;
+                    const animId = `flyMoney_${Date.now()}_${i}`;
+
+                    money.innerHTML = emoji;
+                    money.style.cssText = `
+                        position: fixed;
+                        font-size: ${size}px;
+                        left: ${startX}%;
+                        top: 60%;
+                        pointer-events: none;
+                        z-index: 10000;
+                        animation: ${animId} ${duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+                        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    `;
+
+                    // Create unique keyframes for each emoji
+                    const keyframes = document.createElement('style');
+                    keyframes.textContent = `
+                        @keyframes ${animId} {
+                            0% {
+                                transform: translateY(0) translateX(0) rotate(0deg) scale(0.5);
+                                opacity: 0;
+                            }
+                            10% {
+                                opacity: 1;
+                                transform: translateY(-50px) translateX(${endX * 0.1}px) rotate(${rotation * 0.1}deg) scale(1);
+                            }
+                            80% {
+                                opacity: 1;
+                            }
+                            100% {
+                                transform: translateY(-500px) translateX(${endX}px) rotate(${rotation}deg) scale(0.3);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                    document.head.appendChild(keyframes);
+
+                    container.appendChild(money);
+
+                    // Remove after animation
+                    setTimeout(() => {
+                        money.remove();
+                        keyframes.remove();
+                    }, duration * 1000 + 100);
+                }, i * 80);
+            }
+        }
+
+        // Set Cash Out display mode (list or grid)
+        function setCashOutDisplayMode(mode) {
+            cashOutViewState.displayMode = mode;
+            renderCashOut();
+        }
+
+        // Render cash out record as grid card
+        function renderCashOutCard(record) {
+            const recordId = record.firestoreId || record.id;
+            const recordDate = new Date(record.createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            return `
+                <div class="cashout-grid-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.2s; display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); padding: 20px; color: white;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">${recordDate}</div>
+                                <div style="font-size: 28px; font-weight: 700;">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            </div>
+                            <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-money-bill-wave" style="font-size: 20px;"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Body -->
+                    <div style="padding: 16px 20px; flex: 1;">
+                        <!-- Name -->
+                        <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); margin-bottom: 8px;">
+                            ${record.name}
+                        </div>
+
+                        <!-- Reason -->
+                        ${record.reason ? `
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 12px;">
+                                ${record.reason}
+                            </div>
+                        ` : ''}
+
+                        <!-- Meta Info -->
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                            <span style="background: var(--accent-primary); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                ${record.store || 'N/A'}
+                            </span>
+                        </div>
+
+                        <!-- Created By -->
+                        <div style="font-size: 12px; color: var(--text-muted);">
+                            <i class="fas fa-user" style="margin-right: 6px;"></i>${record.createdBy}
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; justify-content: flex-end;">
+                        <button onclick="viewCashOutDetails('${recordId}')" class="btn-icon" title="View Details" style="width: 32px; height: 32px;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="deleteCashOut('${recordId}')" class="btn-icon" title="Delete" style="width: 32px; height: 32px; color: var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         // Get date range based on view type
@@ -14968,8 +15603,14 @@ window.viewChecklistHistory = async function() {
         // Current filter for issues
         let currentIssueStatusFilter = 'all';
         let currentIssueStoreFilter = 'all';
+        let issuesFirebaseInitialized = false;
 
-        function renderIssues() {
+        async function renderIssues() {
+            // Initialize Firebase for issues on first render
+            if (!issuesFirebaseInitialized) {
+                issuesFirebaseInitialized = true;
+                await initializeFirebaseIssues();
+            }
             const dashboard = document.querySelector('.dashboard');
 
             // Filter issues based on store filter first (for accurate counts)
@@ -15116,7 +15757,7 @@ window.viewChecklistHistory = async function() {
                                 <tbody>
                                     ${sortedIssues.map(issue => {
                                         const status = issue.status || 'open';
-                                        const statusConfig = issueStatusConfig[status];
+                                        const statusConfig = issueStatusConfig[status] || issueStatusConfig['open'];
                                         return `
                                         <tr>
                                             <td data-label="Status">
@@ -15498,7 +16139,7 @@ window.viewChecklistHistory = async function() {
         }
 
         function deleteIssue(issueId) {
-            const issue = issues.find(i => i.firestoreId === issueId || i.id === issueId);
+            const issue = issues.find(i => String(i.id) === String(issueId) || i.firestoreId === issueId);
             const customerName = issue?.customer || 'this issue';
 
             showConfirmModal({
@@ -15507,18 +16148,23 @@ window.viewChecklistHistory = async function() {
                 confirmText: 'Delete',
                 type: 'danger',
                 onConfirm: async () => {
-                    // Try to delete from Firebase
-                    if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
-                        const success = await firebaseIssuesManager.deleteIssue(issueId);
+                    // Try to delete from Firebase using firestoreId
+                    if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized && issue?.firestoreId) {
+                        const success = await firebaseIssuesManager.deleteIssue(issue.firestoreId);
                         if (success) {
-                            issues = issues.filter(i => i.firestoreId !== issueId && i.id !== issueId);
+                            issues = issues.filter(i => i.firestoreId !== issue.firestoreId);
+                            showNotification('Issue deleted successfully', 'success');
                             renderIssues();
+                            return;
+                        } else {
+                            showNotification('Failed to delete issue from Firebase', 'error');
                             return;
                         }
                     }
 
                     // Fallback to local deletion
-                    issues = issues.filter(i => i.id !== issueId && i.firestoreId !== issueId);
+                    issues = issues.filter(i => String(i.id) !== String(issueId) && i.firestoreId !== issueId);
+                    showNotification('Issue deleted locally', 'success');
                     renderIssues();
                 }
             });
@@ -15533,7 +16179,7 @@ window.viewChecklistHistory = async function() {
                 return;
             }
 
-            const issue = issues.find(i => i.id === issueId || i.firestoreId === issueId);
+            const issue = issues.find(i => String(i.id) === String(issueId) || i.firestoreId === issueId);
             if (!issue) return;
 
             const updateData = {
@@ -15563,14 +16209,17 @@ window.viewChecklistHistory = async function() {
         }
 
         function viewIssueDetails(issueId) {
-            const issue = issues.find(i => i.id === issueId || i.firestoreId === issueId);
-            if (!issue) return;
+            const issue = issues.find(i => String(i.id) === String(issueId) || i.firestoreId === issueId);
+            if (!issue) {
+                console.error('Issue not found:', issueId);
+                return;
+            }
 
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
 
             const status = issue.status || 'open';
-            const statusConfig = issueStatusConfig[status];
+            const statusConfig = issueStatusConfig[status] || issueStatusConfig['open'];
 
             modalContent.innerHTML = `
                 <div class="modal-header">
@@ -15771,7 +16420,7 @@ window.viewChecklistHistory = async function() {
 
         // Edit issue details modal
         function editIssueDetails(issueId) {
-            const issue = issues.find(i => i.id === issueId || i.firestoreId === issueId);
+            const issue = issues.find(i => String(i.id) === String(issueId) || i.firestoreId === issueId);
             if (!issue) return;
 
             const modal = document.getElementById('modal');
@@ -15883,6 +16532,13 @@ window.viewChecklistHistory = async function() {
             const description = document.getElementById('edit-issue-description').value.trim();
             const perception = document.getElementById('edit-issue-perception').value;
 
+            // Find the issue to get the firestoreId
+            const issue = issues.find(i => String(i.id) === String(issueId) || i.firestoreId === issueId);
+            if (!issue) {
+                showNotification('Issue not found', 'error');
+                return;
+            }
+
             const updateData = {
                 customer: customer || 'Anonymous',
                 phone: phone || '',
@@ -15893,28 +16549,27 @@ window.viewChecklistHistory = async function() {
                 perception: perception ? parseInt(perception) : null
             };
 
-            // Update in Firebase
-            if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized) {
-                const success = await firebaseIssuesManager.updateIssue(issueId, updateData);
+            // Update in Firebase using firestoreId
+            if (typeof firebaseIssuesManager !== 'undefined' && firebaseIssuesManager.isInitialized && issue.firestoreId) {
+                const success = await firebaseIssuesManager.updateIssue(issue.firestoreId, updateData);
                 if (success) {
                     // Update local array
-                    const issueIndex = issues.findIndex(i => i.id === issueId || i.firestoreId === issueId);
-                    if (issueIndex !== -1) {
-                        issues[issueIndex] = { ...issues[issueIndex], ...updateData };
-                    }
+                    Object.assign(issue, updateData);
                     showNotification('Issue updated successfully', 'success');
-                    viewIssueDetails(issueId);
+                    closeModal();
+                    renderIssues();
+                    return;
+                } else {
+                    showNotification('Failed to update issue in Firebase', 'error');
                     return;
                 }
             }
 
-            // Fallback to local update
-            const issueIndex = issues.findIndex(i => i.id === issueId || i.firestoreId === issueId);
-            if (issueIndex !== -1) {
-                issues[issueIndex] = { ...issues[issueIndex], ...updateData };
-            }
-            showNotification('Issue updated successfully', 'success');
-            viewIssueDetails(issueId);
+            // Fallback to local update if no Firebase
+            Object.assign(issue, updateData);
+            showNotification('Issue updated locally', 'success');
+            closeModal();
+            renderIssues();
         }
 
         // Update issue status from modal
@@ -18480,10 +19135,15 @@ window.viewChecklistHistory = async function() {
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn-secondary" onclick="document.getElementById('invoice-photo').click()" style="margin: 0;">
-                                        <i class="fas fa-upload"></i> Upload File
-                                    </button>
-                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Upload a photo or PDF of the invoice</p>
+                                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                                        <button type="button" class="btn-secondary" onclick="document.getElementById('invoice-photo').click()" style="margin: 0;">
+                                            <i class="fas fa-upload"></i> Upload File
+                                        </button>
+                                        <button type="button" id="ai-scan-btn" class="btn-secondary" onclick="scanInvoiceWithAI()" style="margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                                            <i class="fas fa-magic"></i> Scan with AI
+                                        </button>
+                                    </div>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Upload a photo or PDF, then click "Scan with AI" to auto-fill fields</p>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -18990,7 +19650,7 @@ window.viewChecklistHistory = async function() {
                     break;
                 case 'resolve-issue':
                     const issueId = arguments[1];
-                    const issue = issues.find(i => i.id === issueId);
+                    const issue = issues.find(i => String(i.id) === String(issueId) || i.firestoreId === issueId);
                     if (!issue) break;
 
                     content = `
@@ -20706,62 +21366,41 @@ window.viewChecklistHistory = async function() {
          * Confirm and permanently delete an employee
          */
         function confirmDeleteEmployee(employeeId, employeeName) {
-            const confirmed = confirm(`Are you sure you want to PERMANENTLY DELETE "${employeeName}"?\n\nThis action cannot be undone. All employee data, documents, and records will be permanently removed.`);
-
-            if (confirmed) {
-                // Double confirmation for safety
-                const doubleConfirm = confirm(`FINAL WARNING: You are about to permanently delete "${employeeName}".\n\nType 'DELETE' in the next prompt to confirm.`);
-
-                if (doubleConfirm) {
-                    const userInput = prompt(`Type DELETE to permanently remove ${employeeName}:`);
-                    if (userInput === 'DELETE') {
-                        deleteEmployeePermanently(employeeId, employeeName);
-                    } else {
-                        showNotification('Deletion cancelled - confirmation text did not match', 'info');
-                    }
-                }
-            }
-        }
-
-        /**
-         * Permanently delete an employee from the database
-         */
-        async function deleteEmployeePermanently(employeeId, employeeName) {
-            try {
-                // Delete from Firebase if initialized
-                if (firebaseEmployeeManager.isInitialized) {
-                    const employeeRef = doc(db, 'employees', employeeId);
-                    await deleteDoc(employeeRef);
-
-                    // Also delete any associated paperwork
+            showConfirmModal({
+                title: 'Delete Employee',
+                message: `Are you sure you want to permanently delete "${employeeName}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
                     try {
-                        const paperworkRef = collection(db, 'employees', employeeId, 'paperwork');
-                        const paperworkSnap = await getDocs(paperworkRef);
-                        const deletePromises = paperworkSnap.docs.map(doc => deleteDoc(doc.ref));
-                        await Promise.all(deletePromises);
-                    } catch (paperworkError) {
-                        console.log('No paperwork to delete or error:', paperworkError);
+                        // Delete from Firebase if initialized
+                        if (firebaseEmployeeManager && firebaseEmployeeManager.isInitialized) {
+                            const success = await firebaseEmployeeManager.deleteEmployee(employeeId);
+                            if (success) {
+                                // Remove from local array
+                                employees = employees.filter(e => e.firestoreId !== employeeId && e.id !== employeeId);
+                                showNotification(`${employeeName} has been permanently deleted.`, 'success');
+                                closeModal();
+                                renderEmployees();
+                                return;
+                            } else {
+                                showNotification('Failed to delete employee from Firebase', 'error');
+                                return;
+                            }
+                        }
+
+                        // Fallback to local deletion if no Firebase
+                        employees = employees.filter(e => e.firestoreId !== employeeId && e.id !== employeeId);
+                        showNotification(`${employeeName} has been deleted locally.`, 'success');
+                        closeModal();
+                        renderEmployees();
+
+                    } catch (error) {
+                        console.error('Error deleting employee:', error);
+                        showNotification('Error deleting employee. Please try again.', 'error');
                     }
                 }
-
-                // Remove from local array
-                const index = employees.findIndex(e => e.id === employeeId || e.firestoreId === employeeId);
-                if (index !== -1) {
-                    employees.splice(index, 1);
-                }
-
-                // Save to localStorage as backup
-                saveData();
-
-                closeModal();
-                renderPage(currentPage);
-                updateEmployeeCountBadge();
-                showNotification(`${employeeName} has been permanently deleted.`, 'success');
-
-            } catch (error) {
-                console.error('Error deleting employee:', error);
-                showNotification('Error deleting employee. Please try again.', 'error');
-            }
+            });
         }
 
         /**
@@ -23359,6 +23998,54 @@ window.viewChecklistHistory = async function() {
                 });
             }
 
+            // Search Modules
+            const modules = [
+                { name: 'Dashboard', page: 'dashboard', icon: 'fa-th-large' },
+                { name: 'Employees', page: 'employees', icon: 'fa-users' },
+                { name: 'Schedule', page: 'schedule', icon: 'fa-calendar-alt' },
+                { name: 'Clock In/Out', page: 'clockin', icon: 'fa-clock' },
+                { name: 'Training Center', page: 'training', icon: 'fa-graduation-cap' },
+                { name: 'Licenses & Docs', page: 'licenses', icon: 'fa-folder-open' },
+                { name: 'Sales & Analytics', page: 'analytics', icon: 'fa-chart-line' },
+                { name: 'Restock Requests', page: 'restock', icon: 'fa-boxes' },
+                { name: 'Supplies', page: 'supplies', icon: 'fa-shopping-basket' },
+                { name: 'Daily Checklist', page: 'dailychecklist', icon: 'fa-clipboard-check' },
+                { name: 'Abundance Cloud', page: 'abundancecloud', icon: 'fa-cloud' },
+                { name: 'Announcements', page: 'announcements', icon: 'fa-bullhorn' },
+                { name: 'Thieves Database', page: 'thieves', icon: 'fa-user-secret' },
+                { name: 'Invoices & Payments', page: 'invoices', icon: 'fa-file-invoice-dollar' },
+                { name: 'Issues Registry', page: 'issues', icon: 'fa-exclamation-triangle' },
+                { name: 'Gconomics', page: 'gconomics', icon: 'fa-wallet' },
+                { name: 'Vendors & Suppliers', page: 'vendors', icon: 'fa-truck' },
+                { name: 'Expenses Control', page: 'cashout', icon: 'fa-money-bill-wave' },
+                { name: 'Treasury Pieces', page: 'treasury', icon: 'fa-vault' },
+                { name: 'Change Records', page: 'change', icon: 'fa-coins' },
+                { name: 'Customer Care', page: 'gifts', icon: 'fa-gift' },
+                { name: 'Risk Notes', page: 'risknotes', icon: 'fa-shield-halved' },
+                { name: 'Password Manager', page: 'passwords', icon: 'fa-key' },
+                { name: 'G Force', page: 'gforce', icon: 'fa-bolt' },
+                { name: 'Project Analytics', page: 'projectanalytics', icon: 'fa-code' }
+            ];
+
+            const moduleResults = modules.filter(mod =>
+                mod.name.toLowerCase().includes(searchTerm)
+            ).slice(0, 10);
+
+            if (moduleResults.length > 0) {
+                results.push({
+                    category: 'Modules',
+                    icon: 'fa-cube',
+                    page: 'module',
+                    items: moduleResults.map(mod => ({
+                        id: mod.page,
+                        title: mod.name,
+                        subtitle: 'Navigate to module',
+                        status: 'info',
+                        moduleIcon: mod.icon
+                    }))
+                });
+            }
+
             // Render results
             renderSearchResults(results, resultsList, dropdown);
         }
@@ -23382,10 +24069,11 @@ window.viewChecklistHistory = async function() {
 
                 category.items.forEach(item => {
                     const statusClass = getStatusClass(item.status);
+                    const iconClass = item.moduleIcon || category.icon;
                     html += `
-                        <div class="search-result-item" onclick="navigateToSearchResult('${category.page}', ${item.id})">
+                        <div class="search-result-item" onclick="navigateToSearchResult('${category.page}', ${typeof item.id === 'string' ? `'${item.id}'` : item.id})">
                             <div class="search-result-icon">
-                                <i class="fas ${category.icon}"></i>
+                                <i class="fas ${iconClass}"></i>
                             </div>
                             <div class="search-result-info">
                                 <div class="search-result-title">${escapeHtml(item.title)}</div>
@@ -23398,9 +24086,7 @@ window.viewChecklistHistory = async function() {
             });
 
             html += `
-                <div class="search-shortcut-hint">
-                    <span><kbd>↑</kbd><kbd>↓</kbd> to navigate</span>
-                    <span><kbd>Enter</kbd> to select</span>
+                <div class="search-shortcut-hint" style="text-align: center;">
                     <span><kbd>Esc</kbd> to close</span>
                 </div>
             `;
@@ -23435,14 +24121,23 @@ window.viewChecklistHistory = async function() {
             // Hide search dropdown
             hideSearchResults();
 
-            // Clear search input
+            // Clear both search inputs (desktop and mobile)
             const searchInput = document.getElementById('global-search');
+            const mobileSearchInput = document.getElementById('mobile-global-search');
             if (searchInput) {
                 searchInput.value = '';
             }
+            if (mobileSearchInput) {
+                mobileSearchInput.value = '';
+            }
 
-            // Navigate to the page
-            navigateTo(page);
+            // If it's a module search result, navigate directly to that module
+            if (page === 'module') {
+                navigateTo(itemId);
+            } else {
+                // Navigate to the page
+                navigateTo(page);
+            }
 
             // Optionally highlight or scroll to the item (future enhancement)
             console.log(`Navigated to ${page}, item ID: ${itemId}`);
@@ -23451,9 +24146,15 @@ window.viewChecklistHistory = async function() {
         function showSearchResults() {
             const dropdown = document.getElementById('search-results-dropdown');
             const searchInput = document.getElementById('global-search');
+            const mobileSearchInput = document.getElementById('mobile-global-search');
 
-            if (searchInput && searchInput.value.trim().length >= 2) {
-                performSearch(searchInput.value);
+            // Check both desktop and mobile inputs
+            const desktopQuery = searchInput ? searchInput.value.trim() : '';
+            const mobileQuery = mobileSearchInput ? mobileSearchInput.value.trim() : '';
+            const query = desktopQuery || mobileQuery;
+
+            if (query.length >= 2) {
+                performSearch(query);
             }
         }
 
@@ -23467,20 +24168,33 @@ window.viewChecklistHistory = async function() {
         // Close search dropdown when clicking outside
         document.addEventListener('click', function(e) {
             const searchContainer = document.querySelector('.search-bar-container');
-            if (searchContainer && !searchContainer.contains(e.target)) {
+            const mobileSearchContainer = document.querySelector('.mobile-header-search');
+            const clickedInSearch = (searchContainer && searchContainer.contains(e.target)) ||
+                                   (mobileSearchContainer && mobileSearchContainer.contains(e.target));
+            if (!clickedInSearch) {
                 hideSearchResults();
             }
         });
 
         // Keyboard shortcuts for search
         document.addEventListener('keydown', function(e) {
+            const dropdown = document.getElementById('search-results-dropdown');
+            const isDropdownVisible = dropdown && dropdown.classList.contains('show');
+            
             // Ctrl+K or Cmd+K to focus search
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                const searchInput = document.getElementById('global-search');
-                if (searchInput) {
-                    searchInput.focus();
-                    searchInput.select();
+                // Focus appropriate search based on screen size
+                const mobileSearch = document.getElementById('mobile-global-search');
+                const desktopSearch = document.getElementById('global-search');
+                const isMobile = window.innerWidth <= 768;
+
+                if (isMobile && mobileSearch) {
+                    mobileSearch.focus();
+                    mobileSearch.select();
+                } else if (desktopSearch) {
+                    desktopSearch.focus();
+                    desktopSearch.select();
                 }
             }
 
@@ -23488,8 +24202,12 @@ window.viewChecklistHistory = async function() {
             if (e.key === 'Escape') {
                 hideSearchResults();
                 const searchInput = document.getElementById('global-search');
+                const mobileSearchInput = document.getElementById('mobile-global-search');
                 if (searchInput) {
                     searchInput.blur();
+                }
+                if (mobileSearchInput) {
+                    mobileSearchInput.blur();
                 }
             }
         });
@@ -23731,7 +24449,8 @@ window.viewChecklistHistory = async function() {
             notes: JSON.parse(localStorage.getItem('riskNotes')) || [],
             filterStore: 'all',
             filterLevel: 'all',
-            filterType: 'all'
+            filterType: 'all',
+            viewMode: 'list' // 'list' or 'grid'
         };
 
         // Load risk notes from Firebase when available
@@ -23963,28 +24682,89 @@ window.viewChecklistHistory = async function() {
                                     `).join('')}
                                 </select>
                             </div>
-                            <button class="btn-secondary" onclick="resetRiskNotesFilters()" style="margin-left: auto;">
-                                <i class="fas fa-refresh"></i> Reset
-                            </button>
+                            <div style="display: flex; gap: 8px; margin-left: auto; align-items: center;">
+                                <button class="btn-secondary" onclick="resetRiskNotesFilters()">
+                                    <i class="fas fa-refresh"></i> Reset
+                                </button>
+                                <!-- View Toggle -->
+                                <div style="display: flex; background: var(--bg-primary); border-radius: 8px; padding: 3px; border: 1px solid var(--border-color);">
+                                    <button onclick="setRiskNotesViewMode('list')" id="risk-view-list-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${riskNotesState.viewMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
+                                        <i class="fas fa-list"></i>
+                                    </button>
+                                    <button onclick="setRiskNotesViewMode('grid')" id="risk-view-grid-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${riskNotesState.viewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="Grid View">
+                                        <i class="fas fa-th-large"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Risk Notes List -->
+                <!-- Risk Notes List/Grid -->
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-list"></i>
+                            <i class="fas fa-${riskNotesState.viewMode === 'grid' ? 'th-large' : 'list'}"></i>
                             Recent Activity Notes
                         </h3>
                         <span class="badge" style="background: var(--accent-primary);">${filteredNotes.length} Notes</span>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" id="risk-notes-container">
                         ${filteredNotes.length === 0 ? `
                             <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
                                 <i class="fas fa-shield-halved" style="font-size: 56px; margin-bottom: 20px; display: block; opacity: 0.3;"></i>
                                 <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">No risk notes yet</div>
                                 <div style="font-size: 14px;">Click "New Risk Note" to document unusual activity</div>
+                            </div>
+                        ` : riskNotesState.viewMode === 'grid' ? `
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                                ${filteredNotes.map(note => {
+                                    const behaviorType = RISK_BEHAVIOR_TYPES.find(t => t.id === note.behaviorType) || RISK_BEHAVIOR_TYPES[5];
+                                    const level = RISK_LEVELS.find(l => l.id === note.level) || RISK_LEVELS[0];
+                                    const noteDate = new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                    return `
+                                        <div class="risk-grid-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.2s; cursor: pointer; display: flex; flex-direction: column;" onclick="viewRiskNote('${note.id}')" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                                            <!-- Header with level color -->
+                                            <div style="height: 6px; background: ${level.color};"></div>
+
+                                            <!-- Card Content -->
+                                            <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
+                                                <!-- Icon and Type -->
+                                                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                                                    <div style="width: 52px; height: 52px; background: ${behaviorType.color}15; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                        <i class="fas ${behaviorType.icon}" style="color: ${behaviorType.color}; font-size: 22px;"></i>
+                                                    </div>
+                                                    <div style="flex: 1; min-width: 0;">
+                                                        <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">${behaviorType.label}</div>
+                                                        <span style="background: ${level.color}20; color: ${level.color}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase;">
+                                                            <i class="fas ${level.icon}" style="font-size: 8px;"></i> ${level.label}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Description -->
+                                                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; flex: 1; margin-bottom: 16px;">
+                                                    ${note.description || 'No description provided'}
+                                                </div>
+
+                                                <!-- Meta Info -->
+                                                <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-muted); padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                                    <span><i class="fas fa-store" style="margin-right: 4px;"></i>${note.store}</span>
+                                                    <span><i class="fas fa-calendar" style="margin-right: 4px;"></i>${noteDate}</span>
+                                                    <span><i class="fas fa-user" style="margin-right: 4px;"></i>${note.reportedBy || 'Anonymous'}</span>
+                                                </div>
+
+                                                <!-- Indicators -->
+                                                ${note.hasPhoto || note.managerNote ? `
+                                                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                                        ${note.hasPhoto ? '<span style="background: var(--bg-primary); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--text-muted);"><i class="fas fa-image"></i> Photo</span>' : ''}
+                                                        ${note.managerNote ? '<span style="background: rgba(245, 158, 11, 0.15); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--warning);"><i class="fas fa-comment"></i> Note</span>' : ''}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         ` : `
                             <div style="display: grid; gap: 16px;">
@@ -23993,7 +24773,7 @@ window.viewChecklistHistory = async function() {
                                     const level = RISK_LEVELS.find(l => l.id === note.level) || RISK_LEVELS[0];
                                     const noteDate = new Date(note.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
                                     return `
-                                        <div style="background: var(--bg-secondary); border-radius: 16px; padding: 20px; border-left: 4px solid ${level.color}; transition: all 0.2s; cursor: pointer;" onclick="viewRiskNote('${note.id}')" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+                                        <div class="risk-list-item" style="background: var(--bg-secondary); border-radius: 16px; padding: 20px; border-left: 4px solid ${level.color}; transition: all 0.2s; cursor: pointer;" onclick="viewRiskNote('${note.id}')" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
                                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                                 <div style="display: flex; align-items: center; gap: 12px;">
                                                     <div style="width: 48px; height: 48px; background: ${behaviorType.color}20; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -24038,6 +24818,32 @@ window.viewChecklistHistory = async function() {
             if (filterType === 'store') riskNotesState.filterStore = value;
             if (filterType === 'level') riskNotesState.filterLevel = value;
             if (filterType === 'type') riskNotesState.filterType = value;
+            renderRiskNotes();
+        }
+
+        // Set Risk Notes view mode (list or grid)
+        function setRiskNotesViewMode(mode) {
+            riskNotesState.viewMode = mode;
+
+            // Update button styles
+            const listBtn = document.getElementById('risk-view-list-btn');
+            const gridBtn = document.getElementById('risk-view-grid-btn');
+
+            if (listBtn && gridBtn) {
+                if (mode === 'list') {
+                    listBtn.style.background = 'var(--accent-primary)';
+                    listBtn.style.color = 'white';
+                    gridBtn.style.background = 'transparent';
+                    gridBtn.style.color = 'var(--text-muted)';
+                } else {
+                    gridBtn.style.background = 'var(--accent-primary)';
+                    gridBtn.style.color = 'white';
+                    listBtn.style.background = 'transparent';
+                    listBtn.style.color = 'var(--text-muted)';
+                }
+            }
+
+            // Re-render the page
             renderRiskNotes();
         }
 
@@ -25774,6 +26580,9 @@ async function syncExpenseToFirebaseAsync(expenseToSync) {
 // PASSWORD MANAGER MODULE
 // ============================================
 
+// Password Manager View State
+let passwordViewMode = 'list'; // 'list' or 'grid'
+
 // Firebase Password Manager
 let firebasePasswords = [];
 
@@ -25996,7 +26805,16 @@ async function renderPasswordManager() {
                 </h2>
                 <p class="section-subtitle">Securely store and manage all your business passwords</p>
             </div>
-            <div class="page-header-right" style="display: flex; gap: 12px;">
+            <div class="page-header-right" style="display: flex; gap: 12px; align-items: center;">
+                <!-- View Toggle -->
+                <div style="display: flex; background: var(--bg-secondary); border-radius: 10px; padding: 4px; border: 1px solid var(--border-color);">
+                    <button onclick="setPasswordViewMode('list')" id="pwd-view-list-btn" style="width: 38px; height: 38px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${passwordViewMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <button onclick="setPasswordViewMode('grid')" id="pwd-view-grid-btn" style="width: 38px; height: 38px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${passwordViewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="Grid View">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                </div>
                 <button class="btn-primary" onclick="toggleAddPasswordInline()" style="display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-plus"></i>
                     Add Password
@@ -26087,9 +26905,9 @@ async function renderPasswordManager() {
             </div>
         </div>
 
-        <!-- Passwords List -->
+        <!-- Passwords List/Grid -->
         <div id="passwords-container">
-            ${renderPasswordsList()}
+            ${passwordViewMode === 'grid' ? renderPasswordsGridView() : renderPasswordsList()}
         </div>
     `;
 }
@@ -26132,7 +26950,7 @@ function renderPasswordsList() {
                     <div style="flex: 1; min-width: 0;">
                         <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 10px;">
                             ${pwd.name || 'Unnamed'}
-                            ${pwd.url ? `<a href="${pwd.url}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary); font-size: 12px;"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                            ${pwd.url ? `<a href="${pwd.url.startsWith('http') ? pwd.url : 'https://' + pwd.url}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary); font-size: 12px;"><i class="fas fa-external-link-alt"></i></a>` : ''}
                         </div>
                         <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                             ${pwd.username ? `<span><i class="fas fa-user" style="margin-right: 4px; opacity: 0.6;"></i>${pwd.username}</span>` : ''}
@@ -26207,7 +27025,7 @@ function renderPasswordsList() {
                                 <div style="background: var(--bg-primary); border-radius: 10px; padding: 12px;">
                                     <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Website</div>
                                     <div style="font-size: 14px;">
-                                        <a href="${pwd.url}" target="_blank" style="color: var(--accent-primary); text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                                        <a href="${pwd.url.startsWith('http') ? pwd.url : 'https://' + pwd.url}" target="_blank" style="color: var(--accent-primary); text-decoration: none; display: flex; align-items: center; gap: 6px;">
                                             <i class="fas fa-external-link-alt" style="font-size: 10px;"></i>
                                             Open Site
                                         </a>
@@ -26240,6 +27058,155 @@ function renderPasswordsList() {
 
     html += '</div>';
     return html;
+}
+
+// Render passwords as grid/mosaic view
+function renderPasswordsGridView() {
+    if (firebasePasswords.length === 0) {
+        return `
+            <div class="card">
+                <div class="card-body" style="text-align: center; padding: 60px 20px;">
+                    <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 20px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-key" style="font-size: 32px; color: white;"></i>
+                    </div>
+                    <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Passwords Yet</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Start adding your business passwords to keep them organized and secure.</p>
+                    <button class="btn-primary" onclick="toggleAddPasswordInline()">
+                        <i class="fas fa-plus"></i> Add Your First Password
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">';
+
+    firebasePasswords.forEach(pwd => {
+        const catInfo = passwordCategories[pwd.category] || passwordCategories.other;
+        const escapedPassword = (pwd.password || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        html += `
+            <div class="password-grid-card" style="background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; transition: all 0.2s; display: flex; flex-direction: column;">
+                <!-- Card Header -->
+                <div style="padding: 20px; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: flex-start; gap: 14px;">
+                        <!-- Icon -->
+                        <div style="width: 52px; height: 52px; background: ${catInfo.color}15; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas ${catInfo.icon}" style="color: ${catInfo.color}; font-size: 22px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pwd.name || 'Unnamed'}</span>
+                                ${pwd.url ? `<a href="${pwd.url}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary); font-size: 12px; flex-shrink: 0;"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                            </div>
+                            <div style="background: ${catInfo.color}15; color: ${catInfo.color}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+                                ${catInfo.label}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div style="padding: 16px 20px; flex: 1;">
+                    ${pwd.username ? `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Username</div>
+                            <div style="font-size: 14px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pwd.username}</span>
+                                <button onclick="copyPasswordToClipboard('${pwd.username}', 'Username')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; flex-shrink: 0;">
+                                    <i class="fas fa-copy" style="font-size: 12px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${pwd.email ? `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Email</div>
+                            <div style="font-size: 14px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pwd.email}</span>
+                                <button onclick="copyPasswordToClipboard('${pwd.email}', 'Email')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; flex-shrink: 0;">
+                                    <i class="fas fa-copy" style="font-size: 12px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    ` : ''}
+                    <!-- Password -->
+                    <div style="background: var(--bg-primary); border-radius: 10px; padding: 12px;">
+                        <div style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Password</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <div style="font-family: 'Space Mono', monospace; font-size: 14px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis;" id="grid-pwd-display-${pwd.firestoreId}">••••••••••••</div>
+                            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                                <button onclick="toggleGridPasswordDisplay('${pwd.firestoreId}', '${escapedPassword}')" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);" title="Show/Hide">
+                                    <i class="fas fa-eye" id="grid-pwd-icon-${pwd.firestoreId}" style="font-size: 12px;"></i>
+                                </button>
+                                <button onclick="copyPasswordToClipboard('${escapedPassword}', 'Password')" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--accent-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; color: white;" title="Copy Password">
+                                    <i class="fas fa-copy" style="font-size: 12px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Footer -->
+                <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="startEditPasswordInline('${pwd.firestoreId}')" class="btn-secondary" style="font-size: 12px; padding: 8px 14px;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button onclick="deletePasswordConfirm('${pwd.firestoreId}')" class="btn-secondary" style="font-size: 12px; padding: 8px 14px; color: #ef4444; border-color: #ef444450;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    return html;
+}
+
+// Toggle password visibility in grid view
+function toggleGridPasswordDisplay(id, password) {
+    const display = document.getElementById(`grid-pwd-display-${id}`);
+    const icon = document.getElementById(`grid-pwd-icon-${id}`);
+
+    if (display.textContent === '••••••••••••') {
+        display.textContent = password;
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        display.textContent = '••••••••••••';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Set password view mode (list or grid)
+function setPasswordViewMode(mode) {
+    passwordViewMode = mode;
+
+    // Update button styles
+    const listBtn = document.getElementById('pwd-view-list-btn');
+    const gridBtn = document.getElementById('pwd-view-grid-btn');
+
+    if (listBtn && gridBtn) {
+        if (mode === 'list') {
+            listBtn.style.background = 'var(--accent-primary)';
+            listBtn.style.color = 'white';
+            gridBtn.style.background = 'transparent';
+            gridBtn.style.color = 'var(--text-muted)';
+        } else {
+            gridBtn.style.background = 'var(--accent-primary)';
+            gridBtn.style.color = 'white';
+            listBtn.style.background = 'transparent';
+            listBtn.style.color = 'var(--text-muted)';
+        }
+    }
+
+    // Re-render the passwords container
+    const container = document.getElementById('passwords-container');
+    if (container) {
+        container.innerHTML = mode === 'grid' ? renderPasswordsGridView() : renderPasswordsList();
+    }
 }
 
 // For backwards compatibility
@@ -26481,11 +27448,12 @@ function filterPasswords() {
     const searchTerm = document.getElementById('password-search')?.value.toLowerCase() || '';
     const categoryFilter = document.getElementById('password-category-filter')?.value || '';
 
-    const items = document.querySelectorAll('.password-list-item');
+    // Get items based on current view mode
+    const itemSelector = passwordViewMode === 'grid' ? '.password-grid-card' : '.password-list-item';
+    const items = document.querySelectorAll(itemSelector);
 
-    items.forEach(item => {
-        const id = item.dataset.id;
-        const pwd = firebasePasswords.find(p => p.firestoreId === id);
+    items.forEach((item, index) => {
+        const pwd = firebasePasswords[index];
         if (!pwd) return;
 
         const matchesSearch = !searchTerm ||
@@ -26498,7 +27466,7 @@ function filterPasswords() {
         const matchesCategory = !categoryFilter || pwd.category === categoryFilter;
 
         if (matchesSearch && matchesCategory) {
-            item.style.display = 'block';
+            item.style.display = passwordViewMode === 'grid' ? 'flex' : 'block';
         } else {
             item.style.display = 'none';
         }
@@ -26959,6 +27927,11 @@ window.renderProjectAnalytics = function() {
                     Project Analytics
                 </h2>
                 <p class="section-subtitle">Ascendance Hub - Enterprise Management System Statistics</p>
+            </div>
+            <div class="page-header-right" style="display: flex; align-items: center; gap: 12px;">
+                <button onclick="openAPISettings()" style="width: 36px; height: 36px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.6;" onmouseover="this.style.opacity='1'; this.style.borderColor='var(--accent-primary)';" onmouseout="this.style.opacity='0.6'; this.style.borderColor='var(--border-color)';" title="API Settings">
+                    <i class="fas fa-key" style="color: var(--text-muted); font-size: 14px;"></i>
+                </button>
             </div>
         </div>
 
@@ -27689,6 +28662,107 @@ function formatTimeAgo(date) {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
+}
+
+// API Settings Modal
+window.openAPISettings = function() {
+    const existingModal = document.getElementById('api-settings-modal');
+    if (existingModal) existingModal.remove();
+
+    // Get stored API key (masked for display)
+    const storedKey = localStorage.getItem('openai_api_key') || '';
+    const maskedKey = storedKey ? '••••••••' + storedKey.slice(-8) : '';
+    const hasKey = storedKey.length > 0;
+
+    const modal = document.createElement('div');
+    modal.id = 'api-settings-modal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    modal.onmousedown = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+        <div style="background: var(--bg-primary); border-radius: 16px; max-width: 420px; width: 100%; overflow: hidden; animation: modalSlideIn 0.3s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-key" style="color: #8b5cf6;"></i> API Configuration
+                </h3>
+                <button onclick="document.getElementById('api-settings-modal').remove()" style="background: none; border: none; cursor: pointer; padding: 8px; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                    <i class="fas fa-times" style="color: var(--text-muted);"></i>
+                </button>
+            </div>
+            <div style="padding: 24px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">OpenAI API Key</label>
+                    <div style="position: relative;">
+                        <input type="password" id="api-key-input" placeholder="${hasKey ? maskedKey : 'sk-...'}"
+                            style="width: 100%; padding: 12px 40px 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-size: 14px; font-family: monospace; box-sizing: border-box;"
+                            onfocus="this.placeholder='sk-...'"
+                            onblur="if(!this.value) this.placeholder='${hasKey ? maskedKey : 'sk-...'}'">
+                        <button onclick="toggleAPIKeyVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px;">
+                            <i id="api-key-toggle-icon" class="fas fa-eye" style="color: var(--text-muted); font-size: 14px;"></i>
+                        </button>
+                    </div>
+                    <p style="margin: 8px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                        ${hasKey ? '<i class="fas fa-check-circle" style="color: #10b981;"></i> API key configured' : '<i class="fas fa-info-circle"></i> Required for AI invoice scanning'}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    ${hasKey ? `
+                        <button onclick="clearAPIKey()" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    ` : ''}
+                    <button onclick="saveAPIKey()" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                        <i class="fas fa-save"></i> Save Key
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.toggleAPIKeyVisibility = function() {
+    const input = document.getElementById('api-key-input');
+    const icon = document.getElementById('api-key-toggle-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+window.saveAPIKey = function() {
+    const input = document.getElementById('api-key-input');
+    const key = input.value.trim();
+
+    if (!key) {
+        showNotification('Please enter an API key', 'error');
+        return;
+    }
+
+    if (!key.startsWith('sk-')) {
+        showNotification('Invalid API key format', 'error');
+        return;
+    }
+
+    localStorage.setItem('openai_api_key', key);
+    showNotification('API key saved successfully', 'success');
+    document.getElementById('api-settings-modal').remove();
+}
+
+window.clearAPIKey = function() {
+    if (confirm('Are you sure you want to remove the API key?')) {
+        localStorage.removeItem('openai_api_key');
+        showNotification('API key removed', 'success');
+        document.getElementById('api-settings-modal').remove();
+    }
+}
+
+// Helper function to get stored API key
+window.getOpenAIKey = function() {
+    return localStorage.getItem('openai_api_key') || '';
 }
 
 // Floating add button - simple scroll threshold approach
