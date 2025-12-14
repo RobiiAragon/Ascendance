@@ -1039,7 +1039,7 @@
                             id: emp.firestoreId || emp.id,
                             firestoreId: emp.firestoreId || emp.id,
                             name: emp.name || '',
-                            email: emp.email || '',
+                            authEmail: emp.authEmail || '',
                             phone: emp.phone || '',
                             store: emp.store || 'Miramar',
                             status: emp.status || 'active',
@@ -1643,8 +1643,7 @@
                             id: emp.firestoreId || emp.id,
                             firestoreId: emp.firestoreId || emp.id,
                             name: emp.name || '',
-                            email: emp.email || '',
-                            authEmail: emp.authEmail || emp.email || '',
+                            authEmail: emp.authEmail || '',
                             phone: emp.phone || '',
                             store: emp.store || 'Miramar',
                             status: emp.status || 'active',
@@ -1754,7 +1753,7 @@
                             <i class="fas fa-store"></i> ${emp.store}
                         </div>
                         <div class="employee-card-meta">
-                            <span><i class="fas fa-envelope"></i> ${emp.email}</span>
+                            <span><i class="fas fa-envelope"></i> ${emp.authEmail}</span>
                             <span><i class="fas fa-phone"></i> ${emp.phone}</span>
                         </div>
                     </div>
@@ -3208,10 +3207,10 @@
                 }
             }
 
-            // 3. If still not found, try by email
+            // 3. If still not found, try by authEmail
             if (!employee && currentUser.email) {
-                employee = employees.find(e => e.email === currentUser.email);
-                if (employee) console.log('✅ Found employee by email:', currentUser.email);
+                employee = employees.find(e => e.authEmail === currentUser.email);
+                if (employee) console.log('✅ Found employee by authEmail:', currentUser.email);
             }
 
             // 4. If still not found, create a minimal employee object
@@ -10744,9 +10743,11 @@ window.viewChecklistHistory = async function() {
             const recurring = document.getElementById('invoice-recurring').checked;
             const notes = document.getElementById('invoice-notes').value.trim();
 
-            // Validate required fields
-            if (!invoiceNumber || !vendor || !amount) {
-                alert('Please fill in all required fields (Invoice #, Vendor, Amount)');
+            // Validate required fields - only invoice number OR image required
+            const fileInput = document.getElementById('invoice-photo');
+            const hasFile = fileInput && fileInput.files && fileInput.files[0];
+            if (!invoiceNumber && !hasFile) {
+                alert('Please enter an Invoice # or upload an image');
                 return;
             }
 
@@ -10760,7 +10761,6 @@ window.viewChecklistHistory = async function() {
 
             try {
                 // Get file if uploaded - upload to Firebase Storage
-                const fileInput = document.getElementById('invoice-photo');
                 let fileUrl = null;
                 let filePath = null;
                 let fileType = null;
@@ -12368,16 +12368,22 @@ Return ONLY the JSON object, no additional text.`
                             <div id="change-total-display" style="font-size: 32px; font-weight: 700; color: white;">$0.00</div>
                         </div>
 
-                        <!-- Photo Upload -->
+                        <!-- Photo Upload with AI Scan -->
                         <div style="margin-bottom: 20px;">
-                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Photo (optional)</label>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Photo of Money</label>
                             <div style="display: flex; gap: 12px; align-items: flex-start;">
                                 <div style="flex: 1;">
-                                    <label style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border-color)'">
-                                        <i class="fas fa-camera" style="font-size: 20px; color: var(--text-muted);"></i>
-                                        <span style="font-size: 13px; color: var(--text-muted);">Upload envelope photo</span>
-                                        <input type="file" id="change-photo" accept="image/*" style="display: none;" onchange="previewChangePhoto(this)">
-                                    </label>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                        <label style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 2px dashed var(--border-color); border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border-color)'">
+                                            <i class="fas fa-camera" style="color: var(--text-muted);"></i>
+                                            <span style="font-size: 13px; color: var(--text-muted);">Upload Photo</span>
+                                            <input type="file" id="change-photo" accept="image/*" style="display: none;" onchange="previewChangePhoto(this)">
+                                        </label>
+                                        <button type="button" id="daily-change-ai-scan-btn" onclick="scanDailyChangeWithAI()" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-magic"></i> Scan with AI
+                                        </button>
+                                    </div>
+                                    <p style="font-size: 11px; color: var(--text-muted); margin: 0;">Upload a photo of the money, then click "Scan with AI" to auto-count</p>
                                 </div>
                                 <div id="change-photo-preview" style="display: none; position: relative; width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); border: 2px solid var(--border-color);">
                                     <img id="change-photo-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
@@ -12639,6 +12645,140 @@ Return ONLY the JSON object, no additional text.`
             document.getElementById('daily-change-form').style.display = 'none';
             // Reset photo preview
             removeChangePhoto();
+        }
+
+        // AI scan for Daily Change Form - analyze money in photo
+        async function scanDailyChangeWithAI() {
+            const photoInput = document.getElementById('change-photo');
+
+            if (!photoInput || !photoInput.files || !photoInput.files[0]) {
+                alert('Please upload a photo of the money first.');
+                return;
+            }
+
+            const file = photoInput.files[0];
+            if (file.type === 'application/pdf') {
+                alert('Please upload an image file (JPG, PNG), not a PDF.');
+                return;
+            }
+
+            // Show loading state
+            const scanBtn = document.getElementById('daily-change-ai-scan-btn');
+            const originalText = scanBtn ? scanBtn.innerHTML : '';
+            if (scanBtn) {
+                scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+                scanBtn.disabled = true;
+            }
+
+            try {
+                // Convert image to base64
+                const base64Image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                const apiKey = getOpenAIKey();
+
+                // Call OpenAI API
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image_url',
+                                        image_url: { url: base64Image }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Analyze this image of money/cash and count the bills and coins visible. Return ONLY a JSON object with the count of each denomination (use 0 if not visible):
+
+{
+    "hundreds": 0,
+    "fifties": 0,
+    "twenties": 0,
+    "tens": 0,
+    "fives": 0,
+    "ones": 0,
+    "dollars_coin": 0,
+    "quarters": 0,
+    "dimes": 0,
+    "nickels": 0,
+    "pennies": 0,
+    "notes": "any relevant observations about the money"
+}
+
+Count each bill/coin you can see clearly. If bills are stacked, try to estimate the count. Return ONLY the JSON object.`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                let moneyData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        moneyData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    throw new Error('Could not parse money data from AI response');
+                }
+
+                // Fill in the denomination fields
+                const fieldMappings = ['hundreds', 'fifties', 'twenties', 'tens', 'fives', 'ones', 'dollars_coin', 'quarters', 'dimes', 'nickels', 'pennies'];
+                fieldMappings.forEach(field => {
+                    if (moneyData[field]) {
+                        const input = document.getElementById(`change-${field}`);
+                        if (input) input.value = moneyData[field];
+                    }
+                });
+
+                // Add notes if any
+                if (moneyData.notes) {
+                    const notesField = document.getElementById('change-notes');
+                    if (notesField) {
+                        notesField.value = moneyData.notes;
+                    }
+                }
+
+                // Recalculate total
+                calculateDailyChangeTotal();
+
+                alert('Money counted successfully! Please review the values.');
+
+            } catch (error) {
+                console.error('Error scanning money with AI:', error);
+                alert('Error scanning: ' + error.message);
+            } finally {
+                if (scanBtn) {
+                    scanBtn.innerHTML = originalText || '<i class="fas fa-magic"></i> Scan with AI';
+                    scanBtn.disabled = false;
+                }
+            }
         }
 
         // Calculate total for daily change form in real-time
@@ -13151,6 +13291,149 @@ Return ONLY the JSON object, no additional text.`
             } catch (error) {
                 console.error('Error saving change record:', error);
                 alert('Error saving record. Please try again.');
+            }
+        }
+
+        // AI scan for Change Records - analyze money in photo
+        async function scanChangeWithAI() {
+            const photoInput = document.getElementById('change-photo');
+
+            if (!photoInput || !photoInput.files || !photoInput.files[0]) {
+                alert('Please upload a photo of the money first.');
+                return;
+            }
+
+            const file = photoInput.files[0];
+            const isPdf = file.type === 'application/pdf';
+            if (isPdf) {
+                alert('Please upload an image file (JPG, PNG), not a PDF.');
+                return;
+            }
+
+            // Show loading state
+            const scanBtn = document.getElementById('change-ai-scan-btn');
+            const originalText = scanBtn ? scanBtn.innerHTML : '';
+            if (scanBtn) {
+                scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+                scanBtn.disabled = true;
+            }
+
+            try {
+                // Convert image to base64
+                const base64Image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                const apiKey = getOpenAIKey();
+
+                // Call OpenAI API
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image_url',
+                                        image_url: { url: base64Image }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Analyze this image of money/cash and count the bills and coins visible. Return ONLY a JSON object with the count of each denomination (use 0 if not visible):
+
+{
+    "bills_100": 0,
+    "bills_50": 0,
+    "bills_20": 0,
+    "bills_10": 0,
+    "bills_5": 0,
+    "bills_2": 0,
+    "bills_1": 0,
+    "coins_100": 0,
+    "coins_50": 0,
+    "coins_25": 0,
+    "coins_10": 0,
+    "coins_5": 0,
+    "coins_1": 0,
+    "notes": "any relevant observations about the money"
+}
+
+Count each bill/coin you can see clearly. If bills are stacked, try to estimate the count. Return ONLY the JSON object.`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                let moneyData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        moneyData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    throw new Error('Could not parse money data from AI response');
+                }
+
+                // Fill in the denomination fields
+                if (moneyData.bills_100) document.getElementById('change-bills-100').value = moneyData.bills_100;
+                if (moneyData.bills_50) document.getElementById('change-bills-50').value = moneyData.bills_50;
+                if (moneyData.bills_20) document.getElementById('change-bills-20').value = moneyData.bills_20;
+                if (moneyData.bills_10) document.getElementById('change-bills-10').value = moneyData.bills_10;
+                if (moneyData.bills_5) document.getElementById('change-bills-5').value = moneyData.bills_5;
+                if (moneyData.bills_2) document.getElementById('change-bills-2').value = moneyData.bills_2;
+                if (moneyData.bills_1) document.getElementById('change-bills-1').value = moneyData.bills_1;
+                if (moneyData.coins_100) document.getElementById('change-coins-100').value = moneyData.coins_100;
+                if (moneyData.coins_50) document.getElementById('change-coins-50').value = moneyData.coins_50;
+                if (moneyData.coins_25) document.getElementById('change-coins-25').value = moneyData.coins_25;
+                if (moneyData.coins_10) document.getElementById('change-coins-10').value = moneyData.coins_10;
+                if (moneyData.coins_5) document.getElementById('change-coins-5').value = moneyData.coins_5;
+                if (moneyData.coins_1) document.getElementById('change-coins-1').value = moneyData.coins_1;
+
+                // Add notes if any
+                if (moneyData.notes) {
+                    const notesField = document.getElementById('change-notes');
+                    if (notesField) {
+                        notesField.value = moneyData.notes;
+                    }
+                }
+
+                // Recalculate total
+                calculateChangeTotal();
+
+                alert('Money counted successfully! Please review the values.');
+
+            } catch (error) {
+                console.error('Error scanning change with AI:', error);
+                alert('Error scanning: ' + error.message);
+            } finally {
+                if (scanBtn) {
+                    scanBtn.innerHTML = originalText || '<i class="fas fa-magic"></i> Scan with AI';
+                    scanBtn.disabled = false;
+                }
             }
         }
 
@@ -15302,6 +15585,133 @@ Return ONLY the JSON object, no additional text.`
             });
         }
 
+        // AI scan for Cash Out - analyze receipt to auto-fill (photo not saved)
+        async function scanCashOutWithAI() {
+            const photoInput = document.getElementById('cashout-ai-photo');
+
+            if (!photoInput || !photoInput.files || !photoInput.files[0]) {
+                alert('Please upload a receipt image first.');
+                return;
+            }
+
+            const file = photoInput.files[0];
+            const isPdf = file.type === 'application/pdf';
+            if (isPdf) {
+                alert('Please upload an image file (JPG, PNG), not a PDF.');
+                return;
+            }
+
+            // Show loading state
+            const scanBtn = document.getElementById('cashout-ai-scan-btn');
+            const originalText = scanBtn ? scanBtn.innerHTML : '';
+            if (scanBtn) {
+                scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+                scanBtn.disabled = true;
+            }
+
+            try {
+                // Convert image to base64
+                const base64Image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                const apiKey = getOpenAIKey();
+
+                // Call OpenAI API
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image_url',
+                                        image_url: { url: base64Image }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Analyze this receipt/expense image and extract the following information. Return ONLY a JSON object with these fields (use null for any field you cannot find):
+
+{
+    "total": "the total amount as a number (no currency symbols)",
+    "date": "the date in YYYY-MM-DD format",
+    "description": "the store name or a brief description of what was purchased",
+    "notes": "any relevant details like items purchased, payment method, etc."
+}
+
+Return ONLY the JSON object, no additional text.`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                let receiptData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        receiptData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    throw new Error('Could not parse receipt data from AI response');
+                }
+
+                // Fill in the form fields
+                if (receiptData.description) {
+                    document.getElementById('cashout-name').value = receiptData.description;
+                }
+                if (receiptData.total) {
+                    const amount = parseFloat(receiptData.total.toString().replace(/[^0-9.]/g, ''));
+                    if (!isNaN(amount)) {
+                        document.getElementById('cashout-amount').value = amount.toFixed(2);
+                    }
+                }
+                if (receiptData.date) {
+                    document.getElementById('cashout-date').value = receiptData.date;
+                }
+                if (receiptData.notes) {
+                    document.getElementById('cashout-reason').value = receiptData.notes;
+                }
+
+                // Clear the file input (photo won't be saved)
+                photoInput.value = '';
+
+                alert('Receipt scanned successfully! Please review the values.');
+
+            } catch (error) {
+                console.error('Error scanning receipt with AI:', error);
+                alert('Error scanning: ' + error.message);
+            } finally {
+                if (scanBtn) {
+                    scanBtn.innerHTML = originalText || '<i class="fas fa-magic"></i> Scan Receipt';
+                    scanBtn.disabled = false;
+                }
+            }
+        }
+
         async function createCashOut() {
             const name = document.getElementById('cashout-name').value.trim();
             const amount = parseFloat(document.getElementById('cashout-amount').value);
@@ -16939,6 +17349,28 @@ Return ONLY the JSON object, no additional text.`
                     <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
+                    <!-- AI Scan Section -->
+                    <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-wand-magic-sparkles" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Invoice Scanner</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Auto-fill vendor info from invoice/receipt</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="file" id="vendorAiPhoto" accept="image/*" style="display: none;" onchange="scanVendorInvoiceWithAI(this)">
+                                <button type="button" onclick="document.getElementById('vendorAiPhoto').click()" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <i class="fas fa-file-invoice"></i> Scan Invoice
+                                </button>
+                            </div>
+                        </div>
+                        <div id="vendor-ai-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                    </div>
+
                     <form id="add-vendor-form" style="display: grid; gap: 16px;">
                         <!-- Vendor Image Upload -->
                         <div>
@@ -17143,6 +17575,185 @@ Return ONLY the JSON object, no additional text.`
                 console.error('Error creating vendor:', error);
                 alert('Error creating vendor: ' + error.message);
             }
+        }
+
+        // Scan invoice/receipt with AI to auto-fill vendor information
+        async function scanVendorInvoiceWithAI(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const statusDiv = document.getElementById('vendor-ai-status');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">Analyzing invoice with AI...</span>';
+
+            try {
+                // Check for API key
+                const apiKey = getOpenAIKey();
+                if (!apiKey) {
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Please configure your OpenAI API key in Project Analytics > Settings</span>';
+                    return;
+                }
+
+                // Read the file as base64
+                const file = input.files[0];
+                const base64Image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                // Call OpenAI API
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Analyze this invoice/receipt/bill image and extract vendor/supplier information. Return ONLY a JSON object with these fields (use null for any field you cannot find):
+
+{
+    "vendorName": "the company/vendor/supplier name",
+    "contactPerson": "contact person name if visible",
+    "phone": "phone number in format (XXX) XXX-XXXX",
+    "email": "email address if visible",
+    "website": "website URL if visible (include https://)",
+    "category": "one of: Vape Products, Tobacco Products, Beverages, Snacks & Candy, Store Supplies",
+    "type": "vendor or service",
+    "products": "list of products/services mentioned on the invoice",
+    "notes": "any relevant details like payment terms, account numbers, etc."
+}
+
+Category guidelines:
+- Vape Products: vape supplies, e-liquids, vape hardware
+- Tobacco Products: cigarettes, cigars, tobacco
+- Beverages: drinks, sodas, energy drinks, water
+- Snacks & Candy: food items, snacks, candy, chips
+- Store Supplies: cleaning supplies, bags, equipment, office supplies
+
+Type guidelines:
+- vendor: sells physical products
+- service: provides services (repairs, maintenance, utilities, etc.)
+
+Return ONLY the JSON object, no additional text.`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                let vendorData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        vendorData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    throw new Error('Could not parse vendor data from AI response');
+                }
+
+                // Fill in the form fields
+                if (vendorData.vendorName) {
+                    document.getElementById('vendor-name').value = vendorData.vendorName;
+                }
+
+                if (vendorData.type) {
+                    const typeSelect = document.getElementById('vendor-type');
+                    const typeValue = vendorData.type.toLowerCase();
+                    if (typeValue === 'vendor' || typeValue === 'service') {
+                        typeSelect.value = typeValue;
+                    }
+                }
+
+                if (vendorData.category) {
+                    const categorySelect = document.getElementById('vendor-category');
+                    // Find matching option
+                    for (let option of categorySelect.options) {
+                        if (option.value.toLowerCase() === vendorData.category.toLowerCase() ||
+                            option.value === vendorData.category) {
+                            categorySelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (vendorData.contactPerson) {
+                    document.getElementById('vendor-contact').value = vendorData.contactPerson;
+                }
+
+                if (vendorData.phone) {
+                    document.getElementById('vendor-phone').value = vendorData.phone;
+                }
+
+                if (vendorData.email) {
+                    document.getElementById('vendor-email').value = vendorData.email;
+                }
+
+                if (vendorData.website) {
+                    document.getElementById('vendor-website').value = vendorData.website;
+                }
+
+                if (vendorData.products) {
+                    document.getElementById('vendor-products').value = vendorData.products;
+                }
+
+                if (vendorData.notes) {
+                    document.getElementById('vendor-notes').value = vendorData.notes;
+                }
+
+                // Auto-set the scanned image as the vendor logo
+                const vendorImageInput = document.getElementById('vendor-image');
+                const vendorImagePreview = document.getElementById('vendor-image-preview');
+
+                if (vendorImageInput && file) {
+                    // Create a new FileList with the scanned file
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    vendorImageInput.files = dataTransfer.files;
+
+                    // Show preview in the container div
+                    if (vendorImagePreview) {
+                        vendorImagePreview.innerHTML = `<img src="${base64Image}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    }
+                }
+
+                // Show success message
+                statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Vendor info extracted & image set as logo! Review and save.</span>';
+
+            } catch (error) {
+                console.error('Error scanning invoice with AI:', error);
+                statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${error.message}</span>`;
+            }
+
+            // Don't clear the AI scan file input - keep it for reference
+            // input.value = '';
         }
 
         async function viewVendorDetails(firestoreId) {
@@ -19458,6 +20069,27 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- AI Scan Section -->
+                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-wand-magic-sparkles" style="color: white; font-size: 14px;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Receipt Scanner</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">Auto-fill from receipt (photo not saved)</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="file" id="cashout-ai-photo" accept="image/*" style="display: none;" onchange="scanCashOutWithAI()">
+                                        <button type="button" id="cashout-ai-scan-btn" onclick="document.getElementById('cashout-ai-photo').click()" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-camera"></i> Scan Receipt
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group" style="flex: 2;">
                                     <label>Description *</label>
@@ -20058,20 +20690,25 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label>Photo of Envelope/Receipt (Optional)</label>
+                                <label>Photo of Money/Envelope</label>
                                 <div style="display: flex; align-items: flex-start; gap: 16px;">
                                     <div id="change-photo-preview" style="width: 120px; height: 120px; border-radius: 12px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border-color); cursor: pointer;" onclick="document.getElementById('change-photo').click()">
                                         <i class="fas fa-coins" style="font-size: 36px; color: var(--text-muted);"></i>
                                     </div>
                                     <div style="flex: 1;">
                                         <input type="file" id="change-photo" accept="image/*" style="display: none;" onchange="previewChangePhoto(this)">
-                                        <button type="button" class="btn-secondary" onclick="document.getElementById('change-photo').click()" style="margin-bottom: 8px;">
-                                            <i class="fas fa-upload"></i> Upload Image
-                                        </button>
-                                        <button type="button" class="btn-secondary" onclick="removeChangePhoto()" style="margin-left: 8px; margin-bottom: 8px;">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Upload a photo of the envelope or receipt (optional)</p>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('change-photo').click()">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                            <button type="button" id="change-ai-scan-btn" class="btn-secondary" onclick="scanChangeWithAI()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                                                <i class="fas fa-magic"></i> Scan with AI
+                                            </button>
+                                            <button type="button" class="btn-secondary" onclick="removeChangePhoto()">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Upload a photo of the money, then click "Scan with AI" to auto-count bills & coins</p>
                                     </div>
                                 </div>
                             </div>
@@ -20221,6 +20858,32 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- AI Voice Assistant Section -->
+                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Voice Assistant</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">Speak to auto-fill the form</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <button type="button" id="risknote-voice-btn" onclick="toggleRiskNoteVoiceRecording()" style="padding: 12px 20px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-microphone" id="risknote-voice-icon"></i>
+                                            <span id="risknote-voice-text">Start Recording</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="risknote-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                                <div id="risknote-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
+                                    <div id="risknote-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
+                                </div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Date</label>
@@ -20251,7 +20914,7 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-group">
                                 <label>Description</label>
-                                <textarea class="form-input" id="risknote-description" rows="3" placeholder="Describe what happened..."></textarea>
+                                <textarea class="form-input" id="risknote-description" rows="3" placeholder="Describe what happened... or use the voice assistant above!"></textarea>
                             </div>
                             <div class="form-group">
                                 <label>Risk Level</label>
@@ -20702,7 +21365,7 @@ Return ONLY the JSON object, no additional text.`
                         <div class="profile-details">
                             <div class="detail-row">
                                 <i class="fas fa-envelope"></i>
-                                <span>${emp.email}</span>
+                                <span>${emp.authEmail}</span>
                             </div>
                             <div class="detail-row">
                                 <i class="fas fa-phone"></i>
@@ -20906,7 +21569,7 @@ Return ONLY the JSON object, no additional text.`
 
             const firstName = document.getElementById('edit-emp-first-name').value.trim() || currentFirstName;
             const lastName = document.getElementById('edit-emp-last-name').value.trim() || currentLastName;
-            const authEmail = document.getElementById('edit-emp-email').value.trim() || currentEmployee.authEmail || currentEmployee.email;
+            const authEmail = document.getElementById('edit-emp-email').value.trim() || currentEmployee.authEmail;
             const phone = document.getElementById('edit-emp-phone').value.trim() || currentEmployee.phone;
             const password = document.getElementById('edit-emp-password').value.trim();
             const confirmPassword = document.getElementById('edit-emp-confirm-password').value.trim();
@@ -21181,7 +21844,7 @@ Return ONLY the JSON object, no additional text.`
                 const fullUpdatedData = {
                     name: `${updatedData.firstName} ${updatedData.lastName}`,
                     initials: `${updatedData.firstName[0]}${updatedData.lastName[0]}`.toUpperCase(),
-                    authEmail: updatedData.authEmail || updatedData.email || currentEmployee.authEmail || currentEmployee.email,
+                    authEmail: updatedData.authEmail || currentEmployee.authEmail,
                     phone: updatedData.phone,
                     role: updatedData.role,
                     employeeType: updatedData.employeeType,
@@ -21264,7 +21927,7 @@ Return ONLY the JSON object, no additional text.`
                 updatedData: {
                     firstName: emp.name?.split(' ')[0] || '',
                     lastName: emp.name?.split(' ').slice(1).join(' ') || '',
-                    email: emp.email,
+                    authEmail: emp.authEmail,
                     phone: emp.phone,
                     role: emp.role,
                     employeeType: emp.employeeType || 'employee',
@@ -23872,7 +24535,7 @@ Return ONLY the JSON object, no additional text.`
                 emp.name.toLowerCase().includes(searchTerm) ||
                 emp.role.toLowerCase().includes(searchTerm) ||
                 emp.store.toLowerCase().includes(searchTerm) ||
-                emp.email.toLowerCase().includes(searchTerm)
+                (emp.authEmail && emp.authEmail.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
             if (employeeResults.length > 0) {
@@ -25037,6 +25700,250 @@ Return ONLY the JSON object, no additional text.`
             });
         }
 
+        // ========== Risk Note Voice Assistant ==========
+        let riskNoteVoiceRecognition = null;
+        let riskNoteIsRecording = false;
+        let riskNoteTranscript = '';
+
+        function toggleRiskNoteVoiceRecording() {
+            if (riskNoteIsRecording) {
+                stopRiskNoteVoiceRecording();
+            } else {
+                startRiskNoteVoiceRecording();
+            }
+        }
+
+        function startRiskNoteVoiceRecording() {
+            // Check for browser support
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                const statusDiv = document.getElementById('risknote-voice-status');
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported in this browser. Try Chrome or Edge.</span>';
+                return;
+            }
+
+            riskNoteVoiceRecognition = new SpeechRecognition();
+            riskNoteVoiceRecognition.continuous = true;
+            riskNoteVoiceRecognition.interimResults = true;
+            riskNoteVoiceRecognition.lang = 'en-US';
+
+            const btn = document.getElementById('risknote-voice-btn');
+            const icon = document.getElementById('risknote-voice-icon');
+            const text = document.getElementById('risknote-voice-text');
+            const statusDiv = document.getElementById('risknote-voice-status');
+            const transcriptPreview = document.getElementById('risknote-transcript-preview');
+            const transcriptText = document.getElementById('risknote-transcript-text');
+
+            riskNoteTranscript = '';
+
+            riskNoteVoiceRecognition.onstart = () => {
+                riskNoteIsRecording = true;
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                icon.className = 'fas fa-stop';
+                text.textContent = 'Stop Recording';
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">Listening... Speak now</span>';
+                transcriptPreview.style.display = 'none';
+            };
+
+            riskNoteVoiceRecognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    riskNoteTranscript += finalTranscript;
+                }
+
+                // Show real-time transcript
+                transcriptPreview.style.display = 'block';
+                transcriptText.innerHTML = riskNoteTranscript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+            };
+
+            riskNoteVoiceRecognition.onerror = (event) => {
+                console.error('Voice recognition error:', event.error);
+                statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Please try again.</span>`;
+                resetRiskNoteVoiceUI();
+            };
+
+            riskNoteVoiceRecognition.onend = () => {
+                if (riskNoteIsRecording && riskNoteTranscript.trim()) {
+                    // Process with AI when recording ends
+                    processRiskNoteWithAI(riskNoteTranscript.trim());
+                }
+                resetRiskNoteVoiceUI();
+            };
+
+            riskNoteVoiceRecognition.start();
+        }
+
+        function stopRiskNoteVoiceRecording() {
+            if (riskNoteVoiceRecognition) {
+                riskNoteIsRecording = false;
+                riskNoteVoiceRecognition.stop();
+            }
+        }
+
+        function resetRiskNoteVoiceUI() {
+            riskNoteIsRecording = false;
+            const btn = document.getElementById('risknote-voice-btn');
+            const icon = document.getElementById('risknote-voice-icon');
+            const text = document.getElementById('risknote-voice-text');
+
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #8b5cf6, #ec4899)';
+            }
+            if (icon) {
+                icon.className = 'fas fa-microphone';
+            }
+            if (text) {
+                text.textContent = 'Start Recording';
+            }
+        }
+
+        async function processRiskNoteWithAI(transcript) {
+            const statusDiv = document.getElementById('risknote-voice-status');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">AI is processing your report...</span>';
+
+            try {
+                const apiKey = getOpenAIKey();
+                if (!apiKey) {
+                    // If no API key, just put the transcript in description
+                    document.getElementById('risknote-description').value = transcript;
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Transcript added to description. Configure API key for AI auto-fill.</span>';
+                    return;
+                }
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are a security assistant helping to document risk notes for a retail store. Extract structured information from voice transcripts about suspicious activity or policy violations.`
+                            },
+                            {
+                                role: 'user',
+                                content: `Analyze this voice transcript about a risk/security incident and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "${transcript}"
+
+{
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "behaviorType": "one of: strange_questions, unusual_purchase, recording, policy_violation, suspicious_attitude, other",
+    "description": "a clear, professional description of what happened based on the transcript",
+    "riskLevel": "low, medium, or high based on severity",
+    "reportedBy": "name of the person reporting if mentioned"
+}
+
+Behavior type guidelines:
+- strange_questions: asking unusual questions about security, schedules, or policies
+- unusual_purchase: suspicious buying patterns, bulk purchases, specific combinations
+- recording: taking photos/videos without permission
+- policy_violation: attempting to violate store policies
+- suspicious_attitude: nervous behavior, watching cameras, avoiding eye contact
+- other: anything that doesn't fit above
+
+Risk level guidelines:
+- low: minor concern, document for awareness
+- medium: notable concern, should monitor
+- high: immediate concern, requires action
+
+Return ONLY the JSON object, no additional text.`
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                let riskData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        riskData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    // Fallback: just use transcript as description
+                    document.getElementById('risknote-description').value = transcript;
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Transcript added. AI parsing failed.</span>';
+                    return;
+                }
+
+                // Fill in the form fields
+                if (riskData.store) {
+                    const storeSelect = document.getElementById('risknote-store');
+                    for (let option of storeSelect.options) {
+                        if (option.value.toLowerCase().includes(riskData.store.toLowerCase()) ||
+                            riskData.store.toLowerCase().includes(option.value.toLowerCase())) {
+                            storeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (riskData.behaviorType) {
+                    const typeSelect = document.getElementById('risknote-type');
+                    const typeValue = riskData.behaviorType.toLowerCase().replace(/\s+/g, '_');
+                    for (let option of typeSelect.options) {
+                        if (option.value === typeValue) {
+                            typeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (riskData.description) {
+                    document.getElementById('risknote-description').value = riskData.description;
+                } else {
+                    document.getElementById('risknote-description').value = transcript;
+                }
+
+                if (riskData.riskLevel) {
+                    selectRiskLevel(riskData.riskLevel.toLowerCase());
+                }
+
+                if (riskData.reportedBy) {
+                    document.getElementById('risknote-reporter').value = riskData.reportedBy;
+                }
+
+                statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Form auto-filled! Review and save.</span>';
+
+            } catch (error) {
+                console.error('Error processing with AI:', error);
+                // Fallback: just use transcript as description
+                document.getElementById('risknote-description').value = transcript;
+                statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">AI error. Transcript added to description.</span>`;
+            }
+        }
+        // ========== End Risk Note Voice Assistant ==========
+
         function viewRiskNote(noteId) {
             const note = riskNotesState.notes.find(n => n.id === noteId);
             if (!note) return;
@@ -26030,6 +26937,28 @@ async function renderGconomics() {
                     </button>
                 </div>
                 <div class="modal-body">
+                    <!-- AI Scan Section -->
+                    <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-wand-magic-sparkles" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Receipt Scanner</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Auto-fill from receipt photo</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="file" id="gconomicsAiPhoto" accept="image/*" style="display: none;" onchange="scanGconomicsReceiptWithAI(this)">
+                                <button type="button" onclick="document.getElementById('gconomicsAiPhoto').click()" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <i class="fas fa-camera"></i> Scan Receipt
+                                </button>
+                            </div>
+                        </div>
+                        <div id="gconomics-ai-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                    </div>
+
                     <form id="expenseForm" onsubmit="saveExpense(event)">
                         <div class="form-row">
                             <div class="form-group">
@@ -26242,7 +27171,172 @@ function openAddExpenseModal() {
     document.getElementById('expenseForm').reset();
     document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('expenseMessage').style.display = 'none';
+    // Reset AI status
+    const aiStatus = document.getElementById('gconomics-ai-status');
+    if (aiStatus) {
+        aiStatus.style.display = 'none';
+        aiStatus.innerHTML = '';
+    }
+    // Reset category selection
+    document.querySelectorAll('.category-select-btn').forEach(btn => {
+        btn.style.borderColor = 'var(--border-color)';
+        btn.style.background = 'var(--bg-secondary)';
+    });
+    // Reset photo preview
+    const preview = document.getElementById('expense-photo-preview');
+    if (preview) preview.style.display = 'none';
     document.getElementById('expenseModal').classList.add('active');
+}
+
+// Scan receipt with AI for Gconomics
+async function scanGconomicsReceiptWithAI(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const statusDiv = document.getElementById('gconomics-ai-status');
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">Analyzing receipt with AI...</span>';
+
+    try {
+        // Check for API key
+        const apiKey = getOpenAIKey();
+        if (!apiKey) {
+            statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Please configure your OpenAI API key in Project Analytics > Settings</span>';
+            return;
+        }
+
+        // Read the file as base64
+        const file = input.files[0];
+        const base64Image = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        // Also set the photo preview
+        const previewDiv = document.getElementById('expense-photo-preview');
+        const previewImg = document.getElementById('expense-photo-img');
+        if (previewDiv && previewImg) {
+            previewImg.src = base64Image;
+            previewDiv.style.display = 'block';
+        }
+
+        // Copy the file to the main photo input for saving
+        const mainPhotoInput = document.getElementById('expensePhoto');
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        mainPhotoInput.files = dataTransfer.files;
+
+        // Call OpenAI API
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + apiKey
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                max_tokens: 1024,
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: base64Image
+                                }
+                            },
+                            {
+                                type: 'text',
+                                text: `Analyze this receipt/expense image and extract the following information. Return ONLY a JSON object with these fields (use null for any field you cannot find):
+
+{
+    "total": "the total amount as a number (no currency symbols)",
+    "date": "the date in YYYY-MM-DD format",
+    "description": "a brief description of what was purchased (store name + main items)",
+    "category": "one of: food, transport, shopping, entertainment, bills, other"
+}
+
+Category guidelines:
+- food: restaurants, groceries, coffee shops, food delivery
+- transport: gas, uber, parking, public transit
+- shopping: clothes, electronics, personal items
+- entertainment: movies, games, subscriptions, events
+- bills: utilities, phone, internet, insurance
+- other: anything that doesn't fit above
+
+Return ONLY the JSON object, no additional text.`
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'API request failed');
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+
+        // Parse the JSON response
+        let receiptData;
+        try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                receiptData = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('No JSON found in response');
+            }
+        } catch (parseError) {
+            console.error('Error parsing AI response:', content);
+            throw new Error('Could not parse receipt data from AI response');
+        }
+
+        // Fill in the form fields
+        if (receiptData.total) {
+            const amount = parseFloat(receiptData.total.toString().replace(/[^0-9.]/g, ''));
+            if (!isNaN(amount)) {
+                document.getElementById('expenseAmount').value = amount.toFixed(2);
+            }
+        }
+
+        if (receiptData.date) {
+            document.getElementById('expenseDate').value = receiptData.date;
+        }
+
+        if (receiptData.description) {
+            document.getElementById('expenseDescription').value = receiptData.description;
+        }
+
+        if (receiptData.category) {
+            const categoryId = receiptData.category.toLowerCase();
+            // Map AI categories to Gconomics categories
+            const categoryMap = {
+                'food': 'food',
+                'transport': 'transport',
+                'shopping': 'shopping',
+                'entertainment': 'entertainment',
+                'bills': 'bills',
+                'other': 'other'
+            };
+            const mappedCategory = categoryMap[categoryId] || 'other';
+            selectExpenseCategory(mappedCategory);
+        }
+
+        // Show success message
+        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Receipt scanned successfully! Review and save.</span>';
+
+    } catch (error) {
+        console.error('Error scanning receipt with AI:', error);
+        statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${error.message}</span>`;
+    }
+
+    // Clear the file input for next use
+    input.value = '';
 }
 
 // Close expense modal
@@ -28672,7 +29766,8 @@ window.openAPISettings = function() {
     // Get stored API key (masked for display)
     const storedKey = localStorage.getItem('openai_api_key') || '';
     const maskedKey = storedKey ? '••••••••' + storedKey.slice(-8) : '';
-    const hasKey = storedKey.length > 0;
+    const hasCustomKey = storedKey.length > 0;
+    const usingDefault = !hasCustomKey;
 
     const modal = document.createElement('div');
     modal.id = 'api-settings-modal';
@@ -28693,22 +29788,22 @@ window.openAPISettings = function() {
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">OpenAI API Key</label>
                     <div style="position: relative;">
-                        <input type="password" id="api-key-input" placeholder="${hasKey ? maskedKey : 'sk-...'}"
+                        <input type="password" id="api-key-input" placeholder="${hasCustomKey ? maskedKey : 'Using default key...'}"
                             style="width: 100%; padding: 12px 40px 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-size: 14px; font-family: monospace; box-sizing: border-box;"
                             onfocus="this.placeholder='sk-...'"
-                            onblur="if(!this.value) this.placeholder='${hasKey ? maskedKey : 'sk-...'}'">
+                            onblur="if(!this.value) this.placeholder='${hasCustomKey ? maskedKey : 'Using default key...'}'">
                         <button onclick="toggleAPIKeyVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px;">
                             <i id="api-key-toggle-icon" class="fas fa-eye" style="color: var(--text-muted); font-size: 14px;"></i>
                         </button>
                     </div>
                     <p style="margin: 8px 0 0 0; font-size: 11px; color: var(--text-muted);">
-                        ${hasKey ? '<i class="fas fa-check-circle" style="color: #10b981;"></i> API key configured' : '<i class="fas fa-info-circle"></i> Required for AI invoice scanning'}
+                        ${usingDefault ? '<i class="fas fa-check-circle" style="color: #10b981;"></i> Using default API key (ready to use)' : '<i class="fas fa-check-circle" style="color: #10b981;"></i> Custom API key configured'}
                     </p>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    ${hasKey ? `
+                    ${hasCustomKey ? `
                         <button onclick="clearAPIKey()" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='var(--bg-secondary)'">
-                            <i class="fas fa-trash"></i> Clear
+                            <i class="fas fa-undo"></i> Use Default
                         </button>
                     ` : ''}
                     <button onclick="saveAPIKey()" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
@@ -28761,8 +29856,11 @@ window.clearAPIKey = function() {
 }
 
 // Helper function to get stored API key
+// Default API key
+const DEFAULT_OPENAI_KEY = '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';
+
 window.getOpenAIKey = function() {
-    return localStorage.getItem('openai_api_key') || '';
+    return localStorage.getItem('openai_api_key') || DEFAULT_OPENAI_KEY;
 }
 
 // Floating add button - simple scroll threshold approach

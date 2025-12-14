@@ -1747,6 +1747,29 @@
                 display: flex;
             }
 
+            /* Filters bar mobile adjustments */
+            .filters-bar {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .search-filter {
+                flex: 1;
+                min-width: 0;
+                max-width: calc(100% - 56px);
+            }
+
+            .filters-bar .btn-icon {
+                flex-shrink: 0;
+            }
+
+            .filter-select {
+                flex: 1;
+                min-width: calc(50% - 6px);
+            }
+
             /* Search results dropdown mobile - only adjust sizing */
             .search-results-dropdown {
                 width: calc(100% - 32px);
@@ -1981,6 +2004,7 @@
         .filters-bar {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 16px;
             margin-bottom: 24px;
             padding: 16px;
