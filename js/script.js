@@ -6088,6 +6088,11 @@ window.viewChecklistHistory = async function() {
                         align-items: center;
                         gap: 12px;
                     }
+                    .schedule-controls-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
                     .week-nav {
                         display: flex;
                         align-items: center;
@@ -6130,6 +6135,40 @@ window.viewChecklistHistory = async function() {
                         font-size: 14px;
                         cursor: pointer;
                         min-width: 160px;
+                    }
+
+                    /* Mobile Schedule Controls */
+                    @media (max-width: 768px) {
+                        .schedule-header-bar {
+                            flex-direction: column;
+                            align-items: stretch;
+                        }
+                        .schedule-controls {
+                            flex-direction: column;
+                            align-items: stretch;
+                            gap: 10px;
+                        }
+                        .schedule-controls-row {
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            width: 100%;
+                        }
+                        .week-nav {
+                            width: 100%;
+                            justify-content: center;
+                        }
+                        .week-display {
+                            flex: 1;
+                            min-width: auto;
+                        }
+                        .store-filter-select {
+                            flex: 1;
+                            min-width: auto;
+                        }
+                        .schedule-controls > .week-nav-btn {
+                            margin-right: 0 !important;
+                        }
                     }
 
                     /* Days Grid - Horizontal scroll for week */
@@ -6700,55 +6739,6 @@ window.viewChecklistHistory = async function() {
                         color: var(--text-muted);
                     }
 
-                    /* Employee Picker - Mobile Responsive */
-                    @media (max-width: 480px) {
-                        .employee-picker-overlay {
-                            align-items: flex-end;
-                            padding: 0;
-                        }
-                        .employee-picker {
-                            width: 100%;
-                            max-width: 100%;
-                            max-height: 85vh;
-                            border-radius: 20px 20px 0 0;
-                        }
-                        .employee-picker-header {
-                            padding: 16px;
-                        }
-                        .employee-picker-header h3 {
-                            font-size: 16px;
-                        }
-                        .employee-picker-close {
-                            width: 32px;
-                            height: 32px;
-                        }
-                        .employee-picker-search {
-                            padding: 12px 16px;
-                        }
-                        .employee-picker-search input {
-                            padding: 10px 14px;
-                        }
-                        .employee-picker-list {
-                            padding: 8px;
-                            max-height: calc(85vh - 140px);
-                        }
-                        .employee-picker-item {
-                            padding: 10px;
-                            gap: 10px;
-                        }
-                        .employee-picker-avatar {
-                            width: 40px;
-                            height: 40px;
-                            font-size: 14px;
-                        }
-                        .employee-picker-name {
-                            font-size: 14px;
-                        }
-                        .employee-picker-store {
-                            font-size: 12px;
-                        }
-                    }
-
                     /* Time Editor Modal */
                     .time-editor-overlay {
                         position: fixed;
@@ -7118,65 +7108,6 @@ window.viewChecklistHistory = async function() {
                         border-top: 1px solid var(--border-color);
                         display: flex;
                         justify-content: flex-end;
-                    }
-
-                    /* Time Editor & Clone Modal - Mobile Responsive */
-                    @media (max-width: 480px) {
-                        .time-editor-overlay,
-                        .clone-modal-overlay {
-                            align-items: flex-end;
-                            padding: 0;
-                        }
-                        .time-editor-modal,
-                        .clone-modal {
-                            width: 100%;
-                            max-width: 100%;
-                            border-radius: 20px 20px 0 0;
-                            max-height: 90vh;
-                            overflow-y: auto;
-                        }
-                        .time-editor-header,
-                        .clone-modal-header {
-                            padding: 16px;
-                        }
-                        .time-editor-header h3,
-                        .clone-modal-header h3 {
-                            font-size: 16px;
-                        }
-                        .time-editor-close {
-                            width: 32px;
-                            height: 32px;
-                            font-size: 14px;
-                        }
-                        .time-editor-body,
-                        .clone-modal-body {
-                            padding: 16px;
-                        }
-                        .time-editor-presets {
-                            flex-wrap: wrap;
-                        }
-                        .time-editor-preset {
-                            flex: 1;
-                            min-width: 60px;
-                        }
-                        .clone-option {
-                            padding: 14px;
-                        }
-                        .clone-option-icon {
-                            width: 40px;
-                            height: 40px;
-                            font-size: 16px;
-                        }
-                        .clone-option-info h4 {
-                            font-size: 14px;
-                        }
-                        .clone-option-info p {
-                            font-size: 12px;
-                        }
-                        .time-editor-footer,
-                        .clone-modal-footer {
-                            padding: 14px 16px;
-                        }
                     }
 
                     /* All Stores View */
@@ -7561,9 +7492,6 @@ window.viewChecklistHistory = async function() {
                         <p>Drag employees to Opening or Closing shifts</p>
                     </div>
                     <div class="schedule-controls">
-                        <button class="week-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid var(--border-color); margin-right: 8px;">
-                            <i class="fas fa-clone"></i>
-                        </button>
                         <div class="week-nav">
                             <button class="week-nav-btn" onclick="changeWeek(-1)" title="Previous week">
                                 <i class="fas fa-chevron-left"></i>
@@ -7576,15 +7504,20 @@ window.viewChecklistHistory = async function() {
                                 <i class="fas fa-calendar-day"></i>
                             </button>
                         </div>
-                        <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
-                            <option value="all">All Stores</option>
-                            <option value="Miramar">VSU Miramar</option>
-                            <option value="Morena">VSU Morena</option>
-                            <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                            <option value="Chula Vista">VSU Chula Vista</option>
-                            <option value="North Park">VSU North Park</option>
-                            <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                        </select>
+                        <div class="schedule-controls-row">
+                            <button class="week-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+                                <i class="fas fa-clone"></i>
+                            </button>
+                            <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
+                                <option value="all">All Stores</option>
+                                <option value="Miramar">VSU Miramar</option>
+                                <option value="Morena">VSU Morena</option>
+                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                <option value="Chula Vista">VSU Chula Vista</option>
+                                <option value="North Park">VSU North Park</option>
+                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -20177,7 +20110,7 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <!-- AI Scan Section -->
+                            <!-- AI Tools Section -->
                             <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -20185,23 +20118,31 @@ Return ONLY the JSON object, no additional text.`
                                             <i class="fas fa-wand-magic-sparkles" style="color: white; font-size: 14px;"></i>
                                         </div>
                                         <div>
-                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Receipt Scanner</div>
-                                            <div style="font-size: 12px; color: var(--text-muted);">Auto-fill from receipt (photo not saved)</div>
+                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Assistant</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">Scan receipt or speak to auto-fill</div>
                                         </div>
                                     </div>
-                                    <div style="display: flex; gap: 8px;">
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                                         <input type="file" id="cashout-ai-photo" accept="image/*" style="display: none;" onchange="scanCashOutWithAI()">
                                         <button type="button" id="cashout-ai-scan-btn" onclick="document.getElementById('cashout-ai-photo').click()" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <i class="fas fa-camera"></i> Scan Receipt
+                                            <i class="fas fa-camera"></i> Scan
+                                        </button>
+                                        <button type="button" id="cashout-voice-btn" onclick="toggleCashoutVoiceRecording()" style="padding: 10px 16px; background: linear-gradient(135deg, #ec4899, #f59e0b); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(236,72,153,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-microphone" id="cashout-voice-icon"></i> <span id="cashout-voice-text">Voice</span>
                                         </button>
                                     </div>
+                                </div>
+                                <div id="cashout-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                                <div id="cashout-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
+                                    <div id="cashout-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
                                 </div>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group" style="flex: 2;">
                                     <label>Description *</label>
-                                    <input type="text" class="form-input" id="cashout-name" placeholder="e.g., Office Supplies, Bank Deposit...">
+                                    <input type="text" class="form-input" id="cashout-name" placeholder="e.g., Office Supplies, Bank Deposit... or use voice!">
                                 </div>
                                 <div class="form-group">
                                     <label>Amount *</label>
@@ -20311,6 +20252,32 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- AI Voice Assistant Section -->
+                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1)); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #ef4444, #f59e0b); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Voice Assistant</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">Speak to auto-fill the issue form</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <button type="button" id="issue-voice-btn" onclick="toggleIssueVoiceRecording()" style="padding: 12px 20px; background: linear-gradient(135deg, #ef4444, #f59e0b); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(239,68,68,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-microphone" id="issue-voice-icon"></i>
+                                            <span id="issue-voice-text">Start Recording</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="issue-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                                <div id="issue-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
+                                    <div id="issue-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
+                                </div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Customer Name</label>
@@ -20349,7 +20316,7 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-group">
                                 <label>Brief Description</label>
-                                <textarea class="form-input" id="issue-description" rows="3" placeholder="Describe the issue briefly..."></textarea>
+                                <textarea class="form-input" id="issue-description" rows="3" placeholder="Describe the issue... or use voice above!"></textarea>
                             </div>
                             <div class="form-group">
                                 <label>Customer Perception When Leaving</label>
@@ -21080,6 +21047,32 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- AI Voice Assistant Section -->
+                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(245, 158, 11, 0.1)); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #ec4899, #f59e0b); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Voice Assistant</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">Speak to auto-fill the gift form</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <button type="button" id="gift-voice-btn" onclick="toggleGiftVoiceRecording()" style="padding: 12px 20px; background: linear-gradient(135deg, #ec4899, #f59e0b); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(236,72,153,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-microphone" id="gift-voice-icon"></i>
+                                            <span id="gift-voice-text">Start Recording</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="gift-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                                <div id="gift-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
+                                    <div id="gift-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
+                                </div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group" style="flex: 2;">
                                     <label>Product Name</label>
@@ -21112,7 +21105,7 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-group">
                                 <label>Reason for Gift</label>
-                                <textarea class="form-input" id="gift-reason" rows="2" placeholder="e.g., Defective product replacement, compensation for error, promotional gift..."></textarea>
+                                <textarea class="form-input" id="gift-reason" rows="2" placeholder="e.g., Defective product replacement, compensation for error... or use voice above!"></textarea>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
@@ -25812,6 +25805,7 @@ Return ONLY the JSON object, no additional text.`
         let riskNoteVoiceRecognition = null;
         let riskNoteIsRecording = false;
         let riskNoteTranscript = '';
+        let riskNoteStoppedByUser = false;
 
         function toggleRiskNoteVoiceRecording() {
             if (riskNoteIsRecording) {
@@ -25826,87 +25820,138 @@ Return ONLY the JSON object, no additional text.`
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 const statusDiv = document.getElementById('risknote-voice-status');
-                statusDiv.style.display = 'block';
-                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported in this browser. Try Chrome or Edge.</span>';
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported. Try Chrome or Edge.</span>';
+                }
                 return;
             }
 
-            riskNoteVoiceRecognition = new SpeechRecognition();
-            riskNoteVoiceRecognition.continuous = true;
-            riskNoteVoiceRecognition.interimResults = true;
-            riskNoteVoiceRecognition.lang = 'en-US';
+            try {
+                riskNoteVoiceRecognition = new SpeechRecognition();
+                riskNoteVoiceRecognition.continuous = true;
+                riskNoteVoiceRecognition.interimResults = true;
+                riskNoteVoiceRecognition.lang = 'en-US';
+                riskNoteVoiceRecognition.maxAlternatives = 1;
 
+                const btn = document.getElementById('risknote-voice-btn');
+                const icon = document.getElementById('risknote-voice-icon');
+                const text = document.getElementById('risknote-voice-text');
+                const statusDiv = document.getElementById('risknote-voice-status');
+                const transcriptPreview = document.getElementById('risknote-transcript-preview');
+                const transcriptText = document.getElementById('risknote-transcript-text');
+
+                riskNoteTranscript = '';
+                riskNoteStoppedByUser = false;
+
+                riskNoteVoiceRecognition.onstart = () => {
+                    riskNoteIsRecording = true;
+                    if (btn) btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    if (icon) icon.className = 'fas fa-stop';
+                    if (text) text.textContent = 'Stop Recording';
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.innerHTML = '<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">Listening... Speak now</span>';
+                    }
+                    if (transcriptPreview) transcriptPreview.style.display = 'none';
+                };
+
+                riskNoteVoiceRecognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        riskNoteTranscript += finalTranscript;
+                    }
+
+                    // Show real-time transcript
+                    if (transcriptPreview && transcriptText) {
+                        transcriptPreview.style.display = 'block';
+                        transcriptText.innerHTML = riskNoteTranscript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+                    }
+                };
+
+                riskNoteVoiceRecognition.onerror = (event) => {
+                    console.error('Voice recognition error:', event.error);
+                    // Don't show error for 'aborted' or 'no-speech' - these are normal
+                    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                        if (statusDiv) {
+                            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Try again.</span>`;
+                        }
+                    }
+                };
+
+                riskNoteVoiceRecognition.onend = () => {
+                    // If user stopped it, processing is already handled in stopRiskNoteVoiceRecording
+                    if (riskNoteStoppedByUser) {
+                        return;
+                    }
+
+                    // Auto-restart if it ended unexpectedly (browser timeout) and still recording
+                    if (riskNoteIsRecording) {
+                        try {
+                            riskNoteVoiceRecognition.start();
+                            return;
+                        } catch (e) {
+                            console.log('Could not restart recognition:', e);
+                        }
+                    }
+                    resetRiskNoteVoiceUI();
+                };
+
+                riskNoteVoiceRecognition.start();
+            } catch (error) {
+                console.error('Error starting voice recognition:', error);
+                const statusDiv = document.getElementById('risknote-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Could not start voice recording. Check microphone permissions.</span>';
+                }
+            }
+        }
+
+        function stopRiskNoteVoiceRecording() {
+            riskNoteStoppedByUser = true;
+            riskNoteIsRecording = false;
+
+            // Stop the recognition
+            if (riskNoteVoiceRecognition) {
+                try {
+                    riskNoteVoiceRecognition.stop();
+                } catch (e) {
+                    console.log('Error stopping recognition:', e);
+                }
+            }
+
+            // Reset the UI immediately
             const btn = document.getElementById('risknote-voice-btn');
             const icon = document.getElementById('risknote-voice-icon');
             const text = document.getElementById('risknote-voice-text');
             const statusDiv = document.getElementById('risknote-voice-status');
-            const transcriptPreview = document.getElementById('risknote-transcript-preview');
-            const transcriptText = document.getElementById('risknote-transcript-text');
 
-            riskNoteTranscript = '';
+            if (btn) btn.style.background = 'linear-gradient(135deg, #8b5cf6, #ec4899)';
+            if (icon) icon.className = 'fas fa-microphone';
+            if (text) text.textContent = 'Start Recording';
 
-            riskNoteVoiceRecognition.onstart = () => {
-                riskNoteIsRecording = true;
-                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                icon.className = 'fas fa-stop';
-                text.textContent = 'Stop Recording';
-                statusDiv.style.display = 'block';
-                statusDiv.innerHTML = '<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">Listening... Speak now</span>';
-                transcriptPreview.style.display = 'none';
-            };
-
-            riskNoteVoiceRecognition.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript + ' ';
-                    } else {
-                        interimTranscript += transcript;
-                    }
+            // If we have transcript, process it with AI
+            if (riskNoteTranscript.trim()) {
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">Processing your voice note with AI...</span>';
                 }
-
-                if (finalTranscript) {
-                    riskNoteTranscript += finalTranscript;
-                }
-
-                // Show real-time transcript
-                transcriptPreview.style.display = 'block';
-                transcriptText.innerHTML = riskNoteTranscript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
-            };
-
-            riskNoteVoiceRecognition.onerror = (event) => {
-                console.error('Voice recognition error:', event.error);
-                statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Please try again.</span>`;
-                resetRiskNoteVoiceUI();
-            };
-
-            riskNoteVoiceRecognition.onend = () => {
-                // Processing is now handled in stopRiskNoteVoiceRecording
-                // This just cleans up if recording ends unexpectedly
-                if (riskNoteIsRecording) {
-                    resetRiskNoteVoiceUI();
-                }
-            };
-
-            riskNoteVoiceRecognition.start();
-        }
-
-        function stopRiskNoteVoiceRecording() {
-            if (riskNoteVoiceRecognition) {
-                // Keep riskNoteIsRecording true until onend processes the transcript
-                riskNoteVoiceRecognition.stop();
-
-                // Process the transcript immediately when stop is clicked
-                if (riskNoteTranscript.trim()) {
-                    riskNoteIsRecording = false;
-                    resetRiskNoteVoiceUI();
-                    processRiskNoteWithAI(riskNoteTranscript.trim());
-                } else {
-                    riskNoteIsRecording = false;
-                    resetRiskNoteVoiceUI();
+                processRiskNoteWithAI(riskNoteTranscript.trim());
+            } else {
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<i class="fas fa-info-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">No speech detected. Please try again.</span>';
                 }
             }
         }
@@ -26061,6 +26106,849 @@ Return ONLY the JSON object, no additional text.`
             }
         }
         // ========== End Risk Note Voice Assistant ==========
+
+        // ========== Gift Voice Assistant ==========
+        let giftVoiceRecognition = null;
+        let giftIsRecording = false;
+        let giftTranscript = '';
+        let giftStoppedByUser = false;
+
+        function toggleGiftVoiceRecording() {
+            if (giftIsRecording) {
+                stopGiftVoiceRecording();
+            } else {
+                startGiftVoiceRecording();
+            }
+        }
+
+        function startGiftVoiceRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                const statusDiv = document.getElementById('gift-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported. Try Chrome or Edge.</span>';
+                }
+                return;
+            }
+
+            try {
+                giftVoiceRecognition = new SpeechRecognition();
+                giftVoiceRecognition.continuous = true;
+                giftVoiceRecognition.interimResults = true;
+                giftVoiceRecognition.lang = 'en-US';
+                giftVoiceRecognition.maxAlternatives = 1;
+
+                const btn = document.getElementById('gift-voice-btn');
+                const icon = document.getElementById('gift-voice-icon');
+                const text = document.getElementById('gift-voice-text');
+                const statusDiv = document.getElementById('gift-voice-status');
+                const transcriptPreview = document.getElementById('gift-transcript-preview');
+                const transcriptText = document.getElementById('gift-transcript-text');
+
+                giftTranscript = '';
+                giftStoppedByUser = false;
+
+                giftVoiceRecognition.onstart = () => {
+                    giftIsRecording = true;
+                    if (btn) btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    if (icon) icon.className = 'fas fa-stop';
+                    if (text) text.textContent = 'Stop Recording';
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.innerHTML = '<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">Listening... Describe the gift</span>';
+                    }
+                    if (transcriptPreview) transcriptPreview.style.display = 'none';
+                };
+
+                giftVoiceRecognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        giftTranscript += finalTranscript;
+                    }
+
+                    if (transcriptPreview && transcriptText) {
+                        transcriptPreview.style.display = 'block';
+                        transcriptText.innerHTML = giftTranscript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+                    }
+                };
+
+                giftVoiceRecognition.onerror = (event) => {
+                    console.error('Gift voice recognition error:', event.error);
+                    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                        if (statusDiv) {
+                            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Try again.</span>`;
+                        }
+                    }
+                };
+
+                giftVoiceRecognition.onend = () => {
+                    if (giftStoppedByUser && giftTranscript.trim()) {
+                        processGiftWithAI(giftTranscript.trim());
+                    } else if (!giftStoppedByUser && giftIsRecording) {
+                        try {
+                            giftVoiceRecognition.start();
+                            return;
+                        } catch (e) {
+                            console.log('Could not restart gift recognition:', e);
+                        }
+                    }
+                    resetGiftVoiceUI();
+                };
+
+                giftVoiceRecognition.start();
+            } catch (error) {
+                console.error('Error starting gift voice recognition:', error);
+                const statusDiv = document.getElementById('gift-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Could not start voice recording. Check microphone permissions.</span>';
+                }
+            }
+        }
+
+        function stopGiftVoiceRecording() {
+            giftStoppedByUser = true;
+            giftIsRecording = false;
+            if (giftVoiceRecognition) {
+                try {
+                    giftVoiceRecognition.stop();
+                } catch (e) {
+                    console.log('Error stopping gift recognition:', e);
+                }
+            }
+            if (giftTranscript.trim()) {
+                processGiftWithAI(giftTranscript.trim());
+            }
+        }
+
+        function resetGiftVoiceUI() {
+            giftIsRecording = false;
+            const btn = document.getElementById('gift-voice-btn');
+            const icon = document.getElementById('gift-voice-icon');
+            const text = document.getElementById('gift-voice-text');
+
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #ec4899, #f59e0b)';
+            }
+            if (icon) {
+                icon.className = 'fas fa-microphone';
+            }
+            if (text) {
+                text.textContent = 'Start Recording';
+            }
+        }
+
+        async function processGiftWithAI(transcript) {
+            const statusDiv = document.getElementById('gift-voice-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #ec4899;"></i> <span style="color: var(--text-primary);">AI is processing your gift info...</span>';
+            }
+
+            try {
+                const apiKey = getOpenAIKey();
+                if (!apiKey) {
+                    document.getElementById('gift-reason').value = transcript;
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Transcript added to reason. Configure API key for AI auto-fill.</span>';
+                    }
+                    return;
+                }
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an assistant helping to document gifts given at a retail store. Extract structured information from voice transcripts about gifts given to customers, vendors, or employees.`
+                            },
+                            {
+                                role: 'user',
+                                content: `Analyze this voice transcript about a gift and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "${transcript}"
+
+{
+    "productName": "the product being given as a gift",
+    "quantity": "number of items (default 1)",
+    "value": "estimated value in dollars as a number",
+    "recipientName": "name of person receiving the gift",
+    "recipientType": "one of: customer, vendor, employee, other",
+    "reason": "clear explanation of why the gift was given",
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "notes": "any additional relevant details"
+}
+
+Recipient type guidelines:
+- customer: regular customer, buyer
+- vendor: supplier, sales rep
+- employee: staff member, worker
+- other: anyone else
+
+Return ONLY the JSON object, no additional text.`
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                let giftData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        giftData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    document.getElementById('gift-reason').value = transcript;
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Transcript added. AI parsing failed.</span>';
+                    }
+                    return;
+                }
+
+                // Fill in the form fields
+                if (giftData.productName) {
+                    document.getElementById('gift-product').value = giftData.productName;
+                }
+
+                if (giftData.quantity) {
+                    const qty = parseInt(giftData.quantity);
+                    if (!isNaN(qty) && qty > 0) {
+                        document.getElementById('gift-quantity').value = qty;
+                    }
+                }
+
+                if (giftData.value) {
+                    const val = parseFloat(giftData.value.toString().replace(/[^0-9.]/g, ''));
+                    if (!isNaN(val)) {
+                        document.getElementById('gift-value').value = val.toFixed(2);
+                    }
+                }
+
+                if (giftData.recipientName) {
+                    document.getElementById('gift-recipient').value = giftData.recipientName;
+                }
+
+                if (giftData.recipientType) {
+                    const typeSelect = document.getElementById('gift-recipient-type');
+                    const typeValue = giftData.recipientType.toLowerCase();
+                    for (let option of typeSelect.options) {
+                        if (option.value === typeValue) {
+                            typeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (giftData.reason) {
+                    document.getElementById('gift-reason').value = giftData.reason;
+                } else {
+                    document.getElementById('gift-reason').value = transcript;
+                }
+
+                if (giftData.store) {
+                    const storeSelect = document.getElementById('gift-store');
+                    for (let option of storeSelect.options) {
+                        if (option.value.toLowerCase().includes(giftData.store.toLowerCase()) ||
+                            giftData.store.toLowerCase().includes(option.value.toLowerCase())) {
+                            storeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (giftData.notes) {
+                    document.getElementById('gift-notes').value = giftData.notes;
+                }
+
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Gift form auto-filled! Review and save.</span>';
+                }
+
+            } catch (error) {
+                console.error('Error processing gift with AI:', error);
+                document.getElementById('gift-reason').value = transcript;
+                if (statusDiv) {
+                    statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">AI error. Transcript added to reason.</span>`;
+                }
+            }
+        }
+        // ========== End Gift Voice Assistant ==========
+
+        // ========== Cashout (Expenses Control) Voice Assistant ==========
+        let cashoutVoiceRecognition = null;
+        let cashoutIsRecording = false;
+        let cashoutTranscript = '';
+        let cashoutStoppedByUser = false;
+
+        function toggleCashoutVoiceRecording() {
+            if (cashoutIsRecording) {
+                stopCashoutVoiceRecording();
+            } else {
+                startCashoutVoiceRecording();
+            }
+        }
+
+        function startCashoutVoiceRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                const statusDiv = document.getElementById('cashout-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported. Try Chrome or Edge.</span>';
+                }
+                return;
+            }
+
+            try {
+                cashoutVoiceRecognition = new SpeechRecognition();
+                cashoutVoiceRecognition.continuous = true;
+                cashoutVoiceRecognition.interimResults = true;
+                cashoutVoiceRecognition.lang = 'en-US';
+                cashoutVoiceRecognition.maxAlternatives = 1;
+
+                const btn = document.getElementById('cashout-voice-btn');
+                const icon = document.getElementById('cashout-voice-icon');
+                const text = document.getElementById('cashout-voice-text');
+                const statusDiv = document.getElementById('cashout-voice-status');
+                const transcriptPreview = document.getElementById('cashout-transcript-preview');
+                const transcriptText = document.getElementById('cashout-transcript-text');
+
+                cashoutTranscript = '';
+                cashoutStoppedByUser = false;
+
+                cashoutVoiceRecognition.onstart = () => {
+                    cashoutIsRecording = true;
+                    if (btn) btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    if (icon) icon.className = 'fas fa-stop';
+                    if (text) text.textContent = 'Stop';
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.innerHTML = '<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">Listening... Describe the expense</span>';
+                    }
+                    if (transcriptPreview) transcriptPreview.style.display = 'none';
+                };
+
+                cashoutVoiceRecognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        cashoutTranscript += finalTranscript;
+                    }
+
+                    if (transcriptPreview && transcriptText) {
+                        transcriptPreview.style.display = 'block';
+                        transcriptText.innerHTML = cashoutTranscript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+                    }
+                };
+
+                cashoutVoiceRecognition.onerror = (event) => {
+                    console.error('Cashout voice recognition error:', event.error);
+                    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                        if (statusDiv) {
+                            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Try again.</span>`;
+                        }
+                    }
+                };
+
+                cashoutVoiceRecognition.onend = () => {
+                    if (cashoutStoppedByUser && cashoutTranscript.trim()) {
+                        processCashoutWithAI(cashoutTranscript.trim());
+                    } else if (!cashoutStoppedByUser && cashoutIsRecording) {
+                        try {
+                            cashoutVoiceRecognition.start();
+                            return;
+                        } catch (e) {
+                            console.log('Could not restart cashout recognition:', e);
+                        }
+                    }
+                    resetCashoutVoiceUI();
+                };
+
+                cashoutVoiceRecognition.start();
+            } catch (error) {
+                console.error('Error starting cashout voice recognition:', error);
+                const statusDiv = document.getElementById('cashout-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Could not start voice recording. Check microphone permissions.</span>';
+                }
+            }
+        }
+
+        function stopCashoutVoiceRecording() {
+            cashoutStoppedByUser = true;
+            cashoutIsRecording = false;
+            if (cashoutVoiceRecognition) {
+                try {
+                    cashoutVoiceRecognition.stop();
+                } catch (e) {
+                    console.log('Error stopping cashout recognition:', e);
+                }
+            }
+            if (cashoutTranscript.trim()) {
+                processCashoutWithAI(cashoutTranscript.trim());
+            }
+        }
+
+        function resetCashoutVoiceUI() {
+            cashoutIsRecording = false;
+            const btn = document.getElementById('cashout-voice-btn');
+            const icon = document.getElementById('cashout-voice-icon');
+            const text = document.getElementById('cashout-voice-text');
+
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #ec4899, #f59e0b)';
+            }
+            if (icon) {
+                icon.className = 'fas fa-microphone';
+            }
+            if (text) {
+                text.textContent = 'Voice';
+            }
+        }
+
+        async function processCashoutWithAI(transcript) {
+            const statusDiv = document.getElementById('cashout-voice-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">AI is processing your expense...</span>';
+            }
+
+            try {
+                const apiKey = getOpenAIKey();
+                if (!apiKey) {
+                    document.getElementById('cashout-name').value = transcript;
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Transcript added. Configure API key for AI auto-fill.</span>';
+                    }
+                    return;
+                }
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an assistant helping to document cash out expenses at a retail store. Extract structured information from voice transcripts about expenses and cash withdrawals.`
+                            },
+                            {
+                                role: 'user',
+                                content: `Analyze this voice transcript about an expense/cash out and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "${transcript}"
+
+{
+    "description": "clear description of the expense (e.g., Office Supplies from Staples, Bank Deposit, Cleaning Supplies)",
+    "amount": "the amount as a number (no currency symbols)",
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "notes": "any additional relevant details"
+}
+
+Return ONLY the JSON object, no additional text.`
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                let cashoutData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        cashoutData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    document.getElementById('cashout-name').value = transcript;
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Transcript added. AI parsing failed.</span>';
+                    }
+                    return;
+                }
+
+                // Fill in the form fields
+                if (cashoutData.description) {
+                    document.getElementById('cashout-name').value = cashoutData.description;
+                } else {
+                    document.getElementById('cashout-name').value = transcript;
+                }
+
+                if (cashoutData.amount) {
+                    const amount = parseFloat(cashoutData.amount.toString().replace(/[^0-9.]/g, ''));
+                    if (!isNaN(amount)) {
+                        document.getElementById('cashout-amount').value = amount.toFixed(2);
+                    }
+                }
+
+                if (cashoutData.store) {
+                    const storeSelect = document.getElementById('cashout-store');
+                    for (let option of storeSelect.options) {
+                        if (option.value.toLowerCase().includes(cashoutData.store.toLowerCase()) ||
+                            cashoutData.store.toLowerCase().includes(option.value.toLowerCase())) {
+                            storeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (cashoutData.notes) {
+                    document.getElementById('cashout-reason').value = cashoutData.notes;
+                }
+
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Expense form auto-filled! Review and save.</span>';
+                }
+
+            } catch (error) {
+                console.error('Error processing cashout with AI:', error);
+                document.getElementById('cashout-name').value = transcript;
+                if (statusDiv) {
+                    statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">AI error. Transcript added to description.</span>`;
+                }
+            }
+        }
+        // ========== End Cashout Voice Assistant ==========
+
+        // ========== Issue Voice Assistant ==========
+        let issueVoiceRecognition = null;
+        let issueIsRecording = false;
+        let issueTranscript = '';
+        let issueStoppedByUser = false;
+
+        function toggleIssueVoiceRecording() {
+            if (issueIsRecording) {
+                stopIssueVoiceRecording();
+            } else {
+                startIssueVoiceRecording();
+            }
+        }
+
+        function startIssueVoiceRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                const statusDiv = document.getElementById('issue-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported. Try Chrome or Edge.</span>';
+                }
+                return;
+            }
+
+            try {
+                issueVoiceRecognition = new SpeechRecognition();
+                issueVoiceRecognition.continuous = true;
+                issueVoiceRecognition.interimResults = true;
+                issueVoiceRecognition.lang = 'en-US';
+                issueVoiceRecognition.maxAlternatives = 1;
+
+                const btn = document.getElementById('issue-voice-btn');
+                const icon = document.getElementById('issue-voice-icon');
+                const text = document.getElementById('issue-voice-text');
+                const statusDiv = document.getElementById('issue-voice-status');
+                const transcriptPreview = document.getElementById('issue-transcript-preview');
+                const transcriptText = document.getElementById('issue-transcript-text');
+
+                issueTranscript = '';
+                issueStoppedByUser = false;
+
+                issueVoiceRecognition.onstart = () => {
+                    issueIsRecording = true;
+                    if (btn) btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    if (icon) icon.className = 'fas fa-stop';
+                    if (text) text.textContent = 'Stop Recording';
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.innerHTML = '<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">Listening... Describe the issue</span>';
+                    }
+                    if (transcriptPreview) transcriptPreview.style.display = 'none';
+                };
+
+                issueVoiceRecognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        issueTranscript += finalTranscript;
+                    }
+
+                    if (transcriptPreview && transcriptText) {
+                        transcriptPreview.style.display = 'block';
+                        transcriptText.innerHTML = issueTranscript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+                    }
+                };
+
+                issueVoiceRecognition.onerror = (event) => {
+                    console.error('Issue voice recognition error:', event.error);
+                    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                        if (statusDiv) {
+                            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Try again.</span>`;
+                        }
+                    }
+                };
+
+                issueVoiceRecognition.onend = () => {
+                    if (issueStoppedByUser && issueTranscript.trim()) {
+                        processIssueWithAI(issueTranscript.trim());
+                    } else if (!issueStoppedByUser && issueIsRecording) {
+                        try {
+                            issueVoiceRecognition.start();
+                            return;
+                        } catch (e) {
+                            console.log('Could not restart issue recognition:', e);
+                        }
+                    }
+                    resetIssueVoiceUI();
+                };
+
+                issueVoiceRecognition.start();
+            } catch (error) {
+                console.error('Error starting issue voice recognition:', error);
+                const statusDiv = document.getElementById('issue-voice-status');
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Could not start voice recording. Check microphone permissions.</span>';
+                }
+            }
+        }
+
+        function stopIssueVoiceRecording() {
+            issueStoppedByUser = true;
+            issueIsRecording = false;
+            if (issueVoiceRecognition) {
+                try {
+                    issueVoiceRecognition.stop();
+                } catch (e) {
+                    console.log('Error stopping issue recognition:', e);
+                }
+            }
+            if (issueTranscript.trim()) {
+                processIssueWithAI(issueTranscript.trim());
+            }
+        }
+
+        function resetIssueVoiceUI() {
+            issueIsRecording = false;
+            const btn = document.getElementById('issue-voice-btn');
+            const icon = document.getElementById('issue-voice-icon');
+            const text = document.getElementById('issue-voice-text');
+
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #f59e0b)';
+            }
+            if (icon) {
+                icon.className = 'fas fa-microphone';
+            }
+            if (text) {
+                text.textContent = 'Start Recording';
+            }
+        }
+
+        async function processIssueWithAI(transcript) {
+            const statusDiv = document.getElementById('issue-voice-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">AI is processing your issue report...</span>';
+            }
+
+            try {
+                const apiKey = getOpenAIKey();
+                if (!apiKey) {
+                    document.getElementById('issue-description').value = transcript;
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Transcript added. Configure API key for AI auto-fill.</span>';
+                    }
+                    return;
+                }
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an assistant helping to document customer issues at a retail store. Extract structured information from voice transcripts about customer complaints, problems, or incidents.`
+                            },
+                            {
+                                role: 'user',
+                                content: `Analyze this voice transcript about a customer issue and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "${transcript}"
+
+{
+    "customerName": "name of the customer if mentioned",
+    "phone": "phone number if mentioned (format: (XXX) XXX-XXXX)",
+    "issueType": "In Store or Online",
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "description": "clear, professional description of the issue",
+    "perception": "1-5 based on how upset the customer seemed (1=Very Upset, 2=Upset, 3=Neutral, 4=Satisfied, 5=Happy)"
+}
+
+Perception guidelines:
+- 1 (Very Upset): Customer was extremely angry, yelling, threatening
+- 2 (Upset): Customer was clearly frustrated or disappointed
+- 3 (Neutral): Customer was calm, just reporting an issue
+- 4 (Satisfied): Customer seemed okay after resolution
+- 5 (Happy): Customer was pleased with how it was handled
+
+Return ONLY the JSON object, no additional text.`
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                let issueData;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        issueData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('No JSON found in response');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', content);
+                    document.getElementById('issue-description').value = transcript;
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Transcript added. AI parsing failed.</span>';
+                    }
+                    return;
+                }
+
+                // Fill in the form fields
+                if (issueData.customerName) {
+                    document.getElementById('issue-customer').value = issueData.customerName;
+                }
+
+                if (issueData.phone) {
+                    document.getElementById('issue-phone').value = issueData.phone;
+                }
+
+                if (issueData.issueType) {
+                    const typeSelect = document.getElementById('issue-type');
+                    const typeValue = issueData.issueType;
+                    for (let option of typeSelect.options) {
+                        if (option.value.toLowerCase() === typeValue.toLowerCase()) {
+                            typeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (issueData.store) {
+                    const storeSelect = document.getElementById('issue-store');
+                    for (let option of storeSelect.options) {
+                        if (option.value.toLowerCase().includes(issueData.store.toLowerCase()) ||
+                            issueData.store.toLowerCase().includes(option.value.toLowerCase())) {
+                            storeSelect.value = option.value;
+                            break;
+                        }
+                    }
+                }
+
+                if (issueData.description) {
+                    document.getElementById('issue-description').value = issueData.description;
+                } else {
+                    document.getElementById('issue-description').value = transcript;
+                }
+
+                if (issueData.perception) {
+                    const perceptionValue = parseInt(issueData.perception);
+                    if (perceptionValue >= 1 && perceptionValue <= 5) {
+                        selectPerception(perceptionValue);
+                    }
+                }
+
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Issue form auto-filled! Review and save.</span>';
+                }
+
+            } catch (error) {
+                console.error('Error processing issue with AI:', error);
+                document.getElementById('issue-description').value = transcript;
+                if (statusDiv) {
+                    statusDiv.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">AI error. Transcript added to description.</span>`;
+                }
+            }
+        }
+        // ========== End Issue Voice Assistant ==========
 
         function viewRiskNote(noteId) {
             const note = riskNotesState.notes.find(n => n.id === noteId);
