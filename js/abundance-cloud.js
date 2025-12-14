@@ -1078,6 +1078,10 @@ async function submitMarkAs() {
     const orderInput = document.getElementById('markAsOrderInput').value.trim();
     const messageEl = document.getElementById('markAsMessage');
     const submitBtn = document.getElementById('markAsSubmitBtn');
+    const submitTextEl = document.getElementById('markAsSubmitText');
+
+    // Save original text before modifying
+    const originalText = submitTextEl ? submitTextEl.textContent : 'Submit';
 
     if (!orderInput) {
         showMessage('Please enter an order ID', 'error');
@@ -1115,7 +1119,7 @@ async function submitMarkAs() {
         showMessage('An error occurred. Please try again.', 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `<i class="fas fa-check"></i> ${document.getElementById('markAsSubmitText').textContent}`;
+        submitBtn.innerHTML = `<i class="fas fa-check"></i> ${originalText}`;
     }
 }
 

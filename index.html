@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
 </head>
+
 <body class="light-theme">
     <div class="bg-gradient"></div>
 
@@ -22,35 +24,175 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: var(--bg-primary);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 9999;
         flex-direction: column;
         gap: 20px;
+        overflow: hidden;
     ">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <!-- Gradiente animado de fondo -->
+        <canvas id="gradient-canvas" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        "></canvas>
+
+        <!-- Contenido del loading -->
+        <div style="
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            padding: 40px 50px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        ">
             <div style="
                 width: 60px;
                 height: 60px;
-                border: 4px solid var(--border-color);
-                border-top: 4px solid var(--accent-primary);
+                border: 4px solid rgba(255, 255, 255, 0.2);
+                border-top: 4px solid rgba(255, 255, 255, 0.9);
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
             "></div>
             <div style="text-align: center;">
-                <p style="color: var(--text-primary); font-weight: 600; margin: 0;">Initializing Ascendance Hub</p>
-                <p style="color: var(--text-muted); font-size: 12px; margin: 8px 0 0 0;">Validating permissions...</p>
+                <p style="color: rgba(255, 255, 255, 0.95); font-weight: 600; margin: 0; font-size: 18px;">Initializing Ascendance Hub</p>
+                <p style="color: rgba(255, 255, 255, 0.7); font-size: 12px; margin: 8px 0 0 0;">Validating permissions...</p>
             </div>
         </div>
     </div>
 
     <style>
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
+
+    <script>
+        // Efecto de gradiente fluido animado
+        window.gradientAnimation = {
+            running: true,
+            animationId: null,
+            stop: function() {
+                this.running = false;
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+        };
+        
+        (function() {
+            const canvas = document.getElementById('gradient-canvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            let time = 0;
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            resize();
+            window.addEventListener('resize', resize);
+
+            // Crear ruido/textura
+            function createNoise(imageData) {
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const noise = Math.random() * 25;
+                    data[i] += noise; // R
+                    data[i + 1] += noise; // G
+                    data[i + 2] += noise; // B
+                }
+            }
+
+            function animate() {
+                time += 0.005;
+
+                // Crear gradientes con movimiento
+                const gradient1 = ctx.createRadialGradient(
+                    canvas.width * (0.3 + Math.sin(time) * 0.2),
+                    canvas.height * (0.4 + Math.cos(time * 0.7) * 0.2),
+                    0,
+                    canvas.width * (0.3 + Math.sin(time) * 0.2),
+                    canvas.height * (0.4 + Math.cos(time * 0.7) * 0.2),
+                    canvas.width * 0.8
+                );
+                gradient1.addColorStop(0, '#ff6b9d');
+                gradient1.addColorStop(0.5, '#c44569');
+                gradient1.addColorStop(1, 'transparent');
+
+                const gradient2 = ctx.createRadialGradient(
+                    canvas.width * (0.7 + Math.cos(time * 1.1) * 0.2),
+                    canvas.height * (0.6 + Math.sin(time * 0.9) * 0.2),
+                    0,
+                    canvas.width * (0.7 + Math.cos(time * 1.1) * 0.2),
+                    canvas.height * (0.6 + Math.sin(time * 0.9) * 0.2),
+                    canvas.width * 0.7
+                );
+                gradient2.addColorStop(0, '#a855f7');
+                gradient2.addColorStop(0.5, '#6366f1');
+                gradient2.addColorStop(1, 'transparent');
+
+                const gradient3 = ctx.createRadialGradient(
+                    canvas.width * (0.5 + Math.sin(time * 0.8) * 0.3),
+                    canvas.height * (0.3 + Math.cos(time * 1.2) * 0.3),
+                    0,
+                    canvas.width * (0.5 + Math.sin(time * 0.8) * 0.3),
+                    canvas.height * (0.3 + Math.cos(time * 1.2) * 0.3),
+                    canvas.width * 0.6
+                );
+                gradient3.addColorStop(0, '#10b981');
+                gradient3.addColorStop(0.5, '#059669');
+                gradient3.addColorStop(1, 'transparent');
+
+                // Fondo base oscuro
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Aplicar gradientes con blend modes
+                ctx.globalCompositeOperation = 'screen';
+
+                ctx.fillStyle = gradient1;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = gradient2;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = gradient3;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.globalCompositeOperation = 'source-over';
+
+                // Agregar textura de ruido sutil
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                createNoise(imageData);
+                ctx.putImageData(imageData, 0, 0);
+
+                // Overlay oscuro para suavizar
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (window.gradientAnimation.running) {
+                    window.gradientAnimation.animationId = requestAnimationFrame(animate);
+                }
+            }
+
+            animate();
+        })();
+    </script>
 
     <!-- Modal -->
     <div class="modal" id="modal">
@@ -62,8 +204,7 @@
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <h2 style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-bolt" style="color: var(--accent-primary);"></i>
-                    G Force - Giselle´s Daily Motivation
+                    <i class="fas fa-bolt" style="color: var(--accent-primary);"></i> G Force - Giselle´s Daily Motivation
                 </h2>
                 <button class="modal-close" onclick="closeGForceModal()">
                     <i class="fas fa-times"></i>
@@ -84,8 +225,7 @@
                 <div class="card" style="margin-bottom: 20px;">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-sparkles"></i>
-                            Daily Affirmations
+                            <i class="fas fa-sparkles"></i> Daily Affirmations
                         </h3>
                     </div>
                     <div class="card-body">
@@ -97,8 +237,7 @@
                 <div class="card" style="margin-bottom: 20px;">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-seedling"></i>
-                            Daily Philosophy
+                            <i class="fas fa-seedling"></i> Daily Philosophy
                         </h3>
                     </div>
                     <div class="card-body">
@@ -191,8 +330,7 @@
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2 style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-user-secret" style="color: var(--danger);"></i>
-                    Report Theft Incident
+                    <i class="fas fa-user-secret" style="color: var(--danger);"></i> Report Theft Incident
                 </h2>
                 <button class="modal-close" onclick="closeThiefReportModal()">
                     <i class="fas fa-times"></i>
@@ -297,115 +435,89 @@
         <nav class="nav-section">
             <div class="nav-label">Main Menu</div>
             <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard'); return false;">
-                <span class="nav-icon"><i class="fas fa-th-large"></i></span>
-                Dashboard
+                <span class="nav-icon"><i class="fas fa-th-large"></i></span> Dashboard
             </a>
             <a href="#" class="nav-item" data-page="employees" onclick="navigateTo('employees'); return false;">
-                <span class="nav-icon"><i class="fas fa-users"></i></span>
-                Employees
+                <span class="nav-icon"><i class="fas fa-users"></i></span> Employees
                 <span class="nav-badge" id="employees-count-badge">0</span>
             </a>
 
             <a href="#" class="nav-item" onclick="navigateTo('schedule'); return false;">
-                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
-                Schedule
+                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Schedule
             </a>
 
             <a href="#" class="nav-item" data-page="clockin" onclick="navigateTo('clockin'); return false;">
-                <span class="nav-icon"><i class="fas fa-clock"></i></span>
-                Clock In/Out
+                <span class="nav-icon"><i class="fas fa-clock"></i></span> Clock In/Out
             </a>
 
             <a href="#" class="nav-item" data-page="training" onclick="navigateTo('training'); return false;">
-                <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
-                Training Center
+                <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span> Training Center
             </a>
             <a href="#" class="nav-item" data-page="licenses" onclick="navigateTo('licenses'); return false;">
-                <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
-                Licenses & Docs
+                <span class="nav-icon"><i class="fas fa-folder-open"></i></span> Licenses & Docs
             </a>
 
             <!-- Sales Analytics -->
             <a href="#" class="nav-item" data-page="analytics" onclick="navigateTo('analytics'); return false;">
-                <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
-                Sales & Analytics
+                <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Sales & Analytics
             </a>
             <a href="#" class="nav-item">
-                <span class="nav-icon"><i class="fas fa-box"></i></span>
-                New Stuff
+                <span class="nav-icon"><i class="fas fa-box"></i></span> New Stuff
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('restock'); return false;">
-                <span class="nav-icon"><i class="fas fa-boxes"></i></span>
-                Restock Requests
+                <span class="nav-icon"><i class="fas fa-boxes"></i></span> Restock Requests
             </a>
             <a href="#" class="nav-item" data-page="supplies" onclick="navigateTo('supplies'); return false;">
-                <span class="nav-icon"><i class="fas fa-shopping-basket"></i></span>
-                Supplies
+                <span class="nav-icon"><i class="fas fa-shopping-basket"></i></span> Supplies
             </a>
             <a href="#" class="nav-item" data-page="dailychecklist" onclick="navigateTo('dailychecklist'); return false;">
-                <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span>
-                Daily Checklist
+                <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span> Daily Checklist
             </a>
             <a href="#" class="nav-item" data-page="abundancecloud" onclick="navigateTo('abundancecloud'); return false;">
-                <span class="nav-icon"><i class="fas fa-cloud"></i></span>
-                Abundance Cloud Engine
+                <span class="nav-icon"><i class="fas fa-cloud"></i></span> Abundance Cloud Engine
             </a>
             <a href="#" class="nav-item" data-page="announcements" onclick="navigateTo('announcements'); return false;">
-                <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
-                Announcements
+                <span class="nav-icon"><i class="fas fa-bullhorn"></i></span> Announcements
                 <span class="nav-badge" id="announcements-badge">0</span>
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('thieves'); return false;">
-                <span class="nav-icon"><i class="fas fa-user-secret"></i></span>
-                Thieves Database
+                <span class="nav-icon"><i class="fas fa-user-secret"></i></span> Thieves Database
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('invoices'); return false;">
-                <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                Invoices & Payments
+                <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span> Invoices & Payments
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('issues'); return false;">
-                <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                Issues Registry
+                <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span> Issues Registry
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('gconomics'); return false;">
-                <span class="nav-icon"><i class="fas fa-wallet"></i></span>
-                Gconomics
+                <span class="nav-icon"><i class="fas fa-wallet"></i></span> Gconomics
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('vendors'); return false;">
-                <span class="nav-icon"><i class="fas fa-truck"></i></span>
-                Vendors & Suppliers
+                <span class="nav-icon"><i class="fas fa-truck"></i></span> Vendors & Suppliers
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('cashout'); return false;">
-                <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
-                Expenses Control
+                <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span> Expenses Control
             </a>
             <a href="#" class="nav-item" onclick="navigateTo('treasury'); return false;">
-                <span class="nav-icon"><i class="fas fa-vault"></i></span>
-                Treasury Pieces
+                <span class="nav-icon"><i class="fas fa-vault"></i></span> Treasury Pieces
             </a>
             <a href="#" class="nav-item" data-page="change" onclick="navigateTo('change'); return false;">
-                <span class="nav-icon"><i class="fas fa-coins"></i></span>
-                Change Records
+                <span class="nav-icon"><i class="fas fa-coins"></i></span> Change Records
             </a>
             <a href="#" class="nav-item" data-page="gifts" onclick="navigateTo('gifts'); return false;">
-                <span class="nav-icon"><i class="fas fa-gift"></i></span>
-                Customer Care
+                <span class="nav-icon"><i class="fas fa-gift"></i></span> Customer Care
             </a>
             <a href="#" class="nav-item" data-page="risknotes" onclick="navigateTo('risknotes'); return false;">
-                <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
-                Risk Notes
+                <span class="nav-icon"><i class="fas fa-shield-halved"></i></span> Risk Notes
             </a>
             <a href="#" class="nav-item" data-page="passwords" onclick="navigateTo('passwords'); return false;">
-                <span class="nav-icon"><i class="fas fa-key"></i></span>
-                Password Manager
+                <span class="nav-icon"><i class="fas fa-key"></i></span> Password Manager
             </a>
             <a href="#" class="nav-item" data-page="gforce" onclick="navigateTo('gforce'); return false;">
-                <span class="nav-icon"><i class="fas fa-bolt"></i></span>
-                G Force
+                <span class="nav-icon"><i class="fas fa-bolt"></i></span> G Force
             </a>
             <a href="index.html?page=projectanalytics" class="nav-item external-link" data-page="projectanalytics">
-                <span class="nav-icon"><i class="fas fa-code"></i></span>
-                Project Analytics
+                <span class="nav-icon"><i class="fas fa-code"></i></span> Project Analytics
             </a>
         </nav>
 
@@ -493,8 +605,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-trend up">
-                            <i class="fas fa-arrow-up"></i>
-                            +2
+                            <i class="fas fa-arrow-up"></i> +2
                         </div>
                     </div>
                     <div class="stat-value">20</div>
@@ -507,8 +618,7 @@
                             <i class="fas fa-dollar-sign"></i>
                         </div>
                         <div class="stat-trend up" id="revenue-trend">
-                            <i class="fas fa-sync fa-spin"></i>
-                            Loading...
+                            <i class="fas fa-sync fa-spin"></i> Loading...
                         </div>
                     </div>
                     <div class="stat-value" id="revenue-value">--</div>
@@ -521,8 +631,7 @@
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div class="stat-trend down">
-                            <i class="fas fa-exclamation"></i>
-                            2 expiring
+                            <i class="fas fa-exclamation"></i> 2 expiring
                         </div>
                     </div>
                     <div class="stat-value">12</div>
@@ -563,8 +672,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-trophy"></i>
-                            Store Performance
+                            <i class="fas fa-trophy"></i> Store Performance
                         </h3>
                         <button class="card-action">Details</button>
                     </div>
@@ -609,8 +717,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-file-certificate"></i>
-                            Licenses Status
+                            <i class="fas fa-file-certificate"></i> Licenses Status
                         </h3>
                         <button class="card-action">Upload</button>
                     </div>
@@ -663,8 +770,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-bullhorn"></i>
-                            Recent Announcements
+                            <i class="fas fa-bullhorn"></i> Recent Announcements
                         </h3>
                     </div>
                     <div class="card-body">
@@ -697,8 +803,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-users"></i>
-                            Recent Employees
+                            <i class="fas fa-users"></i> Recent Employees
                         </h3>
                         <button class="card-action">View All</button>
                     </div>
@@ -766,7 +871,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    
+
     <!-- Environment variables (generated at build time) -->
     <script src="config/env.js"></script>
     <!-- Configuration (Update with your actual credentials) -->
@@ -807,7 +912,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             // Check if user is authenticated
             authManager.initialize();
-            
+
             if (!authManager.isAuthenticated()) {
                 // Redirect to login if not authenticated
                 console.warn('User not authenticated, redirecting to login...');
@@ -821,7 +926,7 @@
             try {
                 const userName = user.name || user.email.split('@')[0];
                 const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                const roleLabel = window.ROLE_PERMISSIONS?.[user.role]?.label || user.role || 'User';
+                const roleLabel = (window.ROLE_PERMISSIONS?.[user.role]?.label) || user.role || 'User';
 
                 document.getElementById('header-user-avatar').textContent = userInitials;
                 document.getElementById('header-user-name').textContent = userName;
@@ -918,7 +1023,7 @@
             // Filter navigation menu based on user role
             try {
                 filterNavigationByRole();
-                const roleLabel = window.ROLE_PERMISSIONS[user.role]?.label || user.role;
+                const roleLabel = (window.ROLE_PERMISSIONS?.[user.role]?.label) || user.role;
             } catch (error) {
                 console.warn('⚠️ Navigation filtering failed:', error);
             }
@@ -967,10 +1072,17 @@
             setTimeout(() => {
                 const loadingOverlay = document.getElementById('initial-loading-overlay');
                 if (loadingOverlay) {
+                    // Detener la animación del gradiente
+                    if (window.gradientAnimation) {
+                        window.gradientAnimation.stop();
+                    }
+                    
                     loadingOverlay.style.opacity = '0';
                     loadingOverlay.style.transition = 'opacity 0.3s ease-out';
                     setTimeout(() => {
                         loadingOverlay.style.display = 'none';
+                        // Remover completamente el overlay del DOM para liberar memoria
+                        loadingOverlay.remove();
                     }, 300);
                 }
             }, 100);
@@ -983,4 +1095,5 @@
         });
     </script>
 </body>
+
 </html>

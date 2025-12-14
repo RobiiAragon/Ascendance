@@ -1786,7 +1786,7 @@
                         <h2 class="section-title">Training Center</h2>
                         <p class="section-subtitle">Videos, documents, and courses for your team</p>
                     </div>
-                    <button class="btn-primary floating-add-btn" onclick="openModal('add-training')">
+                    <button class="btn-primary floating-add-btn no-float-mobile" onclick="openModal('add-training')">
                         <i class="fas fa-plus"></i> Add Training
                     </button>
                 </div>
@@ -1817,7 +1817,7 @@
                         <h2 class="section-title">Training Center</h2>
                         <p class="section-subtitle">Videos, documents, and courses for your team</p>
                     </div>
-                    <button class="btn-primary floating-add-btn" onclick="openModal('add-training')">
+                    <button class="btn-primary floating-add-btn no-float-mobile" onclick="openModal('add-training')">
                         <i class="fas fa-plus"></i> Add Training
                     </button>
                 </div>
@@ -9850,7 +9850,7 @@ window.viewChecklistHistory = async function() {
             }
 
             return `
-                <table class="data-table">
+                <table class="data-table invoices-table">
                     <thead>
                         <tr>
                             <th style="width: 60px;">File</th>
@@ -9875,7 +9875,7 @@ window.viewChecklistHistory = async function() {
 
                             return `
                                 <tr>
-                                    <td>
+                                    <td data-label="">
                                         ${invoice.photo ? (invoice.fileType === 'pdf' ? `
                                             <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="PDF">
                                                 <i class="fas fa-file-pdf" style="font-size: 20px; color: #ef4444;"></i>
@@ -9888,17 +9888,17 @@ window.viewChecklistHistory = async function() {
                                             </div>
                                         `}
                                     </td>
-                                    <td><strong>${invoice.invoiceNumber}</strong></td>
-                                    <td>${invoice.vendor}</td>
-                                    <td><span class="badge" style="background: var(--accent-primary); color: #fff; font-size: 11px;">${invoice.category}</span></td>
-                                    <td>${invoice.store || '<span style="color: var(--text-muted);">Unassigned</span>'}</td>
-                                    <td style="font-weight: 600;">$${invoice.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                                    <td>${formatDate(invoice.dueDate)}</td>
-                                    <td>
+                                    <td data-label="Invoice #"><strong>${invoice.invoiceNumber}</strong></td>
+                                    <td data-label="Vendor">${invoice.vendor}</td>
+                                    <td data-label="Category"><span class="badge" style="background: var(--accent-primary); color: #fff; font-size: 11px;">${invoice.category}</span></td>
+                                    <td data-label="Store">${invoice.store || '<span style="color: var(--text-muted);">Unassigned</span>'}</td>
+                                    <td data-label="Amount" style="font-weight: 600;">$${invoice.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td data-label="Due Date">${formatDate(invoice.dueDate)}</td>
+                                    <td data-label="Status">
                                         <span class="badge" style="${statusStyles[invoice.status]}; font-size: 11px;">${invoice.status.toUpperCase()}</span>
                                         ${invoice.recurring ? '<i class="fas fa-sync-alt" style="margin-left: 6px; color: var(--text-muted); font-size: 12px;" title="Recurring"></i>' : ''}
                                     </td>
-                                    <td>
+                                    <td data-label="">
                                         ${invoice.status !== 'paid' ? `<button class="btn-icon" onclick="markInvoicePaid('${invoiceId}')" title="Mark Paid"><i class="fas fa-check"></i></button>` : ''}
                                         <button class="btn-icon" onclick="viewInvoice('${invoiceId}')" title="View"><i class="fas fa-eye"></i></button>
                                         <button class="btn-icon" onclick="editInvoice('${invoiceId}')" title="Edit"><i class="fas fa-edit"></i></button>
@@ -10301,21 +10301,41 @@ window.viewChecklistHistory = async function() {
 
                 <!-- Summary Cards -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Total Amount</div>
-                        <div style="font-size: 28px; font-weight: 700;">$${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-file-invoice-dollar" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Total Amount</div>
+                            <div style="font-size: 24px; font-weight: 700;">$${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        </div>
                     </div>
-                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Paid</div>
-                        <div style="font-size: 28px; font-weight: 700;">$${totalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Paid</div>
+                            <div style="font-size: 24px; font-weight: 700;">$${totalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        </div>
                     </div>
-                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Pending</div>
-                        <div style="font-size: 28px; font-weight: 700;">$${totalPending.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-clock" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Pending</div>
+                            <div style="font-size: 24px; font-weight: 700;">$${totalPending.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        </div>
                     </div>
-                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 20px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Overdue</div>
-                        <div style="font-size: 28px; font-weight: 700;">${overdueCount}</div>
+                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Overdue</div>
+                            <div style="font-size: 24px; font-weight: 700;">${overdueCount}</div>
+                        </div>
                     </div>
                 </div>
 
@@ -10371,7 +10391,7 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Charts Section -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                <div class="charts-grid-2col">
                     <!-- Status Breakdown (Donut) -->
                     <div class="card">
                         <div class="card-header">
@@ -10394,7 +10414,7 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Time Charts -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                <div class="charts-grid-2col">
                     <!-- Amount Over Time (Bar) -->
                     <div class="card">
                         <div class="card-header">
@@ -10475,7 +10495,7 @@ window.viewChecklistHistory = async function() {
 
                 return `
                     <tr>
-                        <td>
+                        <td data-label="">
                             ${invoice.photo ? (invoice.fileType === 'pdf' ? `
                                 <div style="width: 50px; height: 50px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="Click to view PDF">
                                     <i class="fas fa-file-pdf" style="font-size: 24px; color: #ef4444;"></i>
@@ -10488,20 +10508,20 @@ window.viewChecklistHistory = async function() {
                                 </div>
                             `}
                         </td>
-                        <td><strong>${invoice.invoiceNumber}</strong></td>
-                        <td>${invoice.vendor}</td>
-                        <td>
+                        <td data-label="Invoice #"><strong>${invoice.invoiceNumber}</strong></td>
+                        <td data-label="Vendor">${invoice.vendor}</td>
+                        <td data-label="Category">
                             <span class="badge" style="background: var(--accent-primary); color: #fff;">${invoice.category}</span>
                         </td>
-                        <td>${invoice.description}</td>
-                        <td style="font-weight: 600;">$${invoice.amount.toFixed(2)}</td>
-                        <td>${invoice.paymentAccount || '-'}</td>
-                        <td>${formatDate(invoice.dueDate)}</td>
-                        <td>
+                        <td data-label="Store">${invoice.description}</td>
+                        <td data-label="Amount" style="font-weight: 600;">$${invoice.amount.toFixed(2)}</td>
+                        <td data-label="Account">${invoice.paymentAccount || '-'}</td>
+                        <td data-label="Due Date">${formatDate(invoice.dueDate)}</td>
+                        <td data-label="Status">
                             <span class="badge" style="${statusStyles[invoice.status]}">${invoice.status.toUpperCase()}</span>
                             ${invoice.recurring ? '<i class="fas fa-sync-alt" style="margin-left: 8px; color: var(--text-muted);" title="Recurring"></i>' : ''}
                         </td>
-                        <td>
+                        <td data-label="">
                             ${invoice.status !== 'paid' ? `<button class="btn-icon" onclick="markInvoicePaid('${invoiceId}')" title="Mark Paid"><i class="fas fa-check"></i></button>` : ''}
                             <button class="btn-icon" onclick="viewInvoice('${invoiceId}')" title="View Details"><i class="fas fa-eye"></i></button>
                             <button class="btn-icon" onclick="editInvoice('${invoiceId}')" title="Edit"><i class="fas fa-edit"></i></button>
@@ -16447,12 +16467,12 @@ Return ONLY the JSON object, no additional text.`
                     </h4>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+                <div class="perception-distribution-grid">
                     ${[1, 2, 3, 4, 5].map(level => {
                         const count = perceptionCounts[level];
                         const barHeight = total > 0 ? Math.max((count / Math.max(...Object.values(perceptionCounts))) * 100, 5) : 5;
                         return `
-                            <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                            <div class="perception-item" style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                                 <div style="font-size: 32px; margin-bottom: 8px;">${getPerceptionEmoji(level)}</div>
                                 <div style="height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 8px;">
                                     <div style="width: 40px; height: ${barHeight}%; background: ${getPerceptionColor(level)}; border-radius: 6px 6px 0 0; min-height: 4px;"></div>
@@ -18950,11 +18970,21 @@ Return ONLY the JSON object, no additional text.`
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Password *</label>
-                                    <input type="password" class="form-input" id="emp-password" placeholder="Enter a secure password">
+                                    <div style="position: relative;">
+                                        <input type="password" class="form-input" id="emp-password" placeholder="Enter a secure password" style="padding-right: 40px;">
+                                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('emp-password', 'emp-password-toggle')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; padding: 8px;">
+                                            <i class="fas fa-eye" id="emp-password-toggle"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label>Confirm Password *</label>
-                                    <input type="password" class="form-input" id="emp-confirm-password" placeholder="Confirm password">
+                                    <div style="position: relative;">
+                                        <input type="password" class="form-input" id="emp-confirm-password" placeholder="Confirm password" style="padding-right: 40px;">
+                                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('emp-confirm-password', 'emp-confirm-password-toggle')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; padding: 8px;">
+                                            <i class="fas fa-eye" id="emp-confirm-password-toggle"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -22533,6 +22563,22 @@ Return ONLY the JSON object, no additional text.`,
             if (window.capturedPhotoTarget === 'emp-photo') {
                 window.capturedEmployeePhoto = null;
                 window.capturedPhotoTarget = null;
+            }
+        }
+
+        function togglePasswordVisibility(fieldId, iconId) {
+            const field = document.getElementById(fieldId);
+            const icon = document.getElementById(iconId);
+            if (field && icon) {
+                if (field.type === 'password') {
+                    field.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    field.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
             }
         }
 
@@ -31215,8 +31261,13 @@ window.VoiceAssistant = VoiceAssistant;
 
 // Floating add button - simple scroll threshold approach
 const FLOATING_ADD_SCROLL_THRESHOLD = 150; // pixels scrolled before buttons become fixed
+const FLOATING_ADD_MOBILE_THRESHOLD = 50; // smaller threshold for mobile
 let floatingAddScrollListener = null;
 let floatingAddScrollTimeout = null;
+
+function isMobileView() {
+    return window.innerWidth <= 768;
+}
 
 function refreshFloatingAddButtons() {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
@@ -31230,16 +31281,23 @@ function refreshFloatingAddButtons() {
     // Simple scroll listener - fix buttons when scrolled past threshold
     floatingAddScrollListener = () => {
         const scrollY = window.scrollY || window.pageYOffset;
-        const shouldFix = scrollY > FLOATING_ADD_SCROLL_THRESHOLD;
+        const isMobile = isMobileView();
+        const threshold = isMobile ? FLOATING_ADD_MOBILE_THRESHOLD : FLOATING_ADD_SCROLL_THRESHOLD;
+        const shouldFix = scrollY > threshold;
 
         document.querySelectorAll('.floating-add-btn').forEach(button => {
             if (shouldFix) {
                 button.classList.add('is-fixed');
                 // Add is-scrolling class during active scroll (mobile optimization)
                 button.classList.add('is-scrolling');
+                // En mobile, agregar clase especial para flotante
+                if (isMobile) {
+                    button.classList.add('is-floating-mobile');
+                }
             } else {
                 button.classList.remove('is-fixed');
                 button.classList.remove('is-scrolling');
+                button.classList.remove('is-floating-mobile');
             }
         });
 

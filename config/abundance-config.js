@@ -151,7 +151,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
+        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule']
     },
     'employee': {
         // Action Permissions
