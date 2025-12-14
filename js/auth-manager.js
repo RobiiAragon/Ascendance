@@ -28,7 +28,6 @@ class AuthenticationManager {
             if (sessionData) {
                 this.currentUser = JSON.parse(sessionData);
                 this.currentUserRole = this.currentUser.role;
-                console.log('Session restored for user:', this.currentUser.email);
                 return true;
             }
         } catch (error) {

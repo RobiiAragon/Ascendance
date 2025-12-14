@@ -269,7 +269,6 @@
                 const snapshot = await fileRef.put(blob);
                 const downloadUrl = await snapshot.ref.getDownloadURL();
 
-                console.log(`✅ Image uploaded to Firebase Storage: ${storagePath}`);
                 return downloadUrl;
             } catch (error) {
                 console.error('Error uploading image to Firebase Storage:', error);
@@ -392,7 +391,6 @@
          * Initialize Firebase and load announcements from Firestore
          */
         async function initializeFirebaseAnnouncements() {
-            console.log('Initializing Firebase for announcements...');
 
             const initialized = await firebaseAnnouncementsManager.initialize();
 
@@ -401,7 +399,6 @@
                     const firestoreAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
 
                     if (firestoreAnnouncements && firestoreAnnouncements.length > 0) {
-                        console.log('Loaded announcements from Firestore:', firestoreAnnouncements);
                         announcements = firestoreAnnouncements;
                     } else {
                         console.log('No announcements in Firestore, using fallback data and migrating...');
@@ -452,7 +449,6 @@
             try {
                 if (firebaseAnnouncementsManager.isInitialized) {
                     readAnnouncementIds = await firebaseAnnouncementsManager.getReadAnnouncements(userId);
-                    console.log('Loaded read announcements for user:', readAnnouncementIds);
                 }
             } catch (error) {
                 console.error('Error loading read announcements:', error);
@@ -582,7 +578,6 @@
         });
 
         async function initializeFirebaseRestockRequests() {
-            console.log('Initializing Firebase for restock requests...');
 
             const initialized = await firebaseRestockRequestsManager.initialize();
 
@@ -591,7 +586,6 @@
                     const firestoreRequests = await firebaseRestockRequestsManager.loadRestockRequests();
 
                     if (firestoreRequests && firestoreRequests.length > 0) {
-                        console.log('Loaded restock requests from Firestore:', firestoreRequests);
                         restockRequests = firestoreRequests;
                     } else {
                         console.log('No restock requests in Firestore, using fallback data and migrating...');
@@ -624,7 +618,6 @@
         }
 
         async function initializeFirebaseChangeRecords() {
-            console.log('Initializing Firebase for change records...');
 
             const initialized = await firebaseChangeRecordsManager.initialize();
 
@@ -633,7 +626,6 @@
                     const firestoreRecords = await firebaseChangeRecordsManager.loadChangeRecords();
 
                     if (firestoreRecords && firestoreRecords.length > 0) {
-                        console.log('Loaded change records from Firestore:', firestoreRecords);
                         changeRecords = firestoreRecords;
                     } else {
                         console.log('No change records in Firestore, using fallback data and migrating...');
@@ -665,7 +657,6 @@
         }
 
         async function initializeFirebaseCashOut() {
-            console.log('Initializing Firebase for cash out records...');
 
             const initialized = await firebaseCashOutManager.initialize();
 
@@ -674,7 +665,6 @@
                     const firestoreRecords = await firebaseCashOutManager.loadCashOutRecords();
 
                     if (firestoreRecords && firestoreRecords.length > 0) {
-                        console.log('Loaded cash out records from Firestore:', firestoreRecords);
                         cashOutRecords = firestoreRecords;
                     } else {
                         console.log('No cash out records in Firestore, using fallback data and migrating...');
@@ -1020,7 +1010,6 @@
          * This function is called when the page loads
          */
         async function initializeFirebaseEmployees() {
-            console.log('Initializing Firebase for employee management...');
             
             // Initialize Firebase manager
             const initialized = await firebaseEmployeeManager.initialize();
@@ -1030,9 +1019,7 @@
                     // Load employees from Firestore
                     const firestoreEmployees = await firebaseEmployeeManager.loadEmployees();
                     
-                    if (firestoreEmployees && firestoreEmployees.length > 0) {
-                        console.log('Loaded employees from Firestore:', firestoreEmployees);
-                        
+                    if (firestoreEmployees && firestoreEmployees.length > 0) {                        
                         // Map Firestore data to the local employees array
                         // This maintains compatibility with existing code while loading from Firebase
                         employees = firestoreEmployees.map(emp => ({
@@ -1052,7 +1039,6 @@
                             color: emp.color || ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)]
                         }));
                         
-                        console.log(`Successfully loaded ${employees.length} employees from Firestore`);
                         // Update employee count badge in sidebar
                         if (typeof updateEmployeeCountBadge === 'function') {
                             updateEmployeeCountBadge();
@@ -1133,15 +1119,11 @@
 
         // Navigation handler
         function navigateTo(page, addToHistory = true) {
-            console.log('navigateTo called with:', page);
-
             // Check if user has permission to access this page
             const user = getCurrentUser();
             const userRole = user.role || 'employee';
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
-
-            console.log('User role:', userRole, 'Allowed pages:', allowedPages);
 
             // If page not in allowed list, silently deny access and return to current page
             if (!allowedPages.includes(page)) {
@@ -1223,7 +1205,6 @@
         });
 
         async function renderPage(page) {
-            console.log('renderPage called with:', page);
             const dashboard = document.querySelector('.dashboard');
 
             // Stop clock in polling when navigating away from clockin page
@@ -1535,7 +1516,6 @@
                         revenueTrend.innerHTML = `<i class="fas fa-shopping-cart"></i> ${totalOrders} orders`;
                         revenueTrend.className = 'stat-trend up';
 
-                        console.log(`[Dashboard] ✅ Monthly revenue loaded: ${displayValue} (${totalOrders} orders)`);
                     }
                 } else {
                     // Fallback: fetchSalesAnalytics not available
@@ -1658,7 +1638,6 @@
                             photo: emp.photo || null,
                             photoPath: emp.photoPath || null
                         }));
-                        console.log(`Loaded ${employees.length} employees from Firebase`);
                         // Update employee count badge in sidebar
                         updateEmployeeCountBadge();
                     }
@@ -1913,22 +1892,22 @@
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Licenses & Documents</h2>
-                        <div style="display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
-                            <p class="section-subtitle">Drag and drop documents between stores</p>
-                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-secondary); border-radius: 6px;">
-                                <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Edit Mode:</span>
+                        <p class="section-subtitle">Drag and drop documents between stores</p>
+                        <div class="licenses-controls-row">
+                            <div class="edit-mode-toggle">
+                                <span class="edit-mode-label">Edit Mode:</span>
                                 <button onclick="toggleLicensesEditMode()" style="background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
                                     <div style="width: 44px; height: 24px; background: ${licensesEditMode ? '#10b981' : '#ef4444'}; border-radius: 12px; position: relative; transition: background 0.3s;">
                                         <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; ${licensesEditMode ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s;"></div>
                                     </div>
                                 </button>
-                                <span style="font-size: 12px; color: ${licensesEditMode ? '#10b981' : '#ef4444'}; font-weight: 600; min-width: 60px;">${licensesEditMode ? '✓ EDITABLE' : '✗ LOCKED'}</span>
+                                <span class="edit-mode-status" style="color: ${licensesEditMode ? '#10b981' : '#ef4444'};">${licensesEditMode ? '✓ EDITABLE' : '✗ LOCKED'}</span>
                             </div>
+                            <button class="btn-primary btn-add-document" onclick="openModal('add-license')">
+                                <i class="fas fa-plus"></i> Add Document
+                            </button>
                         </div>
                     </div>
-                    <button class="btn-primary" onclick="openModal('add-license')">
-                        <i class="fas fa-plus"></i> Add Document
-                    </button>
                 </div>
 
                 <div class="license-summary">
@@ -2994,7 +2973,6 @@
                 await pollForClockUpdates();
             }, 5000);
 
-            console.log('✅ Real-time clock in/out polling started');
         }
 
         /**
@@ -3195,7 +3173,6 @@
             // 1. First try to find by NAME (this is the primary identifier to avoid duplicates)
             if (currentUser.name) {
                 employee = employees.find(e => e.name === currentUser.name);
-                if (employee) console.log('✅ Found employee by name:', currentUser.name);
             }
             
             // 2. If not found by name, try by ID
@@ -3203,14 +3180,12 @@
                 const userId = currentUser.userId || currentUser.id;
                 if (userId) {
                     employee = employees.find(e => String(e.id) === String(userId));
-                    if (employee) console.log('✅ Found employee by ID:', userId);
                 }
             }
 
             // 3. If still not found, try by authEmail
             if (!employee && currentUser.email) {
                 employee = employees.find(e => e.authEmail === currentUser.email);
-                if (employee) console.log('✅ Found employee by authEmail:', currentUser.email);
             }
 
             // 4. If still not found, create a minimal employee object
@@ -3229,7 +3204,6 @@
 
             const store = employee.store || 'VSU Miramar';
 
-            console.log('✅ Clock action for user:', employee.name, 'at', time, 'Action:', currentClockAction);
 
             // Format date as YYYY-MM-DD for consistency
             const today = new Date();
@@ -3342,12 +3316,10 @@
 
                 // Save to Firebase
                 await firebaseClockInManager.saveClockRecord(firebaseRecord);
-                console.log('✅ Clock record saved to Firebase successfully');
                 
                 // Reload from Firebase immediately to sync state across devices/reloads
                 try {
                     const updatedRecords = await firebaseClockInManager.loadClockRecordsByDate(dateString);
-                    console.log('✅ Reloaded updated records from Firebase:', updatedRecords.length);
                     
                     if (updatedRecords.length > 0) {
                         // Update local records with Firebase data
@@ -3426,7 +3398,6 @@
                 let firebaseRecords = [];
                 try {
                     firebaseRecords = await firebaseClockInManager.loadClockRecordsByDate(dateString);
-                    console.log('✅ Loaded clock records from Firebase:', firebaseRecords.length);
                     
                     // Merge Firebase records with local records intelligently
                     if (firebaseRecords.length > 0) {
@@ -4127,7 +4098,6 @@
                             ...doc.data()
                         });
                     });
-                    console.log(`Loaded ${suppliesData.length} supplies from Firebase`);
                 }
             } catch (error) {
                 console.error('Error loading supplies:', error);
@@ -4490,7 +4460,6 @@ async function loadChecklistTasks() {
         { id: 'close-7', task: 'Turn off lights and signage', order: 7, shift: 'closing', store: 'all' },
         { id: 'close-8', task: 'Set alarm and lock store', order: 8, shift: 'closing', store: 'all' }
     ];
-    console.log('Loaded', checklistData.tasks.length, 'default tasks');
 }
 
 // Load today's completions from Firebase
@@ -4789,11 +4758,13 @@ window.renderDailyChecklist = async function() {
                 <button onclick="viewChecklistHistory()" class="btn-secondary">
                     <i class="fas fa-history"></i> History
                 </button>
+                <!-- Add Task button hidden
                 ${canManageTasks ? `
                     <button onclick="openAddTaskModal(checklistCurrentShift)" class="btn-primary">
                         <i class="fas fa-plus"></i> Add Task
                     </button>
                 ` : ''}
+                -->
             </div>
         </div>
 
@@ -5219,7 +5190,6 @@ window.viewChecklistHistory = async function() {
             try {
                 console.log('[Restock] Loading inventory from all Shopify stores...');
                 shopifyInventory = await fetchAllStoresInventory();
-                console.log(`[Restock] ✅ Loaded ${shopifyInventory.length} items from Shopify`);
                 return shopifyInventory;
             } catch (error) {
                 console.error('[Restock] Error loading inventory:', error);
@@ -5980,7 +5950,6 @@ window.viewChecklistHistory = async function() {
             if (typeof initializeAbundanceCloud === 'function') {
                 setTimeout(() => {
                     initializeAbundanceCloud();
-                    console.log('✅ Abundance Cloud initialized from renderAbundanceCloud');
                 }, 100);
             }
         }
@@ -7677,12 +7646,7 @@ window.viewChecklistHistory = async function() {
             try {
                 // Make sure employees are loaded first
                 if (employees.length === 0) {
-                    console.log('⏳ Loading employees for schedule...');
                     await loadEmployeesFromFirebase();
-                    console.log('✅ Employees loaded:', employees.length);
-                    console.log('📋 Employee details:', employees);
-                } else {
-                    console.log('✅ Employees already loaded:', employees.length);
                 }
 
                 const db = firebase.firestore();
@@ -7705,9 +7669,6 @@ window.viewChecklistHistory = async function() {
                     daysOff.push({ id: doc.id, ...doc.data() });
                 });
 
-                console.log('📅 Loaded schedules from Firestore:', schedules.length);
-                console.log('🏖️ Loaded days off from Firestore:', daysOff.length);
-                console.log('👥 Employees available:', employees.length);
                 renderScheduleGrid();
             } catch (error) {
                 console.error('Error loading schedules:', error);
@@ -8620,12 +8581,6 @@ window.viewChecklistHistory = async function() {
 
             if (!currentPickerContext) return;
 
-            console.log('🔍 Employee Picker Debug:');
-            console.log('Total employees loaded:', employees.length);
-            console.log('Current store filter:', currentPickerContext.storeFilter);
-            console.log('Selected date:', currentPickerContext.dateKey);
-            console.log('All employees:', employees);
-
             let filteredEmployees = [...employees];
 
             // REMOVED: Filter by store - Show ALL employees from Firebase regardless of store
@@ -9187,7 +9142,6 @@ window.viewChecklistHistory = async function() {
          * Initialize Firebase and load thieves from Firestore
          */
         async function initializeFirebaseThieves() {
-            console.log('Initializing Firebase for thieves database...');
 
             const initialized = await firebaseThievesManager.initialize();
 
@@ -9196,9 +9150,7 @@ window.viewChecklistHistory = async function() {
                     const firestoreThieves = await firebaseThievesManager.loadThieves();
 
                     if (firestoreThieves && firestoreThieves.length > 0) {
-                        console.log('Loaded thieves from Firestore:', firestoreThieves);
                         thieves = firestoreThieves;
-                        console.log(`Successfully loaded ${thieves.length} thief records from Firestore`);
                     } else {
                         thieves = [];
                         console.log('No thieves found in Firestore');
@@ -9262,27 +9214,24 @@ window.viewChecklistHistory = async function() {
         function renderThieves() {
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
-                <div class="page-header">
+                <div class="page-header thieves-page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Thieves Database</h2>
                         <p class="section-subtitle">Track and manage theft incidents</p>
+                        <select class="form-input thieves-filter-select" id="thieves-filter" onchange="filterThieves(this.value)">
+                            <option value="all">All Stores</option>
+                            <option value="Miramar">Miramar</option>
+                            <option value="Morena">Morena</option>
+                            <option value="Kearny Mesa">Kearny Mesa</option>
+                            <option value="Chula Vista">Chula Vista</option>
+                            <option value="North Park">North Park</option>
+                            <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                        </select>
                     </div>
-                    <button class="btn-primary floating-add-btn" onclick="openModal('add-thief')">
+                    <button class="btn-primary floating-add-btn thieves-add-btn" onclick="openModal('add-thief')">
                         <i class="fas fa-plus"></i>
                         Add New Record
                     </button>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-                    <select class="form-input" style="width: 180px;" id="thieves-filter" onchange="filterThieves(this.value)">
-                        <option value="all">All Stores</option>
-                        <option value="Miramar">Miramar</option>
-                        <option value="Morena">Morena</option>
-                        <option value="Kearny Mesa">Kearny Mesa</option>
-                        <option value="Chula Vista">Chula Vista</option>
-                        <option value="North Park">North Park</option>
-                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                    </select>
                 </div>
 
                 <div id="thievesCardsContainer">
@@ -11601,7 +11550,6 @@ Return ONLY the JSON object, no additional text.`
                 if (firebaseInvoices.length > 0) {
                     // Replace local invoices with Firebase data
                     invoices = firebaseInvoices;
-                    console.log('Loaded', firebaseInvoices.length, 'invoices from Firebase');
                 }
             } catch (error) {
                 console.error('Error loading invoices from Firebase:', error);
@@ -11632,7 +11580,6 @@ Return ONLY the JSON object, no additional text.`
                 });
 
                 treasuryItems = items;
-                console.log('✅ Loaded treasury items from Firebase:', treasuryItems.length);
                 return true;
             } catch (error) {
                 console.error('❌ Error loading treasury items from Firebase:', error);
@@ -12011,7 +11958,6 @@ Return ONLY the JSON object, no additional text.`
                             const db = firebase.firestore();
                             const treasuryCollection = window.FIREBASE_COLLECTIONS?.treasury || 'treasury';
                             await db.collection(treasuryCollection).doc(item.firestoreId).delete();
-                            console.log('✅ Treasury item deleted from Firebase');
                         }
 
                         // Remove from local array
@@ -12102,7 +12048,6 @@ Return ONLY the JSON object, no additional text.`
 
                     imageUrl = originalUrl;
                     thumbnailUrl = thumbUrl;
-                    console.log('✅ Uploaded original + thumbnail to Firebase Storage');
                 } catch (err) {
                     console.error('Error uploading treasury image:', err);
                     showNotification('Error uploading image to Firebase Storage', 'error');
@@ -12151,7 +12096,6 @@ Return ONLY the JSON object, no additional text.`
                                     thumbnail: thumbnailUrl,
                                     updatedAt: new Date()
                                 });
-                                console.log('✅ Treasury item updated in Firebase');
                             } else {
                                 // If no firestoreId, save as new
                                 const docRef = await db.collection(treasuryCollection).add({
@@ -12167,7 +12111,6 @@ Return ONLY the JSON object, no additional text.`
                                     updatedAt: new Date()
                                 });
                                 item.firestoreId = docRef.id;
-                                console.log('✅ Treasury item created in Firebase');
                             }
                         }
                     }
@@ -12202,7 +12145,6 @@ Return ONLY the JSON object, no additional text.`
                             updatedAt: new Date()
                         });
                         newItem.firestoreId = docRef.id;
-                        console.log('✅ Treasury item saved to Firebase');
                     }
 
                     treasuryItems.push(newItem);
@@ -13483,7 +13425,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
          */
         async function initializeFirebaseGifts() {
             try {
-                console.log('Initializing Firebase for gifts management...');
                 
                 // Initialize Firebase manager
                 const initialized = await firebaseGiftsManager.initialize();
@@ -13494,7 +13435,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                         const firestoreGifts = await firebaseGiftsManager.loadGifts();
                         
                         if (firestoreGifts && firestoreGifts.length > 0) {
-                            console.log('Loaded gifts from Firestore:', firestoreGifts);
                             
                             // Map Firestore data to the local giftsRecords array
                             giftsRecords = firestoreGifts.map(gift => ({
@@ -13513,7 +13453,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                                 photoPath: gift.photoPath || null
                             }));
                             
-                            console.log(`Successfully loaded ${giftsRecords.length} gifts from Firestore`);
                             return true;
                         }
                     } catch (error) {
@@ -13579,7 +13518,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
          */
         async function initializeFirebaseIssues() {
             try {
-                console.log('Initializing Firebase for issues management...');
 
                 // Initialize Firebase manager
                 const initialized = await firebaseIssuesManager.initialize();
@@ -13591,7 +13529,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
 
                         // Replace local issues with Firestore data (even if empty, to clear dummy data)
                         if (firestoreIssues && firestoreIssues.length > 0) {
-                            console.log('Loaded issues from Firestore:', firestoreIssues);
 
                             // Map Firestore data to the local issues array
                             issues = firestoreIssues.map(issue => ({
@@ -13614,11 +13551,9 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                                 statusHistory: issue.statusHistory || []
                             }));
 
-                            console.log(`Successfully loaded ${issues.length} issues from Firestore`);
                         } else {
                             // Clear local dummy data if Firebase is connected but empty
                             issues = [];
-                            console.log('No issues in Firestore, cleared local data');
                         }
                         return true;
                     } catch (error) {
@@ -13637,8 +13572,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
         // Initialize Firebase Licenses
         async function initializeFirebaseLicenses() {
             try {
-                console.log('Initializing Firebase for licenses management...');
-
                 // Initialize Firebase manager
                 const initialized = await firebaseLicensesManager.initialize();
 
@@ -13648,8 +13581,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                         const firestoreLicenses = await firebaseLicensesManager.loadLicenses();
 
                         if (firestoreLicenses && firestoreLicenses.length > 0) {
-                            console.log('Loaded licenses from Firestore:', firestoreLicenses.length);
-
                             // Map Firestore data to the local licenses array
                             licenses = firestoreLicenses.map(lic => ({
                                 id: lic.firestoreId || lic.id,
@@ -13667,7 +13598,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                                 uploadedBy: lic.uploadedBy || null
                             }));
 
-                            console.log(`✅ Successfully loaded ${licenses.length} licenses from Firestore`);
                             return true;
                         } else {
                             console.log('No licenses found in Firestore, using local data');
@@ -14271,7 +14201,6 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                     try {
                         if (firebaseLicensesManager && firebaseLicensesManager.isInitialized) {
                             await firebaseLicensesManager.deleteLicense(firestoreId);
-                            console.log(`✅ License "${licenseName}" deleted from Firebase`);
                             showToast(`"${licenseName}" deleted successfully`, 'success');
                         }
                     } catch (error) {
@@ -15921,12 +15850,7 @@ Return ONLY the JSON object, no additional text.`
         }
 
         function viewCashOutDetails(recordId) {
-            console.log('viewCashOutDetails called with:', recordId);
-            console.log('cashOutRecords:', cashOutRecords);
-
             const record = cashOutRecords.find(r => r.id === recordId || r.firestoreId === recordId || String(r.id) === String(recordId) || String(r.firestoreId) === String(recordId));
-
-            console.log('Found record:', record);
 
             if (!record) {
                 console.error('Record not found for ID:', recordId);
@@ -17158,7 +17082,6 @@ Return ONLY the JSON object, no additional text.`
                 // Load vendors from Firebase
                 if (firebaseVendorsManager.isInitialized) {
                     firebaseVendors = await firebaseVendorsManager.loadVendors();
-                    console.log(`✅ Loaded ${firebaseVendors.length} vendors from Firebase`);
                 } else {
                     console.warn('⚠️ Firebase not initialized.');
                     firebaseVendors = [];
@@ -20104,6 +20027,46 @@ Return ONLY the JSON object, no additional text.`
                     `;
                     break;
                 case 'create-cashout':
+                    // Initialize voice assistant for cashout form
+                    setTimeout(() => {
+                        VoiceAssistant.init('cashout', {
+                            title: 'AI Voice Assistant',
+                            subtitle: 'Speak to auto-fill the expense form',
+                            buttonColor: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                            listeningText: 'Listening... Describe the expense',
+                            systemPrompt: 'You are an assistant helping to document cash out expenses at a retail store. Extract structured information from voice transcripts about expenses and cash withdrawals.',
+                            prompt: `Analyze this voice transcript about an expense/cash out and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "{transcript}"
+
+{
+    "description": "clear description of the expense (e.g., Office Supplies from Staples, Bank Deposit, Cleaning Supplies)",
+    "amount": "the amount as a number (no currency symbols)",
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "notes": "any additional relevant details"
+}
+
+Return ONLY the JSON object, no additional text.`,
+                            onFill: (data) => {
+                                if (data.description) document.getElementById('cashout-name').value = data.description;
+                                else if (data._transcript) document.getElementById('cashout-name').value = data._transcript;
+                                if (data.amount) {
+                                    const amt = parseFloat(data.amount.toString().replace(/[^0-9.]/g, ''));
+                                    if (!isNaN(amt)) document.getElementById('cashout-amount').value = amt.toFixed(2);
+                                }
+                                if (data.store) {
+                                    const storeSelect = document.getElementById('cashout-store');
+                                    for (let opt of storeSelect.options) {
+                                        if (opt.value.toLowerCase().includes(data.store.toLowerCase()) || data.store.toLowerCase().includes(opt.value.toLowerCase())) {
+                                            storeSelect.value = opt.value; break;
+                                        }
+                                    }
+                                }
+                                if (data.notes) document.getElementById('cashout-reason').value = data.notes;
+                            }
+                        });
+                    }, 100);
+
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-money-bill-wave"></i> Add Cash Out</h2>
@@ -20127,15 +20090,15 @@ Return ONLY the JSON object, no additional text.`
                                         <button type="button" id="cashout-ai-scan-btn" onclick="document.getElementById('cashout-ai-photo').click()" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                                             <i class="fas fa-camera"></i> Scan
                                         </button>
-                                        <button type="button" id="cashout-voice-btn" onclick="toggleCashoutVoiceRecording()" style="padding: 10px 16px; background: linear-gradient(135deg, #ec4899, #f59e0b); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(236,72,153,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <i class="fas fa-microphone" id="cashout-voice-icon"></i> <span id="cashout-voice-text">Voice</span>
+                                        <button type="button" id="va-btn-cashout" onclick="VoiceAssistant.toggle('cashout')" style="padding: 10px 16px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <i class="fas fa-microphone" id="va-icon-cashout"></i> <span id="va-text-cashout">Voice</span>
                                         </button>
                                     </div>
                                 </div>
-                                <div id="cashout-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
-                                <div id="cashout-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <div id="va-status-cashout" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                                <div id="va-transcript-cashout" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
                                     <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
-                                    <div id="cashout-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
+                                    <div id="va-transcript-text-cashout" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
                                 </div>
                             </div>
 
@@ -20246,6 +20209,55 @@ Return ONLY the JSON object, no additional text.`
                     `;
                     break;
                 case 'create-issue':
+                    // Initialize voice assistant for issue form
+                    setTimeout(() => {
+                        VoiceAssistant.init('issue', {
+                            title: 'AI Voice Assistant',
+                            subtitle: 'Speak to auto-fill the issue form',
+                            buttonColor: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                            listeningText: 'Listening... Describe the issue',
+                            systemPrompt: 'You are an assistant helping to document customer issues at a retail store. Extract structured information from voice transcripts about customer complaints, returns, or service issues.',
+                            prompt: `Analyze this voice transcript about a customer issue and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "{transcript}"
+
+{
+    "customerName": "the customer's name if mentioned",
+    "phone": "phone number if mentioned",
+    "issueType": "one of: In Store, Online",
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "description": "a clear description of the issue",
+    "perception": "1-5 where 1=Very Upset, 2=Upset, 3=Neutral, 4=Satisfied, 5=Happy (based on how the customer left)"
+}
+
+Return ONLY the JSON object, no additional text.`,
+                            onFill: (data) => {
+                                if (data.customerName) document.getElementById('issue-customer').value = data.customerName;
+                                if (data.phone) document.getElementById('issue-phone').value = data.phone;
+                                if (data.issueType) {
+                                    const typeSelect = document.getElementById('issue-type');
+                                    for (let opt of typeSelect.options) {
+                                        if (opt.value.toLowerCase() === data.issueType.toLowerCase()) { typeSelect.value = opt.value; break; }
+                                    }
+                                }
+                                if (data.store) {
+                                    const storeSelect = document.getElementById('issue-store');
+                                    for (let opt of storeSelect.options) {
+                                        if (opt.value.toLowerCase().includes(data.store.toLowerCase()) || data.store.toLowerCase().includes(opt.value.toLowerCase())) {
+                                            storeSelect.value = opt.value; break;
+                                        }
+                                    }
+                                }
+                                if (data.description) document.getElementById('issue-description').value = data.description;
+                                else if (data._transcript) document.getElementById('issue-description').value = data._transcript;
+                                if (data.perception) {
+                                    const p = parseInt(data.perception);
+                                    if (p >= 1 && p <= 5) selectPerception(p);
+                                }
+                            }
+                        });
+                    }, 100);
+
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-exclamation-triangle"></i> Create Issue</h2>
@@ -20253,30 +20265,7 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                         <div class="modal-body">
                             <!-- AI Voice Assistant Section -->
-                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1)); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #ef4444, #f59e0b); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Voice Assistant</div>
-                                            <div style="font-size: 12px; color: var(--text-muted);">Speak to auto-fill the issue form</div>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <button type="button" id="issue-voice-btn" onclick="toggleIssueVoiceRecording()" style="padding: 12px 20px; background: linear-gradient(135deg, #ef4444, #f59e0b); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(239,68,68,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <i class="fas fa-microphone" id="issue-voice-icon"></i>
-                                            <span id="issue-voice-text">Start Recording</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="issue-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
-                                <div id="issue-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
-                                    <div id="issue-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
-                                </div>
-                            </div>
+                            ${VoiceAssistant.getHTML('issue', { title: 'AI Voice Assistant', subtitle: 'Speak to auto-fill the issue form', buttonColor: 'linear-gradient(135deg, #ef4444, #f59e0b)' })}
 
                             <div class="form-row">
                                 <div class="form-group">
@@ -20927,6 +20916,64 @@ Return ONLY the JSON object, no additional text.`
                     break;
 
                 case 'add-risknote':
+                    // Initialize voice assistant for risk note form
+                    setTimeout(() => {
+                        VoiceAssistant.init('risknote', {
+                            title: 'AI Voice Assistant',
+                            subtitle: 'Speak to auto-fill the form',
+                            buttonColor: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                            listeningText: 'Listening... Describe the incident',
+                            systemPrompt: 'You are a security assistant helping to document risk notes for a retail store. Extract structured information from voice transcripts about suspicious activity or policy violations.',
+                            prompt: `Analyze this voice transcript about a risk/security incident and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "{transcript}"
+
+{
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "behaviorType": "one of: strange_questions, unusual_purchase, recording, policy_violation, suspicious_attitude, other",
+    "description": "a clear, professional description of what happened based on the transcript",
+    "riskLevel": "low, medium, or high based on severity",
+    "reportedBy": "name of the person reporting if mentioned"
+}
+
+Behavior type guidelines:
+- strange_questions: asking unusual questions about security, schedules, or policies
+- unusual_purchase: suspicious buying patterns, bulk purchases, specific combinations
+- recording: taking photos/videos without permission
+- policy_violation: attempting to violate store policies
+- suspicious_attitude: nervous behavior, watching cameras, avoiding eye contact
+- other: anything that doesn't fit above
+
+Risk level guidelines:
+- low: minor concern, document for awareness
+- medium: notable concern, should monitor
+- high: immediate concern, requires action
+
+Return ONLY the JSON object, no additional text.`,
+                            onFill: (data) => {
+                                if (data.store) {
+                                    const storeSelect = document.getElementById('risknote-store');
+                                    for (let opt of storeSelect.options) {
+                                        if (opt.value.toLowerCase().includes(data.store.toLowerCase()) || data.store.toLowerCase().includes(opt.value.toLowerCase())) {
+                                            storeSelect.value = opt.value; break;
+                                        }
+                                    }
+                                }
+                                if (data.behaviorType) {
+                                    const typeSelect = document.getElementById('risknote-type');
+                                    const typeValue = data.behaviorType.toLowerCase().replace(/\s+/g, '_');
+                                    for (let opt of typeSelect.options) {
+                                        if (opt.value === typeValue) { typeSelect.value = opt.value; break; }
+                                    }
+                                }
+                                if (data.description) document.getElementById('risknote-description').value = data.description;
+                                else if (data._transcript) document.getElementById('risknote-description').value = data._transcript;
+                                if (data.riskLevel) selectRiskLevel(data.riskLevel.toLowerCase());
+                                if (data.reportedBy) document.getElementById('risknote-reporter').value = data.reportedBy;
+                            }
+                        });
+                    }, 100);
+
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-shield-halved"></i> New Risk Note</h2>
@@ -20934,30 +20981,7 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                         <div class="modal-body">
                             <!-- AI Voice Assistant Section -->
-                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Voice Assistant</div>
-                                            <div style="font-size: 12px; color: var(--text-muted);">Speak to auto-fill the form</div>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <button type="button" id="risknote-voice-btn" onclick="toggleRiskNoteVoiceRecording()" style="padding: 12px 20px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <i class="fas fa-microphone" id="risknote-voice-icon"></i>
-                                            <span id="risknote-voice-text">Start Recording</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="risknote-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
-                                <div id="risknote-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
-                                    <div id="risknote-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
-                                </div>
-                            </div>
+                            ${VoiceAssistant.getHTML('risknote', { title: 'AI Voice Assistant', subtitle: 'Speak to auto-fill the form', buttonColor: 'linear-gradient(135deg, #8b5cf6, #ec4899)' })}
 
                             <div class="form-row">
                                 <div class="form-group">
@@ -20996,15 +21020,15 @@ Return ONLY the JSON object, no additional text.`
                                 <div style="display: flex; gap: 12px;">
                                     <button type="button" class="risk-level-btn" data-level="low" onclick="selectRiskLevel('low')" style="flex: 1; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
                                         <div style="font-size: 20px; margin-bottom: 4px; color: #22c55e;">🟢</div>
-                                        <div style="font-size: 12px; font-weight: 600;">Low</div>
+                                        <div style="font-size: 12px; font-family: Outfit;">Low</div>
                                     </button>
                                     <button type="button" class="risk-level-btn" data-level="medium" onclick="selectRiskLevel('medium')" style="flex: 1; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
                                         <div style="font-size: 20px; margin-bottom: 4px; color: #f59e0b;">🟡</div>
-                                        <div style="font-size: 12px; font-weight: 600;">Medium</div>
+                                        <div style="font-size: 12px; font-family: Outfit;">Medium</div>
                                     </button>
                                     <button type="button" class="risk-level-btn" data-level="high" onclick="selectRiskLevel('high')" style="flex: 1; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
-                                        <div style="font-size: 20px; margin-bottom: 4px; color: #ef4444;">🔴</div>
-                                        <div style="font-size: 12px; font-weight: 600;">High</div>
+                                        <div style="font-size: 20px; margin-bottom: 4px; color: #ef4444; font-family: Outfit;">🔴</div>
+                                        <div style="font-size: 12px; font-family: Outfit;">High</div>
                                     </button>
                                 </div>
                                 <input type="hidden" id="risknote-level" value="low">
@@ -21041,6 +21065,62 @@ Return ONLY the JSON object, no additional text.`
                     break;
 
                 case 'add-gift':
+                    // Initialize voice assistant for gift form
+                    setTimeout(() => {
+                        VoiceAssistant.init('gift', {
+                            title: 'AI Voice Assistant',
+                            subtitle: 'Speak to auto-fill the gift form',
+                            buttonColor: 'linear-gradient(135deg, #ec4899, #f59e0b)',
+                            listeningText: 'Listening... Describe the gift',
+                            systemPrompt: 'You are an assistant helping to document gifts given at a retail store. Extract structured information from voice transcripts about gifts given to customers, vendors, or employees.',
+                            prompt: `Analyze this voice transcript about a gift and extract the information. Return ONLY a JSON object with these fields (use null for any field you cannot determine):
+
+Transcript: "{transcript}"
+
+{
+    "productName": "the product being given as a gift",
+    "quantity": "number of items (default 1)",
+    "value": "estimated value in dollars as a number",
+    "recipientName": "name of person receiving the gift",
+    "recipientType": "one of: customer, vendor, employee, other",
+    "reason": "clear explanation of why the gift was given",
+    "store": "one of: Miramar, Morena, Kearny Mesa, Chula Vista, North Park, Miramar Wine & Liquor (if mentioned)",
+    "notes": "any additional relevant details"
+}
+
+Return ONLY the JSON object, no additional text.`,
+                            onFill: (data) => {
+                                if (data.productName) document.getElementById('gift-product').value = data.productName;
+                                if (data.quantity) {
+                                    const qty = parseInt(data.quantity);
+                                    if (!isNaN(qty) && qty > 0) document.getElementById('gift-quantity').value = qty;
+                                }
+                                if (data.value) {
+                                    const val = parseFloat(data.value.toString().replace(/[^0-9.]/g, ''));
+                                    if (!isNaN(val)) document.getElementById('gift-value').value = val.toFixed(2);
+                                }
+                                if (data.recipientName) document.getElementById('gift-recipient').value = data.recipientName;
+                                if (data.recipientType) {
+                                    const typeSelect = document.getElementById('gift-recipient-type');
+                                    for (let opt of typeSelect.options) {
+                                        if (opt.value === data.recipientType.toLowerCase()) { typeSelect.value = opt.value; break; }
+                                    }
+                                }
+                                if (data.reason) document.getElementById('gift-reason').value = data.reason;
+                                else if (data._transcript) document.getElementById('gift-reason').value = data._transcript;
+                                if (data.store) {
+                                    const storeSelect = document.getElementById('gift-store');
+                                    for (let opt of storeSelect.options) {
+                                        if (opt.value.toLowerCase().includes(data.store.toLowerCase()) || data.store.toLowerCase().includes(opt.value.toLowerCase())) {
+                                            storeSelect.value = opt.value; break;
+                                        }
+                                    }
+                                }
+                                if (data.notes) document.getElementById('gift-notes').value = data.notes;
+                            }
+                        });
+                    }, 100);
+
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-gift"></i> Register Gift</h2>
@@ -21048,30 +21128,7 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                         <div class="modal-body">
                             <!-- AI Voice Assistant Section -->
-                            <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(245, 158, 11, 0.1)); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 12px;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #ec4899, #f59e0b); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">AI Voice Assistant</div>
-                                            <div style="font-size: 12px; color: var(--text-muted);">Speak to auto-fill the gift form</div>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <button type="button" id="gift-voice-btn" onclick="toggleGiftVoiceRecording()" style="padding: 12px 20px; background: linear-gradient(135deg, #ec4899, #f59e0b); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(236,72,153,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <i class="fas fa-microphone" id="gift-voice-icon"></i>
-                                            <span id="gift-voice-text">Start Recording</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="gift-voice-status" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
-                                <div id="gift-transcript-preview" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">What you said:</div>
-                                    <div id="gift-transcript-text" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
-                                </div>
-                            </div>
+                            ${VoiceAssistant.getHTML('gift', { title: 'AI Voice Assistant', subtitle: 'Speak to auto-fill the gift form', buttonColor: 'linear-gradient(135deg, #ec4899, #f59e0b)' })}
 
                             <div class="form-row">
                                 <div class="form-group" style="flex: 2;">
@@ -23120,7 +23177,6 @@ Return ONLY the JSON object, no additional text.`
                         if (updatedLicenses && updatedLicenses.length > 0) {
                             licenses = updatedLicenses;
                         }
-                        console.log('✅ License saved to Firebase with ID:', docId);
                     }
                 } catch (error) {
                     console.error('Error saving license to Firebase:', error);
@@ -23325,7 +23381,6 @@ Return ONLY the JSON object, no additional text.`
                 const savedProduct = await firebaseProductManager.saveProduct(productData);
 
                 if (savedProduct) {
-                    console.log('✅ Product saved successfully:', savedProduct);
                     showToast('Product added successfully!', 'success');
                     closeModal();
                     // Reload products from Firebase and render
@@ -23406,7 +23461,6 @@ Return ONLY the JSON object, no additional text.`
                 // Replace local products with Firebase products
                 products = firebaseProducts || [];
                 
-                console.log(`✅ Loaded ${products.length} products from Firebase`);
                 return Promise.resolve();
             } catch (error) {
                 console.error('Error loading products from Firebase:', error);
@@ -23438,7 +23492,6 @@ Return ONLY the JSON object, no additional text.`
                         const success = await firebaseProductManager.deleteProduct(productId);
 
                         if (success) {
-                            console.log('✅ Product deleted successfully');
                             // Remove from local array
                             products = products.filter(p => p.id !== productId);
                             renderNewStuff();
@@ -23713,7 +23766,6 @@ Return ONLY the JSON object, no additional text.`
                 if (firebaseProductManager && firebaseProductManager.isInitialized) {
                     const firestoreId = product.firestoreId || productId;
                     await firebaseProductManager.updateProduct(String(firestoreId), updatedData);
-                    console.log('✅ Product updated in Firebase');
                     showToast('Product updated successfully!', 'success');
                 } else {
                     console.warn('⚠️ Firebase not initialized, saving locally only');
@@ -23779,7 +23831,6 @@ Return ONLY the JSON object, no additional text.`
                             firestoreId: newId,
                             ...newRequest
                         });
-                        console.log('✅ Restock request created in Firebase');
                         closeModal();
                         currentRestockTab = 'requests';
                         renderRestockRequests();
@@ -23900,7 +23951,6 @@ Return ONLY the JSON object, no additional text.`
                             firestoreId: newId,
                             ...newRequest
                         });
-                        console.log('✅ Restock request created in Firebase');
                         closeModal();
                         currentRestockTab = 'requests';
                         renderRestockRequests();
@@ -24633,9 +24683,9 @@ Return ONLY the JSON object, no additional text.`
 
             // Search Employees
             const employeeResults = employees.filter(emp =>
-                emp.name.toLowerCase().includes(searchTerm) ||
-                emp.role.toLowerCase().includes(searchTerm) ||
-                emp.store.toLowerCase().includes(searchTerm) ||
+                (emp.name && emp.name.toLowerCase().includes(searchTerm)) ||
+                (emp.role && emp.role.toLowerCase().includes(searchTerm)) ||
+                (emp.store && emp.store.toLowerCase().includes(searchTerm)) ||
                 (emp.authEmail && emp.authEmail.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
@@ -24655,9 +24705,9 @@ Return ONLY the JSON object, no additional text.`
 
             // Search Thieves Database
             const thiefResults = thieves.filter(thief =>
-                thief.name.toLowerCase().includes(searchTerm) ||
-                thief.store.toLowerCase().includes(searchTerm) ||
-                thief.crimeType.toLowerCase().includes(searchTerm) ||
+                (thief.name && thief.name.toLowerCase().includes(searchTerm)) ||
+                (thief.store && thief.store.toLowerCase().includes(searchTerm)) ||
+                (thief.crimeType && thief.crimeType.toLowerCase().includes(searchTerm)) ||
                 (thief.itemsStolen && thief.itemsStolen.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
@@ -24677,10 +24727,10 @@ Return ONLY the JSON object, no additional text.`
 
             // Search Invoices
             const invoiceResults = invoices.filter(inv =>
-                inv.invoiceNumber.toLowerCase().includes(searchTerm) ||
-                inv.vendor.toLowerCase().includes(searchTerm) ||
-                inv.category.toLowerCase().includes(searchTerm) ||
-                inv.description.toLowerCase().includes(searchTerm)
+                (inv.invoiceNumber && inv.invoiceNumber.toLowerCase().includes(searchTerm)) ||
+                (inv.vendor && inv.vendor.toLowerCase().includes(searchTerm)) ||
+                (inv.category && inv.category.toLowerCase().includes(searchTerm)) ||
+                (inv.description && inv.description.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
             if (invoiceResults.length > 0) {
@@ -24699,10 +24749,10 @@ Return ONLY the JSON object, no additional text.`
 
             // Search Products (New Stuff)
             const productResults = products.filter(prod =>
-                prod.name.toLowerCase().includes(searchTerm) ||
-                prod.category.toLowerCase().includes(searchTerm) ||
-                prod.store.toLowerCase().includes(searchTerm) ||
-                prod.supplier.toLowerCase().includes(searchTerm)
+                (prod.name && prod.name.toLowerCase().includes(searchTerm)) ||
+                (prod.category && prod.category.toLowerCase().includes(searchTerm)) ||
+                (prod.store && prod.store.toLowerCase().includes(searchTerm)) ||
+                (prod.supplier && prod.supplier.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
             if (productResults.length > 0) {
@@ -24721,10 +24771,10 @@ Return ONLY the JSON object, no additional text.`
 
             // Search Inventory
             const inventoryResults = inventory.filter(item =>
-                item.brand.toLowerCase().includes(searchTerm) ||
-                item.productName.toLowerCase().includes(searchTerm) ||
-                item.flavor.toLowerCase().includes(searchTerm) ||
-                item.store.toLowerCase().includes(searchTerm)
+                (item.brand && item.brand.toLowerCase().includes(searchTerm)) ||
+                (item.productName && item.productName.toLowerCase().includes(searchTerm)) ||
+                (item.flavor && item.flavor.toLowerCase().includes(searchTerm)) ||
+                (item.store && item.store.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
             if (inventoryResults.length > 0) {
@@ -24743,9 +24793,9 @@ Return ONLY the JSON object, no additional text.`
 
             // Search Announcements
             const announcementResults = announcements.filter(ann =>
-                ann.title.toLowerCase().includes(searchTerm) ||
-                ann.content.toLowerCase().includes(searchTerm) ||
-                ann.author.toLowerCase().includes(searchTerm)
+                (ann.title && ann.title.toLowerCase().includes(searchTerm)) ||
+                (ann.content && ann.content.toLowerCase().includes(searchTerm)) ||
+                (ann.author && ann.author.toLowerCase().includes(searchTerm))
             ).slice(0, 5);
 
             if (announcementResults.length > 0) {
@@ -25097,7 +25147,6 @@ Return ONLY the JSON object, no additional text.`
                     try {
                         if (firebaseLicensesManager && firebaseLicensesManager.isInitialized) {
                             await firebaseLicensesManager.updateLicense(licenseFirestoreId, { store: targetStore });
-                            console.log(`✅ License "${licenseName}" moved from ${oldStore} to ${targetStore} - saved to Firebase`);
                             showToast(`"${licenseName}" moved to ${targetStore}`, 'success');
                         }
                     } catch (error) {
@@ -25269,7 +25318,6 @@ Return ONLY the JSON object, no additional text.`
 
                 riskNotesState.notes = mergedNotes;
                 saveRiskNotes();
-                console.log(`✅ Risk notes loaded: ${mergedNotes.length} total`);
 
                 // Re-render if on risknotes page
                 if (window.currentPage === 'risknotes') {
@@ -25631,7 +25679,6 @@ Return ONLY the JSON object, no additional text.`
                     if (note && note.photoPath && typeof firebaseStorageHelper !== 'undefined') {
                         try {
                             await firebaseStorageHelper.deleteFile(note.photoPath);
-                            console.log('✅ Risk note photo deleted from Storage');
                         } catch (storageErr) {
                             console.error('Error deleting photo from Storage:', storageErr);
                         }
@@ -25641,7 +25688,6 @@ Return ONLY the JSON object, no additional text.`
                     if (note && note.firestoreId && typeof firebaseSyncManager !== 'undefined' && firebaseSyncManager.isInitialized) {
                         try {
                             await firebaseSyncManager.deleteRiskNoteFromFirestore(note.firestoreId);
-                            console.log('✅ Risk note deleted from Firestore');
                         } catch (error) {
                             console.error('Error deleting risk note from Firebase:', error);
                         }
@@ -25750,7 +25796,6 @@ Return ONLY the JSON object, no additional text.`
                         const firestoreId = await firebaseSyncManager.saveRiskNoteToFirestore(newNote);
                         if (firestoreId) {
                             newNote.firestoreId = firestoreId;
-                            console.log('✅ Risk note saved to Firebase:', firestoreId);
                         }
                     } catch (error) {
                         console.error('Error saving risk note to Firebase:', error);
@@ -25979,7 +26024,10 @@ Return ONLY the JSON object, no additional text.`
             statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">AI is processing your report...</span>';
 
             try {
-                const apiKey = getOpenAIKey();
+                // Get API key - use window.getOpenAIKey or fallback to default
+                const DEFAULT_KEY = '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';
+                const apiKey = (typeof window.getOpenAIKey === 'function') ? window.getOpenAIKey() : (localStorage.getItem('openai_api_key') || DEFAULT_KEY);
+
                 if (!apiKey) {
                     // If no API key, just put the transcript in description
                     document.getElementById('risknote-description').value = transcript;
@@ -27601,7 +27649,6 @@ async function initializeGconomicsFirebase(userId, userEmail) {
             await window.gconomicsFirebase.syncExpensesToFirestore(gconomicsState.expenses);
         }
 
-        console.log('✅ Gconomics Firebase initialized successfully');
         return true;
     } catch (error) {
         console.error('Error initializing Gconomics Firebase:', error);
@@ -27658,7 +27705,6 @@ async function loadGconomicsFromFirebase() {
         });
 
         saveGconomicsExpenses();
-        console.log(`✅ Loaded ${firebaseExpenses.length} expenses from Firebase, total: ${gconomicsState.expenses.length}`);
         return true;
     } catch (error) {
         console.error('Error loading expenses from Firebase:', error);
@@ -28540,16 +28586,11 @@ async function saveExpenseWithPhoto(date, description, category, amount, photo) 
         }
 
         // Save to localStorage immediately
-        console.log('Saving to localStorage...');
         saveGconomicsExpenses();
-        console.log('✅ Expense saved to localStorage');
 
         // Close modal and refresh UI immediately (don't wait for Firebase)
-        console.log('Closing modal...');
         closeExpenseModal();
         
-        console.log('Refreshing UI...');
-
         // Switch to the month of the expense if different
         const expenseMonth = date.slice(0, 7);
         if (expenseMonth !== gconomicsState.currentMonth) {
@@ -28560,7 +28601,6 @@ async function saveExpenseWithPhoto(date, description, category, amount, photo) 
 
         // Show success message
         showNotification('Expense saved successfully', 'success');
-        console.log('✅ Expense saved:', expenseToSync.id);
 
         // Now sync to Firebase in background (don't wait)
         console.log('Starting background Firebase sync...');
@@ -28618,7 +28658,6 @@ async function uploadExpensePhotoAsync(photoData, expenseId) {
             false // Don't show overlay since we already closed the modal
         );
         
-        console.log('✅ Expense receipt uploaded to Firebase Storage:', uploadResult.url);
         return uploadResult;
     } catch (error) {
         console.error('❌ Error uploading expense photo to Storage:', error);
@@ -28652,7 +28691,6 @@ async function syncExpenseToFirebaseAsync(expenseToSync) {
             const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
             if (user && (user.userId || user.id)) {
                 window.gconomicsFirebase.setCurrentUser(user.userId || user.id, user.email);
-                console.log('✅ Current user set:', user.userId || user.id);
             } else {
                 console.warn('No user found in localStorage');
                 return false;
@@ -28663,7 +28701,6 @@ async function syncExpenseToFirebaseAsync(expenseToSync) {
         if (window.gconomicsFirebase.isInitialized && expenseToSync) {
             const success = await window.gconomicsFirebase.saveExpenseToFirestore(expenseToSync);
             if (success) {
-                console.log('✅ Expense synced to Firebase Firestore:', expenseToSync.id);
                 return true;
             } else {
                 console.warn('Firestore sync returned false');
@@ -28698,7 +28735,6 @@ const firebasePasswordsManager = {
             }
             this.db = firebase.firestore();
             this.isInitialized = true;
-            console.log('Password Manager Firebase initialized');
             return true;
         } catch (error) {
             console.error('Error initializing Password Manager Firebase:', error);
@@ -28725,8 +28761,6 @@ const firebasePasswordsManager = {
                     ...doc.data()
                 });
             });
-
-            console.log(`Loaded ${passwords.length} passwords from Firebase`);
             return passwords;
         } catch (error) {
             console.error('Error loading passwords:', error);
@@ -28798,7 +28832,7 @@ async function initializeFirebasePasswords() {
     try {
         await firebasePasswordsManager.initialize();
         firebasePasswords = await firebasePasswordsManager.loadPasswords();
-        console.log('Firebase Passwords loaded:', firebasePasswords.length);
+        
     } catch (error) {
         console.error('Error initializing Firebase Passwords:', error);
     }
@@ -30863,15 +30897,326 @@ window.clearAPIKey = function() {
 
 // Helper function to get stored API key
 // Default API key
-const DEFAULT_OPENAI_KEY = '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';
+const DEFAULT_OPENAI_KEY = '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';
+
+// Initialize default API key in localStorage on app load
+(function initializeDefaultAPIKey() {
+    if (!localStorage.getItem('openai_api_key')) {
+        localStorage.setItem('openai_api_key', DEFAULT_OPENAI_KEY);
+    }
+})();
 
 window.getOpenAIKey = function() {
     return localStorage.getItem('openai_api_key') || DEFAULT_OPENAI_KEY;
 }
 
+// ========== REUSABLE VOICE ASSISTANT COMPONENT ==========
+// This component can be added to any modal to provide voice-to-AI functionality
+// Usage: VoiceAssistant.create('unique-id', { prompt: '...', onFill: (data) => {...} })
+
+const VoiceAssistant = {
+    instances: {},
+
+    // Generate the HTML for the voice assistant UI
+    getHTML: function(id, options = {}) {
+        const title = options.title || 'AI Voice Assistant';
+        const subtitle = options.subtitle || 'Describe and auto-fill form';
+        const buttonColor = options.buttonColor || 'linear-gradient(135deg, #8b5cf6, #6366f1)';
+
+        return `
+            <div id="voice-assistant-${id}" class="voice-assistant-container" style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 36px; height: 36px; background: ${buttonColor}; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-wand-magic-sparkles" style="color: white; font-size: 14px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${title}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${subtitle}</div>
+                        </div>
+                    </div>
+                    <button type="button" id="va-btn-${id}" onclick="VoiceAssistant.toggle('${id}')" style="padding: 10px 16px; background: ${buttonColor}; border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                        <i id="va-icon-${id}" class="fas fa-microphone"></i>
+                        <span id="va-text-${id}" style="font-family: Outfit;">Start Recording</span>
+                    </button>
+                </div>
+                <div id="va-status-${id}" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;"></div>
+                <div id="va-transcript-${id}" style="display: none; margin-top: 10px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; font-weight: 600;">What you said:</div>
+                    <div id="va-transcript-text-${id}" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
+                </div>
+            </div>
+        `;
+    },
+
+    // Initialize a voice assistant instance
+    init: function(id, options = {}) {
+        this.instances[id] = {
+            recognition: null,
+            isRecording: false,
+            transcript: '',
+            stoppedByUser: false,
+            prompt: options.prompt || '',
+            systemPrompt: options.systemPrompt || 'You are a helpful assistant that extracts structured information from voice transcripts.',
+            onFill: options.onFill || function() {},
+            buttonColor: options.buttonColor || 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+            listeningText: options.listeningText || 'Listening... Speak now'
+        };
+    },
+
+    // Toggle recording
+    toggle: function(id) {
+        const instance = this.instances[id];
+        if (!instance) {
+            console.error('Voice assistant instance not found:', id);
+            return;
+        }
+
+        if (instance.isRecording) {
+            this.stop(id);
+        } else {
+            this.start(id);
+        }
+    },
+
+    // Start recording
+    start: function(id) {
+        const instance = this.instances[id];
+        if (!instance) return;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            this.updateStatus(id, '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Voice recognition not supported. Try Chrome or Edge.</span>');
+            return;
+        }
+
+        try {
+            instance.recognition = new SpeechRecognition();
+            instance.recognition.continuous = true;
+            instance.recognition.interimResults = true;
+            instance.recognition.lang = 'en-US';
+            instance.recognition.maxAlternatives = 1;
+
+            instance.transcript = '';
+            instance.stoppedByUser = false;
+
+            const btn = document.getElementById(`va-btn-${id}`);
+            const icon = document.getElementById(`va-icon-${id}`);
+            const text = document.getElementById(`va-text-${id}`);
+            const transcriptDiv = document.getElementById(`va-transcript-${id}`);
+
+            instance.recognition.onstart = () => {
+                instance.isRecording = true;
+                if (btn) btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                if (icon) icon.className = 'fas fa-stop';
+                if (text) text.textContent = 'Stop Recording';
+                if (transcriptDiv) transcriptDiv.style.display = 'none';
+                this.updateStatus(id, `<i class="fas fa-circle" style="color: #ef4444; animation: pulse 1s infinite;"></i> <span style="color: var(--text-primary);">${instance.listeningText}</span>`);
+            };
+
+            instance.recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    instance.transcript += finalTranscript;
+                }
+
+                // Show real-time transcript
+                const transcriptText = document.getElementById(`va-transcript-text-${id}`);
+                if (transcriptDiv && transcriptText) {
+                    transcriptDiv.style.display = 'block';
+                    transcriptText.innerHTML = instance.transcript + '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+                }
+            };
+
+            instance.recognition.onerror = (event) => {
+                console.error('Voice recognition error:', event.error);
+                if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                    this.updateStatus(id, `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Error: ${event.error}. Try again.</span>`);
+                }
+            };
+
+            instance.recognition.onend = () => {
+                // If stopped by user, processing is handled in stop()
+                if (instance.stoppedByUser) return;
+
+                // Auto-restart if still recording (browser timeout)
+                if (instance.isRecording) {
+                    try {
+                        instance.recognition.start();
+                        return;
+                    } catch (e) {
+                        console.log('Could not restart recognition:', e);
+                    }
+                }
+                this.resetUI(id);
+            };
+
+            instance.recognition.start();
+
+        } catch (error) {
+            console.error('Error starting voice recognition:', error);
+            this.updateStatus(id, '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> <span style="color: var(--text-primary);">Could not start voice recording. Check microphone permissions.</span>');
+        }
+    },
+
+    // Stop recording
+    stop: function(id) {
+        const instance = this.instances[id];
+        if (!instance) return;
+
+        instance.stoppedByUser = true;
+        instance.isRecording = false;
+
+        if (instance.recognition) {
+            try {
+                instance.recognition.stop();
+            } catch (e) {
+                console.log('Error stopping recognition:', e);
+            }
+        }
+
+        // Reset UI immediately
+        this.resetUI(id);
+
+        // Process with AI if we have transcript
+        if (instance.transcript.trim()) {
+            this.updateStatus(id, '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">Processing with AI...</span>');
+            this.processWithAI(id, instance.transcript.trim());
+        } else {
+            this.updateStatus(id, '<i class="fas fa-info-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">No speech detected. Please try again.</span>');
+        }
+    },
+
+    // Reset UI to initial state
+    resetUI: function(id) {
+        const instance = this.instances[id];
+        if (!instance) return;
+
+        instance.isRecording = false;
+        const btn = document.getElementById(`va-btn-${id}`);
+        const icon = document.getElementById(`va-icon-${id}`);
+        const text = document.getElementById(`va-text-${id}`);
+
+        if (btn) btn.style.background = instance.buttonColor;
+        if (icon) icon.className = 'fas fa-microphone';
+        if (text) text.textContent = 'Start Recording';
+    },
+
+    // Update status message
+    updateStatus: function(id, html) {
+        const statusDiv = document.getElementById(`va-status-${id}`);
+        if (statusDiv) {
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = html;
+        }
+    },
+
+    // Process transcript with AI
+    processWithAI: async function(id, transcript) {
+        const instance = this.instances[id];
+        if (!instance) return;
+
+        try {
+            const apiKey = window.getOpenAIKey ? window.getOpenAIKey() : localStorage.getItem('openai_api_key');
+
+            if (!apiKey) {
+                this.updateStatus(id, '<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">No API key configured. Transcript captured but not processed.</span>');
+                // Call onFill with just the transcript
+                instance.onFill({ _transcript: transcript });
+                return;
+            }
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + apiKey
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    max_tokens: 1024,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: instance.systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: instance.prompt.replace('{transcript}', transcript)
+                        }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'API request failed');
+            }
+
+            const data = await response.json();
+            const content = data.choices[0].message.content;
+
+            // Parse JSON response
+            let parsedData;
+            try {
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    parsedData = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('No JSON found');
+                }
+            } catch (parseError) {
+                console.error('Error parsing AI response:', content);
+                this.updateStatus(id, '<i class="fas fa-check-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">Transcript captured. AI parsing failed.</span>');
+                instance.onFill({ _transcript: transcript, _parseError: true });
+                return;
+            }
+
+            // Call the onFill callback with parsed data
+            parsedData._transcript = transcript;
+            instance.onFill(parsedData);
+
+            this.updateStatus(id, '<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="color: var(--text-primary);">Form auto-filled! Review and save.</span>');
+
+        } catch (error) {
+            console.error('Error processing with AI:', error);
+            this.updateStatus(id, `<i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i> <span style="color: var(--text-primary);">AI error: ${error.message}. Transcript captured.</span>`);
+            instance.onFill({ _transcript: transcript, _error: error.message });
+        }
+    },
+
+    // Cleanup an instance
+    destroy: function(id) {
+        const instance = this.instances[id];
+        if (instance && instance.recognition) {
+            try {
+                instance.recognition.stop();
+            } catch (e) {}
+        }
+        delete this.instances[id];
+    }
+};
+
+// Make it globally available
+window.VoiceAssistant = VoiceAssistant;
+
+// ========== END REUSABLE VOICE ASSISTANT COMPONENT ==========
+
 // Floating add button - simple scroll threshold approach
 const FLOATING_ADD_SCROLL_THRESHOLD = 150; // pixels scrolled before buttons become fixed
 let floatingAddScrollListener = null;
+let floatingAddScrollTimeout = null;
 
 function refreshFloatingAddButtons() {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
@@ -30890,10 +31235,23 @@ function refreshFloatingAddButtons() {
         document.querySelectorAll('.floating-add-btn').forEach(button => {
             if (shouldFix) {
                 button.classList.add('is-fixed');
+                // Add is-scrolling class during active scroll (mobile optimization)
+                button.classList.add('is-scrolling');
             } else {
                 button.classList.remove('is-fixed');
+                button.classList.remove('is-scrolling');
             }
         });
+
+        // Remove is-scrolling class after scroll stops (150ms delay)
+        if (floatingAddScrollTimeout) {
+            clearTimeout(floatingAddScrollTimeout);
+        }
+        floatingAddScrollTimeout = setTimeout(() => {
+            document.querySelectorAll('.floating-add-btn.is-scrolling').forEach(button => {
+                button.classList.remove('is-scrolling');
+            });
+        }, 150);
     };
 
     window.addEventListener('scroll', floatingAddScrollListener, { passive: true });

@@ -97,7 +97,6 @@ async function fetchOrderTaxDetailsGraphQL(orderIds, storeConfig) {
     `;
 
     try {
-        console.log(`🔍 Fetching tax details for ${orderIds.length} orders via GraphQL...`);
 
         const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
@@ -118,8 +117,6 @@ async function fetchOrderTaxDetailsGraphQL(orderIds, storeConfig) {
         }
 
         const result = await response.json();
-        console.log('📦 GraphQL Response:', result);
-        console.log(`✅ Received tax data for ${result.data?.nodes?.length || 0} orders`);
 
         return result.data?.nodes || [];
     } catch (error) {
@@ -140,28 +137,23 @@ function parseTaxBreakdown(taxLines) {
         return { cecetTax, salesTax };
     }
 
-    console.log(`💰 Parsing ${taxLines.length} tax lines:`, taxLines);
 
     taxLines.forEach(taxLine => {
         const title = taxLine.title || '';
         const rate = parseFloat(taxLine.rate || 0);
         const amount = parseFloat(taxLine.priceSet?.shopMoney?.amount || 0);
 
-        console.log(`  - Tax Line: "${title}" | Rate: ${rate} (${(rate * 100).toFixed(2)}%) | Amount: $${amount}`);
 
         // Check if this is CECET tax by rate (12.5% = 0.125)
         // Using a small tolerance for floating point comparison
         if (Math.abs(rate - 0.125) < 0.0001) {
             cecetTax += amount;
-            console.log(`    ✅ Identified as CECET Tax (12.5%)`);
         } else {
             // All other taxes are considered sales tax
             salesTax += amount;
-            console.log(`    ✅ Identified as Sales Tax (${(rate * 100).toFixed(2)}%)`);
         }
     });
 
-    console.log(`📊 Tax Breakdown Result: CECET = $${cecetTax.toFixed(2)}, Sales = $${salesTax.toFixed(2)}`);
 
     return { cecetTax, salesTax };
 }
@@ -346,7 +338,6 @@ async function processOrdersData(orders, storeConfig) {
     if (orders.length > 0 && storeConfig) {
         try {
             const orderIds = orders.map(order => order.id);
-            console.log(`📋 Processing ${orders.length} orders, fetching tax data in batches...`);
 
             // GraphQL has a 250 item limit, so we need to batch the requests
             const batchSize = 250;
@@ -356,7 +347,6 @@ async function processOrdersData(orders, storeConfig) {
                 const batchNumber = Math.floor(i / batchSize) + 1;
                 const batchIds = orderIds.slice(i, i + batchSize);
 
-                console.log(`🔄 Fetching tax batch ${batchNumber}/${totalBatches} (${batchIds.length} orders)...`);
 
                 const taxData = await fetchOrderTaxDetailsGraphQL(batchIds, storeConfig);
 
@@ -376,7 +366,6 @@ async function processOrdersData(orders, storeConfig) {
                 }
             }
 
-            console.log(`✅ Tax data map created with ${Object.keys(taxDataMap).length} entries from ${totalBatches} batches`);
         } catch (error) {
             console.error('❌ Failed to fetch tax breakdown, using totals only:', error);
             // Continue without breakdown - backward compatibility
@@ -459,16 +448,6 @@ async function processOrdersData(orders, storeConfig) {
             salesTax: order._taxBreakdown?.salesTax || 0
         }))
     };
-
-    console.log('🎯 FINAL TAX SUMMARY:');
-    console.log(`  Total Tax: $${totalTax.toFixed(2)}`);
-    console.log(`  CECET Tax: $${totalCecetTax.toFixed(2)}`);
-    console.log(`  Sales Tax: $${totalSalesTax.toFixed(2)}`);
-    console.log('  Recent Orders with Tax Breakdown:', result.recentOrders.map(o => ({
-        name: o.name,
-        cecetTax: o.cecetTax,
-        salesTax: o.salesTax
-    })));
 
     return result;
 }
@@ -901,7 +880,6 @@ async function fetchAllStoresInventory(onProgress = null) {
         onProgress(100, 'Complete!');
     }
 
-    console.log(`✅ [Inventory] Total: ${allInventory.length} items from all stores`);
     return allInventory;
 }
 
@@ -912,4 +890,4 @@ function getStoresConfig() {
     return STORES_CONFIG;
 }
 
-console.log('✅ Shopify Analytics loaded - Frontend API connection ready');
+

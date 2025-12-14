@@ -31,7 +31,6 @@ class ButtonLockManager {
 
         // Check if already locked
         if (this.lockedButtons.has(btnId)) {
-            console.log('Button already locked:', btnId);
             return false;
         }
 
@@ -368,7 +367,6 @@ class FormProtectionManager {
         }, true);
 
         this.isInitialized = true;
-        console.log('Form Protection Manager initialized');
     }
 
     /**
@@ -698,7 +696,6 @@ function forceCloseModal() {
         if (buttonLockManager.isLocked(button) || button.classList.contains('btn-locked')) {
             event.preventDefault();
             event.stopPropagation();
-            console.log('Button click prevented - already locked');
             return false;
         }
 
@@ -709,7 +706,6 @@ function forceCloseModal() {
     // Add global click listener (capture phase to intercept before onclick handlers)
     document.addEventListener('click', handleButtonClick, true);
 
-    console.log('Auto button lock initialized');
 })();
 
 // ==================== UPLOAD LOADING OVERLAY ====================
@@ -1036,7 +1032,6 @@ class FirebaseStorageHelper {
             if (typeof firebase !== 'undefined' && firebase.storage) {
                 this.storage = firebase.storage();
                 this.isInitialized = true;
-                console.log('Firebase Storage initialized successfully');
                 return true;
             } else {
                 console.error('Firebase Storage not available');
@@ -1089,7 +1084,6 @@ class FirebaseStorageHelper {
             // Get download URL
             const downloadURL = await storageRef.getDownloadURL();
 
-            console.log(`File uploaded to: ${path}`);
             return {
                 url: downloadURL,
                 path: path
@@ -1150,7 +1144,6 @@ class FirebaseStorageHelper {
             // Get download URL
             const downloadURL = await storageRef.getDownloadURL();
 
-            console.log(`File uploaded to: ${path}`);
 
             // Show success
             if (showOverlay) {
@@ -1204,7 +1197,6 @@ class FirebaseStorageHelper {
             const extension = base64Image.includes('image/png') ? 'png' : 'jpg';
             const path = `${folder}/${fileName}_${timestamp}.${extension}`;
 
-            console.log('Uploading image to Firebase Storage:', path);
 
             // Use internal upload without showing overlay again
             const result = await this._uploadFileInternal(base64Image, path, (progress) => {
@@ -1213,7 +1205,6 @@ class FirebaseStorageHelper {
                 }
             });
 
-            console.log('✅ Image uploaded successfully:', result.url);
 
             // Show success
             if (showOverlay) {
@@ -1302,7 +1293,6 @@ class FirebaseStorageHelper {
         try {
             const storageRef = this.storage.ref(path);
             await storageRef.delete();
-            console.log(`File deleted: ${path}`);
             return true;
         } catch (error) {
             console.error('Error deleting file:', error);
@@ -1359,7 +1349,6 @@ class FirebaseEmployeeManager {
                 
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded. Make sure to include Firebase scripts in your HTML.');
@@ -1395,7 +1384,6 @@ class FirebaseEmployeeManager {
                 });
             });
 
-            console.log(`Loaded ${employees.length} employees from Firestore`);
             return employees;
         } catch (error) {
             console.error('Error loading employees from Firestore:', error);
@@ -1455,7 +1443,6 @@ class FirebaseEmployeeManager {
             // Create user in Firebase Authentication if email and password provided
             if (email && password) {
                 try {
-                    console.log('Creating Firebase Authentication user for:', email);
                     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
                     const userId = userCredential.user.uid;
                     
@@ -1463,7 +1450,6 @@ class FirebaseEmployeeManager {
                     employeeData.firebaseUid = userId;
                     employeeData.authEmail = email;
                     
-                    console.log('Firebase Auth user created with UID:', userId);
                 } catch (authError) {
                     // Check if email already exists or other auth errors
                     if (authError.code === 'auth/email-already-in-use') {
@@ -1481,7 +1467,6 @@ class FirebaseEmployeeManager {
             const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
             const docRef = await this.db.collection(employeesCollection).add(employeeData);
             
-            console.log('Employee added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding employee:', error);
@@ -1507,7 +1492,6 @@ class FirebaseEmployeeManager {
             const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
             await this.db.collection(employeesCollection).doc(employeeId).update(updateData);
             
-            console.log('Employee updated:', employeeId);
             return true;
         } catch (error) {
             console.error('Error updating employee:', error);
@@ -1530,7 +1514,6 @@ class FirebaseEmployeeManager {
             const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
             await this.db.collection(employeesCollection).doc(employeeId).delete();
             
-            console.log('Employee deleted:', employeeId);
             return true;
         } catch (error) {
             console.error('Error deleting employee:', error);
@@ -1597,7 +1580,6 @@ class FirebaseEmployeeManager {
                 updatedAt: new Date()
             });
             
-            console.log('Employee role updated:', employeeId, 'to', newRole);
             return true;
         } catch (error) {
             console.error('Error updating employee role:', error);
@@ -1731,7 +1713,6 @@ class FirebaseEmployeeManager {
                 });
             }
 
-            console.log('Paperwork uploaded successfully:', downloadURL);
             return paperworkData;
         } catch (error) {
             console.error('Error uploading paperwork:', error);
@@ -1775,7 +1756,6 @@ class FirebaseEmployeeManager {
                 });
             }
 
-            console.log('Paperwork deleted successfully:', storagePath);
             return true;
         } catch (error) {
             console.error('Error deleting paperwork:', error);
@@ -1828,7 +1808,6 @@ class FirebaseEmployeeManager {
                 updatedAt: new Date()
             });
 
-            console.log('Day off request saved with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error saving day off request:', error);
@@ -1892,7 +1871,6 @@ class FirebaseEmployeeManager {
                 });
             });
 
-            console.log(`Loaded ${requests.length} day off requests from Firebase`);
             return requests;
         } catch (error) {
             console.error('Error getting all day off requests:', error);
@@ -1915,7 +1893,6 @@ class FirebaseEmployeeManager {
             const dayOffsCollection = window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests';
             await this.db.collection(dayOffsCollection).doc(requestId).delete();
 
-            console.log('Day off request deleted:', requestId);
             return true;
         } catch (error) {
             console.error('Error deleting day off request:', error);
@@ -1942,7 +1919,6 @@ class FirebaseEmployeeManager {
                 updatedAt: new Date()
             });
 
-            console.log('Day off request status updated:', requestId, 'to', status);
             return true;
         } catch (error) {
             console.error('Error updating day off request status:', error);
@@ -1972,7 +1948,6 @@ class FirebaseThievesManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Thieves Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Thieves Manager');
@@ -2019,7 +1994,6 @@ class FirebaseThievesManager {
                 });
             });
 
-            console.log(`Loaded ${thieves.length} thief records from Firestore`);
             return thieves;
         } catch (error) {
             console.error('Error loading thieves from Firestore:', error);
@@ -2045,7 +2019,6 @@ class FirebaseThievesManager {
             const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
             const docRef = await this.db.collection(thievesCollection).add(thiefData);
 
-            console.log('Thief record added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding thief record:', error);
@@ -2071,7 +2044,6 @@ class FirebaseThievesManager {
             const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
             await this.db.collection(thievesCollection).doc(thiefId).update(updateData);
 
-            console.log('Thief record updated:', thiefId);
             return true;
         } catch (error) {
             console.error('Error updating thief record:', error);
@@ -2094,7 +2066,6 @@ class FirebaseThievesManager {
             const thievesCollection = window.FIREBASE_COLLECTIONS?.thieves || 'thieves';
             await this.db.collection(thievesCollection).doc(thiefId).delete();
 
-            console.log('Thief record deleted:', thiefId);
             return true;
         } catch (error) {
             console.error('Error deleting thief record:', error);
@@ -2124,7 +2095,6 @@ class FirebaseClockInManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('✅ Firebase Clock In Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Clock In Manager');
@@ -2177,7 +2147,6 @@ class FirebaseClockInManager {
                 // Create new record
                 recordData.createdAt = new Date();
                 docRef = await this.db.collection(clockinCollection).add(recordData);
-                console.log('✅ New clock record created with ID:', docRef.id);
                 return {
                     id: docRef.id,
                     ...recordData
@@ -2186,7 +2155,6 @@ class FirebaseClockInManager {
                 // Update existing record
                 const existingDoc = snapshot.docs[0];
                 await existingDoc.ref.update(recordData);
-                console.log('✅ Clock record updated:', existingDoc.id);
                 return {
                     id: existingDoc.id,
                     ...recordData
@@ -2232,7 +2200,6 @@ class FirebaseClockInManager {
                 return timeB - timeA;
             });
 
-            console.log(`✅ Loaded ${records.length} clock records from Firebase for date: ${date}`);
             return records;
         } catch (error) {
             console.error('Error loading clock records from Firestore:', error);
@@ -2277,7 +2244,6 @@ class FirebaseClockInManager {
                 return b.date.localeCompare(a.date);
             });
 
-            console.log(`✅ Loaded ${records.length} clock records for employee: ${employeeId}`);
             return records;
         } catch (error) {
             console.error('Error loading employee clock records:', error);
@@ -2300,7 +2266,6 @@ class FirebaseClockInManager {
             const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
             await this.db.collection(clockinCollection).doc(recordId).delete();
 
-            console.log('✅ Clock record deleted:', recordId);
             return true;
         } catch (error) {
             console.error('Error deleting clock record:', error);
@@ -2367,7 +2332,6 @@ class FirebaseProductManager {
                 // Check if already initialized
                 if (!firebase.apps || firebase.apps.length === 0) {
                     firebase.initializeApp(config);
-                    console.log('✅ Firebase app initialized');
                 }
                 
                 // Get references to Firestore and Storage
@@ -2376,7 +2340,6 @@ class FirebaseProductManager {
                 // Initialize Firebase Storage - compat version
                 try {
                     this.storage = firebase.storage();
-                    console.log('✅ Firebase Storage initialized successfully');
                 } catch (storageError) {
                     console.warn('⚠️ Firebase Storage initialization failed:', storageError.message);
                     console.warn('   Make sure Firebase Storage is enabled in your Firebase project');
@@ -2385,7 +2348,6 @@ class FirebaseProductManager {
                 }
                 
                 this.isInitialized = true;
-                console.log('🛍️ Firebase Product Manager initialized');
                 return true;
             } else {
                 console.error('Firebase not loaded');
@@ -2425,7 +2387,6 @@ class FirebaseProductManager {
             const sanitizedName = productName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             const filename = `products/${sanitizedName}_${timestamp}.${imageFile.name.split('.').pop()}`;
 
-            console.log(`📸 Uploading image: ${filename}`);
 
             // Upload to Storage
             const storageRef = this.storage.ref(filename);
@@ -2433,7 +2394,6 @@ class FirebaseProductManager {
 
             // Get download URL
             const downloadUrl = await snapshot.ref.getDownloadURL();
-            console.log(`✅ Image uploaded successfully: ${downloadUrl}`);
 
             return downloadUrl;
         } catch (error) {
@@ -2463,12 +2423,10 @@ class FirebaseProductManager {
                 updatedAt: new Date()
             };
 
-            console.log(`💾 Saving product to Firestore: ${productData.name}`);
 
             // Save to Firestore
             const docRef = await this.db.collection(productsCollection).add(dataWithTimestamp);
 
-            console.log(`✅ Product saved successfully with ID: ${docRef.id}`);
 
             return {
                 id: docRef.id,
@@ -2505,7 +2463,6 @@ class FirebaseProductManager {
                 });
             });
 
-            console.log(`📦 Loaded ${products.length} products from Firestore`);
             return products;
         } catch (error) {
             console.error('Error loading products from Firestore:', error);
@@ -2562,11 +2519,7 @@ class FirebaseProductManager {
                 updatedAt: new Date()
             };
 
-            console.log(`✏️ Updating product: ${productId}`);
-
             await this.db.collection(productsCollection).doc(productId).update(dataWithTimestamp);
-
-            console.log(`✅ Product updated successfully`);
 
             return await this.getProduct(productId);
         } catch (error) {
@@ -2589,11 +2542,8 @@ class FirebaseProductManager {
 
             const productsCollection = window.FIREBASE_COLLECTIONS?.products || 'products';
 
-            console.log(`🗑️ Deleting product: ${productId}`);
-
             await this.db.collection(productsCollection).doc(productId).delete();
 
-            console.log(`✅ Product deleted successfully`);
             return true;
         } catch (error) {
             console.error('Error deleting product:', error);
@@ -2661,7 +2611,6 @@ class FirebaseTrainingManager {
                 this.db = firebase.firestore();
                 this.storage = firebase.storage();
                 this.isInitialized = true;
-                console.log('Firebase Training Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Training Manager');
@@ -2711,7 +2660,6 @@ class FirebaseTrainingManager {
                 });
             });
 
-            console.log(`Loaded ${trainings.length} training records from Firestore`);
             return trainings;
         } catch (error) {
             console.error('Error loading trainings from Firestore:', error);
@@ -2736,7 +2684,6 @@ class FirebaseTrainingManager {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
             const path = `trainings/${trainingId || 'temp'}/${timestamp}_${safeName}`;
 
-            console.log('📤 Starting upload to:', path);
 
             const storageRef = this.storage.ref(path);
 
@@ -2757,7 +2704,6 @@ class FirebaseTrainingManager {
                     (snapshot) => {
                         // Progress tracking
                         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        console.log(`Upload progress: ${progress.toFixed(1)}%`);
 
                         // Dispatch custom event for progress UI
                         window.dispatchEvent(new CustomEvent('uploadProgress', {
@@ -2784,7 +2730,6 @@ class FirebaseTrainingManager {
                         try {
                             // Get download URL
                             const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
-                            console.log('✅ Upload successful! URL:', downloadUrl);
 
                             resolve({
                                 url: downloadUrl,
@@ -2837,7 +2782,6 @@ class FirebaseTrainingManager {
             const docRef = await this.db.collection(trainingsCollection).add(trainingData);
 
             // If we uploaded to a temp path, we could move it here (optional optimization)
-            console.log('Training record added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding training record:', error);
@@ -2874,7 +2818,6 @@ class FirebaseTrainingManager {
             const trainingsCollection = window.FIREBASE_COLLECTIONS?.trainings || 'trainings';
             await this.db.collection(trainingsCollection).doc(trainingId).update(updateData);
 
-            console.log('Training record updated:', trainingId);
             return true;
         } catch (error) {
             console.error('Error updating training record:', error);
@@ -2905,7 +2848,6 @@ class FirebaseTrainingManager {
                 if (data.filePath && this.storage) {
                     try {
                         await this.storage.ref(data.filePath).delete();
-                        console.log('Associated file deleted:', data.filePath);
                     } catch (fileError) {
                         console.warn('Could not delete associated file:', fileError);
                     }
@@ -2915,7 +2857,6 @@ class FirebaseTrainingManager {
             // Delete the Firestore document
             await this.db.collection(trainingsCollection).doc(trainingId).delete();
 
-            console.log('Training record deleted:', trainingId);
             return true;
         } catch (error) {
             console.error('Error deleting training record:', error);
@@ -3064,7 +3005,6 @@ class FirebaseTrainingManager {
                 updatedAt: new Date()
             });
 
-            console.log('Employee marked as completed for training:', trainingId);
             return true;
         } catch (error) {
             console.error('Error marking employee as completed:', error);
@@ -3110,7 +3050,6 @@ class FirebaseTrainingManager {
                 updatedAt: new Date()
             });
 
-            console.log('Employee completion removed for training:', trainingId);
             return true;
         } catch (error) {
             console.error('Error removing employee completion:', error);
@@ -3213,7 +3152,6 @@ class FirebaseVendorsManager {
                 
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase initialized successfully for Vendors');
                 return true;
             } else {
                 console.error('Firebase not loaded');
@@ -3248,7 +3186,6 @@ class FirebaseVendorsManager {
                 });
             });
 
-            console.log(`Loaded ${vendors.length} vendors from Firestore`);
             return vendors;
         } catch (error) {
             console.error('Error loading vendors from Firestore:', error);
@@ -3302,7 +3239,6 @@ class FirebaseVendorsManager {
             const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
             const docRef = await this.db.collection(vendorsCollection).add(vendorData);
             
-            console.log('Vendor added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding vendor:', error);
@@ -3328,7 +3264,6 @@ class FirebaseVendorsManager {
             const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
             await this.db.collection(vendorsCollection).doc(vendorId).update(updateData);
             
-            console.log('Vendor updated:', vendorId);
             return true;
         } catch (error) {
             console.error('Error updating vendor:', error);
@@ -3351,7 +3286,6 @@ class FirebaseVendorsManager {
             const vendorsCollection = window.FIREBASE_COLLECTIONS?.vendors || 'vendors';
             await this.db.collection(vendorsCollection).doc(vendorId).delete();
             
-            console.log('Vendor deleted:', vendorId);
             return true;
         } catch (error) {
             console.error('Error deleting vendor:', error);
@@ -3413,12 +3347,10 @@ class FirebaseVendorsManager {
 
                 // Only add samples if collection is empty
                 if (snapshot.empty) {
-                    console.log('Creating sample vendors...');
                     this.addSampleVendorsToCollection(vendorsCollection);
                 }
             } catch (err) {
                 // Collection doesn't exist, create it with sample data
-                console.log('Vendors collection does not exist. Creating it with sample vendors...');
                 this.addSampleVendorsToCollection(vendorsCollection);
             }
         } catch (error) {
@@ -3512,7 +3444,6 @@ class FirebaseVendorsManager {
                 count++;
             }
 
-            console.log(`✅ Created ${count} sample vendors in new collection`);
         } catch (error) {
             console.error('Error adding sample vendors to collection:', error);
         }
@@ -3543,7 +3474,6 @@ class FirebaseInvoiceManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Invoice Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Invoice Manager');
@@ -3597,7 +3527,6 @@ class FirebaseInvoiceManager {
                 });
             });
 
-            console.log(`Loaded ${invoices.length} invoice records from Firestore`);
             return invoices;
         } catch (error) {
             console.error('Error loading invoices from Firestore:', error);
@@ -3623,7 +3552,6 @@ class FirebaseInvoiceManager {
             const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
             const docRef = await this.db.collection(invoicesCollection).add(invoiceData);
 
-            console.log('Invoice record added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding invoice record:', error);
@@ -3649,7 +3577,6 @@ class FirebaseInvoiceManager {
             const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
             await this.db.collection(invoicesCollection).doc(invoiceId).update(updateData);
 
-            console.log('Invoice record updated:', invoiceId);
             return true;
         } catch (error) {
             console.error('Error updating invoice record:', error);
@@ -3672,7 +3599,6 @@ class FirebaseInvoiceManager {
             const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
             await this.db.collection(invoicesCollection).doc(invoiceId).delete();
 
-            console.log('Invoice record deleted:', invoiceId);
             return true;
         } catch (error) {
             console.error('Error deleting invoice record:', error);
@@ -3701,7 +3627,6 @@ class FirebaseInvoiceManager {
             const invoicesCollection = window.FIREBASE_COLLECTIONS?.invoices || 'invoices';
             await this.db.collection(invoicesCollection).doc(invoiceId).update(updateData);
 
-            console.log('Invoice marked as paid:', invoiceId);
             return true;
         } catch (error) {
             console.error('Error marking invoice as paid:', error);
@@ -3780,7 +3705,6 @@ class FirebaseAnnouncementsManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Announcements Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Announcements Manager');
@@ -3824,7 +3748,6 @@ class FirebaseAnnouncementsManager {
                 });
             });
 
-            console.log(`Loaded ${announcements.length} announcements from Firestore`);
             return announcements;
         } catch (error) {
             console.error('Error loading announcements from Firestore:', error);
@@ -3850,7 +3773,6 @@ class FirebaseAnnouncementsManager {
             const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
             const docRef = await this.db.collection(announcementsCollection).add(announcementData);
 
-            console.log('Announcement added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding announcement:', error);
@@ -3876,7 +3798,6 @@ class FirebaseAnnouncementsManager {
             const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
             await this.db.collection(announcementsCollection).doc(announcementId).update(updateData);
 
-            console.log('Announcement updated:', announcementId);
             return true;
         } catch (error) {
             console.error('Error updating announcement:', error);
@@ -3899,7 +3820,6 @@ class FirebaseAnnouncementsManager {
             const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
             await this.db.collection(announcementsCollection).doc(announcementId).delete();
 
-            console.log('Announcement deleted:', announcementId);
             return true;
         } catch (error) {
             console.error('Error deleting announcement:', error);
@@ -3961,7 +3881,6 @@ class FirebaseAnnouncementsManager {
                 updatedAt: new Date()
             });
 
-            console.log('Marked announcements as read for user:', userId);
             return true;
         } catch (error) {
             console.error('Error marking announcements as read:', error);
@@ -4028,7 +3947,6 @@ class FirebaseRestockRequestsManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Restock Requests Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Restock Requests Manager');
@@ -4074,7 +3992,6 @@ class FirebaseRestockRequestsManager {
                 });
             });
 
-            console.log(`Loaded ${requests.length} restock requests from Firestore`);
             return requests;
         } catch (error) {
             console.error('Error loading restock requests from Firestore:', error);
@@ -4100,7 +4017,6 @@ class FirebaseRestockRequestsManager {
             const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
             const docRef = await this.db.collection(requestsCollection).add(requestData);
 
-            console.log('Restock request added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding restock request:', error);
@@ -4126,7 +4042,6 @@ class FirebaseRestockRequestsManager {
             const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
             await this.db.collection(requestsCollection).doc(requestId).update(updateData);
 
-            console.log('Restock request updated:', requestId);
             return true;
         } catch (error) {
             console.error('Error updating restock request:', error);
@@ -4149,7 +4064,6 @@ class FirebaseRestockRequestsManager {
             const requestsCollection = window.FIREBASE_COLLECTIONS?.restockRequests || 'restockRequests';
             await this.db.collection(requestsCollection).doc(requestId).delete();
 
-            console.log('Restock request deleted:', requestId);
             return true;
         } catch (error) {
             console.error('Error deleting restock request:', error);
@@ -4221,7 +4135,6 @@ class FirebaseChangeRecordsManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Change Records Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Change Records Manager');
@@ -4270,7 +4183,6 @@ class FirebaseChangeRecordsManager {
                 });
             });
 
-            console.log(`Loaded ${records.length} change records from Firestore`);
             return records;
         } catch (error) {
             console.error('Error loading change records from Firestore:', error);
@@ -4296,7 +4208,6 @@ class FirebaseChangeRecordsManager {
             const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
             const docRef = await this.db.collection(changeCollection).add(recordData);
 
-            console.log('Change record added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding change record:', error);
@@ -4322,7 +4233,6 @@ class FirebaseChangeRecordsManager {
             const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
             await this.db.collection(changeCollection).doc(recordId).update(updateData);
 
-            console.log('Change record updated:', recordId);
             return true;
         } catch (error) {
             console.error('Error updating change record:', error);
@@ -4345,7 +4255,6 @@ class FirebaseChangeRecordsManager {
             const changeCollection = window.FIREBASE_COLLECTIONS?.changeRecords || 'changeRecords';
             await this.db.collection(changeCollection).doc(recordId).delete();
 
-            console.log('Change record deleted:', recordId);
             return true;
         } catch (error) {
             console.error('Error deleting change record:', error);
@@ -4421,7 +4330,6 @@ class FirebaseCashOutManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Cash Out Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Cash Out Manager');
@@ -4472,7 +4380,6 @@ class FirebaseCashOutManager {
                 });
             });
 
-            console.log(`Loaded ${records.length} cash out records from Firestore`);
             return records;
         } catch (error) {
             console.error('Error loading cash out records from Firestore:', error);
@@ -4498,7 +4405,6 @@ class FirebaseCashOutManager {
             const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
             const docRef = await this.db.collection(cashOutCollection).add(recordData);
 
-            console.log('Cash out record added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding cash out record:', error);
@@ -4524,7 +4430,6 @@ class FirebaseCashOutManager {
             const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
             await this.db.collection(cashOutCollection).doc(recordId).update(updateData);
 
-            console.log('Cash out record updated:', recordId);
             return true;
         } catch (error) {
             console.error('Error updating cash out record:', error);
@@ -4547,7 +4452,6 @@ class FirebaseCashOutManager {
             const cashOutCollection = window.FIREBASE_COLLECTIONS?.cashOut || 'cashOut';
             await this.db.collection(cashOutCollection).doc(recordId).delete();
 
-            console.log('Cash out record deleted:', recordId);
             return true;
         } catch (error) {
             console.error('Error deleting cash out record:', error);
@@ -4625,7 +4529,6 @@ class FirebaseGiftsManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Gifts Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Gifts Manager');
@@ -4673,7 +4576,6 @@ class FirebaseGiftsManager {
                 });
             });
 
-            console.log(`Loaded ${gifts.length} gift records from Firestore`);
             return gifts;
         } catch (error) {
             console.error('Error loading gifts from Firestore:', error);
@@ -4699,7 +4601,6 @@ class FirebaseGiftsManager {
             const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
             const docRef = await this.db.collection(giftsCollection).add(giftData);
 
-            console.log('Gift record added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding gift record:', error);
@@ -4725,7 +4626,6 @@ class FirebaseGiftsManager {
             const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
             await this.db.collection(giftsCollection).doc(giftId).update(updateData);
 
-            console.log('Gift record updated:', giftId);
             return true;
         } catch (error) {
             console.error('Error updating gift record:', error);
@@ -4748,7 +4648,6 @@ class FirebaseGiftsManager {
             const giftsCollection = window.FIREBASE_COLLECTIONS?.gifts || 'gifts';
             await this.db.collection(giftsCollection).doc(giftId).delete();
 
-            console.log('Gift record deleted:', giftId);
             return true;
         } catch (error) {
             console.error('Error deleting gift record:', error);
@@ -4778,7 +4677,6 @@ class FirebaseIssuesManager {
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 this.db = firebase.firestore();
                 this.isInitialized = true;
-                console.log('Firebase Issues Manager initialized successfully');
                 return true;
             } else {
                 console.error('Firebase not loaded for Issues Manager');
@@ -4832,7 +4730,6 @@ class FirebaseIssuesManager {
                 });
             });
 
-            console.log(`Loaded ${issues.length} issues from Firestore`);
             return issues;
         } catch (error) {
             console.error('Error loading issues from Firestore:', error);
@@ -4858,7 +4755,6 @@ class FirebaseIssuesManager {
             const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
             const docRef = await this.db.collection(issuesCollection).add(issueData);
 
-            console.log('Issue added with ID:', docRef.id);
             return docRef.id;
         } catch (error) {
             console.error('Error adding issue:', error);
@@ -4884,7 +4780,6 @@ class FirebaseIssuesManager {
             const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
             await this.db.collection(issuesCollection).doc(issueId).update(updateData);
 
-            console.log('Issue updated:', issueId);
             return true;
         } catch (error) {
             console.error('Error updating issue:', error);
@@ -4907,7 +4802,6 @@ class FirebaseIssuesManager {
             const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
             await this.db.collection(issuesCollection).doc(issueId).delete();
 
-            console.log('Issue deleted:', issueId);
             return true;
         } catch (error) {
             console.error('Error deleting issue:', error);
@@ -4996,10 +4890,8 @@ class FirebaseLicensesManager {
                 // Initialize Realtime Database
                 if (firebase.database) {
                     this.rtdb = firebase.database();
-                    console.log('✅ Realtime Database initialized for licenses');
                 }
                 this.isInitialized = true;
-                console.log('✅ Firebase Licenses Manager initialized');
                 return true;
             }
 
@@ -5015,10 +4907,9 @@ class FirebaseLicensesManager {
             // Initialize Realtime Database
             if (firebase.database) {
                 this.rtdb = firebase.database();
-                console.log('✅ Realtime Database initialized for licenses');
             }
             this.isInitialized = true;
-            console.log('✅ Firebase Licenses Manager initialized');
+
             return true;
         } catch (error) {
             console.error('Error initializing Firebase Licenses Manager:', error);
@@ -5043,7 +4934,6 @@ class FirebaseLicensesManager {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
             const path = `licenses/${licenseId || timestamp}/${timestamp}_${safeName}`;
 
-            console.log('📤 Uploading license to:', path);
 
             const storageRef = this.storage.ref(path);
 
@@ -5064,7 +4954,6 @@ class FirebaseLicensesManager {
                     (snapshot) => {
                         // Progress tracking
                         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        console.log(`License upload progress: ${progress.toFixed(1)}%`);
 
                         // Dispatch custom event for progress UI
                         window.dispatchEvent(new CustomEvent('licenseUploadProgress', {
@@ -5090,7 +4979,6 @@ class FirebaseLicensesManager {
                         try {
                             // Get download URL
                             const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
-                            console.log('✅ License upload successful! URL:', downloadUrl);
 
                             resolve({
                                 url: downloadUrl,
@@ -5149,7 +5037,6 @@ class FirebaseLicensesManager {
                 });
             });
 
-            console.log(`✅ Loaded ${licenses.length} licenses from Firestore`);
             return licenses;
         } catch (error) {
             console.error('Error loading licenses:', error);
@@ -5213,7 +5100,6 @@ class FirebaseLicensesManager {
             });
 
             const docRef = await this.db.collection(collectionName).add(dataToSave);
-            console.log('✅ License added to Firestore with ID:', docRef.id);
 
             // Also save to Realtime Database for tracking
             if (this.rtdb) {
@@ -5231,7 +5117,6 @@ class FirebaseLicensesManager {
                         updatedAt: new Date().toISOString()
                     };
                     await this.rtdb.ref('licenses/' + docRef.id).set(rtdbData);
-                    console.log('✅ License also saved to Realtime Database:', docRef.id);
                 } catch (rtdbError) {
                     console.warn('⚠️ Could not save to Realtime Database:', rtdbError.message);
                     // Don't fail the operation if RTDB fails, Firestore is primary
@@ -5270,7 +5155,6 @@ class FirebaseLicensesManager {
             });
 
             await this.db.collection(collectionName).doc(licenseId).update(dataToUpdate);
-            console.log('✅ License updated:', licenseId);
             return true;
         } catch (error) {
             console.error('Error updating license:', error);
@@ -5290,7 +5174,6 @@ class FirebaseLicensesManager {
         try {
             const collectionName = window.FIREBASE_COLLECTIONS?.licenses || this.collectionName;
             await this.db.collection(collectionName).doc(licenseId).delete();
-            console.log('✅ License deleted:', licenseId);
             return true;
         } catch (error) {
             console.error('Error deleting license:', error);

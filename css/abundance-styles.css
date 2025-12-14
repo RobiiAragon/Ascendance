@@ -448,13 +448,156 @@
         flex-wrap: wrap;
     }
 
+    /* Orders table to cards on mobile */
     .abundance-table {
-        font-size: 12px;
+        display: block;
+        width: 100%;
     }
 
-    .abundance-table thead tr th,
-    .abundance-table tbody tr td {
+    .abundance-table thead {
+        display: none;
+    }
+
+    .abundance-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .abundance-table tbody tr {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        margin-bottom: 10px;
         padding: 12px;
+        align-items: flex-start;
+    }
+
+    .abundance-table tbody tr td {
+        border: none !important;
+        padding: 0 !important;
+        font-size: 11px;
+    }
+
+    /* Hide checkbox column on mobile */
+    .abundance-table tbody tr td:first-child {
+        display: none;
+    }
+
+    /* Order number - full width at top */
+    .abundance-table tbody tr td:nth-child(2) {
+        width: 100%;
+        order: 1;
+        padding-bottom: 8px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        margin-bottom: 6px;
+    }
+
+    .abundance-table tbody tr td:nth-child(2) .order-link {
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .abundance-table tbody tr td:nth-child(2) .order-date,
+    .abundance-table tbody tr td:nth-child(2) .order-id-small {
+        display: inline;
+        font-size: 10px;
+    }
+
+    /* Customer name */
+    .abundance-table tbody tr td:nth-child(3) {
+        order: 2;
+        width: 100%;
+    }
+
+    .abundance-table tbody tr td:nth-child(3) .customer-name {
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    /* Line items - full width */
+    .abundance-table tbody tr td:nth-child(4) {
+        order: 3;
+        width: 100%;
+        padding: 8px 0 !important;
+        border-top: 1px solid var(--border-color) !important;
+        margin-top: 6px;
+    }
+
+    .abundance-table tbody tr td:nth-child(4) .line-item {
+        font-size: 11px;
+        padding: 3px 0;
+    }
+
+    /* Status */
+    .abundance-table tbody tr td:nth-child(5) {
+        order: 4;
+    }
+
+    .abundance-table tbody tr td:nth-child(5) > div {
+        flex-direction: row !important;
+        gap: 4px !important;
+    }
+
+    .abundance-table tbody tr td:nth-child(5) .order-status-badge {
+        padding: 3px 8px;
+        font-size: 9px;
+    }
+
+    /* Pickup/Shipping */
+    .abundance-table tbody tr td:nth-child(6) {
+        order: 5;
+    }
+
+    .abundance-table tbody tr td:nth-child(6) .order-type-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .abundance-table tbody tr td:nth-child(6) .shipping-address {
+        font-size: 10px;
+    }
+
+    /* Hide taxes on mobile */
+    .abundance-table tbody tr td:nth-child(7) {
+        display: none;
+    }
+
+    /* Total */
+    .abundance-table tbody tr td:nth-child(8) {
+        order: 6;
+    }
+
+    .abundance-table tbody tr td:nth-child(8) .order-total-main {
+        font-size: 14px;
+    }
+
+    .abundance-table tbody tr td:nth-child(8) .order-total-detail {
+        font-size: 9px;
+    }
+
+    /* Actions - full width at bottom */
+    .abundance-table tbody tr td:nth-child(9) {
+        order: 7;
+        width: 100%;
+        padding-top: 8px !important;
+        border-top: 1px solid var(--border-color) !important;
+        margin-top: 6px;
+    }
+
+    .abundance-table tbody tr td:nth-child(9) .order-actions {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .abundance-table tbody tr td:nth-child(9) .order-action-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px;
+        font-size: 11px;
     }
 }
 

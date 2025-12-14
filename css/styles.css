@@ -1866,11 +1866,30 @@
 
         /* Responsive - adjust position on mobile */
         @media (max-width: 768px) {
+            /* En mobile, el botón siempre es flotante debajo del header a la izquierda */
+            .floating-add-btn {
+                position: fixed !important;
+                top: 75px;
+                left: 16px;
+                right: auto;
+                z-index: 500;
+                padding: 8px 14px !important;
+                font-size: 12px !important;
+                box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+                touch-action: manipulation;
+            }
+
             .floating-add-btn.is-fixed {
-                top: 80px;
-                right: 16px;
-                padding: 10px 16px !important;
-                font-size: 13px !important;
+                top: 75px;
+                left: 16px;
+                right: auto;
+                bottom: auto;
+            }
+
+            /* No ocultar durante scroll en mobile */
+            .floating-add-btn.is-fixed.is-scrolling {
+                pointer-events: auto !important;
+                opacity: 1 !important;
             }
         }
 
@@ -1882,6 +1901,49 @@
             animation: none !important;
             transform: none !important;
             margin-left: 8px;
+        }
+
+        /* Thieves page styles */
+        .thieves-filter-select {
+            margin-top: 12px;
+            width: 180px;
+        }
+
+        @media (max-width: 768px) {
+            .thieves-page-header {
+                align-items: flex-start !important;
+            }
+
+            .thieves-page-header .page-header-left {
+                align-items: flex-start !important;
+                width: 100%;
+            }
+
+            .thieves-page-header .page-header-left .section-title,
+            .thieves-page-header .page-header-left .section-subtitle {
+                text-align: left !important;
+                width: 100%;
+            }
+
+            .thieves-filter-select {
+                width: 140px;
+                padding: 8px 10px;
+                font-size: 12px;
+                margin-top: 8px;
+            }
+
+            /* Thieves add button - fijo arriba a la derecha */
+            .thieves-add-btn {
+                position: fixed !important;
+                top: 85px;
+                right: 16px;
+                left: auto;
+                transform: none;
+                padding: 10px 14px !important;
+                font-size: 12px !important;
+                z-index: 500;
+                box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+            }
         }
 
         .section-title {
@@ -2344,6 +2406,67 @@
         }
 
         /* Licenses Page */
+        .licenses-controls-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .edit-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+        }
+
+        .edit-mode-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .edit-mode-status {
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        .btn-add-document {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 480px) {
+            .licenses-controls-row {
+                gap: 8px;
+            }
+
+            .edit-mode-toggle {
+                padding: 6px 10px;
+            }
+
+            .edit-mode-label {
+                font-size: 12px;
+            }
+
+            .edit-mode-status {
+                font-size: 11px;
+                min-width: auto;
+            }
+
+            .btn-add-document {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .btn-add-document i {
+                margin-right: 4px;
+            }
+        }
+
         .license-summary {
             display: flex;
             gap: 16px;
@@ -2594,6 +2717,34 @@
         @media (max-width: 768px) {
             .license-stores-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .license-summary {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: 10px;
+                padding-bottom: 8px;
+            }
+
+            .license-summary-card {
+                flex: 0 0 auto;
+                min-width: 120px;
+                padding: 14px;
+                flex-direction: column;
+                text-align: center;
+                gap: 8px;
+            }
+
+            .license-summary-card i {
+                font-size: 20px;
+            }
+
+            .license-summary-card .count {
+                font-size: 22px;
+            }
+
+            .license-summary-card .label {
+                font-size: 12px;
             }
         }
 
@@ -5984,6 +6135,26 @@
     }
 }
 
+/* Restock Inventory Table - Desktop compact */
+.restock-inventory-table {
+    min-width: unset !important;
+    width: 100%;
+}
+
+.restock-inventory-table th,
+.restock-inventory-table td {
+    padding: 10px 12px !important;
+    white-space: normal;
+}
+
+.restock-inventory-table td[data-label="Product"] {
+    max-width: 250px;
+}
+
+.restock-inventory-table td[data-label="Brand"] {
+    max-width: 150px;
+}
+
 /* Restock Module Responsive Styles */
 @media (max-width: 768px) {
     /* Restock tabs responsive */
@@ -6015,40 +6186,101 @@
         width: 100% !important;
     }
 
-    /* Inventory table to cards */
+    /* Inventory table to cards - compact mobile layout */
+    .licenses-table-container:has(.restock-inventory-table) {
+        overflow-x: hidden;
+    }
+
+    .restock-inventory-table,
+    .restock-inventory-table.data-table {
+        display: block;
+        width: 100% !important;
+        min-width: unset !important;
+        table-layout: auto;
+    }
+
     .restock-inventory-table thead {
         display: none;
     }
 
-    .restock-inventory-table,
-    .restock-inventory-table tbody,
-    .restock-inventory-table tr,
-    .restock-inventory-table td {
+    .restock-inventory-table tbody {
         display: block;
         width: 100%;
     }
 
     .restock-inventory-table tr {
-        background: var(--bg-primary);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+        background: var(--bg-card);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
-        margin-bottom: 12px;
-        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        padding: 10px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .restock-inventory-table td {
         border: none !important;
-        padding: 6px 0 !important;
-        display: flex;
-        justify-content: space-between;
+        padding: 1px 0 !important;
+        display: inline-flex;
         align-items: center;
+        gap: 3px;
+        font-size: 11px;
     }
 
     .restock-inventory-table td::before {
-        content: attr(data-label);
+        content: attr(data-label) ":";
+        font-weight: 600;
+        font-size: 9px;
+        color: var(--text-muted);
+    }
+
+    /* Product spans full width */
+    .restock-inventory-table td[data-label="Product"] {
+        width: 100%;
         font-weight: 600;
         font-size: 12px;
-        color: var(--text-muted);
+        padding-bottom: 6px !important;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 2px;
+        order: 1;
+    }
+
+    /* Brand full width */
+    .restock-inventory-table td[data-label="Brand"] {
+        width: 100%;
+        order: 2;
+    }
+
+    /* Store first */
+    .restock-inventory-table td[data-label="Store"] {
+        order: 0;
+    }
+
+    /* Rest inline */
+    .restock-inventory-table td[data-label="Variant"] { order: 3; }
+    .restock-inventory-table td[data-label="SKU"] { order: 4; }
+    .restock-inventory-table td[data-label="Price"] { order: 5; }
+
+    /* Stock y Status en nueva línea juntos */
+    .restock-inventory-table td[data-label="Stock"] {
+        order: 6;
+    }
+    .restock-inventory-table td[data-label="Status"] {
+        order: 7;
+    }
+
+    /* Línea separadora antes de Stock/Status */
+    .restock-inventory-table tr::after {
+        content: "";
+        order: 5;
+        flex-basis: 100%;
+        height: 1px;
+        background: var(--border-color);
+        margin: 6px 0 4px;
     }
 
     /* Request type filter pills responsive */

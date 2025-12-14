@@ -39,7 +39,6 @@ class GconomicsFirebaseManager {
                     console.warn('Firebase Storage not available:', err);
                 }
                 this.isInitialized = true;
-                console.log('✅ Gconomics Firebase already initialized');
                 
                 // Verify collection exists by creating it if empty
                 await this.ensureCollectionExists();
@@ -54,7 +53,6 @@ class GconomicsFirebaseManager {
                 console.warn('Firebase Storage not available:', err);
             }
             this.isInitialized = true;
-            console.log('✅ Gconomics Firebase initialized successfully');
             
             // Ensure collection exists
             await this.ensureCollectionExists();
@@ -77,7 +75,6 @@ class GconomicsFirebaseManager {
 
             // Try to read from collection to verify it exists
             const snapshot = await this.db.collection(this.collectionName).limit(1).get();
-            console.log('✅ Geconomics collection verified, documents:', snapshot.size);
             return true;
         } catch (error) {
             console.warn('Collection check failed, will create on first write:', error);
@@ -93,7 +90,6 @@ class GconomicsFirebaseManager {
             id: userId,
             email: userEmail
         };
-        console.log('✅ Gconomics user set:', userId);
     }
 
     /**
@@ -139,7 +135,6 @@ class GconomicsFirebaseManager {
             }
 
             await Promise.all(promises);
-            console.log(`✅ Synced ${expenses.length} expenses to Firestore`);
             this.syncInProgress = false;
             return true;
         } catch (error) {
@@ -197,7 +192,6 @@ class GconomicsFirebaseManager {
                 .doc(expense.id)
                 .set(expenseData, { merge: true });
 
-            console.log('✅ Expense saved to Firestore successfully:', expense.id);
             return true;
         } catch (error) {
             console.error('Error saving expense to Firestore:', error);
@@ -229,7 +223,6 @@ class GconomicsFirebaseManager {
                 .doc(expenseId)
                 .delete();
 
-            console.log('✅ Expense deleted from Firestore:', expenseId);
             return true;
         } catch (error) {
             console.error('Error deleting expense from Firestore:', error);
@@ -271,7 +264,6 @@ class GconomicsFirebaseManager {
                 });
             });
 
-            console.log(`✅ Loaded ${expenses.length} expenses from Firestore`);
             return expenses;
         } catch (error) {
             console.error('Error loading expenses from Firestore:', error);
@@ -304,7 +296,6 @@ class GconomicsFirebaseManager {
                 });
             });
 
-            console.log(`✅ Loaded ${expenses.length} expenses for ${monthString} from Firestore`);
             return expenses;
         } catch (error) {
             console.error('Error loading monthly expenses from Firestore:', error);
@@ -423,7 +414,6 @@ class GconomicsFirebaseManager {
                 }
             }
 
-            console.log(`✅ Synced: ${toUpload.length} uploaded, ${firebaseExpenses.length - toUpload.length} merged from Firebase`);
             return merged;
         } catch (error) {
             console.error('Error syncing with Firebase:', error);
@@ -496,7 +486,6 @@ class GconomicsFirebaseManager {
             });
 
             await batch.commit();
-            console.log('✅ All expenses cleared from Firestore');
             return true;
         } catch (error) {
             console.error('Error clearing expenses:', error);

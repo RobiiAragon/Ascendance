@@ -36,7 +36,6 @@ class FirebaseSyncManager {
             firebase.initializeApp(config);
             this.db = firebase.firestore();
             this.isInitialized = true;
-            console.log('✅ Firebase initialized successfully');
             return true;
         } catch (error) {
             console.error('Error initializing Firebase:', error);
@@ -423,7 +422,6 @@ const firebaseSyncManager = new FirebaseSyncManager();
     // Initialize the sync manager
     const initialized = await firebaseSyncManager.initialize();
     if (initialized) {
-        console.log('✅ FirebaseSyncManager ready for Risk Notes');
         // Dispatch event to notify other scripts
         window.dispatchEvent(new CustomEvent('firebaseSyncReady'));
     }

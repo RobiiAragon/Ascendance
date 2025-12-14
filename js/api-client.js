@@ -63,7 +63,6 @@ let currentAnalyticsPage = false;
 // Cancel any pending analytics request by incrementing the request ID
 function cancelAnalyticsRequest() {
     analyticsRequestId++;
-    console.log(`[Analytics] Cancelled pending requests. New request ID: ${analyticsRequestId}`);
 }
 
 // Check if we're still on the analytics page
@@ -1648,6 +1647,3 @@ document.addEventListener('mousedown', function(e) {
     }
 });
 
-console.log('API Client loaded - use renderAnalyticsWithData() to fetch live Shopify data');
-console.log('Abundance Cloud API available: fetchOrdersFromAPI(), markOrderAsPrepared(), markOrderAsReadyForPickup(), markOrderAsDelivered()');
-console.log('Multi-store support enabled: VSU, Loyal Vaper, Miramar Wine & Liquor');

@@ -51,7 +51,6 @@ let abundanceState = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Abundance Cloud initialized');
     initializeAbundanceCloud();
 });
 
@@ -101,7 +100,6 @@ async function fetchOrders(filterType = 'all') {
     // Use Next.js backend API via api-client.js
     if (ABUNDANCE_CONFIG.features.useBackendAPI && typeof fetchOrdersFromAPI === 'function') {
         try {
-            console.log(`[Abundance Cloud] Fetching orders via backend API (filter: ${filterType})`);
             const data = await fetchOrdersFromAPI(filterType);
             return {
                 orders: data.orders || [],
@@ -116,7 +114,6 @@ async function fetchOrders(filterType = 'all') {
     // Use direct Shopify API connection (like shopify-analytics.js)
     if (ABUNDANCE_CONFIG.features.useDirectShopifyAPI) {
         try {
-            console.log(`[Abundance Cloud] Fetching orders via direct Shopify API (filter: ${filterType})`);
             return await fetchOrdersFromShopifyDirect(filterType);
         } catch (error) {
             console.error('Error fetching orders from Shopify:', error);
@@ -126,7 +123,6 @@ async function fetchOrders(filterType = 'all') {
     }
 
     // Fallback to local storage
-    console.log('[Abundance Cloud] Using local storage fallback');
     return getLocalOrders(filterType);
 }
 
@@ -281,7 +277,6 @@ async function fetchOrdersFromShopify(filterType = 'all') {
  */
 async function fetchOrdersFromShopifyDirect(filterType = 'all') {
     try {
-        console.log('[Abundance Cloud] Fetching orders directly from Loyal Vaper Shopify...');
 
         // Build GraphQL query for orders
         const query = `
@@ -406,7 +401,6 @@ async function fetchOrdersFromShopifyDirect(filterType = 'all') {
             filteredOrders = orders.filter(o => o.sourceName === 'shopify_draft_order');
         }
 
-        console.log(`[Abundance Cloud] ✅ Loaded ${filteredOrders.length} orders from Loyal Vaper Shopify`);
 
         return {
             orders: filteredOrders,
@@ -1129,7 +1123,6 @@ async function markOrderAsShipping(orderId) {
     // Use Next.js backend API via api-client.js
     if (ABUNDANCE_CONFIG.features.useBackendAPI && typeof markOrderAsPrepared === 'function') {
         try {
-            console.log(`[Abundance Cloud] Marking order ${orderId} as prepared via backend API`);
             return await markOrderAsPrepared(orderId);
         } catch (error) {
             console.error('Error marking as prepared via backend:', error);
@@ -1145,7 +1138,6 @@ async function markOrderAsPickup(orderId) {
     // Use Next.js backend API via api-client.js
     if (ABUNDANCE_CONFIG.features.useBackendAPI && typeof markOrderAsReadyForPickup === 'function') {
         try {
-            console.log(`[Abundance Cloud] Marking order ${orderId} as ready for pickup via backend API`);
             return await markOrderAsReadyForPickup(orderId);
         } catch (error) {
             console.error('Error marking as ready for pickup via backend:', error);
@@ -1161,7 +1153,6 @@ async function markOrderAsDeliveredAction(orderId) {
     // Use Next.js backend API via api-client.js
     if (ABUNDANCE_CONFIG.features.useBackendAPI && typeof markOrderAsDelivered === 'function') {
         try {
-            console.log(`[Abundance Cloud] Marking order ${orderId} as delivered via backend API`);
             return await markOrderAsDelivered(orderId);
         } catch (error) {
             console.error('Error marking as delivered via backend:', error);
@@ -1498,19 +1489,26 @@ function refreshOrders() {
 }
 
 function showLoading() {
-    document.getElementById('loadingOrders').style.display = 'flex';
-    document.getElementById('ordersTableContainer').style.display = 'none';
-    document.getElementById('emptyState').style.display = 'none';
+    const loadingEl = document.getElementById('loadingOrders');
+    const tableEl = document.getElementById('ordersTableContainer');
+    const emptyEl = document.getElementById('emptyState');
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (tableEl) tableEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'none';
 }
 
 function hideLoading() {
-    document.getElementById('loadingOrders').style.display = 'none';
+    const loadingEl = document.getElementById('loadingOrders');
+    if (loadingEl) loadingEl.style.display = 'none';
 }
 
 function showEmptyState() {
-    document.getElementById('loadingOrders').style.display = 'none';
-    document.getElementById('ordersTableContainer').style.display = 'none';
-    document.getElementById('emptyState').style.display = 'flex';
+    const loadingEl = document.getElementById('loadingOrders');
+    const tableEl = document.getElementById('ordersTableContainer');
+    const emptyEl = document.getElementById('emptyState');
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (tableEl) tableEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'flex';
 }
 
 function debounce(func, wait) {
@@ -1768,9 +1766,3 @@ async function sendThiefReportToBackend(reportData) {
 
     return await response.json();
 }
-
-// Log initialization
-console.log('✅ Abundance Cloud Engine loaded');
-console.log(`📦 Store: ${LOYAL_VAPER_CONFIG.name} (${LOYAL_VAPER_CONFIG.storeUrl})`);
-console.log(`🔗 Direct Shopify API: ${ABUNDANCE_CONFIG.features.useDirectShopifyAPI ? 'Enabled' : 'Disabled'}`);
-console.log(`🔄 Backend API: ${ABUNDANCE_CONFIG.features.useBackendAPI ? 'Enabled' : 'Disabled'}`);
