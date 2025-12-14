@@ -7,6 +7,7 @@
 class GconomicsFirebaseManager {
     constructor() {
         this.db = null;
+        this.storage = null;
         this.currentUser = null;
         this.isInitialized = false;
         this.collectionName = 'gconomics';
@@ -32,19 +33,55 @@ class GconomicsFirebaseManager {
             // Check if already initialized
             if (firebase.apps && firebase.apps.length > 0) {
                 this.db = firebase.firestore();
+                try {
+                    this.storage = firebase.storage();
+                } catch (err) {
+                    console.warn('Firebase Storage not available:', err);
+                }
                 this.isInitialized = true;
                 console.log('✅ Gconomics Firebase already initialized');
+                
+                // Verify collection exists by creating it if empty
+                await this.ensureCollectionExists();
                 return true;
             }
 
             firebase.initializeApp(config);
             this.db = firebase.firestore();
+            try {
+                this.storage = firebase.storage();
+            } catch (err) {
+                console.warn('Firebase Storage not available:', err);
+            }
             this.isInitialized = true;
             console.log('✅ Gconomics Firebase initialized successfully');
+            
+            // Ensure collection exists
+            await this.ensureCollectionExists();
             return true;
         } catch (error) {
             console.error('Error initializing Gconomics Firebase:', error);
             return false;
+        }
+    }
+
+    /**
+     * Ensure the gconomics collection exists by creating a test document
+     */
+    async ensureCollectionExists() {
+        try {
+            if (!this.db) {
+                console.warn('Database not initialized');
+                return false;
+            }
+
+            // Try to read from collection to verify it exists
+            const snapshot = await this.db.collection(this.collectionName).limit(1).get();
+            console.log('✅ Geconomics collection verified, documents:', snapshot.size);
+            return true;
+        } catch (error) {
+            console.warn('Collection check failed, will create on first write:', error);
+            return true; // We'll create it when we save
         }
     }
 
@@ -56,6 +93,7 @@ class GconomicsFirebaseManager {
             id: userId,
             email: userEmail
         };
+        console.log('✅ Gconomics user set:', userId);
     }
 
     /**
@@ -115,8 +153,23 @@ class GconomicsFirebaseManager {
      * Save single expense to Firestore
      */
     async saveExpenseToFirestore(expense) {
-        if (!this.isInitialized || !this.currentUser) {
-            console.warn('Firebase not initialized or user not set');
+        if (!this.isInitialized) {
+            console.warn('Firebase not initialized, attempting to initialize...');
+            // Try to initialize
+            const initialized = await this.initialize();
+            if (!initialized) {
+                console.error('Failed to initialize Firebase');
+                return false;
+            }
+        }
+
+        if (!this.currentUser) {
+            console.warn('Current user not set, using guest');
+            this.currentUser = { id: 'guest', email: 'guest@ascendance.local' };
+        }
+
+        if (!this.db) {
+            console.error('Firestore database not available');
             return false;
         }
 
@@ -136,14 +189,28 @@ class GconomicsFirebaseManager {
                 }
             });
 
-            await this.db.collection(this.collectionName)
+            console.log('Saving expense to Firestore:', expense.id, 'Collection:', this.collectionName);
+            console.log('Expense data:', expenseData);
+
+            // Write to Firestore
+            const result = await this.db.collection(this.collectionName)
                 .doc(expense.id)
                 .set(expenseData, { merge: true });
 
-            console.log('✅ Expense saved to Firestore:', expense.id);
+            console.log('✅ Expense saved to Firestore successfully:', expense.id);
             return true;
         } catch (error) {
             console.error('Error saving expense to Firestore:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            
+            // Log detailed error info
+            if (error.code === 'permission-denied') {
+                console.error('❌ Permission denied - check Firestore rules');
+            } else if (error.code === 'not-found') {
+                console.error('❌ Database not found - check Firebase configuration');
+            }
+            
             return false;
         }
     }
@@ -174,21 +241,32 @@ class GconomicsFirebaseManager {
      * Load expenses from Firestore for current user
      */
     async loadExpensesFromFirestore() {
-        if (!this.isInitialized || !this.currentUser) {
-            console.warn('Firebase not initialized or user not set');
+        if (!this.isInitialized) {
+            console.warn('Firebase not initialized');
             return [];
         }
 
         try {
-            const snapshot = await this.db.collection(this.collectionName)
-                .where('odooUserId', '==', this.currentUser.id)
-                .get();
+            // First try to load user-specific expenses
+            let snapshot;
+            if (this.currentUser && this.currentUser.id) {
+                snapshot = await this.db.collection(this.collectionName)
+                    .where('odooUserId', '==', this.currentUser.id)
+                    .get();
+            }
+
+            // If no user-specific expenses found, load all expenses
+            if (!snapshot || snapshot.empty) {
+                console.log('Loading all expenses from collection...');
+                snapshot = await this.db.collection(this.collectionName).get();
+            }
 
             const expenses = [];
             snapshot.forEach(doc => {
+                const data = doc.data();
                 expenses.push({
-                    ...doc.data(),
-                    id: doc.id,
+                    ...data,
+                    id: data.id || doc.id,
                     firestoreId: doc.id
                 });
             });
@@ -308,8 +386,8 @@ class GconomicsFirebaseManager {
      * Sync local expenses with Firebase (bi-directional)
      */
     async syncWithFirebase(localExpenses) {
-        if (!this.isInitialized || !this.currentUser) {
-            console.warn('Firebase not initialized or user not set');
+        if (!this.isInitialized) {
+            console.warn('Firebase not initialized');
             return localExpenses;
         }
 
@@ -317,22 +395,24 @@ class GconomicsFirebaseManager {
             // Get all Firebase expenses
             const firebaseExpenses = await this.loadExpensesFromFirestore();
 
-            // Create maps for easier comparison
-            const localMap = new Map(localExpenses.map(e => [e.id, e]));
-            const firebaseMap = new Map(firebaseExpenses.map(e => [e.id, e]));
+            // Create maps for easier comparison using string IDs for consistency
+            const localMap = new Map(localExpenses.map(e => [String(e.id), e]));
+            const firebaseMap = new Map(firebaseExpenses.map(e => [String(e.id), e]));
 
             // Find expenses to upload (in local but not in Firebase, or newer)
             const toUpload = [];
-            for (const [id, localExp] of localMap) {
-                const firebaseExp = firebaseMap.get(id);
-                if (!firebaseExp || new Date(localExp.updatedAt) > new Date(firebaseExp.updatedAt)) {
-                    toUpload.push(localExp);
+            if (this.currentUser) {
+                for (const [id, localExp] of localMap) {
+                    const firebaseExp = firebaseMap.get(id);
+                    if (!firebaseExp || new Date(localExp.updatedAt) > new Date(firebaseExp.updatedAt)) {
+                        toUpload.push(localExp);
+                    }
                 }
-            }
 
-            // Upload new/updated expenses
-            if (toUpload.length > 0) {
-                await this.syncExpensesToFirestore(toUpload);
+                // Upload new/updated expenses
+                if (toUpload.length > 0) {
+                    await this.syncExpensesToFirestore(toUpload);
+                }
             }
 
             // Merge Firebase expenses that don't exist locally
@@ -343,6 +423,7 @@ class GconomicsFirebaseManager {
                 }
             }
 
+            console.log(`✅ Synced: ${toUpload.length} uploaded, ${firebaseExpenses.length - toUpload.length} merged from Firebase`);
             return merged;
         } catch (error) {
             console.error('Error syncing with Firebase:', error);

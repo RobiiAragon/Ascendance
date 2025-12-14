@@ -1184,16 +1184,27 @@ class FirebaseStorageHelper {
             throw new Error('Invalid base64 image');
         }
 
+        // Initialize storage if needed
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+
         // Show loading overlay
         if (showOverlay) {
             uploadLoadingOverlay.show('Uploading image...', 'Please wait while we upload your image');
         }
 
         try {
+            if (!this.storage) {
+                throw new Error('Firebase Storage not initialized');
+            }
+
             // Generate unique filename with timestamp
             const timestamp = Date.now();
             const extension = base64Image.includes('image/png') ? 'png' : 'jpg';
             const path = `${folder}/${fileName}_${timestamp}.${extension}`;
+
+            console.log('Uploading image to Firebase Storage:', path);
 
             // Use internal upload without showing overlay again
             const result = await this._uploadFileInternal(base64Image, path, (progress) => {
@@ -1202,6 +1213,8 @@ class FirebaseStorageHelper {
                 }
             });
 
+            console.log('✅ Image uploaded successfully:', result.url);
+
             // Show success
             if (showOverlay) {
                 uploadLoadingOverlay.showSuccess('Image uploaded!');
@@ -1209,9 +1222,23 @@ class FirebaseStorageHelper {
 
             return result;
         } catch (error) {
+            console.error('Error uploading image:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+
             if (showOverlay) {
-                uploadLoadingOverlay.showError('Image upload failed');
+                uploadLoadingOverlay.showError('Image upload failed: ' + error.message);
             }
+
+            // Log detailed error info
+            if (error.code === 'storage/project-not-found') {
+                console.error('❌ Firebase Storage bucket not found - check Firebase console');
+            } else if (error.code === 'storage/permission-denied') {
+                console.error('❌ Permission denied to upload - check Storage rules');
+            } else if (error.code === 'storage/unknown') {
+                console.error('❌ Unknown Storage error - check Firebase setup and network');
+            }
+
             throw error;
         }
     }
@@ -3025,8 +3052,15 @@ class FirebaseTrainingManager {
                 });
             }
 
+            // Calculate completion percentage based on total employees
+            const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+            const employeesSnapshot = await this.db.collection(employeesCollection).get();
+            const totalEmployees = employeesSnapshot.size;
+            const completionPercentage = totalEmployees > 0 ? Math.round((completions.length / totalEmployees) * 100) : 0;
+
             await trainingRef.update({
                 completions: completions,
+                completion: completionPercentage,
                 updatedAt: new Date()
             });
 
@@ -3064,8 +3098,15 @@ class FirebaseTrainingManager {
             const completions = trainingDoc.data().completions || [];
             const updatedCompletions = completions.filter(c => c.employeeId !== employeeId);
 
+            // Calculate completion percentage based on total employees
+            const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+            const employeesSnapshot = await this.db.collection(employeesCollection).get();
+            const totalEmployees = employeesSnapshot.size;
+            const completionPercentage = totalEmployees > 0 ? Math.round((updatedCompletions.length / totalEmployees) * 100) : 0;
+
             await trainingRef.update({
                 completions: updatedCompletions,
+                completion: completionPercentage,
                 updatedAt: new Date()
             });
 
@@ -4219,8 +4260,11 @@ class FirebaseChangeRecordsManager {
                     date: data.date || '',
                     leftBy: data.leftBy || '',
                     receivedBy: data.receivedBy || '',
+                    recordedBy: data.recordedBy || '',
                     notes: data.notes || '',
                     photo: data.photo || null,
+                    photoPath: data.photoPath || null,
+                    denominations: data.denominations || {},
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt
                 });
@@ -4336,8 +4380,11 @@ class FirebaseChangeRecordsManager {
                             date: data.date || '',
                             leftBy: data.leftBy || '',
                             receivedBy: data.receivedBy || '',
+                            recordedBy: data.recordedBy || '',
                             notes: data.notes || '',
                             photo: data.photo || null,
+                            photoPath: data.photoPath || null,
+                            denominations: data.denominations || {},
                             createdAt: data.createdAt,
                             updatedAt: data.updatedAt
                         });
@@ -4621,7 +4668,8 @@ class FirebaseGiftsManager {
                     store: data.store || '',
                     date: data.date || '',
                     notes: data.notes || '',
-                    photo: data.photo || null
+                    photo: data.photo || null,
+                    photoPath: data.photoPath || null
                 });
             });
 

@@ -1,11 +1,17 @@
 // Abundance Cloud JavaScript
 // This file handles all Shopify order management functionality
 
-// Configuration
-// Now uses the Next.js backend via api-client.js
+// CORS Proxy for frontend Shopify API calls (same as shopify-analytics.js)
+const ABUNDANCE_CORS_PROXY = 'https://corsproxy.io/?';
+const ABUNDANCE_API_VERSION = '2024-01';
+
+// Use configuration from abundance-config.js (loaded via window.ABUNDANCE_CONFIG)
+// Fallback to defaults if not available
 const ABUNDANCE_CONFIG = window.ABUNDANCE_CONFIG || {
     shopifyUrl: 'k1xm3v-v0',
     shopifyAdminUrl: 'https://admin.shopify.com/store/k1xm3v-v0',
+    shopifyDomain: 'k1xm3v-v0.myshopify.com',
+    shopifyAccessToken: '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',
     storeName: 'Loyal Vaper',
     organizationName: 'Abundance Cloud Engine',
     features: {
@@ -13,8 +19,19 @@ const ABUNDANCE_CONFIG = window.ABUNDANCE_CONFIG || {
         refreshInterval: 120000, // 2 minutes
         barcodeScanner: true,
         debugMode: true,
-        useBackendAPI: true // Use Next.js backend via api-client.js
+        useBackendAPI: false, // Disabled - no backend server required
+        useDirectShopifyAPI: true // Enable direct Shopify API (frontend, like Analytics)
     }
+};
+
+// Loyal Vaper Store Configuration (derived from ABUNDANCE_CONFIG)
+const LOYAL_VAPER_CONFIG = {
+    key: 'loyalvaper',
+    name: ABUNDANCE_CONFIG.storeName || 'Loyal Vaper',
+    shortName: 'Loyal Vaper',
+    storeUrl: ABUNDANCE_CONFIG.shopifyDomain || 'k1xm3v-v0.myshopify.com',
+    accessToken: ABUNDANCE_CONFIG.shopifyAccessToken || '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',
+    hasMultipleLocations: false
 };
 
 // Use config values or defaults
@@ -92,7 +109,18 @@ async function fetchOrders(filterType = 'all') {
             };
         } catch (error) {
             console.error('Error fetching orders from backend:', error);
-            // Fallback to local storage if backend fails
+            // Fallback to direct Shopify API
+        }
+    }
+
+    // Use direct Shopify API connection (like shopify-analytics.js)
+    if (ABUNDANCE_CONFIG.features.useDirectShopifyAPI) {
+        try {
+            console.log(`[Abundance Cloud] Fetching orders via direct Shopify API (filter: ${filterType})`);
+            return await fetchOrdersFromShopifyDirect(filterType);
+        } catch (error) {
+            console.error('Error fetching orders from Shopify:', error);
+            // Fallback to local storage if Shopify fails
             return getLocalOrders(filterType);
         }
     }
@@ -244,6 +272,152 @@ async function fetchOrdersFromShopify(filterType = 'all') {
         console.error('Error fetching from Shopify:', error);
         // Fallback to local storage if Shopify fails
         return getLocalOrders(filterType);
+    }
+}
+
+/**
+ * Fetch orders directly from Shopify API using CORS proxy
+ * Uses the same pattern as shopify-analytics.js for consistency
+ */
+async function fetchOrdersFromShopifyDirect(filterType = 'all') {
+    try {
+        console.log('[Abundance Cloud] Fetching orders directly from Loyal Vaper Shopify...');
+
+        // Build GraphQL query for orders
+        const query = `
+            query getOrders {
+                orders(first: 50, reverse: true, query: "fulfillment_status:unfulfilled") {
+                    edges {
+                        node {
+                            id
+                            name
+                            createdAt
+                            displayFinancialStatus
+                            displayFulfillmentStatus
+                            customer {
+                                displayName
+                            }
+                            totalPriceSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            subtotalPriceSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            totalTaxSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            shippingAddress {
+                                address1
+                                address2
+                                city
+                                province
+                                zip
+                            }
+                            lineItems(first: 20) {
+                                edges {
+                                    node {
+                                        id
+                                        name
+                                        quantity
+                                    }
+                                }
+                            }
+                            taxLines {
+                                title
+                                priceSet {
+                                    shopMoney {
+                                        amount
+                                    }
+                                }
+                            }
+                            customAttributes {
+                                key
+                                value
+                            }
+                            metafields(first: 10) {
+                                edges {
+                                    node {
+                                        key
+                                        value
+                                    }
+                                }
+                            }
+                            note
+                            tags
+                            sourceName
+                            shippingLines(first: 1) {
+                                edges {
+                                    node {
+                                        title
+                                    }
+                                }
+                            }
+                            fulfillmentOrders(first: 5) {
+                                edges {
+                                    node {
+                                        status
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `;
+
+        const graphqlUrl = `https://${LOYAL_VAPER_CONFIG.storeUrl}/admin/api/${ABUNDANCE_API_VERSION}/graphql.json`;
+
+        const response = await fetch(ABUNDANCE_CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': LOYAL_VAPER_CONFIG.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Shopify API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.errors) {
+            console.error('GraphQL errors:', data.errors);
+            throw new Error('GraphQL query failed');
+        }
+
+        // Transform Shopify data to our format
+        const orders = data.data.orders.edges.map(edge => transformShopifyOrder(edge.node));
+
+        // Apply filter
+        let filteredOrders = orders;
+        if (filterType === 'shipping') {
+            filteredOrders = orders.filter(o => o.isDelivery === true);
+        } else if (filterType === 'pickup') {
+            filteredOrders = orders.filter(o => o.isDelivery === false);
+        } else if (filterType === 'manual') {
+            filteredOrders = orders.filter(o => o.sourceName === 'shopify_draft_order');
+        }
+
+        console.log(`[Abundance Cloud] ✅ Loaded ${filteredOrders.length} orders from Loyal Vaper Shopify`);
+
+        return {
+            orders: filteredOrders,
+            pageInfo: {
+                hasNextPage: false,
+                hasPreviousPage: false
+            }
+        };
+    } catch (error) {
+        console.error('[Abundance Cloud] Error fetching from Shopify:', error);
+        throw error;
     }
 }
 
@@ -1267,7 +1441,7 @@ function generatePrintHTML(orders) {
         <head>
             <title>Print Orders</title>
             <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
+                body { font-family: 'Outfit', sans-serif; padding: 20px; }
                 .order { page-break-after: always; margin-bottom: 40px; border: 2px solid #000; padding: 20px; }
                 .order:last-child { page-break-after: auto; }
                 h1 { margin-top: 0; }
@@ -1442,30 +1616,103 @@ async function submitThiefReport() {
         return;
     }
 
-    // Gather form data
-    const reportData = {
-        photo: thiefPhotoData,
-        storeLocation: document.getElementById('storeLocation').value,
-        incidentDate: document.getElementById('incidentDate').value,
-        incidentTime: document.getElementById('incidentTime').value,
-        identifyingCharacteristics: document.getElementById('identifyingMarks').value,
-        additionalNotes: document.getElementById('additionalNotes').value,
-        reportedBy: 'Current User', // You can integrate with your auth system
-        reportedAt: new Date().toISOString()
-    };
-
     // Disable submit button
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
 
     try {
-        // Here you would send the data to your backend
-        // For now, we'll save to localStorage
-        saveThiefReportLocally(reportData);
+        // Get current user info
+        const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+        const reportedBy = user.name || user.email || 'Unknown User';
+
+        // Upload photo to Firebase Storage first
+        let photoUrl = null;
+        let photoPath = null;
+
+        if (thiefPhotoData && thiefPhotoData.startsWith('data:image')) {
+            // Initialize storage helper if needed
+            if (typeof firebaseStorageHelper !== 'undefined' && !firebaseStorageHelper.isInitialized) {
+                firebaseStorageHelper.initialize();
+            }
+
+            try {
+                const thiefId = Date.now().toString();
+                const uploadResult = await firebaseStorageHelper.uploadImage(
+                    thiefPhotoData,
+                    'thieves/photos',
+                    `thief_${thiefId}`,
+                    500, // maxSizeKB
+                    true // showOverlay
+                );
+                photoUrl = uploadResult.url;
+                photoPath = uploadResult.path;
+                console.log('✅ Thief photo uploaded to Firebase Storage:', photoUrl);
+            } catch (uploadError) {
+                console.warn('Firebase Storage upload failed, using compressed base64:', uploadError);
+                // Fallback: compress the image for Firestore (not ideal but works)
+                if (typeof compressImage === 'function') {
+                    try {
+                        photoUrl = await compressImage(thiefPhotoData, 500, 800, 800);
+                    } catch (compressError) {
+                        console.warn('Image compression failed:', compressError);
+                        photoUrl = thiefPhotoData; // Use original as last resort
+                    }
+                } else {
+                    photoUrl = thiefPhotoData;
+                }
+            }
+        }
+
+        // Gather form data for Firestore
+        const reportData = {
+            photo: photoUrl,
+            photoPath: photoPath, // For future deletion from Storage
+            store: document.getElementById('storeLocation').value,
+            date: document.getElementById('incidentDate').value,
+            time: document.getElementById('incidentTime').value,
+            description: document.getElementById('identifyingMarks').value,
+            itemsStolen: document.getElementById('additionalNotes').value,
+            crimeType: 'theft',
+            estimatedValue: 0,
+            banned: true,
+            reportedBy: reportedBy,
+            reportedAt: new Date().toISOString()
+        };
+
+        // Initialize Firebase Thieves Manager if needed
+        if (typeof firebaseThievesManager !== 'undefined') {
+            if (!firebaseThievesManager.isInitialized) {
+                await firebaseThievesManager.initialize();
+            }
+
+            if (firebaseThievesManager.isInitialized) {
+                // Save to Firebase Firestore
+                const docId = await firebaseThievesManager.addThief(reportData);
+
+                if (docId) {
+                    console.log('✅ Thief report saved to Firebase Firestore:', docId);
+
+                    // Show success message
+                    messageEl.className = 'alert success';
+                    messageEl.textContent = 'Theft incident reported successfully and saved to database!';
+                    messageEl.style.display = 'block';
+
+                    // Close modal after 2 seconds
+                    setTimeout(() => {
+                        closeThiefReportModal();
+                    }, 2000);
+                    return;
+                }
+            }
+        }
+
+        // Fallback to localStorage if Firebase fails
+        console.warn('Firebase not available, saving to localStorage as fallback');
+        saveThiefReportLocally({ ...reportData, photo: thiefPhotoData });
 
         // Show success message
         messageEl.className = 'alert success';
-        messageEl.textContent = 'Theft incident reported successfully!';
+        messageEl.textContent = 'Theft incident reported successfully! (saved locally)';
         messageEl.style.display = 'block';
 
         // Close modal after 2 seconds
@@ -1521,3 +1768,9 @@ async function sendThiefReportToBackend(reportData) {
 
     return await response.json();
 }
+
+// Log initialization
+console.log('✅ Abundance Cloud Engine loaded');
+console.log(`📦 Store: ${LOYAL_VAPER_CONFIG.name} (${LOYAL_VAPER_CONFIG.storeUrl})`);
+console.log(`🔗 Direct Shopify API: ${ABUNDANCE_CONFIG.features.useDirectShopifyAPI ? 'Enabled' : 'Disabled'}`);
+console.log(`🔄 Backend API: ${ABUNDANCE_CONFIG.features.useBackendAPI ? 'Enabled' : 'Disabled'}`);

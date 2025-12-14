@@ -7,16 +7,18 @@
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {
-    // Backend API Configuration
-    apiUri: 'http://localhost:3300/', // Your backend API endpoint
+    // Backend API Configuration (disabled - using direct Shopify API)
+    apiUri: 'http://localhost:3300/', // Your backend API endpoint (not used when useDirectShopifyAPI is true)
 
-    // Shopify Store Configuration
-    shopifyUrl: 'vsu-store', // Just the store name, not the full URL
-    shopifyAdminUrl: 'https://admin.shopify.com/store/vsu-store',
+    // Shopify Store Configuration - Loyal Vaper (same as shopify-analytics.js)
+    shopifyUrl: 'k1xm3v-v0',
+    shopifyAdminUrl: 'https://admin.shopify.com/store/k1xm3v-v0',
+    shopifyDomain: 'k1xm3v-v0.myshopify.com',
+    shopifyAccessToken: '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',
 
     // Store Information
-    storeName: 'VSU - Vapor Store USA',
-    organizationName: 'Vapor Store USA Inc.',
+    storeName: 'Loyal Vaper',
+    organizationName: 'Abundance Cloud Engine',
 
     // Feature Flags
     features: {
@@ -24,7 +26,9 @@ window.ABUNDANCE_CONFIG = {
         refreshInterval: 120000, // 2 minutes in milliseconds
         barcodeScanner: true,
         mockData: false, // Set to true for testing without backend
-        debugMode: true // Enable console logging
+        debugMode: true, // Enable console logging
+        useBackendAPI: false, // Disabled - no backend server required
+        useDirectShopifyAPI: true // Enable direct Shopify API (frontend, like Analytics)
     },
 
     // Order Filters
@@ -132,7 +136,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
+        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
     },
     'manager': {
         // Action Permissions
@@ -146,7 +150,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'change', 'gifts', 'risknotes', 'gforce', 'passwords']
+        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
     },
     'employee': {
         // Action Permissions
@@ -160,7 +164,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training', 'change', 'risknotes', 'gforce']
+        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics']
     }
 };
 

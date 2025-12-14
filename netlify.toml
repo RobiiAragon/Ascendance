@@ -1,0 +1,52 @@
+# Netlify configuration for Static Frontend
+# This deploys the Ascendance folder directly (no subfolder)
+
+[build]
+  # No build command needed for static site
+  command = "echo 'Static site - no build needed'"
+  # Publish current directory (root of this repo)
+  publish = "."
+
+# Use Node 18
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect root to Login page (use lowercase for case-sensitive servers)
+[[redirects]]
+  from = "/"
+  to = "/login.html"
+  status = 302
+
+# Handle capital L variant
+[[redirects]]
+  from = "/Login.html"
+  to = "/login.html"
+  status = 301
+
+# Headers for security and HTTPS enforcement
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    X-XSS-Protection = "1; mode=block"
+    Content-Security-Policy = "upgrade-insecure-requests"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# Cache static assets
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"

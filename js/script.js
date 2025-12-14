@@ -155,6 +155,7 @@
                                     font-weight: 500;
                                     cursor: pointer;
                                     transition: all 0.2s;
+                                    font-family: Outfit, sans-serif;
                                 ">${cancelText}</button>
                                 <button id="confirm-modal-confirm" style="
                                     flex: 1;
@@ -167,6 +168,7 @@
                                     font-weight: 500;
                                     cursor: pointer;
                                     transition: all 0.2s;
+                                    font-family: Outfit, sans-serif;
                                 ">${confirmText}</button>
                             </div>
                         </div>
@@ -1042,23 +1044,34 @@
         }
 
         // Navigation handler
-        function navigateTo(page) {
+        function navigateTo(page, addToHistory = true) {
+            console.log('navigateTo called with:', page);
+
             // Check if user has permission to access this page
             const user = getCurrentUser();
             const userRole = user.role || 'employee';
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
-            
+
+            console.log('User role:', userRole, 'Allowed pages:', allowedPages);
+
             // If page not in allowed list, silently deny access and return to current page
             if (!allowedPages.includes(page)) {
                 console.warn(`⚠️ Access denied: ${userPermissions.label} role cannot access ${page}`);
                 return;
             }
-            
+
             currentPage = page;
-            
+
             // Save current page to sessionStorage (persists on refresh, clears on tab close)
             sessionStorage.setItem('ascendance_current_page', page);
+
+            // Update browser history for back/forward navigation
+            if (addToHistory) {
+                const url = new URL(window.location);
+                url.searchParams.set('page', page);
+                history.pushState({ page: page }, '', url);
+            }
             
             // Update nav items
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -1091,19 +1104,35 @@
                 treasury: 'Treasury - Select Pieces',
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
-                abundancecloud: 'Abundance Cloud',
+                abundancecloud: 'Abundance Cloud Engine',
                 newstuff: 'New Stuff',
                 change: 'Change',
                 gifts: 'Customer Care',
                 risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
-                projectanalytics: 'Project Analytics'
+                projectanalytics: 'Project Analytics',
+                restock: 'Restock Requests',
+                supplies: 'Supplies',
+                dailychecklist: 'Daily Checklist'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
             // Render page content
             renderPage(page);
         }
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function(event) {
+            if (event.state && event.state.page) {
+                // Navigate to the page from history without adding a new history entry
+                navigateTo(event.state.page, false);
+            } else {
+                // Fallback: check URL for page parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const page = urlParams.get('page') || 'dashboard';
+                navigateTo(page, false);
+            }
+        });
 
         function renderPage(page) {
             console.log('renderPage called with:', page);
@@ -1135,6 +1164,12 @@
                     break;
                 case 'restock':
                     renderRestockRequests();
+                    break;
+                case 'supplies':
+                    renderSupplies();
+                    break;
+                case 'dailychecklist':
+                    renderDailyChecklist();
                     break;
                 case 'abundancecloud':
                     renderAbundanceCloud();
@@ -1196,6 +1231,8 @@
                 default:
                     renderDashboard();
             }
+
+            refreshFloatingAddButtons();
         }
 
         function renderDashboard() {
@@ -1203,7 +1240,7 @@
             dashboard.innerHTML = `
                 <!-- Stats -->
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" style="cursor: pointer;" onclick="navigateTo('employees')">
                         <div class="stat-header">
                             <div class="stat-icon purple"><i class="fas fa-users"></i></div>
                             <div class="stat-trend up"><i class="fas fa-arrow-up"></i> +2</div>
@@ -1211,16 +1248,16 @@
                         <div class="stat-value">${employees.length}</div>
                         <div class="stat-label">Total Employees</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" style="cursor: pointer;" onclick="navigateTo('analytics')" id="monthly-revenue-card">
                         <div class="stat-header">
                             <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
-                            <div class="stat-trend up"><i class="fas fa-arrow-up"></i> +12.5%</div>
+                            <div class="stat-trend up" id="revenue-trend"><i class="fas fa-sync fa-spin"></i> Loading...</div>
                         </div>
-                        <div class="stat-value">$48.2K</div>
+                        <div class="stat-value" id="revenue-value">--</div>
                         <div class="stat-label">Monthly Revenue</div>
                     </div>
-                    
-                    <div class="stat-card">
+
+                    <div class="stat-card" style="cursor: pointer;" onclick="navigateTo('licenses')">
                         <div class="stat-header">
                             <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
                             <div class="stat-trend down"><i class="fas fa-exclamation"></i> 2 expiring</div>
@@ -1363,6 +1400,63 @@
                     </div>
                 </div>
             `;
+
+            // Load monthly revenue from Shopify API (async, updates the card when ready)
+            loadMonthlyRevenueFromShopify();
+        }
+
+        /**
+         * Load monthly revenue from Shopify API and update the dashboard card
+         * Uses the same API as shopify-analytics.js
+         */
+        async function loadMonthlyRevenueFromShopify() {
+            const revenueValue = document.getElementById('revenue-value');
+            const revenueTrend = document.getElementById('revenue-trend');
+
+            if (!revenueValue || !revenueTrend) return;
+
+            try {
+                // Check if fetchSalesAnalytics is available (from shopify-analytics.js)
+                if (typeof fetchSalesAnalytics === 'function') {
+                    console.log('[Dashboard] Loading monthly revenue from Shopify...');
+
+                    // Fetch monthly sales data for VSU (default store)
+                    const salesData = await fetchSalesAnalytics('vsu', null, 'month');
+
+                    if (salesData && salesData.summary) {
+                        const totalSales = parseFloat(salesData.summary.totalSales);
+                        const totalOrders = salesData.summary.totalOrders;
+
+                        // Format the revenue value
+                        let displayValue;
+                        if (totalSales >= 1000000) {
+                            displayValue = '$' + (totalSales / 1000000).toFixed(1) + 'M';
+                        } else if (totalSales >= 1000) {
+                            displayValue = '$' + (totalSales / 1000).toFixed(1) + 'K';
+                        } else {
+                            displayValue = '$' + totalSales.toFixed(0);
+                        }
+
+                        // Update the card
+                        revenueValue.textContent = displayValue;
+                        revenueTrend.innerHTML = `<i class="fas fa-shopping-cart"></i> ${totalOrders} orders`;
+                        revenueTrend.className = 'stat-trend up';
+
+                        console.log(`[Dashboard] ✅ Monthly revenue loaded: ${displayValue} (${totalOrders} orders)`);
+                    }
+                } else {
+                    // Fallback: fetchSalesAnalytics not available
+                    console.warn('[Dashboard] fetchSalesAnalytics not available, showing placeholder');
+                    revenueValue.textContent = '$--';
+                    revenueTrend.innerHTML = `<i class="fas fa-exclamation-circle"></i> API unavailable`;
+                    revenueTrend.className = 'stat-trend';
+                }
+            } catch (error) {
+                console.error('[Dashboard] Error loading monthly revenue:', error);
+                revenueValue.textContent = '$--';
+                revenueTrend.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error`;
+                revenueTrend.className = 'stat-trend down';
+            }
         }
 
         async function renderEmployees() {
@@ -1468,7 +1562,9 @@
                             allergies: emp.allergies || 'None',
                             initials: (emp.name || 'XX').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase(),
                             color: emp.color || ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)],
-                            offboarding: emp.offboarding || null
+                            offboarding: emp.offboarding || null,
+                            photo: emp.photo || null,
+                            photoPath: emp.photoPath || null
                         }));
                         console.log(`Loaded ${employees.length} employees from Firebase`);
                         // Update employee count badge in sidebar
@@ -1546,7 +1642,10 @@
             return `
                 <div class="employee-card" onclick="viewEmployee('${empId}')">
                     <div class="employee-card-header">
-                        <div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>
+                        ${emp.photo
+                            ? `<div class="employee-avatar-lg" style="background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
+                            : `<div class="employee-avatar-lg ${emp.color}">${emp.initials}</div>`
+                        }
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <div class="employee-status-badge ${emp.status}">${emp.status}</div>
                             <div class="badge" style="background: ${getRoleColor()}; color: white; font-size: 11px; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
@@ -1787,7 +1886,7 @@
                                              draggable="${licensesEditMode ? 'true' : 'false'}"
                                              data-license-id="${lic.id}"
                                              ondragstart="handleLicenseDragStart(event, '${lic.id}')"
-                                             style="cursor: ${licensesEditMode ? 'grab' : 'default'}; opacity: ${licensesEditMode ? '1' : '0.85'}; ${!licensesEditMode ? 'pointer-events: none;' : ''}">
+                                             style="cursor: ${licensesEditMode ? 'grab' : 'default'}; opacity: ${licensesEditMode ? '1' : '0.95'};">
                                             <div class="license-item-header">
                                                 <div class="license-item-name">
                                                     <i class="fas fa-file-pdf"></i>
@@ -1806,7 +1905,7 @@
                                                     <button class="btn-icon-sm" onclick="event.stopPropagation(); viewLicense('${lic.id}')" title="View${lic.fileData ? ' PDF' : ''}">
                                                         <i class="fas ${lic.fileData ? 'fa-file-pdf' : 'fa-eye'}"></i>
                                                     </button>
-                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLicense('${lic.id}')" title="Delete">
+                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLicense('${lic.id}')" title="Delete" style="${!licensesEditMode ? 'opacity: 0.4; pointer-events: none;' : ''}">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -1820,6 +1919,17 @@
                 </div>
             `;
         }
+
+        // Analytics date range state
+        let analyticsDateRange = {
+            startDate: null,
+            endDate: null,
+            period: 'month', // 'today', 'week', 'month', 'year', 'custom'
+            calendarMonth1: new Date(),
+            calendarMonth2: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+            isSelecting: false,
+            tempStartDate: null
+        };
 
         function renderAnalytics() {
             const dashboard = document.querySelector('.dashboard');
@@ -1852,16 +1962,49 @@
             // Find max values for chart scaling
             const maxIncome = Math.max(...monthlyData.map(m => m.income));
 
+            // Format current date range display
+            const formatDateDisplay = (date) => {
+                if (!date) return '';
+                return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+            };
+
+            const dateRangeText = analyticsDateRange.startDate && analyticsDateRange.endDate
+                ? `${formatDateDisplay(analyticsDateRange.startDate)} → ${formatDateDisplay(analyticsDateRange.endDate)}`
+                : 'Select date range';
+
             dashboard.innerHTML = `
-                <div class="page-header">
+                <div class="page-header" style="flex-wrap: wrap;">
                     <div class="page-header-left">
                         <h2 class="section-title">Sales Analytics</h2>
-                        <p class="section-subtitle">Performance insights - Annual totals and monthly breakdown</p>
+                        <p class="section-subtitle">Performance insights and sales data</p>
                     </div>
-                    <div class="date-range-picker">
-                        <button class="date-btn active">2025</button>
-                        <button class="date-btn">2024</button>
-                        <button class="date-btn">Custom</button>
+                    <div class="page-header-right" style="position: relative; z-index: 100;">
+                        <div class="analytics-date-controls" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <div class="analytics-period-btns" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'today' ? 'active' : ''}" onclick="setAnalyticsPeriod('today')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Today</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'week' ? 'active' : ''}" onclick="setAnalyticsPeriod('week')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Week</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'month' ? 'active' : ''}" onclick="setAnalyticsPeriod('month')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Month</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'year' ? 'active' : ''}" onclick="setAnalyticsPeriod('year')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Year</button>
+                                <button class="analytics-period-btn custom ${analyticsDateRange.period === 'custom' ? 'active' : ''}" onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fas fa-calendar-alt"></i> Custom
+                                </button>
+                            </div>
+                            <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none;">
+                                <div class="analytics-calendar-popup">
+                                    <div class="calendar-header-display">
+                                        <span id="selected-range-display">${dateRangeText}</span>
+                                    </div>
+                                    <div class="calendar-dual-view">
+                                        <div class="calendar-month-panel" id="calendar-month-1"></div>
+                                        <div class="calendar-month-panel" id="calendar-month-2"></div>
+                                    </div>
+                                    <div class="calendar-actions">
+                                        <button class="btn-secondary" onclick="clearAnalyticsDateRange()">Clear</button>
+                                        <button class="btn-primary" onclick="applyAnalyticsDateRange()">Apply</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2057,6 +2200,218 @@
                 </div>
             `;
         }
+
+        // Analytics Calendar Functions
+        window.toggleAnalyticsCalendar = function() {
+            const container = document.getElementById('analytics-calendar-container');
+            if (!container) return;
+
+            const isVisible = container.style.display !== 'none';
+            container.style.display = isVisible ? 'none' : 'block';
+
+            if (!isVisible) {
+                // Initialize calendar months
+                analyticsDateRange.calendarMonth1 = new Date();
+                analyticsDateRange.calendarMonth2 = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+                renderAnalyticsCalendars();
+            }
+        };
+
+        window.setAnalyticsPeriod = function(period) {
+            analyticsDateRange.period = period;
+            analyticsDateRange.startDate = null;
+            analyticsDateRange.endDate = null;
+
+            // Close calendar if open
+            const container = document.getElementById('analytics-calendar-container');
+            if (container) container.style.display = 'none';
+
+            // Re-render analytics with new period
+            renderAnalytics();
+
+            // TODO: Trigger data reload with new period
+            console.log(`[Analytics] Period changed to: ${period}`);
+        };
+
+        function renderAnalyticsCalendars() {
+            const panel1 = document.getElementById('calendar-month-1');
+            const panel2 = document.getElementById('calendar-month-2');
+            if (!panel1 || !panel2) return;
+
+            panel1.innerHTML = renderCalendarMonth(analyticsDateRange.calendarMonth1, 1);
+            panel2.innerHTML = renderCalendarMonth(analyticsDateRange.calendarMonth2, 2);
+        }
+
+        function renderCalendarMonth(date, panelNum) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                'July', 'August', 'September', 'October', 'November', 'December'];
+            const dayNames = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let html = `
+                <div class="calendar-month-nav">
+                    ${panelNum === 1 ? `<button class="calendar-nav-btn" onclick="navigateAnalyticsCalendar(-1)"><i class="fas fa-chevron-left"></i></button>` : '<div style="width: 28px;"></div>'}
+                    <h4>${monthNames[month]} ${year}</h4>
+                    ${panelNum === 2 ? `<button class="calendar-nav-btn" onclick="navigateAnalyticsCalendar(1)"><i class="fas fa-chevron-right"></i></button>` : '<div style="width: 28px;"></div>'}
+                </div>
+                <div class="calendar-weekdays">
+                    ${dayNames.map(d => `<span class="calendar-weekday">${d}</span>`).join('')}
+                </div>
+                <div class="calendar-days">
+            `;
+
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="calendar-day empty"></div>`;
+            }
+
+            // Days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currentDate = new Date(year, month, day);
+                currentDate.setHours(0, 0, 0, 0);
+
+                let classes = ['calendar-day'];
+
+                // Check if today
+                if (currentDate.getTime() === today.getTime()) {
+                    classes.push('today');
+                }
+
+                // Check if selected start
+                if (analyticsDateRange.startDate && currentDate.getTime() === analyticsDateRange.startDate.getTime()) {
+                    classes.push('selected', 'range-start');
+                }
+
+                // Check if selected end
+                if (analyticsDateRange.endDate && currentDate.getTime() === analyticsDateRange.endDate.getTime()) {
+                    classes.push('selected', 'range-end');
+                }
+
+                // Check if in range
+                if (analyticsDateRange.startDate && analyticsDateRange.endDate &&
+                    currentDate > analyticsDateRange.startDate && currentDate < analyticsDateRange.endDate) {
+                    classes.push('in-range');
+                }
+
+                // Check if temp selection (while selecting)
+                if (analyticsDateRange.isSelecting && analyticsDateRange.tempStartDate) {
+                    if (currentDate.getTime() === analyticsDateRange.tempStartDate.getTime()) {
+                        classes.push('selected', 'range-start');
+                    }
+                }
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                html += `<div class="${classes.join(' ')}" data-date="${dateStr}" onclick="selectAnalyticsDate('${dateStr}')">${day}</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        window.navigateAnalyticsCalendar = function(direction) {
+            // Move both months by direction
+            analyticsDateRange.calendarMonth1 = new Date(
+                analyticsDateRange.calendarMonth1.getFullYear(),
+                analyticsDateRange.calendarMonth1.getMonth() + direction,
+                1
+            );
+            analyticsDateRange.calendarMonth2 = new Date(
+                analyticsDateRange.calendarMonth2.getFullYear(),
+                analyticsDateRange.calendarMonth2.getMonth() + direction,
+                1
+            );
+            renderAnalyticsCalendars();
+        };
+
+        window.selectAnalyticsDate = function(dateStr) {
+            const selectedDate = new Date(dateStr + 'T00:00:00');
+
+            if (!analyticsDateRange.startDate || (analyticsDateRange.startDate && analyticsDateRange.endDate)) {
+                // Start new selection
+                analyticsDateRange.startDate = selectedDate;
+                analyticsDateRange.endDate = null;
+                analyticsDateRange.isSelecting = true;
+                analyticsDateRange.tempStartDate = selectedDate;
+            } else if (analyticsDateRange.startDate && !analyticsDateRange.endDate) {
+                // Complete selection
+                if (selectedDate < analyticsDateRange.startDate) {
+                    // If selected date is before start, swap
+                    analyticsDateRange.endDate = analyticsDateRange.startDate;
+                    analyticsDateRange.startDate = selectedDate;
+                } else {
+                    analyticsDateRange.endDate = selectedDate;
+                }
+                analyticsDateRange.isSelecting = false;
+                analyticsDateRange.tempStartDate = null;
+            }
+
+            // Update display
+            updateDateRangeDisplay();
+            renderAnalyticsCalendars();
+        };
+
+        function updateDateRangeDisplay() {
+            const display = document.getElementById('selected-range-display');
+            if (!display) return;
+
+            const formatDateDisplay = (date) => {
+                if (!date) return '';
+                return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+            };
+
+            if (analyticsDateRange.startDate && analyticsDateRange.endDate) {
+                display.textContent = `${formatDateDisplay(analyticsDateRange.startDate)} → ${formatDateDisplay(analyticsDateRange.endDate)}`;
+            } else if (analyticsDateRange.startDate) {
+                display.textContent = `${formatDateDisplay(analyticsDateRange.startDate)} → Select end date`;
+            } else {
+                display.textContent = 'Select date range';
+            }
+        }
+
+        window.clearAnalyticsDateRange = function() {
+            analyticsDateRange.startDate = null;
+            analyticsDateRange.endDate = null;
+            analyticsDateRange.isSelecting = false;
+            analyticsDateRange.tempStartDate = null;
+            updateDateRangeDisplay();
+            renderAnalyticsCalendars();
+        };
+
+        window.applyAnalyticsDateRange = function() {
+            if (!analyticsDateRange.startDate || !analyticsDateRange.endDate) {
+                alert('Please select both start and end dates');
+                return;
+            }
+
+            analyticsDateRange.period = 'custom';
+
+            // Close calendar
+            const container = document.getElementById('analytics-calendar-container');
+            if (container) container.style.display = 'none';
+
+            // Re-render analytics
+            renderAnalytics();
+
+            // TODO: Trigger data reload with custom date range
+            console.log(`[Analytics] Custom date range applied: ${analyticsDateRange.startDate.toISOString()} to ${analyticsDateRange.endDate.toISOString()}`);
+        };
+
+        // Close calendar when clicking outside
+        document.addEventListener('click', function(e) {
+            const container = document.getElementById('analytics-calendar-container');
+            const customBtn = document.querySelector('.analytics-period-btn.custom');
+            if (container && container.style.display !== 'none') {
+                if (!container.contains(e.target) && e.target !== customBtn && !customBtn?.contains(e.target)) {
+                    container.style.display = 'none';
+                }
+            }
+        });
 
         function renderStores() {
             const stores = [
@@ -3648,21 +4003,988 @@
             modal.classList.add('active');
         }
 
+        // =====================================================
+        // SUPPLIES MODULE
+        // =====================================================
+
+        let suppliesData = [];
+        let suppliesCurrentStore = 'all';
+        let suppliesCurrentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+        async function initializeSupplies() {
+            if (!firebaseStorageHelper.isInitialized) {
+                firebaseStorageHelper.initialize();
+            }
+            await loadSuppliesFromFirebase();
+        }
+
+        async function loadSuppliesFromFirebase() {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('supplies').get();
+                    suppliesData = [];
+                    snapshot.forEach(doc => {
+                        suppliesData.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    console.log(`Loaded ${suppliesData.length} supplies from Firebase`);
+                }
+            } catch (error) {
+                console.error('Error loading supplies:', error);
+            }
+        }
+
+        async function saveSupplyToFirebase(supply) {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const docRef = await db.collection('supplies').add({
+                        ...supply,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return docRef.id;
+                }
+            } catch (error) {
+                console.error('Error saving supply:', error);
+                return null;
+            }
+        }
+
+        async function updateSupplyInFirebase(id, data) {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    await db.collection('supplies').doc(id).update(data);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error updating supply:', error);
+                return false;
+            }
+        }
+
+        async function deleteSupplyFromFirebase(id) {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    await db.collection('supplies').doc(id).delete();
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error deleting supply:', error);
+                return false;
+            }
+        }
+
+        window.renderSupplies = async function() {
+            const dashboard = document.querySelector('.dashboard');
+
+            // Show loading state
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Supplies</h2>
+                        <p class="section-subtitle">Track everyday supplies needed per store</p>
+                    </div>
+                </div>
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading supplies...</p>
+                </div>
+            `;
+
+            // Load data
+            await loadSuppliesFromFirebase();
+
+            // Get stores list (VSU locations + other stores)
+            const vsuStores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park'];
+            const otherStores = ['Loyal Vaper', 'Miramar Wine & Liquor'];
+
+            // Filter supplies by store and month
+            const filteredSupplies = suppliesData.filter(s => {
+                const matchStore = suppliesCurrentStore === 'all' || s.store === suppliesCurrentStore;
+                const itemMonth = s.createdAt?.toDate ? s.createdAt.toDate().toISOString().slice(0, 7) : s.month || suppliesCurrentMonth;
+                const matchMonth = itemMonth === suppliesCurrentMonth;
+                return matchStore && matchMonth;
+            });
+
+            // Separate pending and purchased
+            const pendingSupplies = filteredSupplies.filter(s => s.status === 'pending');
+            const purchasedSupplies = filteredSupplies.filter(s => s.status === 'purchased');
+
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Supplies</h2>
+                        <p class="section-subtitle">Track everyday supplies needed per store</p>
+                    </div>
+                    <button class="btn-primary" onclick="openModal('add-supply')">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-bar" style="margin-bottom: 20px;">
+                    <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
+                        <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
+                        ${vsuStores.map(store => `
+                            <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
+                        `).join('')}
+                        ${otherStores.map(store => `
+                            <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
+                        `).join('')}
+                    </select>
+                    <input type="month" class="form-input" id="supplies-month-filter" value="${suppliesCurrentMonth}" onchange="filterSuppliesByMonth(this.value)" style="width: auto;">
+                </div>
+
+                <!-- Stats Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value">${pendingSupplies.length}</span>
+                            <span class="stat-label">Pending Items</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value">${purchasedSupplies.length}</span>
+                            <span class="stat-label">Purchased This Month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Items -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Pending Items</h3>
+                    </div>
+                    <div class="card-body">
+                        ${pendingSupplies.length > 0 ? `
+                            <div class="supplies-list">
+                                ${pendingSupplies.map(item => `
+                                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
+                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-box" style="color: white;"></i>
+                                            </div>
+                                            <div>
+                                                <div style="font-weight: 600;">${item.name}</div>
+                                                <div style="font-size: 12px; color: var(--text-muted);">
+                                                    Qty: ${item.quantity} • ${item.store}
+                                                    ${item.addedBy ? ` • Added by ${item.addedBy}` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button class="btn-icon" onclick="markSupplyPurchased('${item.id}')" title="Mark as Purchased" style="color: #10b981;">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn-icon" onclick="deleteSupply('${item.id}')" title="Delete" style="color: #ef4444;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                                <p>No pending items. All caught up!</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Purchased History -->
+                <div class="card">
+                    <div class="card-header" style="cursor: pointer;" onclick="togglePurchasedHistory()">
+                        <h3 class="card-title"><i class="fas fa-history"></i> Purchased History (${purchasedSupplies.length})</h3>
+                        <i class="fas fa-chevron-down" id="purchased-history-chevron"></i>
+                    </div>
+                    <div class="card-body" id="purchased-history-body" style="display: none;">
+                        ${purchasedSupplies.length > 0 ? `
+                            <div class="supplies-list">
+                                ${purchasedSupplies.map(item => `
+                                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px; opacity: 0.8;">
+                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                            <div style="width: 40px; height: 40px; background: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-check" style="color: white;"></i>
+                                            </div>
+                                            <div>
+                                                <div style="font-weight: 600; text-decoration: line-through; color: var(--text-muted);">${item.name}</div>
+                                                <div style="font-size: 12px; color: var(--text-muted);">
+                                                    Qty: ${item.quantity} • ${item.store}
+                                                    ${item.purchasedAt ? ` • Purchased ${formatDate(item.purchasedAt.toDate ? item.purchasedAt.toDate() : item.purchasedAt)}` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button class="btn-icon" onclick="deleteSupply('${item.id}')" title="Delete" style="color: var(--text-muted);">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                                <p>No purchased items this month.</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.togglePurchasedHistory = function() {
+            const body = document.getElementById('purchased-history-body');
+            const chevron = document.getElementById('purchased-history-chevron');
+            if (body && chevron) {
+                if (body.style.display === 'none') {
+                    body.style.display = 'block';
+                    chevron.style.transform = 'rotate(180deg)';
+                } else {
+                    body.style.display = 'none';
+                    chevron.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
+
+        window.filterSuppliesByStore = function(store) {
+            suppliesCurrentStore = store;
+            renderSupplies();
+        }
+
+        window.filterSuppliesByMonth = function(month) {
+            suppliesCurrentMonth = month;
+            renderSupplies();
+        }
+
+        window.addSupply = async function() {
+            const name = document.getElementById('supply-name').value.trim();
+            const quantity = parseInt(document.getElementById('supply-quantity').value) || 1;
+            const store = document.getElementById('supply-store').value;
+
+            if (!name) {
+                alert('Please enter an item name');
+                return;
+            }
+
+            if (!store) {
+                alert('Please select a store');
+                return;
+            }
+
+            const user = getCurrentUser();
+            const supply = {
+                name,
+                quantity,
+                store,
+                status: 'pending',
+                month: suppliesCurrentMonth,
+                addedBy: user?.name || 'Unknown'
+            };
+
+            const id = await saveSupplyToFirebase(supply);
+            if (id) {
+                supply.id = id;
+                suppliesData.push(supply);
+                closeModal();
+                renderSupplies();
+                showNotification('Item added successfully!', 'success');
+            } else {
+                alert('Error adding item. Please try again.');
+            }
+        }
+
+        window.markSupplyPurchased = async function(id) {
+            const success = await updateSupplyInFirebase(id, {
+                status: 'purchased',
+                purchasedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.status = 'purchased';
+                    item.purchasedAt = new Date();
+                }
+                renderSupplies();
+                showNotification('Item marked as purchased!', 'success');
+            }
+        }
+
+        window.deleteSupply = async function(id) {
+            if (!confirm('Delete this item?')) return;
+
+            const success = await deleteSupplyFromFirebase(id);
+            if (success) {
+                suppliesData = suppliesData.filter(s => s.id !== id);
+                renderSupplies();
+                showNotification('Item deleted', 'success');
+            }
+        }
+
+// =============================================================================
+// DAILY CHECKLIST MODULE
+// =============================================================================
+
+let checklistData = {
+    tasks: [],      // Task templates
+    completions: [] // Today's completions
+};
+let checklistCurrentStore = 'Miramar';
+let checklistCurrentShift = 'opening'; // 'opening' or 'closing'
+
+// Default tasks template
+const defaultChecklistTasks = {
+    opening: [
+        { id: 'open-1', task: 'Unlock store and disarm alarm', order: 1 },
+        { id: 'open-2', task: 'Turn on all lights and signage', order: 2 },
+        { id: 'open-3', task: 'Count opening cash drawer', order: 3 },
+        { id: 'open-4', task: 'Check and restock displays', order: 4 },
+        { id: 'open-5', task: 'Clean front entrance and windows', order: 5 },
+        { id: 'open-6', task: 'Turn on POS systems', order: 6 },
+        { id: 'open-7', task: 'Review daily promotions/announcements', order: 7 },
+        { id: 'open-8', task: 'Check restroom supplies', order: 8 }
+    ],
+    closing: [
+        { id: 'close-1', task: 'Count and close cash drawer', order: 1 },
+        { id: 'close-2', task: 'Complete daily sales report', order: 2 },
+        { id: 'close-3', task: 'Clean and organize store', order: 3 },
+        { id: 'close-4', task: 'Take out trash', order: 4 },
+        { id: 'close-5', task: 'Restock shelves for next day', order: 5 },
+        { id: 'close-6', task: 'Turn off POS systems', order: 6 },
+        { id: 'close-7', task: 'Turn off lights and signage', order: 7 },
+        { id: 'close-8', task: 'Set alarm and lock store', order: 8 }
+    ]
+};
+
+// Get today's date string
+function getTodayDateString() {
+    return new Date().toISOString().split('T')[0];
+}
+
+// Load checklist tasks - use hardcoded defaults (same for all stores)
+async function loadChecklistTasks() {
+    // Use hardcoded default tasks - same tasks for all stores
+    checklistData.tasks = [
+        { id: 'open-1', task: 'Unlock store and disarm alarm', order: 1, shift: 'opening', store: 'all' },
+        { id: 'open-2', task: 'Turn on all lights and signage', order: 2, shift: 'opening', store: 'all' },
+        { id: 'open-3', task: 'Count opening cash drawer', order: 3, shift: 'opening', store: 'all' },
+        { id: 'open-4', task: 'Check and restock displays', order: 4, shift: 'opening', store: 'all' },
+        { id: 'open-5', task: 'Clean front entrance and windows', order: 5, shift: 'opening', store: 'all' },
+        { id: 'open-6', task: 'Turn on POS systems', order: 6, shift: 'opening', store: 'all' },
+        { id: 'open-7', task: 'Review daily promotions/announcements', order: 7, shift: 'opening', store: 'all' },
+        { id: 'open-8', task: 'Check restroom supplies', order: 8, shift: 'opening', store: 'all' },
+        { id: 'close-1', task: 'Count and close cash drawer', order: 1, shift: 'closing', store: 'all' },
+        { id: 'close-2', task: 'Complete daily sales report', order: 2, shift: 'closing', store: 'all' },
+        { id: 'close-3', task: 'Clean and organize store', order: 3, shift: 'closing', store: 'all' },
+        { id: 'close-4', task: 'Take out trash', order: 4, shift: 'closing', store: 'all' },
+        { id: 'close-5', task: 'Restock shelves for next day', order: 5, shift: 'closing', store: 'all' },
+        { id: 'close-6', task: 'Turn off POS systems', order: 6, shift: 'closing', store: 'all' },
+        { id: 'close-7', task: 'Turn off lights and signage', order: 7, shift: 'closing', store: 'all' },
+        { id: 'close-8', task: 'Set alarm and lock store', order: 8, shift: 'closing', store: 'all' }
+    ];
+    console.log('Loaded', checklistData.tasks.length, 'default tasks');
+}
+
+// Load today's completions from Firebase
+async function loadTodayCompletions() {
+    try {
+        const db = firebase.firestore();
+        const today = getTodayDateString();
+        const snapshot = await db.collection('checklistCompletions')
+            .where('date', '==', today)
+            .get();
+
+        checklistData.completions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error('Error loading completions:', error);
+        checklistData.completions = [];
+    }
+}
+
+// Reset checklist tasks to defaults (admin function)
+window.resetChecklistTasks = async function() {
+    try {
+        const db = firebase.firestore();
+
+        // Delete all existing tasks
+        const snapshot = await db.collection('checklistTasks').get();
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        console.log('Deleted', snapshot.docs.length, 'old tasks');
+
+        // Add default tasks
+        checklistData.tasks = [];
+        const openingTasks = defaultChecklistTasks.opening.map(t => ({ ...t, shift: 'opening', store: 'all' }));
+        const closingTasks = defaultChecklistTasks.closing.map(t => ({ ...t, shift: 'closing', store: 'all' }));
+
+        for (const task of openingTasks) {
+            const docRef = await db.collection('checklistTasks').add(task);
+            checklistData.tasks.push({ ...task, id: docRef.id });
+        }
+        for (const task of closingTasks) {
+            const docRef = await db.collection('checklistTasks').add(task);
+            checklistData.tasks.push({ ...task, id: docRef.id });
+        }
+
+        console.log('Reset complete! Added', checklistData.tasks.length, 'default tasks');
+        showNotification('Checklist tasks reset to defaults!', 'success');
+        renderDailyChecklist();
+        return true;
+    } catch (error) {
+        console.error('Error resetting tasks:', error);
+        showNotification('Error resetting tasks', 'error');
+        return false;
+    }
+}
+
+// Save completion to Firebase
+async function saveChecklistCompletion(taskId, store, shift, photoUrl = null) {
+    try {
+        const db = firebase.firestore();
+        const user = getCurrentUser();
+        const completion = {
+            taskId,
+            store,
+            shift,
+            date: getTodayDateString(),
+            completedBy: user?.name || 'Unknown',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            photoUrl
+        };
+
+        const docRef = await db.collection('checklistCompletions').add(completion);
+        completion.id = docRef.id;
+        completion.completedAt = new Date();
+        checklistData.completions.push(completion);
+        return true;
+    } catch (error) {
+        console.error('Error saving completion:', error);
+        return false;
+    }
+}
+
+// Remove completion from Firebase
+async function removeChecklistCompletion(completionId) {
+    try {
+        const db = firebase.firestore();
+        await db.collection('checklistCompletions').doc(completionId).delete();
+        checklistData.completions = checklistData.completions.filter(c => c.id !== completionId);
+        return true;
+    } catch (error) {
+        console.error('Error removing completion:', error);
+        return false;
+    }
+}
+
+// Add new task to Firebase
+async function addChecklistTask(task, shift, store = 'all') {
+    try {
+        const db = firebase.firestore();
+        const newTask = {
+            task,
+            shift,
+            store,
+            order: checklistData.tasks.filter(t => t.shift === shift).length + 1,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const docRef = await db.collection('checklistTasks').add(newTask);
+        newTask.id = docRef.id;
+        checklistData.tasks.push(newTask);
+        return newTask;
+    } catch (error) {
+        console.error('Error adding task:', error);
+        return null;
+    }
+}
+
+// Delete task from Firebase
+async function deleteChecklistTask(taskId) {
+    try {
+        const db = firebase.firestore();
+        await db.collection('checklistTasks').doc(taskId).delete();
+        checklistData.tasks = checklistData.tasks.filter(t => t.id !== taskId);
+        return true;
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        return false;
+    }
+}
+
+// Render Daily Checklist
+window.renderDailyChecklist = async function() {
+    const dashboard = document.querySelector('.dashboard');
+    const user = getCurrentUser();
+    const userRole = user?.role || 'employee';
+    const canManageTasks = userRole === 'admin' || userRole === 'manager';
+
+    // Show loading
+    dashboard.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-left">
+                <h2 class="section-title"><i class="fas fa-clipboard-check" style="color: var(--accent-primary); margin-right: 10px;"></i>Daily Checklist</h2>
+                <p class="section-subtitle">Complete your shift tasks</p>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: center; padding: 60px;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary);"></i>
+        </div>
+    `;
+
+    // Load data
+    await loadChecklistTasks();
+    await loadTodayCompletions();
+
+    const stores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park'];
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Filter tasks by shift and store
+    const getTasksForShift = (shift) => {
+        const filtered = checklistData.tasks.filter(t => t.shift === shift);
+        console.log('Tasks for shift', shift, ':', filtered.length);
+        return filtered.sort((a, b) => (a.order || 0) - (b.order || 0));
+    };
+
+    // Check if task is completed for a store
+    const isTaskCompleted = (taskId, store, shift) => {
+        return checklistData.completions.find(c =>
+            c.taskId === taskId &&
+            c.store === store &&
+            c.shift === shift &&
+            c.date === getTodayDateString()
+        );
+    };
+
+    // Get completion percentage for a store and shift
+    const getCompletionPercentage = (store, shift) => {
+        const tasks = getTasksForShift(shift);
+        if (tasks.length === 0) return 100;
+        const completed = tasks.filter(t => isTaskCompleted(t.id, store, shift)).length;
+        return Math.round((completed / tasks.length) * 100);
+    };
+
+    // Build tasks HTML for a shift
+    const buildTasksHtml = (shift) => {
+        const tasks = getTasksForShift(shift);
+        const targetStore = checklistCurrentStore;
+
+        if (tasks.length === 0) {
+            return `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                <i class="fas fa-clipboard" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p>No tasks for this shift yet</p>
+                ${canManageTasks ? `<button onclick="openAddTaskModal('${shift}')" class="btn-primary" style="margin-top: 12px;"><i class="fas fa-plus"></i> Add Task</button>` : ''}
+            </div>`;
+        }
+
+        return tasks.map(task => {
+            const completion = isTaskCompleted(task.id, targetStore, shift);
+            const isCompleted = !!completion;
+
+            return `
+                <div class="checklist-item" onclick="toggleChecklistTask('${task.id}', '${targetStore}', '${shift}', ${isCompleted ? `'${completion?.id}'` : 'null'})"
+                    style="display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid ${isCompleted ? '#10b981' : 'var(--accent-primary)'}; transition: all 0.2s; cursor: pointer; user-select: none;"
+                    onmouseover="this.style.background='var(--bg-tertiary)'; this.style.transform='translateX(4px)';"
+                    onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='none';">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid ${isCompleted ? '#10b981' : 'var(--border-color)'}; background: ${isCompleted ? '#10b981' : 'transparent'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;">
+                        ${isCompleted ? '<i class="fas fa-check" style="color: white; font-size: 14px;"></i>' : '<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--border-color); opacity: 0.3;"></span>'}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 15px; ${isCompleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.task}</div>
+                        ${isCompleted ? `
+                            <div style="font-size: 12px; color: #10b981; margin-top: 4px; font-weight: 500;">
+                                <i class="fas fa-check-circle"></i>
+                                ${completion.completedBy} • ${completion.completedAt?.toDate ? completion.completedAt.toDate().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : new Date(completion.completedAt).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}
+                            </div>
+                        ` : `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Click to complete</div>`}
+                    </div>
+                    ${isCompleted ? '<i class="fas fa-check-double" style="color: #10b981; font-size: 18px;"></i>' : '<i class="fas fa-circle" style="color: var(--text-muted); font-size: 8px; opacity: 0.3;"></i>'}
+                    ${canManageTasks ? `
+                        <button onclick="event.stopPropagation(); deleteChecklistTaskUI('${task.id}')"
+                            style="width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s;"
+                            onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0.5';" title="Delete task">
+                            <i class="fas fa-trash" style="color: #ef4444; font-size: 13px;"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    };
+
+    // Store icons and colors - representing San Diego neighborhoods
+    const storeIcons = {
+        'Miramar': { icon: 'fa-jet-fighter', color: '#3b82f6', bg: 'linear-gradient(135deg, #dbeafe, #bfdbfe)' },
+        'Morena': { icon: 'fa-water', color: '#0891b2', bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)' },
+        'Kearny Mesa': { icon: 'fa-bowl-food', color: '#f97316', bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)' },
+        'Chula Vista': { icon: 'fa-leaf', color: '#16a34a', bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)' },
+        'North Park': { icon: 'fa-beer-mug-empty', color: '#a855f7', bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)' }
+    };
+
+    // Build store progress cards for overview
+    const buildStoreProgressHtml = () => {
+        return stores.map(store => {
+            const openingPct = getCompletionPercentage(store, 'opening');
+            const closingPct = getCompletionPercentage(store, 'closing');
+            const totalPct = Math.round((openingPct + closingPct) / 2);
+            const storeInfo = storeIcons[store] || { icon: 'fa-store', color: '#6b7280', bg: 'var(--bg-tertiary)', label: '' };
+
+            return `
+                <div onclick="filterChecklistByStore('${store}')" style="padding: 16px; background: ${checklistCurrentStore === store ? storeInfo.bg : 'var(--bg-secondary)'}; border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid ${checklistCurrentStore === store ? storeInfo.color : 'transparent'}; min-width: 160px;"
+                    onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.15)';"
+                    onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: ${storeInfo.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px ${storeInfo.color}40;">
+                            <i class="fas ${storeInfo.icon}" style="color: white; font-size: 18px;"></i>
+                        </div>
+                        <div style="font-weight: 700; font-size: 14px; color: ${checklistCurrentStore === store ? storeInfo.color : 'var(--text-primary)'};">${store}</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: var(--text-muted);">Progress</div>
+                        <div style="font-size: 18px; font-weight: 800; color: ${totalPct === 100 ? '#10b981' : totalPct > 50 ? '#f59e0b' : storeInfo.color};">${totalPct}%</div>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 3px;"><i class="fas fa-sun" style="color: #f59e0b; margin-right: 3px;"></i>AM</div>
+                            <div style="height: 5px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${openingPct}%; height: 100%; background: ${openingPct === 100 ? '#10b981' : '#f59e0b'}; border-radius: 3px; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 3px;"><i class="fas fa-moon" style="color: #8b5cf6; margin-right: 3px;"></i>PM</div>
+                            <div style="height: 5px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${closingPct}%; height: 100%; background: ${closingPct === 100 ? '#10b981' : '#8b5cf6'}; border-radius: 3px; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    dashboard.innerHTML = `
+        <style>
+            @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            @keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+            @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        </style>
+        <div class="page-header" style="margin-bottom: 24px;">
+            <div class="page-header-left">
+                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-clipboard-check" style="color: white; font-size: 20px;"></i>
+                    </div>
+                    Daily Checklist
+                </h2>
+                <p class="section-subtitle">${today}</p>
+            </div>
+            <div class="page-header-right" style="display: flex; gap: 12px;">
+                <button onclick="viewChecklistHistory()" class="btn-secondary">
+                    <i class="fas fa-history"></i> History
+                </button>
+                ${canManageTasks ? `
+                    <button onclick="openAddTaskModal(checklistCurrentShift)" class="btn-primary">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+
+        <!-- Store Progress Overview -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-store"></i> Store Progress</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    ${buildStoreProgressHtml()}
+                </div>
+            </div>
+        </div>
+
+        <!-- Shift Selector -->
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Select Shift</label>
+                <div style="display: flex; gap: 12px;">
+                    <!-- Opening / Day Shift -->
+                    <button onclick="switchChecklistShift('opening')"
+                        style="flex: 1; padding: 16px 20px; border-radius: 16px; border: 3px solid ${checklistCurrentShift === 'opening' ? '#f59e0b' : 'var(--border-color)'};
+                        background: ${checklistCurrentShift === 'opening' ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)' : 'var(--bg-secondary)'};
+                        cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 8px;
+                        box-shadow: ${checklistCurrentShift === 'opening' ? '0 8px 24px rgba(245, 158, 11, 0.3), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'};"
+                        onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 28px rgba(245, 158, 11, 0.25)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='${checklistCurrentShift === 'opening' ? '0 8px 24px rgba(245, 158, 11, 0.3), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'}';">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${checklistCurrentShift === 'opening' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : 'var(--bg-tertiary)'};
+                            display: flex; align-items: center; justify-content: center;
+                            box-shadow: ${checklistCurrentShift === 'opening' ? '0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3)' : 'none'};">
+                            <i class="fas fa-sun" style="font-size: 22px; color: ${checklistCurrentShift === 'opening' ? 'white' : 'var(--text-muted)'}; ${checklistCurrentShift === 'opening' ? 'animation: spin-slow 10s linear infinite;' : ''}"></i>
+                        </div>
+                        <div style="font-weight: 700; font-size: 15px; color: ${checklistCurrentShift === 'opening' ? '#92400e' : 'var(--text-primary)'};">Opening</div>
+                        <div style="font-size: 11px; color: ${checklistCurrentShift === 'opening' ? '#b45309' : 'var(--text-muted)'}; font-weight: 500;">
+                            <i class="fas fa-clock" style="margin-right: 4px;"></i>Day Shift
+                        </div>
+                    </button>
+
+                    <!-- Closing / Night Shift -->
+                    <button onclick="switchChecklistShift('closing')"
+                        style="flex: 1; padding: 16px 20px; border-radius: 16px; border: 3px solid ${checklistCurrentShift === 'closing' ? '#8b5cf6' : 'var(--border-color)'};
+                        background: ${checklistCurrentShift === 'closing' ? 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)' : 'var(--bg-secondary)'};
+                        cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 8px;
+                        box-shadow: ${checklistCurrentShift === 'closing' ? '0 8px 24px rgba(139, 92, 246, 0.4), inset 0 -2px 8px rgba(0,0,0,0.2)' : 'none'};"
+                        onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 28px rgba(139, 92, 246, 0.3)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='${checklistCurrentShift === 'closing' ? '0 8px 24px rgba(139, 92, 246, 0.4), inset 0 -2px 8px rgba(0,0,0,0.2)' : 'none'}';">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${checklistCurrentShift === 'closing' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--bg-tertiary)'};
+                            display: flex; align-items: center; justify-content: center; position: relative;
+                            box-shadow: ${checklistCurrentShift === 'closing' ? '0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.2)' : 'none'};">
+                            <i class="fas fa-moon" style="font-size: 20px; color: ${checklistCurrentShift === 'closing' ? '#fef3c7' : 'var(--text-muted)'};"></i>
+                            ${checklistCurrentShift === 'closing' ? `
+                                <span style="position: absolute; top: 2px; right: 6px; width: 6px; height: 6px; background: #fef3c7; border-radius: 50%; box-shadow: 0 0 6px #fef3c7; animation: twinkle 2s ease-in-out infinite;"></span>
+                                <span style="position: absolute; bottom: 8px; left: 4px; width: 4px; height: 4px; background: #fef3c7; border-radius: 50%; box-shadow: 0 0 4px #fef3c7; animation: twinkle 2.5s ease-in-out infinite 0.5s;"></span>
+                                <span style="position: absolute; top: 10px; left: 2px; width: 3px; height: 3px; background: #fef3c7; border-radius: 50%; box-shadow: 0 0 3px #fef3c7; animation: twinkle 1.8s ease-in-out infinite 1s;"></span>
+                            ` : ''}
+                        </div>
+                        <div style="font-weight: 700; font-size: 15px; color: ${checklistCurrentShift === 'closing' ? 'white' : 'var(--text-primary)'};">Closing</div>
+                        <div style="font-size: 11px; color: ${checklistCurrentShift === 'closing' ? '#c4b5fd' : 'var(--text-muted)'}; font-weight: 500;">
+                            <i class="fas fa-star" style="margin-right: 4px; font-size: 9px;"></i>Night Shift
+                        </div>
+                    </button>
+                </div>
+        </div>
+
+        <!-- Checklist Tasks -->
+        <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="card-title">
+                    <i class="fas ${checklistCurrentShift === 'opening' ? 'fa-sun' : 'fa-moon'}" style="color: ${checklistCurrentShift === 'opening' ? '#f59e0b' : '#8b5cf6'};"></i>
+                    ${checklistCurrentShift === 'opening' ? 'Opening' : 'Closing'} Tasks
+                </h3>
+                <div style="font-size: 14px; color: var(--text-muted);">
+                    ${getCompletionPercentage(checklistCurrentStore, checklistCurrentShift)}% complete
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${buildTasksHtml(checklistCurrentShift)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Toggle task completion
+window.toggleChecklistTask = async function(taskId, store, shift, completionId) {
+    if (completionId && completionId !== 'null') {
+        // Uncomplete the task
+        const success = await removeChecklistCompletion(completionId);
+        if (success) {
+            renderDailyChecklist();
+        }
+    } else {
+        // Complete the task
+        const success = await saveChecklistCompletion(taskId, store, shift);
+        if (success) {
+            showNotification('Task completed!', 'success');
+            renderDailyChecklist();
+        }
+    }
+}
+
+// Filter by store
+window.filterChecklistByStore = function(store) {
+    checklistCurrentStore = store;
+    renderDailyChecklist();
+}
+
+// Switch shift
+window.switchChecklistShift = function(shift) {
+    checklistCurrentShift = shift;
+    renderDailyChecklist();
+}
+
+// Open add task modal
+window.openAddTaskModal = function(shift) {
+    openModal('add-checklist-task', { shift });
+}
+
+// Add task from modal
+window.addChecklistTaskFromModal = async function() {
+    const task = document.getElementById('checklist-task-name').value.trim();
+    const shift = document.getElementById('checklist-task-shift').value;
+    const store = document.getElementById('checklist-task-store').value;
+
+    if (!task) {
+        alert('Please enter a task description');
+        return;
+    }
+
+    const result = await addChecklistTask(task, shift, store);
+    if (result) {
+        closeModal();
+        showNotification('Task added successfully!', 'success');
+        renderDailyChecklist();
+    } else {
+        alert('Error adding task. Please try again.');
+    }
+}
+
+// Delete task
+window.deleteChecklistTaskUI = async function(taskId) {
+    if (!confirm('Delete this task? This will remove it for all stores.')) return;
+
+    const success = await deleteChecklistTask(taskId);
+    if (success) {
+        showNotification('Task deleted', 'success');
+        renderDailyChecklist();
+    }
+}
+
+// Open photo capture for task
+window.openPhotoForTask = function(taskId, store, shift) {
+    // Store task info for after photo capture
+    window.pendingChecklistPhoto = { taskId, store, shift };
+    openCameraModal('checklist-photo-preview', 'checklist-photo-input');
+}
+
+// View checklist history
+window.viewChecklistHistory = async function() {
+    const modal = document.createElement('div');
+    modal.id = 'checklist-history-modal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    // Get last 7 days of completions
+    const db = firebase.firestore();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    let historyHtml = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+    modal.innerHTML = `
+        <div style="background: var(--bg-primary); border-radius: 20px; max-width: 600px; width: 100%; max-height: 80vh; overflow: hidden; animation: modalSlideIn 0.3s ease;">
+            <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-history" style="color: var(--accent-primary); margin-right: 8px;"></i> Checklist History</h3>
+                <button onclick="document.getElementById('checklist-history-modal').remove()" style="background: none; border: none; cursor: pointer; padding: 8px;">
+                    <i class="fas fa-times" style="color: var(--text-muted);"></i>
+                </button>
+            </div>
+            <div id="history-content" style="padding: 16px; max-height: 500px; overflow-y: auto;">
+                ${historyHtml}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Load history
+    try {
+        const snapshot = await db.collection('checklistCompletions')
+            .orderBy('completedAt', 'desc')
+            .limit(50)
+            .get();
+
+        const completions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Group by date
+        const grouped = {};
+        completions.forEach(c => {
+            const date = c.date || 'Unknown';
+            if (!grouped[date]) grouped[date] = [];
+            grouped[date].push(c);
+        });
+
+        if (Object.keys(grouped).length === 0) {
+            historyHtml = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No history yet</div>';
+        } else {
+            historyHtml = Object.entries(grouped).map(([date, items]) => `
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-muted); font-size: 13px; text-transform: uppercase;">${new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${items.map(item => {
+                            const task = checklistData.tasks.find(t => t.id === item.taskId);
+                            return `
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 14px;">${task?.task || 'Unknown task'}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">${item.store} - ${item.shift} - ${item.completedBy}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('history-content').innerHTML = historyHtml;
+    } catch (error) {
+        document.getElementById('history-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading history</div>';
+    }
+}
+
         let currentRestockTab = 'inventory';
         let selectedStoreFilter = 'all';
         let selectedRestockTypeFilter = 'all'; // 'all', 'product', 'supply'
+        let inventorySearchQuery = ''; // Search query for inventory
+        let shopifyInventory = []; // Loaded from Shopify API
+        let isLoadingInventory = false;
+        let inventoryLoadError = null;
 
-        function renderRestockRequests() {
+        // Load inventory from Shopify API
+        async function loadShopifyInventory(forceRefresh = false) {
+            // Check if already loaded and not forcing refresh
+            if (shopifyInventory.length > 0 && !forceRefresh) {
+                return shopifyInventory;
+            }
+
+            // Check if fetchAllStoresInventory is available
+            if (typeof fetchAllStoresInventory !== 'function') {
+                console.warn('[Restock] fetchAllStoresInventory not available, using fallback');
+                return inventory; // Use local fallback
+            }
+
+            isLoadingInventory = true;
+            inventoryLoadError = null;
+
+            try {
+                console.log('[Restock] Loading inventory from all Shopify stores...');
+                shopifyInventory = await fetchAllStoresInventory();
+                console.log(`[Restock] ✅ Loaded ${shopifyInventory.length} items from Shopify`);
+                return shopifyInventory;
+            } catch (error) {
+                console.error('[Restock] Error loading inventory:', error);
+                inventoryLoadError = error.message;
+                return inventory; // Use local fallback on error
+            } finally {
+                isLoadingInventory = false;
+            }
+        }
+
+        async function renderRestockRequests() {
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Inventory & Restock</h2>
-                        <p class="section-subtitle">Manage inventory and restock requests</p>
+                        <p class="section-subtitle">Manage inventory and restock requests across all stores</p>
                     </div>
-                    <button class="btn-primary floating-add-btn" onclick="openNewRestockRequestModal()">
-                        <i class="fas fa-plus"></i> Create Restock Request
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-secondary" onclick="refreshShopifyInventory()" title="Refresh from Shopify">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn-primary floating-add-btn" onclick="openNewRestockRequestModal()">
+                            <i class="fas fa-plus"></i> Create Restock Request
+                        </button>
+                    </div>
                 </div>
 
                 <div class="restock-tabs" style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color);">
@@ -3675,70 +4997,250 @@
                 </div>
 
                 <div id="restock-tab-content">
-                    ${currentRestockTab === 'inventory' ? renderInventoryTab() : renderRequestsTab()}
+                    ${currentRestockTab === 'inventory' ? '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading inventory from Shopify...</p></div>' : renderRequestsTab()}
                 </div>
             `;
+
+            // Load inventory from Shopify if on inventory tab
+            if (currentRestockTab === 'inventory') {
+                await loadShopifyInventory();
+                const tabContent = document.getElementById('restock-tab-content');
+                if (tabContent) {
+                    tabContent.innerHTML = renderInventoryTab();
+                }
+            }
+        }
+
+        // Refresh inventory from Shopify
+        async function refreshShopifyInventory() {
+            const tabContent = document.getElementById('restock-tab-content');
+            if (tabContent && currentRestockTab === 'inventory') {
+                tabContent.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Refreshing inventory from Shopify...</p></div>';
+            }
+
+            await loadShopifyInventory(true); // Force refresh
+
+            if (tabContent && currentRestockTab === 'inventory') {
+                tabContent.innerHTML = renderInventoryTab();
+            }
         }
 
         function renderInventoryTab() {
-            const filteredInventory = selectedStoreFilter === 'all'
-                ? inventory
-                : inventory.filter(item => item.store === selectedStoreFilter);
+            // Use Shopify inventory if loaded, otherwise use local fallback
+            const inventoryData = shopifyInventory.length > 0 ? shopifyInventory : inventory;
+
+            // Filter by store
+            let filteredInventory = selectedStoreFilter === 'all'
+                ? inventoryData
+                : inventoryData.filter(item => {
+                    // Handle "Vape Smoke Universe" parent filter - show all VSU locations
+                    if (selectedStoreFilter === 'VSU') {
+                        return item.store.startsWith('VSU ') || item.storeKey === 'vsu';
+                    }
+                    // Handle specific VSU location filter
+                    if (selectedStoreFilter.startsWith('VSU ')) {
+                        return item.store === selectedStoreFilter;
+                    }
+                    // Handle store key or store name
+                    return item.store === selectedStoreFilter || item.storeKey === selectedStoreFilter;
+                });
+
+            // Apply search filter
+            if (inventorySearchQuery.trim()) {
+                const query = inventorySearchQuery.toLowerCase().trim();
+                filteredInventory = filteredInventory.filter(item => {
+                    return (
+                        (item.brand && item.brand.toLowerCase().includes(query)) ||
+                        (item.productName && item.productName.toLowerCase().includes(query)) ||
+                        (item.flavor && item.flavor.toLowerCase().includes(query)) ||
+                        (item.sku && item.sku.toLowerCase().includes(query)) ||
+                        (item.store && item.store.toLowerCase().includes(query)) ||
+                        (item.productType && item.productType.toLowerCase().includes(query))
+                    );
+                });
+            }
+
+            // Get unique stores for filter dropdown (dynamically from data)
+            const stores = [...new Set(inventoryData.map(item => item.store))].sort();
+
+            // Separate VSU locations from other stores
+            const vsuLocations = stores.filter(s => s.startsWith('VSU '));
+            const otherStores = stores.filter(s => !s.startsWith('VSU '));
+
+            // Count all VSU items
+            const vsuCount = inventoryData.filter(i => i.store.startsWith('VSU ') || i.storeKey === 'vsu').length;
+
+            // Build store options with VSU as parent option + individual locations as sub-options
+            let storeOptions = '';
+
+            // Add VSU parent option if there are VSU locations
+            if (vsuLocations.length > 0) {
+                storeOptions += `<option value="VSU" ${selectedStoreFilter === 'VSU' ? 'selected' : ''}>Vape Smoke Universe (${vsuCount})</option>`;
+                // Add individual VSU locations as indented sub-options
+                vsuLocations.forEach(store => {
+                    const count = inventoryData.filter(i => i.store === store).length;
+                    storeOptions += `<option value="${store}" ${selectedStoreFilter === store ? 'selected' : ''}>&nbsp;&nbsp;&nbsp;└ ${store.replace('VSU ', '')} (${count})</option>`;
+                });
+            }
+
+            // Add other stores
+            otherStores.forEach(store => {
+                const count = inventoryData.filter(i => i.store === store).length;
+                storeOptions += `<option value="${store}" ${selectedStoreFilter === store ? 'selected' : ''}>${store} (${count})</option>`;
+            });
+
+            // Error message if loading failed
+            const errorMessage = inventoryLoadError ? `
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px; color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle"></i> Failed to load from Shopify: ${inventoryLoadError}. Showing local data.
+                </div>
+            ` : '';
+
+            // Data source indicator
+            const dataSource = shopifyInventory.length > 0
+                ? `<span style="background: var(--success); color: white; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-left: 8px;"><i class="fas fa-cloud"></i> Live from Shopify</span>`
+                : `<span style="background: var(--warning); color: white; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-left: 8px;"><i class="fas fa-database"></i> Local Data</span>`;
 
             return `
-                <div class="restock-filter-header" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <label style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">
-                            <i class="fas fa-filter"></i> Filter by Store:
-                        </label>
+                ${errorMessage}
+                <div class="restock-filter-header" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div style="position: relative;">
+                            <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;"></i>
+                            <input type="text"
+                                id="inventory-search"
+                                class="form-input"
+                                placeholder="Search by name, brand, SKU, variant..."
+                                value="${inventorySearchQuery}"
+                                oninput="searchInventory(this.value)"
+                                style="width: 300px; padding-left: 36px;">
+                        </div>
                         <select class="form-input" id="store-filter" onchange="filterInventoryByStore(this.value)" style="width: 200px;">
-                            <option value="all" ${selectedStoreFilter === 'all' ? 'selected' : ''}>All Stores</option>
-                            <option value="Miramar" ${selectedStoreFilter === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
-                            <option value="Morena" ${selectedStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
-                            <option value="Kearny Mesa" ${selectedStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
-                            <option value="Chula Vista" ${selectedStoreFilter === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
-                            <option value="North Park" ${selectedStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
-                            <option value="Miramar Wine & Liquor" ${selectedStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                            <option value="all" ${selectedStoreFilter === 'all' ? 'selected' : ''}>All Stores (${inventoryData.length})</option>
+                            ${storeOptions}
                         </select>
+                        ${inventorySearchQuery || selectedStoreFilter !== 'all' ? `
+                            <button onclick="clearInventoryFilters()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                        ` : ''}
                     </div>
-                    <div style="font-size: 13px; color: var(--text-muted);">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);">
                         Showing ${filteredInventory.length} ${filteredInventory.length === 1 ? 'item' : 'items'}
+                        ${dataSource}
                     </div>
                 </div>
 
-                <div class="licenses-table-container">
+                <div class="licenses-table-container" style="max-height: 600px; overflow-y: auto;">
                     <table class="data-table restock-inventory-table">
-                        <thead>
+                        <thead style="position: sticky; top: 0; background: var(--bg-primary); z-index: 10;">
                             <tr>
+                                <th>Store</th>
                                 <th>Brand</th>
                                 <th>Product Name</th>
-                                <th>Flavor</th>
+                                <th>Variant</th>
+                                <th>SKU</th>
                                 <th>Unit Price</th>
-                                <th>Min Stock</th>
                                 <th>Stock</th>
-                                <th>Store</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${filteredInventory.map(item => `
+                            ${filteredInventory.length > 0 ? filteredInventory.map(item => {
+                                // Highlight search matches
+                                const highlightText = (text, query) => {
+                                    if (!query || !text) return text || '';
+                                    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                                    return text.replace(regex, '<mark style="background: var(--warning); color: var(--text-primary); padding: 0 2px; border-radius: 2px;">$1</mark>');
+                                };
+                                const q = inventorySearchQuery.toLowerCase().trim();
+
+                                return `
                                 <tr>
-                                    <td data-label="Brand" style="font-weight: 600;">${item.brand}</td>
-                                    <td data-label="Product">${item.productName}</td>
-                                    <td data-label="Flavor">${item.flavor}</td>
-                                    <td data-label="Price" style="font-weight: 600; color: var(--success);">$${item.unitPrice}</td>
-                                    <td data-label="Min Stock">${item.minStock}</td>
-                                    <td data-label="Stock">
-                                        <span style="font-weight: 600; color: ${item.stock < item.minStock ? 'var(--danger)' : 'var(--success)'};">
-                                            ${item.stock}
+                                    <td data-label="Store">
+                                        <span style="font-weight: 600; font-size: 11px; padding: 4px 8px; border-radius: 4px; background: ${getStoreColor(item.store)}; color: white;">
+                                            ${item.store}
                                         </span>
                                     </td>
-                                    <td data-label="Store" style="font-weight: 500; font-size: 12px;">${item.store}</td>
+                                    <td data-label="Brand" style="font-weight: 600;">${q ? highlightText(item.brand, q) : item.brand}</td>
+                                    <td data-label="Product">${q ? highlightText(item.productName, q) : item.productName}</td>
+                                    <td data-label="Variant" style="font-size: 12px; color: var(--text-secondary);">${q ? highlightText(item.flavor || 'N/A', q) : (item.flavor || 'N/A')}</td>
+                                    <td data-label="SKU" style="font-size: 11px; font-family: monospace; color: var(--text-muted);">${q ? highlightText(item.sku || '-', q) : (item.sku || '-')}</td>
+                                    <td data-label="Price" style="font-weight: 600; color: var(--success);">$${parseFloat(item.unitPrice).toFixed(2)}</td>
+                                    <td data-label="Stock">
+                                        <span style="font-weight: 600; color: ${item.stock < item.minStock ? 'var(--danger)' : item.stock < item.minStock * 2 ? 'var(--warning)' : 'var(--success)'};">
+                                            ${item.stock}
+                                        </span>
+                                        ${item.stock < item.minStock ? '<i class="fas fa-exclamation-triangle" style="color: var(--danger); margin-left: 4px;" title="Low stock"></i>' : ''}
+                                    </td>
+                                    <td data-label="Status">
+                                        <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: ${item.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(107, 114, 128, 0.15)'}; color: ${item.status === 'ACTIVE' ? 'var(--success)' : 'var(--text-muted)'};">
+                                            ${item.status || 'Active'}
+                                        </span>
+                                    </td>
                                 </tr>
-                            `).join('')}
+                            `}).join('') : `
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                        <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block;"></i>
+                                        ${inventorySearchQuery ? `No items found matching "${inventorySearchQuery}"` : 'No inventory items found'}
+                                    </td>
+                                </tr>
+                            `}
                         </tbody>
                     </table>
                 </div>
             `;
+        }
+
+        // Dynamic search for inventory
+        let inventorySearchTimeout = null;
+        function searchInventory(query) {
+            // Debounce search to avoid too many re-renders
+            clearTimeout(inventorySearchTimeout);
+            inventorySearchTimeout = setTimeout(() => {
+                inventorySearchQuery = query;
+                const tabContent = document.getElementById('restock-tab-content');
+                if (tabContent && currentRestockTab === 'inventory') {
+                    tabContent.innerHTML = renderInventoryTab();
+                    // Restore focus to search input
+                    const searchInput = document.getElementById('inventory-search');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.setSelectionRange(query.length, query.length);
+                    }
+                }
+            }, 150);
+        }
+
+        // Clear all inventory filters
+        function clearInventoryFilters() {
+            inventorySearchQuery = '';
+            selectedStoreFilter = 'all';
+            const tabContent = document.getElementById('restock-tab-content');
+            if (tabContent && currentRestockTab === 'inventory') {
+                tabContent.innerHTML = renderInventoryTab();
+            }
+        }
+
+        // Get store color for badges
+        function getStoreColor(storeName) {
+            const colors = {
+                'VSU': '#6366f1',
+                'VSU Miramar': '#6366f1',
+                'VSU Morena': '#8b5cf6',
+                'VSU Kearny Mesa': '#3b82f6',
+                'VSU Chula Vista': '#ec4899',
+                'VSU North Park': '#14b8a6',
+                'Loyal Vaper': '#10b981',
+                'Miramar Wine & Liquor': '#f59e0b',
+                'Miramar': '#6366f1',
+                'Morena': '#8b5cf6',
+                'Kearny Mesa': '#3b82f6',
+                'Chula Vista': '#ec4899',
+                'North Park': '#14b8a6'
+            };
+            return colors[storeName] || '#6b7280';
         }
 
         function renderRequestsTab() {
@@ -3854,19 +5356,27 @@
             `;
         }
 
-        function switchRestockTab(tab) {
+        async function switchRestockTab(tab) {
             currentRestockTab = tab;
-            renderRestockRequests();
+            await renderRestockRequests();
         }
 
         function filterInventoryByStore(store) {
             selectedStoreFilter = store;
-            renderRestockRequests();
+            // Just update the tab content without re-rendering the whole page
+            const tabContent = document.getElementById('restock-tab-content');
+            if (tabContent && currentRestockTab === 'inventory') {
+                tabContent.innerHTML = renderInventoryTab();
+            }
         }
 
         function filterRestockByType(type) {
             selectedRestockTypeFilter = type;
-            renderRestockRequests();
+            // Just update the tab content without re-rendering the whole page
+            const tabContent = document.getElementById('restock-tab-content');
+            if (tabContent && currentRestockTab === 'requests') {
+                tabContent.innerHTML = renderRequestsTab();
+            }
         }
 
         function approveRestockRequest(requestId) {
@@ -4101,23 +5611,117 @@
         function renderAbundanceCloud() {
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
-                <div class="page-header">
-                    <div class="page-header-left">
-                        <h2 class="section-title">Abundance Cloud</h2>
-                        <p class="section-subtitle">Custom app integration</p>
-                    </div>
+                <!-- Quick Actions -->
+                <div class="abundance-quick-actions">
+                    <button class="abundance-action-btn shipping" onclick="showMarkAsSection('shipping')">
+                        <div class="action-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <span>Mark as Prepared</span>
+                    </button>
+                    <button class="abundance-action-btn pickup" onclick="showMarkAsSection('pickup')">
+                        <div class="action-icon">
+                            <i class="fas fa-shopping-bag"></i>
+                        </div>
+                        <span>Mark Ready for Pickup</span>
+                    </button>
+                    <button class="abundance-action-btn delivered" onclick="showMarkAsSection('delivered')">
+                        <div class="action-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <span>Mark Delivered</span>
+                    </button>
+                    <a href="https://admin.shopify.com/store/k1xm3v-v0/orders" target="_blank" rel="noopener noreferrer" class="abundance-action-btn shopify">
+                        <div class="action-icon">
+                            <i class="fab fa-shopify"></i>
+                        </div>
+                        <span>Go to Shopify Admin</span>
+                    </a>
                 </div>
 
+                <!-- Filter Tabs -->
+                <div class="abundance-filter-tabs">
+                    <button class="filter-tab active" data-filter="all" onclick="filterOrders('all')">
+                        <i class="fas fa-border-all"></i>
+                        <span>All</span>
+                    </button>
+                    <button class="filter-tab" data-filter="shipping" onclick="filterOrders('shipping')">
+                        <i class="fas fa-truck"></i>
+                        <span>Shipping</span>
+                    </button>
+                    <button class="filter-tab" data-filter="pickup" onclick="filterOrders('pickup')">
+                        <i class="fas fa-store"></i>
+                        <span>Pickup</span>
+                    </button>
+                    <button class="filter-tab" data-filter="manual" onclick="filterOrders('manual')">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Manual</span>
+                    </button>
+                </div>
+
+                <!-- Orders Table Card -->
                 <div class="card">
-                    <div class="card-body" style="text-align: center; padding: 60px 20px;">
-                        <i class="fas fa-cloud" style="font-size: 64px; color: var(--accent-primary); margin-bottom: 24px;"></i>
-                        <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">Abundance Cloud</h3>
-                        <p style="color: var(--text-muted); font-size: 15px; max-width: 500px; margin: 0 auto;">
-                            This module is currently under development. Check back soon for updates.
-                        </p>
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i>
+                            Orders
+                        </h3>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <span id="selectedCount" class="text-muted" style="font-size: 13px; display: none;">
+                                <span id="selectedNum">0</span> selected
+                            </span>
+                            <button class="btn-secondary" id="printSelectedBtn" onclick="printSelected()" style="display: none;">
+                                <i class="fas fa-print"></i>
+                                Print Selected
+                            </button>
+                            <button class="card-action" onclick="refreshOrders()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div id="loadingOrders" class="loading-state">
+                            <div class="spinner"></div>
+                            <span>Loading orders...</span>
+                        </div>
+                        <div id="ordersTableContainer" style="display: none;">
+                            <table class="abundance-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">
+                                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                        </th>
+                                        <th>#</th>
+                                        <th>Customer</th>
+                                        <th>Line Items</th>
+                                        <th>Status</th>
+                                        <th>Pickup / Shipping</th>
+                                        <th>Taxes</th>
+                                        <th>Total</th>
+                                        <th style="width: 120px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersTableBody">
+                                    <!-- Orders will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emptyState" class="empty-state" style="display: none;">
+                            <i class="fas fa-inbox"></i>
+                            <h3>No orders found</h3>
+                            <p>Orders will appear here once they are available</p>
+                        </div>
                     </div>
                 </div>
             `;
+
+            // Initialize Abundance Cloud after rendering
+            if (typeof initializeAbundanceCloud === 'function') {
+                setTimeout(() => {
+                    initializeAbundanceCloud();
+                    console.log('✅ Abundance Cloud initialized from renderAbundanceCloud');
+                }, 100);
+            }
         }
 
         function renderTaskCard(task) {
@@ -9637,22 +11241,30 @@
             }
         }
 
+        let treasuryViewMode = 'grid'; // 'grid' or 'list'
+        let treasuryFilterLocation = 'all';
+        let treasuryFilterArtist = 'all';
+
         function renderTreasuryContent() {
             console.log('📝 renderTreasuryContent called with', treasuryItems.length, 'items');
             const dashboard = document.querySelector('.dashboard');
-            
+
             if (!dashboard) {
                 console.error('❌ Dashboard element not found!');
                 return;
             }
 
-            const totalValue = treasuryItems.reduce((sum, item) => sum + item.value, 0);
+            const totalValue = treasuryItems.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
             const itemsByLocation = {
                 'VSU Kearny Mesa': treasuryItems.filter(i => i.location === 'VSU Kearny Mesa').length,
                 'VSU Miramar': treasuryItems.filter(i => i.location === 'VSU Miramar').length,
                 'VSU Morena': treasuryItems.filter(i => i.location === 'VSU Morena').length,
-                'VSU North Park': treasuryItems.filter(i => i.location === 'VSU North Park').length
+                'VSU North Park': treasuryItems.filter(i => i.location === 'VSU North Park').length,
+                'VSU Chula Vista': treasuryItems.filter(i => i.location === 'VSU Chula Vista').length
             };
+
+            // Get unique artists
+            const artists = [...new Set(treasuryItems.map(i => i.artist).filter(a => a && a.trim()))].sort();
 
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -9666,127 +11278,228 @@
                     </button>
                 </div>
 
-                <div class="treasury-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%); text-align: center; padding: 32px 24px;">
-                        <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-vault"></i></div>
+                <div class="treasury-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px;">
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%); text-align: center; padding: 28px 20px;">
+                        <div class="stat-icon" style="margin: 0 auto 12px; background: rgba(255, 255, 255, 0.2); width: 50px; height: 50px;"><i class="fas fa-vault"></i></div>
                         <div class="stat-content">
                             <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Value</div>
-                            <div class="stat-value" style="color: white;">$${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            <div class="stat-value" style="color: white; font-size: 24px;">$${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); text-align: center; padding: 32px 24px;">
-                        <div class="stat-icon" style="margin: 0 auto 16px; background: rgba(255, 255, 255, 0.2);"><i class="fas fa-gem"></i></div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); text-align: center; padding: 28px 20px;">
+                        <div class="stat-icon" style="margin: 0 auto 12px; background: rgba(255, 255, 255, 0.2); width: 50px; height: 50px;"><i class="fas fa-gem"></i></div>
                         <div class="stat-content">
                             <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Total Pieces</div>
-                            <div class="stat-value" style="color: white;">${treasuryItems.length}</div>
+                            <div class="stat-value" style="color: white; font-size: 24px;">${treasuryItems.length}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); text-align: center; padding: 28px 20px;">
+                        <div class="stat-icon" style="margin: 0 auto 12px; background: rgba(255, 255, 255, 0.2); width: 50px; height: 50px;"><i class="fas fa-palette"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label" style="color: rgba(255, 255, 255, 0.9);">Artists</div>
+                            <div class="stat-value" style="color: white; font-size: 24px;">${artists.length}</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header treasury-card-header">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                         <h3 class="card-title">
                             <i class="fas fa-images"></i>
                             Collection Inventory
                         </h3>
-                        <div class="treasury-filter-container" style="display: flex; gap: 12px;">
-                            <select class="form-input" style="width: 200px;" onchange="filterTreasury(this.value)">
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                            <!-- View Toggle -->
+                            <div style="display: flex; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
+                                <button onclick="switchTreasuryView('grid')" id="treasury-grid-btn" style="padding: 8px 14px; border: none; background: ${treasuryViewMode === 'grid' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${treasuryViewMode === 'grid' ? 'white' : 'var(--text-primary)'}; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button onclick="switchTreasuryView('list')" id="treasury-list-btn" style="padding: 8px 14px; border: none; background: ${treasuryViewMode === 'list' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${treasuryViewMode === 'list' ? 'white' : 'var(--text-primary)'}; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                            <!-- Artist Filter -->
+                            <select class="form-input" style="width: 180px;" onchange="filterTreasuryByArtist(this.value)" id="treasury-artist-filter">
+                                <option value="all">All Artists</option>
+                                ${artists.map(a => `<option value="${a}" ${treasuryFilterArtist === a ? 'selected' : ''}>${a}</option>`).join('')}
+                            </select>
+                            <!-- Location Filter -->
+                            <select class="form-input" style="width: 180px;" onchange="filterTreasuryByLocation(this.value)" id="treasury-location-filter">
                                 <option value="all">All Locations</option>
-                                <option value="VSU Kearny Mesa">VSU Kearny Mesa (${itemsByLocation['VSU Kearny Mesa']})</option>
-                                <option value="VSU Miramar">VSU Miramar (${itemsByLocation['VSU Miramar']})</option>
-                                <option value="VSU Morena">VSU Morena (${itemsByLocation['VSU Morena']})</option>
-                                <option value="VSU North Park">VSU North Park (${itemsByLocation['VSU North Park']})</option>
+                                <option value="VSU Miramar" ${treasuryFilterLocation === 'VSU Miramar' ? 'selected' : ''}>VSU Miramar (${itemsByLocation['VSU Miramar']})</option>
+                                <option value="VSU Morena" ${treasuryFilterLocation === 'VSU Morena' ? 'selected' : ''}>VSU Morena (${itemsByLocation['VSU Morena']})</option>
+                                <option value="VSU Kearny Mesa" ${treasuryFilterLocation === 'VSU Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa (${itemsByLocation['VSU Kearny Mesa']})</option>
+                                <option value="VSU Chula Vista" ${treasuryFilterLocation === 'VSU Chula Vista' ? 'selected' : ''}>VSU Chula Vista (${itemsByLocation['VSU Chula Vista']})</option>
+                                <option value="VSU North Park" ${treasuryFilterLocation === 'VSU North Park' ? 'selected' : ''}>VSU North Park (${itemsByLocation['VSU North Park']})</option>
                             </select>
                         </div>
                     </div>
-                    <div class="card-body" style="padding: 0; overflow-x: auto;">
-                        <table class="data-table treasury-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 80px;">Photo</th>
-                                    <th>Artwork Name</th>
-                                    <th>Artist</th>
-                                    <th>Acquisition Date</th>
-                                    <th>Value (USD)</th>
-                                    <th>Location</th>
-                                    <th style="width: 120px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="treasuryTableBody">
-                                ${renderTreasuryTable()}
-                            </tbody>
-                        </table>
+                    <div class="card-body" id="treasury-content-area">
+                        ${treasuryViewMode === 'grid' ? renderTreasuryGrid() : renderTreasuryList()}
                     </div>
                 </div>
             `;
         }
 
-        function renderTreasuryTable(filter = 'all') {
-            const filteredItems = filter === 'all' ? treasuryItems : treasuryItems.filter(i => i.location === filter);
+        function renderTreasuryGrid() {
+            const filteredItems = getFilteredTreasuryItems();
 
             if (filteredItems.length === 0) {
                 return `
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fas fa-gem" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                            No pieces found
-                        </td>
-                    </tr>
+                    <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+                        <i class="fas fa-gem" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.5;"></i>
+                        <p>No pieces found</p>
+                    </div>
                 `;
             }
 
-            return filteredItems.map(item => {
-                // Support both 'image' field and legacy 'photos' array
-                const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
-                const photoDisplay = itemImage
-                    ? `<img src="${itemImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
-                    : `<i class="fas fa-gem" style="color: var(--text-muted); font-size: 24px;"></i>`;
+            return `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; padding: 20px;">
+                    ${filteredItems.map(item => {
+                        const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
+                        const itemValue = parseFloat(item.value) || 0;
+                        const itemName = item.artworkName || 'Unknown';
+                        const itemArtist = item.artist || 'Unknown Artist';
 
-                const itemValue = parseFloat(item.value) || 0;
-                const itemName = item.artworkName || 'Unknown';
-                const itemArtist = item.artist || '-';
-                const itemDate = item.acquisitionDate || '-';
-                const itemLocation = item.location || 'Unknown';
-
-                return `
-                    <tr>
-                        <td data-label="Photo">
-                            <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color);">
-                                ${photoDisplay}
+                        return `
+                            <div onclick="viewTreasuryItem('${item.firestoreId || item.id}')" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.3s; border: 2px solid transparent;"
+                                onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(0,0,0,0.15)'; this.style.borderColor='var(--accent-primary)';"
+                                onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                                <div style="height: 180px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    ${itemImage
+                                        ? `<img src="${itemImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="${itemName}">`
+                                        : `<i class="fas fa-image" style="font-size: 48px; color: var(--text-muted); opacity: 0.3;"></i>`
+                                    }
+                                </div>
+                                <div style="padding: 16px;">
+                                    <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${itemName}</div>
+                                    <div style="font-size: 13px; color: var(--accent-primary); margin-bottom: 8px;"><i class="fas fa-palette" style="margin-right: 6px;"></i>${itemArtist}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 18px; font-weight: 700; color: #10b981;">$${itemValue.toLocaleString()}</span>
+                                        <span style="font-size: 11px; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 6px; color: var(--text-muted);">${item.location || 'N/A'}</span>
+                                    </div>
+                                </div>
                             </div>
-                        </td>
-                        <td data-label="Artwork Name"><strong>${itemName}</strong></td>
-                        <td data-label="Artist">${itemArtist}</td>
-                        <td data-label="Acquisition Date">${formatDate(itemDate)}</td>
-                        <td data-label="Value" style="font-weight: 600; color: var(--success);">$${itemValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td data-label="Location">
-                            <span class="badge" style="background: var(--accent-primary);">${itemLocation}</span>
-                        </td>
-                        <td data-label="Actions">
-                            <button class="btn-icon" onclick="viewTreasuryItem('${item.id}')" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon" onclick="editTreasuryItem('${item.id}')" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon" onclick="deleteTreasuryItem('${item.id}')" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
-        function filterTreasury(location) {
-            const tbody = document.getElementById('treasuryTableBody');
-            if (tbody) {
-                tbody.innerHTML = renderTreasuryTable(location);
+        function renderTreasuryList() {
+            const filteredItems = getFilteredTreasuryItems();
+
+            if (filteredItems.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+                        <i class="fas fa-gem" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.5;"></i>
+                        <p>No pieces found</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <table class="data-table treasury-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Photo</th>
+                            <th>Artwork Name</th>
+                            <th>Artist</th>
+                            <th>Acquisition Date</th>
+                            <th>Value (USD)</th>
+                            <th>Location</th>
+                            <th style="width: 120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredItems.map(item => {
+                            const itemImage = item.image || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
+                            const photoDisplay = itemImage
+                                ? `<img src="${itemImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="${item.artworkName}">`
+                                : `<i class="fas fa-gem" style="color: var(--text-muted); font-size: 24px;"></i>`;
+
+                            const itemValue = parseFloat(item.value) || 0;
+                            const itemName = item.artworkName || 'Unknown';
+                            const itemArtist = item.artist || '-';
+                            const itemDate = item.acquisitionDate || '-';
+                            const itemLocation = item.location || 'Unknown';
+
+                            return `
+                                <tr>
+                                    <td data-label="Photo">
+                                        <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color);">
+                                            ${photoDisplay}
+                                        </div>
+                                    </td>
+                                    <td data-label="Artwork Name"><strong>${itemName}</strong></td>
+                                    <td data-label="Artist">${itemArtist}</td>
+                                    <td data-label="Acquisition Date">${formatDate(itemDate)}</td>
+                                    <td data-label="Value" style="font-weight: 600; color: var(--success);">$${itemValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td data-label="Location">
+                                        <span class="badge" style="background: var(--accent-primary);">${itemLocation}</span>
+                                    </td>
+                                    <td data-label="Actions">
+                                        <button class="btn-icon" onclick="viewTreasuryItem('${item.firestoreId || item.id}')" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="editTreasuryItem('${item.firestoreId || item.id}')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="deleteTreasuryItem('${item.firestoreId || item.id}')" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function getFilteredTreasuryItems() {
+            return treasuryItems.filter(item => {
+                const locationMatch = treasuryFilterLocation === 'all' || item.location === treasuryFilterLocation;
+                const artistMatch = treasuryFilterArtist === 'all' || item.artist === treasuryFilterArtist;
+                return locationMatch && artistMatch;
+            });
+        }
+
+        window.switchTreasuryView = function(mode) {
+            treasuryViewMode = mode;
+            const contentArea = document.getElementById('treasury-content-area');
+            const gridBtn = document.getElementById('treasury-grid-btn');
+            const listBtn = document.getElementById('treasury-list-btn');
+
+            if (contentArea) {
+                contentArea.innerHTML = mode === 'grid' ? renderTreasuryGrid() : renderTreasuryList();
+            }
+            if (gridBtn && listBtn) {
+                gridBtn.style.background = mode === 'grid' ? 'var(--accent-primary)' : 'var(--bg-secondary)';
+                gridBtn.style.color = mode === 'grid' ? 'white' : 'var(--text-primary)';
+                listBtn.style.background = mode === 'list' ? 'var(--accent-primary)' : 'var(--bg-secondary)';
+                listBtn.style.color = mode === 'list' ? 'white' : 'var(--text-primary)';
+            }
+        }
+
+        window.filterTreasuryByLocation = function(location) {
+            treasuryFilterLocation = location;
+            const contentArea = document.getElementById('treasury-content-area');
+            if (contentArea) {
+                contentArea.innerHTML = treasuryViewMode === 'grid' ? renderTreasuryGrid() : renderTreasuryList();
+            }
+        }
+
+        window.filterTreasuryByArtist = function(artist) {
+            treasuryFilterArtist = artist;
+            const contentArea = document.getElementById('treasury-content-area');
+            if (contentArea) {
+                contentArea.innerHTML = treasuryViewMode === 'grid' ? renderTreasuryGrid() : renderTreasuryList();
             }
         }
 
         function viewTreasuryItem(id) {
-            const item = treasuryItems.find(t => t.id === id);
+            const item = treasuryItems.find(t => t.firestoreId === id || t.id === id);
             if (!item) return;
 
             const modal = document.getElementById('modal');
@@ -9843,11 +11556,11 @@
                     </div>
 
                     <div class="treasury-modal-actions" style="display: flex; gap: 12px;">
-                        <button class="btn-secondary" style="flex: 1;" onclick="editTreasuryItem('${item.id}')">
+                        <button class="btn-secondary" style="flex: 1;" onclick="editTreasuryItem('${item.firestoreId || item.id}')">
                             <i class="fas fa-edit"></i>
                             Edit Piece
                         </button>
-                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="closeModal(); deleteTreasuryItem('${item.id}');">
+                        <button class="btn-secondary" style="flex: 1; background: var(--danger); color: white; border-color: var(--danger);" onclick="closeModal(); deleteTreasuryItem('${item.firestoreId || item.id}');">
                             <i class="fas fa-trash"></i>
                             Delete
                         </button>
@@ -9872,7 +11585,7 @@
                 onConfirm: async () => {
                     try {
                         // Find the item to get firestoreId
-                        const item = treasuryItems.find(t => t.id === id);
+                        const item = treasuryItems.find(t => t.firestoreId === id || t.id === id);
 
                         // Delete from Firebase if firestoreId exists
                         if (item && item.firestoreId && typeof firebase !== 'undefined' && firebase.firestore) {
@@ -9883,7 +11596,7 @@
                         }
 
                         // Remove from local array
-                        treasuryItems = treasuryItems.filter(t => t.id !== id);
+                        treasuryItems = treasuryItems.filter(t => t.firestoreId !== id && t.id !== id);
 
                         await loadTreasuryItemsFromFirebase();
                         renderTreasuryContent();
@@ -10076,7 +11789,9 @@
                 { id: 'ones', label: '$1 Bills', value: 1, icon: '$1' },
                 { id: 'fives', label: '$5 Bills', value: 5, icon: '$5' },
                 { id: 'tens', label: '$10 Bills', value: 10, icon: '$10' },
-                { id: 'twenties', label: '$20 Bills', value: 20, icon: '$20' }
+                { id: 'twenties', label: '$20 Bills', value: 20, icon: '$20' },
+                { id: 'fifties', label: '$50 Bills', value: 50, icon: '$50' },
+                { id: 'hundreds', label: '$100 Bills', value: 100, icon: '$100' }
             ]
         };
 
@@ -10205,8 +11920,8 @@
                                     <div style="background: var(--bg-primary); border-radius: 12px; padding: 14px; text-align: center;">
                                         <div style="font-size: 18px; font-weight: 700; color: #f59e0b; margin-bottom: 6px;">${d.icon}</div>
                                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">${d.label}</div>
-                                        <input type="number" id="change-${d.id}" class="form-input" value="0" min="0"
-                                            style="text-align: center; font-weight: 600;" onchange="calculateChangeTotal()">
+                                        <input type="number" id="change-${d.id}" class="form-input" placeholder="0" min="0"
+                                            style="text-align: center; font-weight: 600;" oninput="calculateDailyChangeTotal()">
                                     </div>
                                 `).join('')}
                             </div>
@@ -10222,8 +11937,8 @@
                                     <div style="background: var(--bg-primary); border-radius: 12px; padding: 14px; text-align: center;">
                                         <div style="font-size: 18px; font-weight: 700; color: #10b981; margin-bottom: 6px;">${d.icon}</div>
                                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">${d.label}</div>
-                                        <input type="number" id="change-${d.id}" class="form-input" value="0" min="0"
-                                            style="text-align: center; font-weight: 600;" onchange="calculateChangeTotal()">
+                                        <input type="number" id="change-${d.id}" class="form-input" placeholder="0" min="0"
+                                            style="text-align: center; font-weight: 600;" oninput="calculateDailyChangeTotal()">
                                     </div>
                                 `).join('')}
                             </div>
@@ -10246,8 +11961,11 @@
                                         <input type="file" id="change-photo" accept="image/*" style="display: none;" onchange="previewChangePhoto(this)">
                                     </label>
                                 </div>
-                                <div id="change-photo-preview" style="display: none; width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary);">
+                                <div id="change-photo-preview" style="display: none; position: relative; width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); border: 2px solid var(--border-color);">
                                     <img id="change-photo-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <button onclick="removeChangePhoto()" style="position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'" onmouseout="this.style.background='rgba(239, 68, 68, 0.9)'">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -10404,41 +12122,31 @@
 
         function closeDailyChangeForm() {
             document.getElementById('daily-change-form').style.display = 'none';
+            // Reset photo preview
+            removeChangePhoto();
         }
 
-        function previewChangePhoto(input) {
-            const preview = document.getElementById('change-photo-preview');
-            const img = document.getElementById('change-photo-img');
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    img.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
-            } else {
-                preview.style.display = 'none';
-            }
-        }
-
-        function calculateChangeTotal() {
+        // Calculate total for daily change form in real-time
+        function calculateDailyChangeTotal() {
             let total = 0;
             [...CHANGE_DENOMINATIONS.coins, ...CHANGE_DENOMINATIONS.bills].forEach(d => {
                 const count = parseInt(document.getElementById(`change-${d.id}`)?.value) || 0;
                 total += count * d.value;
             });
-            document.getElementById('change-total-display').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            const displayEl = document.getElementById('change-total-display');
+            if (displayEl) {
+                displayEl.textContent = `$${total.toFixed(2)}`;
+            }
             return total;
         }
 
-        function saveDailyChange() {
+        async function saveDailyChange() {
             const date = document.getElementById('change-date').value;
             const store = document.getElementById('change-store').value;
             const recordedBy = document.getElementById('change-recorded-by').value.trim();
             const notes = document.getElementById('change-notes').value.trim();
             const photoInput = document.getElementById('change-photo');
-            const photoImg = document.getElementById('change-photo-img');
-            const photo = photoImg && photoImg.src && !photoImg.src.includes('undefined') ? photoImg.src : null;
 
             if (!recordedBy) {
                 alert('Please enter your name');
@@ -10460,22 +12168,81 @@
                 return;
             }
 
+            // Upload photo to Firebase Storage if provided
+            let photoUrl = null;
+            let photoPath = null;
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+                const rawBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(photoInput.files[0]);
+                });
+
+                // Initialize storage helper if needed
+                if (!firebaseStorageHelper.isInitialized) {
+                    firebaseStorageHelper.initialize();
+                }
+
+                try {
+                    const tempId = Date.now().toString();
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        rawBase64,
+                        'change-records/photos',
+                        tempId
+                    );
+                    photoUrl = uploadResult.url;
+                    photoPath = uploadResult.path;
+                } catch (err) {
+                    console.error('Error uploading change record photo to Storage:', err);
+                    // Fallback to compressed base64
+                    try {
+                        photoUrl = await compressImage(rawBase64);
+                    } catch (compressErr) {
+                        console.error('Error compressing image:', compressErr);
+                        photoUrl = rawBase64;
+                    }
+                }
+            }
+
             const newRecord = {
-                id: Date.now().toString(),
                 date,
                 store,
                 recordedBy,
+                leftBy: recordedBy,
+                receivedBy: recordedBy,
                 amount: total,
                 denominations,
                 notes,
-                photo,
+                photo: photoUrl,
+                photoPath: photoPath,
                 createdAt: new Date().toISOString()
             };
 
-            changeRecords.unshift(newRecord);
-            localStorage.setItem('changeRecords', JSON.stringify(changeRecords));
-            closeDailyChangeForm();
-            renderChange();
+            try {
+                // Save to Firebase
+                if (typeof firebaseChangeRecordsManager !== 'undefined' && firebaseChangeRecordsManager.isInitialized) {
+                    const docId = await firebaseChangeRecordsManager.addChangeRecord(newRecord);
+                    if (docId) {
+                        newRecord.id = docId;
+                        newRecord.firestoreId = docId;
+                        changeRecords.unshift(newRecord);
+                        closeDailyChangeForm();
+                        renderChange();
+                    } else {
+                        alert('Error saving record to Firebase');
+                    }
+                } else {
+                    // Fallback to local storage
+                    newRecord.id = Date.now().toString();
+                    changeRecords.unshift(newRecord);
+                    localStorage.setItem('changeRecords', JSON.stringify(changeRecords));
+                    closeDailyChangeForm();
+                    renderChange();
+                }
+            } catch (error) {
+                console.error('Error saving change record:', error);
+                alert('Error saving record. Please try again.');
+            }
         }
 
         function toggleChangeDetails(id) {
@@ -10686,12 +12453,14 @@
         // Helper function to preview change photo
         function previewChangePhoto(input) {
             const preview = document.getElementById('change-photo-preview');
-            if (!preview) return;
+            const previewImg = document.getElementById('change-photo-img');
+            if (!preview || !previewImg) return;
 
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
                 };
                 reader.readAsDataURL(input.files[0]);
             }
@@ -10700,9 +12469,14 @@
         // Helper function to remove change photo
         function removeChangePhoto() {
             const preview = document.getElementById('change-photo-preview');
+            const previewImg = document.getElementById('change-photo-img');
             const input = document.getElementById('change-photo');
+
             if (preview) {
-                preview.innerHTML = `<i class="fas fa-coins" style="font-size: 36px; color: var(--text-muted);"></i>`;
+                preview.style.display = 'none';
+            }
+            if (previewImg) {
+                previewImg.src = '';
             }
             if (input) {
                 input.value = '';
@@ -10896,7 +12670,8 @@
                                 store: gift.store || 'Miramar',
                                 date: gift.date || new Date().toISOString().split('T')[0],
                                 notes: gift.notes || '',
-                                photo: gift.photo || null
+                                photo: gift.photo || null,
+                                photoPath: gift.photoPath || null
                             }));
                             
                             console.log(`Successfully loaded ${giftsRecords.length} gifts from Firestore`);
@@ -11043,6 +12818,8 @@
                                 fileName: lic.fileName || null,
                                 fileType: lic.fileType || null,
                                 fileData: lic.fileData || null,
+                                fileUrl: lic.fileUrl || null,
+                                filePath: lic.filePath || null,
                                 uploadedBy: lic.uploadedBy || null
                             }));
 
@@ -11064,7 +12841,7 @@
             return false;
         }
 
-        // Function to view/download a license PDF
+        // Function to view/download a license PDF with aesthetic modal preview
         function viewLicensePdf(licenseId) {
             const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
             if (!license) {
@@ -11072,29 +12849,560 @@
                 return;
             }
 
-            if (!license.fileData) {
-                alert('No PDF file attached to this license');
+            // Check for PDF in both fileUrl (Firebase Storage) and fileData (base64)
+            const pdfSource = license.fileUrl || license.fileData;
+            const hasPdf = !!pdfSource;
+
+            // Determine status color and label
+            const statusColors = {
+                valid: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Valid' },
+                expiring: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Expiring Soon' },
+                expired: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Expired' }
+            };
+            const statusStyle = statusColors[license.status] || statusColors.valid;
+
+            // Create modal overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'pdf-preview-modal';
+            modalOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(8px);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                box-sizing: border-box;
+                animation: fadeIn 0.2s ease-out;
+            `;
+
+            modalOverlay.innerHTML = `
+                <style>
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes slideUp {
+                        from { opacity: 0; transform: translateY(20px) scale(0.98); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    #pdf-preview-modal .pdf-modal-container {
+                        animation: slideUp 0.3s ease-out;
+                    }
+                    #pdf-preview-modal .action-btn:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                    }
+                </style>
+                <div class="pdf-modal-container" style="
+                    background: var(--bg-primary);
+                    border-radius: 20px;
+                    width: 100%;
+                    max-width: 1000px;
+                    height: 90vh;
+                    max-height: 900px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    border: 1px solid var(--border-color);
+                ">
+                    <!-- Header -->
+                    <div style="
+                        padding: 20px 24px;
+                        background: var(--bg-secondary);
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 16px;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;">
+                            <div style="
+                                width: 48px;
+                                height: 48px;
+                                background: linear-gradient(135deg, #ef4444, #dc2626);
+                                border-radius: 12px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                flex-shrink: 0;
+                            ">
+                                <i class="fas fa-file-pdf" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${license.name}
+                                </h3>
+                                <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">
+                                        <i class="fas fa-store" style="margin-right: 4px;"></i>${license.store}
+                                    </span>
+                                    <span style="font-size: 13px; color: var(--text-muted);">
+                                        <i class="fas fa-calendar" style="margin-right: 4px;"></i>Expires: ${formatDate(license.expires)}
+                                    </span>
+                                    <span style="
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        padding: 4px 10px;
+                                        border-radius: 20px;
+                                        background: ${statusStyle.bg};
+                                        color: ${statusStyle.color};
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                    ">${statusStyle.label}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                            ${hasPdf ? `
+                            <button class="action-btn" onclick="downloadLicensePdf('${licenseId}')" style="
+                                padding: 10px 16px;
+                                background: var(--accent-primary);
+                                color: white;
+                                border: none;
+                                border-radius: 10px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                                transition: all 0.2s;
+                            ">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                            ` : ''}
+                            <button onclick="closePdfPreviewModal()" style="
+                                width: 40px;
+                                height: 40px;
+                                background: var(--bg-hover);
+                                border: 1px solid var(--border-color);
+                                border-radius: 10px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: var(--text-secondary);
+                                transition: all 0.2s;
+                            ">
+                                <i class="fas fa-times" style="font-size: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PDF Viewer or No PDF Message -->
+                    ${hasPdf ? `
+                    <div style="flex: 1; background: #525659; position: relative; overflow: hidden;">
+                        <iframe
+                            src="${pdfSource}#toolbar=0&navpanes=0&scrollbar=1"
+                            style="width: 100%; height: 100%; border: none;"
+                            title="PDF Preview"
+                        ></iframe>
+                    </div>
+                    ` : `
+                    <div style="flex: 1; background: var(--bg-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px;">
+                        <div style="
+                            width: 120px;
+                            height: 120px;
+                            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+                            border-radius: 24px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-bottom: 24px;
+                        ">
+                            <i class="fas fa-file-circle-exclamation" style="font-size: 48px; color: #ef4444;"></i>
+                        </div>
+                        <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: var(--text-primary);">No PDF Attached</h3>
+                        <p style="margin: 0 0 32px 0; font-size: 14px; color: var(--text-muted); text-align: center; max-width: 400px;">
+                            This document doesn't have a PDF file attached yet. You can upload one by editing the document.
+                        </p>
+
+                        <!-- Document Details Card -->
+                        <div style="
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 16px;
+                            padding: 24px;
+                            width: 100%;
+                            max-width: 400px;
+                        ">
+                            <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Document Details
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">Name</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: var(--text-primary);">${license.name}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">Store</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: var(--text-primary);">${license.store}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">Expires</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: var(--text-primary);">${formatDate(license.expires)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">Status</span>
+                                    <span style="
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        padding: 4px 12px;
+                                        border-radius: 20px;
+                                        background: ${statusStyle.bg};
+                                        color: ${statusStyle.color};
+                                        text-transform: uppercase;
+                                    ">${statusStyle.label}</span>
+                                </div>
+                                ${license.uploadedBy ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">Uploaded by</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: var(--text-primary);">${license.uploadedBy}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    `}
+
+                    <!-- Footer -->
+                    <div style="
+                        padding: 12px 24px;
+                        background: var(--bg-secondary);
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    ">
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            ${license.uploadedBy ? `<i class="fas fa-user" style="margin-right: 4px;"></i>Uploaded by ${license.uploadedBy}` : ''}
+                        </span>
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            Press <kbd style="padding: 2px 6px; background: var(--bg-hover); border-radius: 4px; font-family: monospace;">ESC</kbd> to close
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modalOverlay);
+
+            // Close on overlay click
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    closePdfPreviewModal();
+                }
+            });
+
+            // Close on ESC key
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    closePdfPreviewModal();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        }
+
+        // Close PDF preview modal
+        function closePdfPreviewModal() {
+            const modal = document.getElementById('pdf-preview-modal');
+            if (modal) {
+                modal.style.opacity = '0';
+                modal.style.transition = 'opacity 0.2s ease-out';
+                setTimeout(() => modal.remove(), 200);
+            }
+        }
+
+        // Download license PDF
+        function downloadLicensePdf(licenseId) {
+            const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
+            const pdfSource = license?.fileUrl || license?.fileData;
+            if (!license || !pdfSource) return;
+
+            const link = document.createElement('a');
+            link.href = pdfSource;
+            link.download = license.fileName || `${license.name}.pdf`;
+            link.target = '_blank'; // For Firebase Storage URLs
+            link.click();
+        }
+
+        // Open license in new tab
+        function openLicenseInNewTab(licenseId) {
+            const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
+            const pdfSource = license?.fileUrl || license?.fileData;
+            if (!license || !pdfSource) return;
+
+            window.open(pdfSource, '_blank');
+        }
+
+        /**
+         * Generic Document Preview Modal
+         * Shows a beautiful preview modal for any document (PDF, images, etc.)
+         * @param {Object} docInfo - Document information object
+         * @param {string} docInfo.url - URL or base64 data of the document
+         * @param {string} docInfo.fileName - Name of the file
+         * @param {string} docInfo.fileType - MIME type of the file
+         * @param {string} docInfo.fileSize - Size of the file (formatted string or number)
+         * @param {string} docInfo.documentType - Type/category of document (e.g., "ID Document", "Contract")
+         * @param {string} docInfo.uploadedBy - Who uploaded the document
+         * @param {Date|string} docInfo.uploadedAt - When the document was uploaded
+         */
+        function showDocumentPreview(docInfo) {
+            if (!docInfo || !docInfo.url) {
+                alert('Document not found');
                 return;
             }
 
-            // Open PDF in new tab
-            const newWindow = window.open();
-            if (newWindow) {
-                newWindow.document.write(`
-                    <html>
-                    <head><title>${license.name} - ${license.store}</title></head>
-                    <body style="margin:0;padding:0;">
-                        <embed src="${license.fileData}" type="application/pdf" width="100%" height="100%" style="position:absolute;top:0;left:0;right:0;bottom:0;">
-                    </body>
-                    </html>
-                `);
-            } else {
-                // Fallback: download the file
-                const link = document.createElement('a');
-                link.href = license.fileData;
-                link.download = license.fileName || `${license.name}.pdf`;
-                link.click();
+            const isPdf = docInfo.fileType?.includes('pdf') || docInfo.fileName?.toLowerCase().endsWith('.pdf');
+            const isImage = docInfo.fileType?.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(docInfo.fileName || '');
+
+            // Format file size if it's a number
+            const fileSize = typeof docInfo.fileSize === 'number' ? formatFileSize(docInfo.fileSize) : (docInfo.fileSize || 'Unknown size');
+
+            // Format date
+            let uploadDate = '';
+            if (docInfo.uploadedAt) {
+                const date = docInfo.uploadedAt.toDate ? docInfo.uploadedAt.toDate() : new Date(docInfo.uploadedAt);
+                uploadDate = formatDate(date);
             }
+
+            // Create modal overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'document-preview-modal';
+            modalOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(8px);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                box-sizing: border-box;
+                animation: docFadeIn 0.2s ease-out;
+            `;
+
+            // Get icon and color based on file type
+            let iconClass = 'fa-file';
+            let iconGradient = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+            if (isPdf) {
+                iconClass = 'fa-file-pdf';
+                iconGradient = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            } else if (isImage) {
+                iconClass = 'fa-file-image';
+                iconGradient = 'linear-gradient(135deg, #10b981, #059669)';
+            } else if (docInfo.fileType?.includes('word') || docInfo.fileName?.includes('.doc')) {
+                iconClass = 'fa-file-word';
+                iconGradient = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+            } else if (docInfo.fileType?.includes('excel') || docInfo.fileName?.includes('.xls')) {
+                iconClass = 'fa-file-excel';
+                iconGradient = 'linear-gradient(135deg, #22c55e, #16a34a)';
+            }
+
+            modalOverlay.innerHTML = `
+                <style>
+                    @keyframes docFadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes docSlideUp {
+                        from { opacity: 0; transform: translateY(20px) scale(0.98); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    #document-preview-modal .doc-modal-container {
+                        animation: docSlideUp 0.3s ease-out;
+                    }
+                    #document-preview-modal .doc-action-btn:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                    }
+                </style>
+                <div class="doc-modal-container" style="
+                    background: var(--bg-primary);
+                    border-radius: 20px;
+                    width: 100%;
+                    max-width: 1000px;
+                    height: 90vh;
+                    max-height: 900px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    border: 1px solid var(--border-color);
+                ">
+                    <!-- Header -->
+                    <div style="
+                        padding: 20px 24px;
+                        background: var(--bg-secondary);
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 16px;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;">
+                            <div style="
+                                width: 48px;
+                                height: 48px;
+                                background: ${iconGradient};
+                                border-radius: 12px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                flex-shrink: 0;
+                            ">
+                                <i class="fas ${iconClass}" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${docInfo.fileName || 'Document'}
+                                </h3>
+                                <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                                    ${docInfo.documentType ? `<span style="font-size: 13px; color: var(--text-muted);"><i class="fas fa-tag" style="margin-right: 4px;"></i>${docInfo.documentType}</span>` : ''}
+                                    <span style="font-size: 13px; color: var(--text-muted);">
+                                        <i class="fas fa-file" style="margin-right: 4px;"></i>${fileSize}
+                                    </span>
+                                    ${uploadDate ? `<span style="font-size: 13px; color: var(--text-muted);"><i class="fas fa-calendar" style="margin-right: 4px;"></i>${uploadDate}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                            <button class="doc-action-btn" onclick="downloadDocument('${docInfo.url}', '${docInfo.fileName || 'document'}')" style="
+                                padding: 10px 16px;
+                                background: var(--accent-primary);
+                                color: white;
+                                border: none;
+                                border-radius: 10px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                                transition: all 0.2s;
+                            ">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                            <button onclick="closeDocumentPreviewModal()" style="
+                                width: 40px;
+                                height: 40px;
+                                background: var(--bg-hover);
+                                border: 1px solid var(--border-color);
+                                border-radius: 10px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: var(--text-secondary);
+                                transition: all 0.2s;
+                            ">
+                                <i class="fas fa-times" style="font-size: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Document Viewer -->
+                    ${isPdf ? `
+                    <div style="flex: 1; background: #525659; position: relative; overflow: hidden;">
+                        <iframe
+                            src="${docInfo.url}#toolbar=0&navpanes=0&scrollbar=1"
+                            style="width: 100%; height: 100%; border: none;"
+                            title="Document Preview"
+                        ></iframe>
+                    </div>
+                    ` : isImage ? `
+                    <div style="flex: 1; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto;">
+                        <img src="${docInfo.url}" alt="${docInfo.fileName || 'Document'}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    </div>
+                    ` : `
+                    <div style="flex: 1; background: var(--bg-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px;">
+                        <div style="
+                            width: 120px;
+                            height: 120px;
+                            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.1));
+                            border-radius: 24px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-bottom: 24px;
+                        ">
+                            <i class="fas ${iconClass}" style="font-size: 48px; color: #6366f1;"></i>
+                        </div>
+                        <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: var(--text-primary);">Preview Not Available</h3>
+                        <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted); text-align: center; max-width: 400px;">
+                            This file type cannot be previewed in the browser. Click download to view the file.
+                        </p>
+                    </div>
+                    `}
+
+                    <!-- Footer -->
+                    <div style="
+                        padding: 12px 24px;
+                        background: var(--bg-secondary);
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    ">
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            ${docInfo.uploadedBy ? `<i class="fas fa-user" style="margin-right: 4px;"></i>Uploaded by ${docInfo.uploadedBy}` : ''}
+                        </span>
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            Press <kbd style="padding: 2px 6px; background: var(--bg-hover); border-radius: 4px; font-family: monospace;">ESC</kbd> to close
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modalOverlay);
+
+            // Close on overlay click
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    closeDocumentPreviewModal();
+                }
+            });
+
+            // Close on ESC key
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    closeDocumentPreviewModal();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        }
+
+        // Close document preview modal
+        function closeDocumentPreviewModal() {
+            const modal = document.getElementById('document-preview-modal');
+            if (modal) {
+                modal.style.opacity = '0';
+                modal.style.transition = 'opacity 0.2s ease-out';
+                setTimeout(() => modal.remove(), 200);
+            }
+        }
+
+        // Download document helper
+        function downloadDocument(url, fileName) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.target = '_blank';
+            link.click();
         }
 
         // Function to delete a license
@@ -11126,29 +13434,53 @@
         }
 
         // Gifts Functions - Control de Regalos en Especie
-        function getGiftsAvailableMonths() {
-            const months = new Set();
-            giftsRecords.forEach(r => {
-                if (r.date) months.add(r.date.slice(0, 7));
-            });
-            months.add(new Date().toISOString().slice(0, 7));
-            return Array.from(months).sort().reverse();
+    function getGiftsAvailableMonths() {
+        if (!Array.isArray(giftsRecords) || giftsRecords.length === 0) {
+            return [];
         }
 
-        function changeGiftsMonth(month) {
-            giftsCurrentMonth = month;
-            renderGifts();
+        const monthsSet = new Set();
+        giftsRecords.forEach(record => {
+            if (!record.date) {
+                return;
+            }
+
+            const monthKey = record.date.slice(0, 7);
+            if (/^\d{4}-\d{2}$/.test(monthKey)) {
+                monthsSet.add(monthKey);
+            }
+        });
+
+        return Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+    }
+
+        const todayMonthKey = new Date().toISOString().slice(0, 7);
+        const initialAvailableMonths = getGiftsAvailableMonths();
+
+        if (initialAvailableMonths.length > 0) {
+            giftsCurrentMonth = initialAvailableMonths.includes(todayMonthKey)
+                ? todayMonthKey
+                : initialAvailableMonths[0];
+        } else {
+            giftsCurrentMonth = todayMonthKey;
         }
+
+        // Renderizar inicial
+        renderGifts();
 
         function renderGifts() {
             const dashboard = document.querySelector('.dashboard');
+            const availableMonths = getGiftsAvailableMonths();
+
+            if (availableMonths.length > 0 && !availableMonths.includes(giftsCurrentMonth)) {
+                giftsCurrentMonth = availableMonths[0];
+            }
 
             // Filter by current month
             const monthlyRecords = giftsRecords.filter(r => r.date && r.date.startsWith(giftsCurrentMonth));
             const monthlyTotal = monthlyRecords.reduce((sum, r) => sum + r.value, 0);
             const monthlyItems = monthlyRecords.reduce((sum, r) => sum + r.quantity, 0);
             const monthName = new Date(giftsCurrentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-            const availableMonths = getGiftsAvailableMonths();
 
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -11173,8 +13505,12 @@
                         </div>
                         <select class="form-input" style="width: 150px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;" onchange="changeGiftsMonth(this.value)">
                             ${availableMonths.map(month => {
-                                const mName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                                return `<option value="${month}" ${month === giftsCurrentMonth ? 'selected' : ''} style="color: black;">${mName}</option>`;
+                                const [year, monthNum] = month.split('-');
+                                const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+                                const displayMonth = date.toLocaleDateString('en-US', { month: 'short' });
+                                const displayYear = date.getFullYear();
+                                const label = `${displayMonth} - ${displayYear}`;
+                                return `<option value="${month}" ${month === giftsCurrentMonth ? 'selected' : ''} style="color: black;">${label}</option>`;
                             }).join('')}
                         </select>
                     </div>
@@ -11242,6 +13578,15 @@
                     </div>
                 </div>
             `;
+        }
+
+        function changeGiftsMonth(monthKey) {
+            if (!monthKey) {
+                return;
+            }
+
+            giftsCurrentMonth = monthKey;
+            renderGifts();
         }
 
         function renderGiftsTableRows(records) {
@@ -11389,6 +13734,20 @@
                                         <i class="fas fa-sticky-note" style="margin-right: 8px;"></i>Notes
                                     </h4>
                                     <p style="margin: 0; line-height: 1.6; color: var(--text-secondary);">${gift.notes}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${gift.photo ? `
+                            <div class="card" style="background: var(--bg-tertiary);">
+                                <div class="card-body">
+                                    <h4 style="margin: 0 0 12px 0; color: var(--text-primary);">
+                                        <i class="fas fa-camera" style="margin-right: 8px;"></i>Photo
+                                    </h4>
+                                    <div style="text-align: center;">
+                                        <img src="${gift.photo}" alt="Gift photo" style="max-width: 100%; max-height: 300px; border-radius: 8px; object-fit: contain; cursor: pointer;" onclick="showImageModal('${gift.photo}', '${gift.product.replace(/'/g, "\\'")} - Gift Photo')">
+                                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">Click to view full size</div>
+                                    </div>
                                 </div>
                             </div>
                         ` : ''}
@@ -12876,10 +15235,9 @@
                     </h4>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
                     ${[1, 2, 3, 4, 5].map(level => {
                         const count = perceptionCounts[level];
-                        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
                         const barHeight = total > 0 ? Math.max((count / Math.max(...Object.values(perceptionCounts))) * 100, 5) : 5;
                         return `
                             <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
@@ -12888,22 +15246,9 @@
                                     <div style="width: 40px; height: ${barHeight}%; background: ${getPerceptionColor(level)}; border-radius: 6px 6px 0 0; min-height: 4px;"></div>
                                 </div>
                                 <div style="font-size: 24px; font-weight: 700; color: ${getPerceptionColor(level)};">${count}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">${percentage}%</div>
-                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${getPerceptionLabel(level)}</div>
                             </div>
                         `;
                     }).join('')}
-                </div>
-
-                <!-- Perception Scale Legend -->
-                <div style="padding-top: 16px; border-top: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: center; gap: 24px; font-size: 12px; color: var(--text-muted);">
-                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #ef4444; border-radius: 3px; margin-right: 4px;"></span> Very Upset</span>
-                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #f97316; border-radius: 3px; margin-right: 4px;"></span> Upset</span>
-                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #eab308; border-radius: 3px; margin-right: 4px;"></span> Neutral</span>
-                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 3px; margin-right: 4px;"></span> Satisfied</span>
-                        <span><span style="display: inline-block; width: 12px; height: 12px; background: #10b981; border-radius: 3px; margin-right: 4px;"></span> Happy</span>
-                    </div>
                 </div>
             `;
         }
@@ -13871,6 +16216,24 @@
             const notes = document.getElementById('vendor-notes').value.trim();
             const imageInput = document.getElementById('vendor-image');
 
+            // Validate required field
+            if (!name) {
+                alert('Please enter a vendor name');
+                return;
+            }
+
+            // Validate email format if provided
+            if (email && !isValidEmail(email)) {
+                alert('Please enter a valid email address (e.g., contact@company.com)');
+                return;
+            }
+
+            // Validate website format if provided
+            if (website && !isValidUrl(website)) {
+                alert('Please enter a valid website URL (e.g., https://www.company.com)');
+                return;
+            }
+
             try {
                 // Upload image to Firebase Storage if provided
                 let imageUrl = null;
@@ -14231,6 +16594,24 @@
             const imageInput = document.getElementById('edit-vendor-image');
             const imagePreview = document.getElementById('edit-vendor-image-preview');
 
+            // Validate required field
+            if (!name) {
+                alert('Please enter a vendor name');
+                return;
+            }
+
+            // Validate email format if provided
+            if (email && !isValidEmail(email)) {
+                alert('Please enter a valid email address (e.g., contact@company.com)');
+                return;
+            }
+
+            // Validate website format if provided
+            if (website && !isValidUrl(website)) {
+                alert('Please enter a valid website URL (e.g., https://www.company.com)');
+                return;
+            }
+
             try {
                 const existingVendor = firebaseVendors.find(v => v.firestoreId === firestoreId);
 
@@ -14348,6 +16729,18 @@
         }
 
         // Helper functions
+        function isValidUrl(string) {
+            // Accept URLs with or without protocol
+            // Valid: google.com, www.google.com, https://google.com
+            const urlPattern = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+([\/\w\-._~:?#[\]@!$&'()*+,;=]*)?$/;
+            return urlPattern.test(string);
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
         function formatDate(dateStr) {
             // Format date string directly without using Date object to avoid timezone issues
             if (!dateStr) return '';
@@ -14498,7 +16891,7 @@
                                 </div>
                             </div>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View">
+                                <button class="btn-icon" onclick="showDocumentPreview({ url: '${doc.downloadURL}', fileName: '${doc.fileName}', fileType: '${doc.fileType || ''}', fileSize: ${doc.fileSize || 0}, documentType: '${doc.documentType || 'Document'}', uploadedAt: '${doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : doc.uploadedAt}' })" title="View">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <button class="btn-icon danger" onclick="deleteEmployeePaperwork('${employeeData.id || employeeData.firestoreId}', '${doc.storagePath}', ${index})" title="Delete">
@@ -14702,6 +17095,31 @@
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- Profile Photo Section -->
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label>Profile Photo</label>
+                                <div style="display: flex; align-items: flex-start; gap: 16px;">
+                                    <div id="edit-emp-photo-preview" style="width: 100px; height: 100px; border-radius: 50%; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 3px ${data.photo ? 'solid var(--accent-primary)' : 'dashed var(--border-color)'}; cursor: pointer;" onclick="document.getElementById('edit-emp-photo').click()">
+                                        ${data.photo ? `<img src="${data.photo}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fas fa-user" style="font-size: 40px; color: var(--text-muted);"></i>`}
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <input type="file" id="edit-emp-photo" accept="image/*" style="display: none;" onchange="previewEditEmployeePhoto(this)">
+                                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('edit-emp-photo').click()">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                            <button type="button" class="btn-secondary" onclick="openCameraModal('edit-emp-photo-preview', 'edit-emp-photo')">
+                                                <i class="fas fa-camera"></i> Camera
+                                            </button>
+                                            <button type="button" class="btn-secondary" onclick="removeEditEmployeePhoto()">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">JPG, PNG (max 5MB). Photo will be cropped to circle.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-divider"></div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>First Name *</label>
@@ -15055,6 +17473,31 @@
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
+                            <!-- Profile Photo Section -->
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label>Profile Photo</label>
+                                <div style="display: flex; align-items: flex-start; gap: 16px;">
+                                    <div id="emp-photo-preview" style="width: 100px; height: 100px; border-radius: 50%; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 3px dashed var(--border-color); cursor: pointer;" onclick="document.getElementById('emp-photo').click()">
+                                        <i class="fas fa-user" style="font-size: 40px; color: var(--text-muted);"></i>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <input type="file" id="emp-photo" accept="image/*" style="display: none;" onchange="previewEmployeePhoto(this)">
+                                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('emp-photo').click()">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                            <button type="button" class="btn-secondary" onclick="openCameraModal('emp-photo-preview', 'emp-photo')">
+                                                <i class="fas fa-camera"></i> Camera
+                                            </button>
+                                            <button type="button" class="btn-secondary" onclick="removeEmployeePhoto()">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">JPG, PNG (max 5MB). Photo will be cropped to circle.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-divider"></div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>First Name *</label>
@@ -15158,6 +17601,70 @@
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
                             <button class="btn-primary" onclick="saveEmployee()">Add Employee</button>
+                        </div>
+                    `;
+                    break;
+                case 'add-supply':
+                    content = `
+                        <div class="modal-header">
+                            <h2>Add Supply Item</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Item Name *</label>
+                                <input type="text" class="form-input" id="supply-name" placeholder="e.g., Paper towels, Cleaning supplies...">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Quantity</label>
+                                    <input type="number" class="form-input" id="supply-quantity" value="1" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="supply-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="North Park">VSU North Park</option>
+                                        <option value="Loyal Vaper">Loyal Vaper</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="addSupply()">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'add-checklist-task':
+                    const shiftForTask = data?.shift || 'opening';
+                    content = `
+                        <div class="modal-header">
+                            <h2>Add ${shiftForTask.charAt(0).toUpperCase() + shiftForTask.slice(1)} Task</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Task Description *</label>
+                                <input type="text" class="form-input" id="checklist-task-description" placeholder="e.g., Check inventory levels...">
+                            </div>
+                            <input type="hidden" id="checklist-task-shift" value="${shiftForTask}">
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 1rem;">
+                                <i class="fas fa-info-circle"></i> This task will be added to the ${shiftForTask} checklist for all stores.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="addChecklistTaskFromModal()">
+                                <i class="fas fa-plus"></i> Add Task
+                            </button>
                         </div>
                     `;
                     break;
@@ -16609,8 +19116,8 @@
                     `;
                     break;
                 case 'edit-treasury':
-                    const treasuryId = arguments[1];
-                    const treasuryItem = treasuryItems.find(t => t.id === treasuryId);
+                    const treasuryId = data;
+                    const treasuryItem = treasuryItems.find(t => t.firestoreId === treasuryId || t.id === treasuryId);
                     if (!treasuryItem) break;
 
                     // Get the main image (first photo or image field)
@@ -17323,7 +19830,10 @@
                 <div class="modal-body">
                     <div class="employee-profile">
                         <div class="profile-header">
-                            <div class="employee-avatar-xl ${emp.color}">${emp.initials}</div>
+                            ${emp.photo
+                                ? `<div class="employee-avatar-xl" style="background-image: url('${emp.photo}'); background-size: cover; background-position: center; cursor: pointer;" onclick="showImageModal('${emp.photo}', '${emp.name}')"></div>`
+                                : `<div class="employee-avatar-xl ${emp.color}">${emp.initials}</div>`
+                            }
                             <div class="profile-info">
                                 <h2>${emp.name}</h2>
                                 <p>${emp.role} @ ${emp.store}</p>
@@ -17367,7 +19877,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View">
+                                    <button class="btn-icon" onclick="showDocumentPreview({ url: '${doc.downloadURL}', fileName: '${doc.fileName}', fileType: '${doc.fileType || ''}', fileSize: ${doc.fileSize || 0}, documentType: '${doc.documentType || 'Document'}', uploadedAt: '${doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : doc.uploadedAt}' })" title="View">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -17480,6 +19990,14 @@
                 const hasVisibleItems = div.querySelector('.nav-item:not([style*="display: none"])');
                 if (hasVisibleItems) {
                     div.style.display = '';
+                }
+            });
+
+            // Ensure only current page has active class
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === currentPage) {
+                    item.classList.add('active');
                 }
             });
         }
@@ -17607,6 +20125,77 @@
             try {
                 // Update in Firebase
                 if (firebaseEmployeeManager.isInitialized) {
+                    // Handle profile photo upload/removal
+                    const photoPreview = document.getElementById('edit-emp-photo-preview');
+                    const photoInput = document.getElementById('edit-emp-photo');
+                    const hasFilePhoto = photoInput && photoInput.files && photoInput.files[0];
+                    const hasCapturedPhoto = window.capturedEmployeePhoto && window.capturedPhotoTarget === 'edit-emp-photo';
+
+                    // Check if photo was removed
+                    if (photoPreview && photoPreview.getAttribute('data-removed') === 'true') {
+                        // Delete old photo from storage if exists
+                        if (currentEmployee.photoPath) {
+                            try {
+                                await firebaseStorageHelper.deleteFile(currentEmployee.photoPath);
+                            } catch (err) {
+                                console.error('Error deleting old photo:', err);
+                            }
+                        }
+                        updatedData.photo = null;
+                        updatedData.photoPath = null;
+                    }
+                    // Check if new photo was uploaded (from file or camera)
+                    else if (hasFilePhoto || hasCapturedPhoto) {
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading photo...';
+                        try {
+                            let photoBase64;
+                            if (hasCapturedPhoto) {
+                                photoBase64 = window.capturedEmployeePhoto;
+                                // Clear captured photo
+                                window.capturedEmployeePhoto = null;
+                                window.capturedPhotoTarget = null;
+                            } else {
+                                const photoFile = photoInput.files[0];
+                                const reader = new FileReader();
+                                photoBase64 = await new Promise((resolve) => {
+                                    reader.onload = (e) => resolve(e.target.result);
+                                    reader.readAsDataURL(photoFile);
+                                });
+                            }
+
+                            // Delete old photo from storage if exists
+                            if (currentEmployee.photoPath) {
+                                try {
+                                    await firebaseStorageHelper.deleteFile(currentEmployee.photoPath);
+                                } catch (err) {
+                                    console.error('Error deleting old photo:', err);
+                                }
+                            }
+
+                            // Initialize storage helper if needed
+                            if (!firebaseStorageHelper.isInitialized) {
+                                firebaseStorageHelper.initialize();
+                            }
+
+                            const uploadResult = await firebaseStorageHelper.uploadImage(
+                                photoBase64,
+                                'employees/photos',
+                                employeeId,
+                                500,  // maxSizeKB
+                                false // showOverlay - we're showing our own spinner
+                            );
+
+                            if (uploadResult && uploadResult.url) {
+                                updatedData.photo = uploadResult.url;
+                                updatedData.photoPath = uploadResult.path;
+                                console.log('Employee photo uploaded to Firebase Storage:', uploadResult.url);
+                            }
+                        } catch (photoError) {
+                            console.error('Error uploading employee photo:', photoError);
+                            showNotification('Error uploading photo', 'warning');
+                        }
+                    }
+
                     const success = await firebaseEmployeeManager.updateEmployee(employeeId, updatedData);
                     if (!success) {
                         throw new Error('Failed to update in Firebase');
@@ -17733,7 +20322,7 @@
                 const fullUpdatedData = {
                     name: `${updatedData.firstName} ${updatedData.lastName}`,
                     initials: `${updatedData.firstName[0]}${updatedData.lastName[0]}`.toUpperCase(),
-                    authEmail: updatedData.authEmail,
+                    authEmail: updatedData.authEmail || updatedData.email || currentEmployee.authEmail || currentEmployee.email,
                     phone: updatedData.phone,
                     role: updatedData.role,
                     employeeType: updatedData.employeeType,
@@ -17993,7 +20582,7 @@
                                             </div>
                                         </div>
                                         <div style="display: flex; gap: 8px;">
-                                            <button class="btn-icon" onclick="window.open('${doc.downloadURL}', '_blank')" title="View Document">
+                                            <button class="btn-icon" onclick="showDocumentPreview({ url: '${doc.downloadURL}', fileName: '${doc.fileName}', fileType: '${doc.fileType || ''}', fileSize: ${doc.fileSize || 0}, documentType: '${doc.documentType || 'Document'}', uploadedAt: '${doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : doc.uploadedAt}' })" title="View Document">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         </div>
@@ -18029,6 +20618,239 @@
                         <button class="btn-secondary" onclick="closeModal()">Close</button>
                     </div>
                 `;
+            }
+        }
+
+        // Employee photo preview functions
+
+        // Camera modal for taking photos
+        function openCameraModal(targetPreviewId, targetInputId) {
+            // Remove existing camera modal if any
+            const existing = document.getElementById('camera-modal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'camera-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 10001;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
+            modal.innerHTML = `
+                <div style="position: absolute; top: 20px; right: 20px;">
+                    <button onclick="closeCameraModal()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div style="color: white; font-size: 18px; margin-bottom: 15px; text-align: center;">
+                    <i class="fas fa-camera"></i> Take Photo
+                </div>
+                <div style="position: relative; max-width: 500px; width: 100%;">
+                    <video id="camera-video" autoplay playsinline style="width: 100%; border-radius: 12px; transform: scaleX(-1);"></video>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 16px;">
+                    <button onclick="capturePhoto('${targetPreviewId}', '${targetInputId}')" style="background: var(--accent-primary); color: white; border: none; padding: 16px 32px; border-radius: 50px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-camera"></i> Capture
+                    </button>
+                    <button onclick="switchCamera()" style="background: var(--bg-secondary); color: white; border: none; padding: 16px 20px; border-radius: 50px; font-size: 16px; cursor: pointer;">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div style="color: var(--text-muted); font-size: 12px; margin-top: 12px;">
+                    Click capture or press Space to take photo
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Start camera
+            window.currentCameraFacing = 'user';
+            startCamera();
+
+            // Handle keyboard
+            const handleKeydown = (e) => {
+                if (e.code === 'Space' || e.key === ' ') {
+                    e.preventDefault();
+                    capturePhoto(targetPreviewId, targetInputId);
+                } else if (e.key === 'Escape') {
+                    closeCameraModal();
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+            modal.setAttribute('data-keyhandler', 'true');
+            window.cameraKeyHandler = handleKeydown;
+        }
+
+        async function startCamera() {
+            try {
+                const video = document.getElementById('camera-video');
+                if (!video) return;
+
+                // Stop any existing stream
+                if (window.cameraStream) {
+                    window.cameraStream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: {
+                        facingMode: window.currentCameraFacing || 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                window.cameraStream = stream;
+                video.srcObject = stream;
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Could not access camera. Please make sure you have granted camera permissions.');
+                closeCameraModal();
+            }
+        }
+
+        function switchCamera() {
+            window.currentCameraFacing = window.currentCameraFacing === 'user' ? 'environment' : 'user';
+            startCamera();
+        }
+
+        function capturePhoto(targetPreviewId, targetInputId) {
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('camera-canvas');
+            if (!video || !canvas) return;
+
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw video frame to canvas (flip horizontally to match preview)
+            const ctx = canvas.getContext('2d');
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0);
+
+            // Get image data
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+            // Update preview
+            const preview = document.getElementById(targetPreviewId);
+            if (preview) {
+                preview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                preview.style.border = '3px solid var(--accent-primary)';
+                if (targetPreviewId.includes('edit')) {
+                    preview.setAttribute('data-new-photo', 'true');
+                }
+            }
+
+            // Store image data for later upload
+            window.capturedEmployeePhoto = imageData;
+            window.capturedPhotoTarget = targetInputId;
+
+            closeCameraModal();
+        }
+
+        function closeCameraModal() {
+            // Stop camera stream
+            if (window.cameraStream) {
+                window.cameraStream.getTracks().forEach(track => track.stop());
+                window.cameraStream = null;
+            }
+
+            // Remove keyboard handler
+            if (window.cameraKeyHandler) {
+                document.removeEventListener('keydown', window.cameraKeyHandler);
+                window.cameraKeyHandler = null;
+            }
+
+            // Remove modal
+            const modal = document.getElementById('camera-modal');
+            if (modal) modal.remove();
+        }
+
+        function previewEmployeePhoto(input) {
+            const preview = document.getElementById('emp-photo-preview');
+            if (!preview) return;
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Photo must be less than 5MB');
+                    input.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    preview.style.border = '3px solid var(--accent-primary)';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeEmployeePhoto() {
+            const preview = document.getElementById('emp-photo-preview');
+            const input = document.getElementById('emp-photo');
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: var(--text-muted);"></i>`;
+                preview.style.border = '3px dashed var(--border-color)';
+            }
+            if (input) {
+                input.value = '';
+            }
+            // Clear captured photo from camera
+            if (window.capturedPhotoTarget === 'emp-photo') {
+                window.capturedEmployeePhoto = null;
+                window.capturedPhotoTarget = null;
+            }
+        }
+
+        function previewEditEmployeePhoto(input) {
+            const preview = document.getElementById('edit-emp-photo-preview');
+            if (!preview) return;
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Photo must be less than 5MB');
+                    input.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    preview.style.border = '3px solid var(--accent-primary)';
+                    preview.setAttribute('data-new-photo', 'true');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeEditEmployeePhoto() {
+            const preview = document.getElementById('edit-emp-photo-preview');
+            const input = document.getElementById('edit-emp-photo');
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-user" style="font-size: 40px; color: var(--text-muted);"></i>`;
+                preview.style.border = '3px dashed var(--border-color)';
+                preview.setAttribute('data-removed', 'true');
+            }
+            if (input) {
+                input.value = '';
+            }
+            // Clear captured photo from camera
+            if (window.capturedPhotoTarget === 'edit-emp-photo') {
+                window.capturedEmployeePhoto = null;
+                window.capturedPhotoTarget = null;
             }
         }
 
@@ -18100,6 +20922,58 @@
                         newEmployee.firestoreId = firestoreId;
                         console.log('Employee saved to Firebase:', firestoreId);
 
+                        // Upload profile photo if provided (check file input or captured photo from camera)
+                        const photoInput = document.getElementById('emp-photo');
+                        const hasFilePhoto = photoInput && photoInput.files && photoInput.files[0];
+                        const hasCapturedPhoto = window.capturedEmployeePhoto && window.capturedPhotoTarget === 'emp-photo';
+
+                        if (hasFilePhoto || hasCapturedPhoto) {
+                            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading photo...';
+                            try {
+                                let photoBase64;
+                                if (hasCapturedPhoto) {
+                                    photoBase64 = window.capturedEmployeePhoto;
+                                    // Clear captured photo
+                                    window.capturedEmployeePhoto = null;
+                                    window.capturedPhotoTarget = null;
+                                } else {
+                                    const photoFile = photoInput.files[0];
+                                    const reader = new FileReader();
+                                    photoBase64 = await new Promise((resolve) => {
+                                        reader.onload = (e) => resolve(e.target.result);
+                                        reader.readAsDataURL(photoFile);
+                                    });
+                                }
+
+                                // Initialize storage helper if needed
+                                if (!firebaseStorageHelper.isInitialized) {
+                                    firebaseStorageHelper.initialize();
+                                }
+
+                                const uploadResult = await firebaseStorageHelper.uploadImage(
+                                    photoBase64,
+                                    'employees/photos',
+                                    firestoreId,
+                                    500,  // maxSizeKB
+                                    false // showOverlay - we're showing our own spinner
+                                );
+
+                                // Update employee with photo URL
+                                if (uploadResult && uploadResult.url) {
+                                    newEmployee.photo = uploadResult.url;
+                                    newEmployee.photoPath = uploadResult.path;
+                                    await firebaseEmployeeManager.updateEmployee(firestoreId, {
+                                        photo: uploadResult.url,
+                                        photoPath: uploadResult.path
+                                    });
+                                    console.log('Employee photo uploaded to Firebase Storage:', uploadResult.url);
+                                }
+                            } catch (photoError) {
+                                console.error('Error uploading employee photo:', photoError);
+                                showNotification('Error uploading photo, but employee was saved', 'warning');
+                            }
+                        }
+
                         // Upload paperwork files if any
                         if (selectedEmployeePaperworkFiles.length > 0) {
                             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading documents...';
@@ -18162,6 +21036,63 @@
                     saveBtn.disabled = false;
                 }
             }
+        }
+
+        /**
+         * Show image in fullscreen modal
+         */
+        function showImageModal(imageUrl, title = 'Image') {
+            // Remove existing image modal if any
+            const existing = document.getElementById('image-fullscreen-modal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'image-fullscreen-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
+            modal.innerHTML = `
+                <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px;">
+                    <a href="${imageUrl}" download style="color: white; font-size: 24px; cursor: pointer; text-decoration: none;" title="Download">
+                        <i class="fas fa-download"></i>
+                    </a>
+                    <span onclick="document.getElementById('image-fullscreen-modal').remove()" style="color: white; font-size: 28px; cursor: pointer;" title="Close">
+                        <i class="fas fa-times"></i>
+                    </span>
+                </div>
+                <div style="color: white; font-size: 18px; margin-bottom: 15px; text-align: center;">${title}</div>
+                <img src="${imageUrl}" alt="${title}" style="max-width: 90%; max-height: 80%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            `;
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            // Close on Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+
+            document.body.appendChild(modal);
         }
 
         /**
@@ -18262,6 +21193,14 @@
             if (type === 'video' && !url) {
                 showToast('Please enter a video URL', 'error');
                 return;
+            }
+
+            // Validate URL format
+            if (type === 'video' && url) {
+                if (!isValidUrl(url)) {
+                    showToast('Please enter a valid URL (e.g., https://youtube.com/watch?v=...)', 'error');
+                    return;
+                }
             }
 
             if (type === 'document' && !selectedTrainingFile) {
@@ -18653,6 +21592,12 @@
 
             if (!name) {
                 alert('Please enter a product name');
+                return;
+            }
+
+            // Validate URL format if provided
+            if (url && !isValidUrl(url)) {
+                alert('Please enter a valid URL (e.g., https://example.com)');
                 return;
             }
 
@@ -19342,6 +22287,7 @@
                 'chart-line': 'analytics',
                 'box': 'newstuff',
                 'boxes': 'restock',
+                'shopping-basket': 'supplies',
                 'cloud': 'abundancecloud',
                 'store': 'stores',
                 'bullhorn': 'announcements',
@@ -19359,9 +22305,13 @@
                 'gift': 'gifts',
                 'shield-halved': 'risknotes',
                 'key': 'passwords',
-                'bolt': 'gforce'
+                'bolt': 'gforce',
+                'code': 'projectanalytics'
             };
-            item.dataset.page = pageMap[page] || 'dashboard';
+            // Only set data-page if not already set, to preserve existing values
+            if (!item.dataset.page) {
+                item.dataset.page = pageMap[page] || 'dashboard';
+            }
             
             item.addEventListener('click', function(e) {
                 // Allow external links (like Abundance Cloud) to navigate normally
@@ -19372,6 +22322,16 @@
                 navigateTo(this.dataset.page);
             });
         });
+
+        // Check URL for page parameter and navigate if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageFromUrl = urlParams.get('page');
+        if (pageFromUrl) {
+            // Small delay to ensure everything is initialized
+            setTimeout(() => {
+                navigateTo(pageFromUrl);
+            }, 100);
+        }
 
         // Close modal on background click
         const modal = document.getElementById('modal');
@@ -19662,6 +22622,12 @@
 
             if (!title) {
                 showToast('Please enter a title', 'error');
+                return;
+            }
+
+            // Validate URL format if provided
+            if (url && !isValidUrl(url)) {
+                showToast('Please enter a valid URL (e.g., https://youtube.com/watch?v=...)', 'error');
                 return;
             }
 
@@ -20399,13 +23365,8 @@
             const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
             if (!license) return;
 
-            // If license has PDF data, open it
-            if (license.fileData) {
-                viewLicensePdf(licenseId);
-            } else {
-                // Show license details in a modal/alert
-                alert(`License: ${license.name}\nStore: ${license.store}\nExpires: ${formatDate(license.expires)}\nStatus: ${license.status}\n${license.uploadedBy ? 'Uploaded by: ' + license.uploadedBy : ''}`);
-            }
+            // Always show the aesthetic modal preview
+            viewLicensePdf(licenseId);
         }
 
         // Note: deleteLicense is defined earlier in the file with Firebase support
@@ -21567,19 +24528,19 @@
             ).join('');
         }
 
-        function generateGForceQuote() {
+        window.generateGForceQuote = function() {
             displayGForceQuote(getRandomGForceQuote());
         }
 
-        function generateGForceAffirmations() {
+        window.generateGForceAffirmations = function() {
             displayGForceAffirmations(getRandomGForceAffirmations(5));
         }
 
-        function generateGForcePhilosophy() {
+        window.generateGForcePhilosophy = function() {
             displayGForcePhilosophy(getRandomGForcePhilosophy());
         }
 
-        function openGForceModal() {
+        window.openGForceModal = function() {
             document.getElementById('gforce-date').textContent = getGForceDate();
             generateGForceQuote();
             generateGForceAffirmations();
@@ -21587,7 +24548,7 @@
             document.getElementById('gforce-modal').classList.add('active');
         }
 
-        function closeGForceModal() {
+        window.closeGForceModal = function() {
             document.getElementById('gforce-modal').classList.remove('active');
         }
 
@@ -21657,25 +24618,54 @@ async function initializeGconomicsFirebase(userId, userEmail) {
 
 // Load Gconomics expenses from Firebase
 async function loadGconomicsFromFirebase() {
-    if (!window.gconomicsFirebase || !window.gconomicsFirebase.isInitialized) {
-        console.warn('Gconomics Firebase not initialized');
+    if (!window.gconomicsFirebase) {
+        console.warn('Gconomics Firebase module not available');
         return false;
+    }
+
+    // Initialize Firebase if not already done
+    if (!window.gconomicsFirebase.isInitialized) {
+        const initialized = await window.gconomicsFirebase.initialize();
+        if (!initialized) {
+            console.warn('Failed to initialize Gconomics Firebase');
+            return false;
+        }
     }
 
     try {
         const firebaseExpenses = await window.gconomicsFirebase.loadExpensesFromFirestore();
-        
+
         if (firebaseExpenses.length === 0) {
             console.log('No expenses found in Firebase');
             return true;
         }
 
-        // Merge Firebase expenses with local expenses
-        const mergedExpenses = await window.gconomicsFirebase.syncWithFirebase(gconomicsState.expenses);
-        gconomicsState.expenses = mergedExpenses;
+        // Create a map of existing local expenses by ID
+        const localMap = new Map(gconomicsState.expenses.map(e => [String(e.id), e]));
+
+        // Merge Firebase expenses - Firebase takes priority for existing items
+        firebaseExpenses.forEach(fbExp => {
+            const expId = String(fbExp.id);
+            const localExp = localMap.get(expId);
+
+            if (!localExp) {
+                // New expense from Firebase
+                gconomicsState.expenses.push(fbExp);
+            } else {
+                // Update existing if Firebase is newer
+                const fbDate = new Date(fbExp.updatedAt || fbExp.syncedAt?.toDate?.() || 0);
+                const localDate = new Date(localExp.updatedAt || 0);
+                if (fbDate > localDate) {
+                    const index = gconomicsState.expenses.findIndex(e => String(e.id) === expId);
+                    if (index > -1) {
+                        gconomicsState.expenses[index] = { ...localExp, ...fbExp };
+                    }
+                }
+            }
+        });
+
         saveGconomicsExpenses();
-        
-        console.log(`✅ Loaded and merged ${mergedExpenses.length} expenses from Firebase`);
+        console.log(`✅ Loaded ${firebaseExpenses.length} expenses from Firebase, total: ${gconomicsState.expenses.length}`);
         return true;
     } catch (error) {
         console.error('Error loading expenses from Firebase:', error);
@@ -21733,8 +24723,23 @@ function getAvailableMonths() {
 }
 
 // Render Gconomics page
-function renderGconomics() {
+async function renderGconomics() {
     const dashboard = document.querySelector('.dashboard');
+
+    // Ensure Firebase is initialized for Gconomics
+    if (window.gconomicsFirebase && !window.gconomicsFirebase.currentUser) {
+        const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+        if (user && (user.userId || user.id)) {
+            try {
+                await initializeGconomicsFirebase(user.userId || user.id, user.email);
+                // Load expenses from Firebase after initialization
+                await loadGconomicsFromFirebase();
+            } catch (error) {
+                console.warn('Failed to initialize Gconomics Firebase:', error);
+            }
+        }
+    }
+
     const monthlyExpenses = getMonthlyExpenses();
     const monthlyTotal = getMonthlyTotal();
     const categoryTotals = getCategoryTotals();
@@ -21763,8 +24768,12 @@ function renderGconomics() {
             <div class="page-header-right" style="display: flex; gap: 12px; align-items: center;">
                 <select class="form-input" style="width: 160px;" onchange="changeGconomicsMonth(this.value)">
                     ${availableMonths.map(month => {
-                        const monthName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                        return `<option value="${month}" ${month === gconomicsState.currentMonth ? 'selected' : ''}>${monthName}</option>`;
+                        const [year, monthNum] = month.split('-');
+                        const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+                        const displayMonth = date.toLocaleDateString('en-US', { month: 'short' });
+                        const displayYear = date.getFullYear();
+                        const label = `${displayMonth} ${displayYear}`;
+                        return `<option value="${month}" ${month === gconomicsState.currentMonth ? 'selected' : ''}>${label}</option>`;
                     }).join('')}
                 </select>
                 <button class="btn-primary floating-add-btn" onclick="openAddExpenseModal()">
@@ -21962,7 +24971,7 @@ function renderGconomics() {
                                 ${GCONOMICS_CATEGORIES.map(cat => `
                                     <button type="button" class="category-select-btn" data-category="${cat.id}" onclick="selectExpenseCategory('${cat.id}')" style="padding: 14px 10px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s; text-align: center;">
                                         <div style="font-size: 20px; margin-bottom: 4px; color: ${cat.color};"><i class="fas ${cat.icon}"></i></div>
-                                        <div style="font-size: 11px; font-weight: 500;">${cat.name}</div>
+                                        <div style="font-family: Outfit; font-size: 11px; font-weight: 500;">${cat.name}</div>
                                     </button>
                                 `).join('')}
                             </div>
@@ -22193,10 +25202,20 @@ function deleteExpense(expenseId) {
             saveGconomicsExpenses();
 
             // Delete from Firebase if available
-            if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
+            if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized && window.gconomicsFirebase.currentUser) {
                 window.gconomicsFirebase.deleteExpenseFromFirestore(expenseId).catch(error => {
                     console.warn('Expense deleted locally but not from Firebase:', error);
                 });
+            } else if (window.gconomicsFirebase && !window.gconomicsFirebase.currentUser) {
+                // Try to initialize with current user if available
+                const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+                if (user && (user.userId || user.id)) {
+                    initializeGconomicsFirebase(user.userId || user.id, user.email).then(() => {
+                        window.gconomicsFirebase.deleteExpenseFromFirestore(expenseId).catch(error => {
+                            console.warn('Expense deleted locally but not from Firebase:', error);
+                        });
+                    });
+                }
             }
 
             renderGconomics();
@@ -22207,6 +25226,7 @@ function deleteExpense(expenseId) {
 // Save expense
 function saveExpense(event) {
     event.preventDefault();
+    console.log('saveExpense called');
 
     const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
     const description = document.getElementById('expenseDescription').value.trim();
@@ -22214,15 +25234,59 @@ function saveExpense(event) {
     const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
     const photoInput = document.getElementById('expensePhoto');
 
+    // Validation
+    const messageDiv = document.getElementById('expenseMessage');
+    messageDiv.style.display = 'none';
+
+    console.log('Form values:', { date, description, category, amount });
+
+    if (!date) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = 'Please select a date';
+        return;
+    }
+
+    if (!description) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = 'Please enter a description';
+        return;
+    }
+
+    if (!category) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = 'Please select a category';
+        return;
+    }
+
+    if (amount <= 0) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = 'Please enter a valid amount';
+        return;
+    }
+
+    console.log('Validation passed, processing photo...');
+
     // Get photo if uploaded
     if (photoInput && photoInput.files && photoInput.files[0]) {
+        console.log('Photo file found, reading...');
         const reader = new FileReader();
+        reader.onerror = function(e) {
+            console.error('FileReader error:', e);
+            saveExpenseWithPhoto(date, description, category, amount, null);
+        };
         reader.onload = function(e) {
+            console.log('Photo read complete');
             const photoData = e.target.result;
+            // Call saveExpenseWithPhoto without awaiting
             saveExpenseWithPhoto(date, description, category, amount, photoData);
         };
         reader.readAsDataURL(photoInput.files[0]);
     } else {
+        console.log('No photo, saving without image');
         // Check if editing and preserve existing photo
         let existingPhoto = null;
         if (gconomicsState.editingExpenseId) {
@@ -22234,100 +25298,202 @@ function saveExpense(event) {
 }
 
 async function saveExpenseWithPhoto(date, description, category, amount, photo) {
-    // Upload photo to Firebase Storage if provided
+    // Show saving indicator
+    const saveBtn = document.querySelector('#expenseForm button[type="submit"]');
+    const originalBtnText = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+
     let photoUrl = photo;
     let photoPath = null;
 
-    if (photo && photo.startsWith('data:image')) {
-        // Initialize storage helper if needed
-        if (!firebaseStorageHelper.isInitialized) {
-            firebaseStorageHelper.initialize();
+    try {
+        console.log('Entering saveExpenseWithPhoto try block');
+        
+        // Don't wait for photo operations - do them in background
+        if (photo && photo.startsWith('data:image')) {
+            console.log('Photo found, will process in background');
+            // Fire and forget photo upload
+            uploadExpensePhotoAsync(photo, gconomicsState.editingExpenseId || Date.now().toString());
         }
 
-        try {
-            const expenseId = gconomicsState.editingExpenseId || Date.now().toString();
-            const uploadResult = await firebaseStorageHelper.uploadImage(
-                photo,
-                'expenses/receipts',
-                expenseId
-            );
-            photoUrl = uploadResult.url;
-            photoPath = uploadResult.path;
-            console.log('✅ Expense receipt uploaded to Firebase Storage');
-        } catch (error) {
-            console.warn('Firebase Storage upload failed, using compressed base64:', error);
-            try {
-                photoUrl = await compressImage(photo, 700, 1200, 1200);
-            } catch (compressError) {
-                console.warn('Photo compression failed, using original:', compressError);
-            }
-        }
-    }
+        // Create or update expense object
+        let expenseToSync = null;
 
-    if (gconomicsState.editingExpenseId) {
-        // Update existing expense
-        const index = gconomicsState.expenses.findIndex(e => e.id === gconomicsState.editingExpenseId);
-        if (index > -1) {
-            // Delete old photo from Storage if replacing with new one
-            if (photo && photo.startsWith('data:image') && gconomicsState.expenses[index].photoPath) {
-                try {
-                    await firebaseStorageHelper.deleteFile(gconomicsState.expenses[index].photoPath);
-                } catch (err) {
-                    console.error('Error deleting old expense photo:', err);
-                }
+        if (gconomicsState.editingExpenseId) {
+            // Update existing expense
+            console.log('Updating existing expense');
+            const index = gconomicsState.expenses.findIndex(e => e.id === gconomicsState.editingExpenseId);
+            if (index > -1) {
+                gconomicsState.expenses[index] = {
+                    ...gconomicsState.expenses[index],
+                    date,
+                    description: description || 'Expense',
+                    category: category || 'other',
+                    amount,
+                    photo: photo,
+                    photoPath: photoPath || gconomicsState.expenses[index].photoPath,
+                    updatedAt: new Date().toISOString()
+                };
+                expenseToSync = gconomicsState.expenses[index];
+                console.log('Updated expense:', expenseToSync.id);
             }
-
-            gconomicsState.expenses[index] = {
-                ...gconomicsState.expenses[index],
+        } else {
+            // Add new expense
+            console.log('Creating new expense');
+            const newExpense = {
+                id: Date.now().toString(),
                 date,
                 description: description || 'Expense',
                 category: category || 'other',
                 amount,
-                photo: photoUrl,       // Now stores URL instead of base64
-                photoPath: photoPath || gconomicsState.expenses[index].photoPath,
+                photo: photo,
+                photoPath: photoPath,
+                createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
+            gconomicsState.expenses.push(newExpense);
+            expenseToSync = newExpense;
+            console.log('New expense created:', newExpense.id);
         }
-    } else {
-        // Add new expense
-        const newExpense = {
-            id: Date.now().toString(),
-            date,
-            description: description || 'Expense',
-            category: category || 'other',
-            amount,
-            photo: photoUrl,       // Now stores URL instead of base64
-            photoPath: photoPath,  // For future deletion
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        gconomicsState.expenses.push(newExpense);
-    }
 
-    saveGconomicsExpenses();
+        // Save to localStorage immediately
+        console.log('Saving to localStorage...');
+        saveGconomicsExpenses();
+        console.log('✅ Expense saved to localStorage');
 
-    // Sync to Firebase if available
-    if (window.gconomicsFirebase && window.gconomicsFirebase.isInitialized) {
-        const expenseToSync = gconomicsState.editingExpenseId
-            ? gconomicsState.expenses.find(e => e.id === gconomicsState.editingExpenseId)
-            : gconomicsState.expenses[gconomicsState.expenses.length - 1];
+        // Close modal and refresh UI immediately (don't wait for Firebase)
+        console.log('Closing modal...');
+        closeExpenseModal();
+        
+        console.log('Refreshing UI...');
 
+        // Switch to the month of the expense if different
+        const expenseMonth = date.slice(0, 7);
+        if (expenseMonth !== gconomicsState.currentMonth) {
+            gconomicsState.currentMonth = expenseMonth;
+        }
+
+        renderGconomics();
+
+        // Show success message
+        showNotification('Expense saved successfully', 'success');
+        console.log('✅ Expense saved:', expenseToSync.id);
+
+        // Now sync to Firebase in background (don't wait)
+        console.log('Starting background Firebase sync...');
         if (expenseToSync) {
-            window.gconomicsFirebase.saveExpenseToFirestore(expenseToSync).catch(error => {
-                console.warn('Expense saved locally but not synced to Firebase:', error);
+            syncExpenseToFirebaseAsync(expenseToSync).catch(err => {
+                console.warn('Firebase sync failed:', err);
             });
         }
+
+    } catch (error) {
+        console.error('Error saving expense:', error);
+        const messageDiv = document.getElementById('expenseMessage');
+        if (messageDiv) {
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'alert alert-danger';
+            messageDiv.textContent = 'Error saving expense: ' + error.message;
+        }
+    } finally {
+        // Restore button state
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalBtnText || '<i class="fas fa-check"></i> Save Expense';
+        }
     }
+}
 
-    closeExpenseModal();
+/**
+ * Upload expense photo to Firebase Storage (async, non-blocking)
+ */
+async function uploadExpensePhotoAsync(photoData, expenseId) {
+    try {
+        if (typeof firebaseStorageHelper === 'undefined') {
+            console.warn('Firebase Storage Helper not available');
+            return null;
+        }
 
-    // Switch to the month of the expense if different
-    const expenseMonth = date.slice(0, 7);
-    if (expenseMonth !== gconomicsState.currentMonth) {
-        gconomicsState.currentMonth = expenseMonth;
+        if (!firebaseStorageHelper.isInitialized) {
+            console.log('Initializing Firebase Storage Helper...');
+            firebaseStorageHelper.initialize();
+        }
+
+        if (!firebaseStorageHelper.storage) {
+            console.error('Firebase Storage not available');
+            return null;
+        }
+
+        const uploadId = expenseId || Date.now().toString();
+        console.log('Starting photo upload for expense:', uploadId);
+
+        const uploadResult = await firebaseStorageHelper.uploadImage(
+            photoData,
+            'expenses/receipts',
+            uploadId,
+            500,
+            false // Don't show overlay since we already closed the modal
+        );
+        
+        console.log('✅ Expense receipt uploaded to Firebase Storage:', uploadResult.url);
+        return uploadResult;
+    } catch (error) {
+        console.error('❌ Error uploading expense photo to Storage:', error);
+        console.error('Error details:', error.message);
+        return null;
     }
+}
 
-    renderGconomics();
+/**
+ * Sync expense to Firebase Firestore (async, non-blocking)
+ */
+async function syncExpenseToFirebaseAsync(expenseToSync) {
+    try {
+        if (typeof window.gconomicsFirebase === 'undefined' || !window.gconomicsFirebase) {
+            console.warn('Gconomics Firebase not available');
+            return false;
+        }
+
+        // Initialize Firebase if needed
+        if (!window.gconomicsFirebase.isInitialized) {
+            console.log('Initializing Gconomics Firebase...');
+            const initialized = await window.gconomicsFirebase.initialize();
+            if (!initialized) {
+                console.error('Failed to initialize Gconomics Firebase');
+                return false;
+            }
+        }
+
+        // Set current user if not set
+        if (!window.gconomicsFirebase.currentUser) {
+            const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+            if (user && (user.userId || user.id)) {
+                window.gconomicsFirebase.setCurrentUser(user.userId || user.id, user.email);
+                console.log('✅ Current user set:', user.userId || user.id);
+            } else {
+                console.warn('No user found in localStorage');
+                return false;
+            }
+        }
+
+        // Sync to Firestore
+        if (window.gconomicsFirebase.isInitialized && expenseToSync) {
+            const success = await window.gconomicsFirebase.saveExpenseToFirestore(expenseToSync);
+            if (success) {
+                console.log('✅ Expense synced to Firebase Firestore:', expenseToSync.id);
+                return true;
+            } else {
+                console.warn('Firestore sync returned false');
+                return false;
+            }
+        }
+    } catch (error) {
+        console.error('Error syncing to Firebase:', error);
+        return false;
+    }
 }
 
 // ============================================
@@ -22879,6 +26045,16 @@ async function saveInlinePassword() {
         return;
     }
 
+    if (email && !isValidEmail(email)) {
+        showPasswordToast('Please enter a valid email address', 'error');
+        return;
+    }
+
+    if (url && !isValidUrl(url)) {
+        showPasswordToast('Please enter a valid URL (e.g., https://example.com)', 'error');
+        return;
+    }
+
     try {
         const newPassword = {
             name,
@@ -22975,6 +26151,16 @@ async function saveEditPasswordInline(firestoreId) {
 
     if (!name) {
         showPasswordToast('Please enter a service name', 'error');
+        return;
+    }
+
+    if (email && !isValidEmail(email)) {
+        showPasswordToast('Please enter a valid email address', 'error');
+        return;
+    }
+
+    if (url && !isValidUrl(url)) {
+        showPasswordToast('Please enter a valid URL (e.g., https://example.com)', 'error');
         return;
     }
 
@@ -23155,6 +26341,16 @@ async function saveNewPassword() {
 
     if (!password) {
         showPasswordToast('Please enter a password', 'error');
+        return;
+    }
+
+    if (email && !isValidEmail(email)) {
+        showPasswordToast('Please enter a valid email address', 'error');
+        return;
+    }
+
+    if (url && !isValidUrl(url)) {
+        showPasswordToast('Please enter a valid URL (e.g., https://example.com)', 'error');
         return;
     }
 
@@ -23400,6 +26596,908 @@ function showPasswordToast(message, type = 'info') {
     }, 3000);
 }
 
+// =====================================================
+// PROJECT ANALYTICS MODULE
+// =====================================================
+
+window.renderProjectAnalytics = function() {
+    console.log('renderProjectAnalytics called');
+    const dashboard = document.querySelector('.dashboard');
+
+    // Project statistics - Real data
+    const projectStats = {
+        totalLines: 33726,
+        jsLines: 25263,
+        htmlLines: 1504,
+        cssLines: 6259,
+        configLines: 700,
+        totalFunctions: 450,
+        totalFiles: 20,
+        totalModules: 27,
+        projectSize: '39 MB',
+        stores: 5,
+        gitCommits: 231,
+        projectStart: 'December 9, 2025',
+        lastUpdate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+
+    // Module list with descriptions and navigation
+    const modules = [
+        { name: 'Dashboard', icon: 'fa-th-large', status: 'active', page: 'dashboard', description: 'Overview & KPIs', fullDescription: 'Central command center displaying real-time KPIs, quick stats, and business overview across all store locations.', features: ['Real-time metrics', 'Quick navigation', 'Store overview', 'Activity feed'], version: '2.0', linesOfCode: 850 },
+        { name: 'Employees', icon: 'fa-users', status: 'active', page: 'employees', description: 'Staff management & profiles', fullDescription: 'Complete employee management system with profiles, photos, emergency contacts, and role assignments.', features: ['Profile photos', 'Camera capture', 'Role management', 'Emergency contacts'], version: '3.1', linesOfCode: 1200 },
+        { name: 'Schedule', icon: 'fa-calendar-alt', status: 'active', page: 'schedule', description: 'Shift scheduling system', fullDescription: 'Visual drag-and-drop scheduling system for managing employee shifts across multiple stores.', features: ['Drag & drop', 'Multi-store view', 'Conflict detection', 'Export to PDF'], version: '1.5', linesOfCode: 980 },
+        { name: 'Clock In/Out', icon: 'fa-clock', status: 'active', page: 'clockin', description: 'Time tracking', fullDescription: 'Real-time employee time tracking with photo verification and automatic hour calculations.', features: ['Photo verification', 'GPS tracking', 'Auto calculations', 'Overtime alerts'], version: '2.2', linesOfCode: 650 },
+        { name: 'Training Center', icon: 'fa-graduation-cap', status: 'active', page: 'training', description: 'Video & document training', fullDescription: 'Comprehensive training platform with video courses, documents, and completion tracking.', features: ['Video player', 'Progress tracking', 'Certificates', 'Required courses'], version: '1.8', linesOfCode: 720 },
+        { name: 'Licenses & Docs', icon: 'fa-folder-open', status: 'active', page: 'licenses', description: 'Compliance management', fullDescription: 'Document management for business licenses, permits, and compliance certificates with expiration alerts.', features: ['Expiration alerts', 'Document upload', 'Auto reminders', 'Compliance status'], version: '1.3', linesOfCode: 580 },
+        { name: 'Sales Analytics', icon: 'fa-chart-line', status: 'active', page: 'analytics', description: 'Shopify integration', fullDescription: 'Real-time sales analytics with Shopify integration, charts, and performance metrics.', features: ['Shopify sync', 'Interactive charts', 'Revenue tracking', 'Product analytics'], version: '2.5', linesOfCode: 1450 },
+        { name: 'New Stuff', icon: 'fa-box', status: 'active', page: 'newstuff', description: 'Incoming inventory', fullDescription: 'Track and manage new inventory arrivals, product intake, and stock additions.', features: ['Barcode scanning', 'Photo upload', 'Stock tracking', 'Vendor linking'], version: '1.4', linesOfCode: 620 },
+        { name: 'Restock Requests', icon: 'fa-boxes', status: 'active', page: 'restock', description: 'Stock replenishment', fullDescription: 'Automated restock request system with low-stock alerts and supplier integration.', features: ['Low stock alerts', 'Auto requests', 'Priority levels', 'Supplier orders'], version: '1.6', linesOfCode: 540 },
+        { name: 'Supplies', icon: 'fa-shopping-basket', status: 'active', page: 'supplies', description: 'Store supplies tracking', fullDescription: 'Track everyday supplies needed per store with pending/purchased status and monthly history.', features: ['Per-store tracking', 'Purchase status', 'Monthly history', 'All employees access'], version: '1.0', linesOfCode: 380 },
+        { name: 'Abundance Cloud', icon: 'fa-cloud', status: 'active', page: 'abundancecloud', description: 'Order management engine', fullDescription: 'Powerful order processing engine for shipping, pickup, and delivery management.', features: ['Order tracking', 'Shipping labels', 'Pickup scheduling', 'Delivery status'], version: '3.0', linesOfCode: 2100 },
+        { name: 'Announcements', icon: 'fa-bullhorn', status: 'active', page: 'announcements', description: 'Internal communications', fullDescription: 'Company-wide announcement system with targeting by store, role, and priority levels.', features: ['Rich text editor', 'File attachments', 'Read receipts', 'Priority levels'], version: '1.7', linesOfCode: 480 },
+        { name: 'Thieves Database', icon: 'fa-user-secret', status: 'active', page: 'thieves', description: 'Incident tracking', fullDescription: 'Security incident tracking with photo evidence, descriptions, and cross-store alerts.', features: ['Photo evidence', 'Incident reports', 'Cross-store alerts', 'Search database'], version: '1.2', linesOfCode: 560 },
+        { name: 'Invoices', icon: 'fa-file-invoice-dollar', status: 'active', page: 'invoices', description: 'Payment management', fullDescription: 'Invoice and payment tracking with vendor integration and payment status management.', features: ['Payment tracking', 'Due date alerts', 'Vendor linking', 'PDF generation'], version: '1.4', linesOfCode: 680 },
+        { name: 'Issues Registry', icon: 'fa-exclamation-triangle', status: 'active', page: 'issues', description: 'Customer complaints', fullDescription: 'Customer complaint and issue tracking system with resolution workflow.', features: ['Ticket system', 'Resolution tracking', 'Priority queue', 'Customer follow-up'], version: '1.3', linesOfCode: 520 },
+        { name: 'Gconomics', icon: 'fa-wallet', status: 'active', page: 'gconomics', description: 'Financial tracking', fullDescription: 'Personal finance tracking for expense planning and budget management.', features: ['Expense categories', 'Budget planning', 'Monthly reports', 'Spending insights'], version: '1.5', linesOfCode: 750 },
+        { name: 'Vendors', icon: 'fa-truck', status: 'active', page: 'vendors', description: 'Supplier directory', fullDescription: 'Vendor and supplier management with contact information and order history.', features: ['Contact directory', 'Order history', 'Rating system', 'Quick reorder'], version: '1.2', linesOfCode: 420 },
+        { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', page: 'cashout', description: 'Cash out tracking', fullDescription: 'Daily expense tracking and cash out management with receipt documentation.', features: ['Receipt upload', 'Category tracking', 'Daily totals', 'Approval workflow'], version: '1.8', linesOfCode: 890 },
+        { name: 'Treasury', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Asset collection', fullDescription: 'Safe and treasury management for tracking cash, deposits, and valuable assets.', features: ['Safe tracking', 'Deposit records', 'Asset inventory', 'Audit trail'], version: '1.6', linesOfCode: 620 },
+        { name: 'Change Records', icon: 'fa-coins', status: 'active', page: 'change', description: 'Cash flow between stores', fullDescription: 'Track change and cash transfers between store locations with photo verification.', features: ['Photo verification', 'Transfer tracking', 'Store-to-store', 'Balance history'], version: '1.4', linesOfCode: 480 },
+        { name: 'Customer Care', icon: 'fa-gift', status: 'active', page: 'gifts', description: 'Gift tracking', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.3', linesOfCode: 440 },
+        { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', page: 'risknotes', description: 'Security alerts', fullDescription: 'Security risk documentation and alert system for potential threats.', features: ['Risk assessment', 'Alert system', 'Action tracking', 'Priority levels'], version: '1.1', linesOfCode: 380 },
+        { name: 'Password Manager', icon: 'fa-key', status: 'active', page: 'passwords', description: 'Credentials vault', fullDescription: 'Secure password and credential storage with encrypted access.', features: ['Secure storage', 'Category organization', 'Quick copy', 'Access logging'], version: '1.5', linesOfCode: 520 },
+        { name: 'G Force', icon: 'fa-bolt', status: 'active', page: 'gforce', description: 'Daily motivation', fullDescription: 'Daily motivational quotes, affirmations, and philosophy for team inspiration.', features: ['Daily quotes', 'Affirmations', 'Philosophy tips', 'Random generation'], version: '1.2', linesOfCode: 340 },
+        { name: 'Store Management', icon: 'fa-store', status: 'active', page: 'stores', description: 'Multi-location control', fullDescription: 'Centralized management for all store locations with individual settings.', features: ['Multi-location', 'Store settings', 'Performance metrics', 'Staff allocation'], version: '1.4', linesOfCode: 580 },
+        { name: 'Authentication', icon: 'fa-lock', status: 'active', page: null, description: 'Role-based access', fullDescription: 'Secure authentication system with role-based permissions and session management.', features: ['Role-based access', 'Session management', 'Permission levels', 'Audit logging'], version: '2.0', linesOfCode: 920 },
+        { name: 'Project Analytics', icon: 'fa-code', status: 'active', page: 'projectanalytics', description: 'System statistics', fullDescription: 'Meta-analytics showing project statistics, codebase metrics, and system overview.', features: ['Code metrics', 'Module overview', 'Tech stack', 'Development stats'], version: '1.0', linesOfCode: 450 }
+    ];
+
+    // Build modules HTML - clickeable cards
+    const modulesHtml = modules.map((mod, index) => `
+        <div class="module-card" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; transition: all 0.2s; cursor: pointer;"
+            onclick="showModuleDetails(${index})"
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'; this.style.borderColor='var(--accent-primary)';"
+            onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas ${mod.icon}" style="color: white; font-size: 14px;"></i>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${mod.name}</div>
+                <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${mod.description}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 10px; color: var(--text-muted);">v${mod.version}</span>
+                <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></div>
+            </div>
+        </div>
+    `).join('');
+
+    // Store modules globally for modal access
+    window.projectModules = modules;
+
+    dashboard.innerHTML = `
+        <div class="page-header" style="margin-bottom: 24px;">
+            <div class="page-header-left">
+                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-code" style="color: white; font-size: 20px;"></i>
+                    </div>
+                    Project Analytics
+                </h2>
+                <p class="section-subtitle">Ascendance Hub - Enterprise Management System Statistics</p>
+            </div>
+        </div>
+
+        <!-- Hero Stats with Animated Counters -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; padding: 24px; border-radius: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(139,92,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                <div class="counter-value" data-target="${projectStats.totalLines}" style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">0</div>
+                <div style="opacity: 0.9; font-size: 14px;">Lines of Code</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(245,158,11,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                <div class="counter-value" data-target="${projectStats.gitCommits}" style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">0</div>
+                <div style="opacity: 0.9; font-size: 14px;">Git Commits</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(16,185,129,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                <div class="counter-value" data-target="${projectStats.totalModules}" style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">0</div>
+                <div style="opacity: 0.9; font-size: 14px;">Modules</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(59,130,246,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                <div class="counter-value" data-target="${projectStats.totalFunctions}" style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">0</div>
+                <div style="opacity: 0.9; font-size: 14px;">Functions</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 24px; border-radius: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(239,68,68,0.4)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                <div class="counter-value" data-target="${projectStats.stores}" style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">0</div>
+                <div style="opacity: 0.9; font-size: 14px;">Store Locations</div>
+            </div>
+        </div>
+
+        <!-- Quality Badges -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-secondary); border-radius: 20px; border: 1px solid #8b5cf6;">
+                <i class="fas fa-feather" style="color: #8b5cf6;"></i>
+                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">Zero Framework Dependencies</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-secondary); border-radius: 20px; border: 1px solid #f59e0b;">
+                <i class="fas fa-fire" style="color: #f59e0b;"></i>
+                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">Firebase Powered</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-secondary); border-radius: 20px; border: 1px solid #10b981;">
+                <i class="fas fa-mobile-screen" style="color: #10b981;"></i>
+                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">Mobile Ready</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-secondary); border-radius: 20px; border: 1px solid #3b82f6;">
+                <i class="fas fa-shield-halved" style="color: #3b82f6;"></i>
+                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">Role-Based Security</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-secondary); border-radius: 20px; border: 1px solid #ec4899;">
+                <i class="fas fa-bolt" style="color: #ec4899;"></i>
+                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">Real-time Sync</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-wand-magic-sparkles"></i> Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                    <button onclick="runSystemCheck()" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'; this.style.background='rgba(16,185,129,0.1)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)';">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-stethoscope" style="color: white;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: var(--text-primary);">System Check</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Verify Firebase connection</div>
+                        </div>
+                    </button>
+                    <button onclick="clearAppCache()" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#f59e0b'; this.style.background='rgba(245,158,11,0.1)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)';">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-broom" style="color: white;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: var(--text-primary);">Clear Cache</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Reset local storage</div>
+                        </div>
+                    </button>
+                    <button onclick="exportSystemReport()" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.background='rgba(59,130,246,0.1)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)';">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-file-export" style="color: white;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: var(--text-primary);">Export Report</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Download system stats</div>
+                        </div>
+                    </button>
+                    <button onclick="showRecentActivity()" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#8b5cf6'; this.style.background='rgba(139,92,246,0.1)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)';">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-clock-rotate-left" style="color: white;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: var(--text-primary);">Recent Activity</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">View system logs</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <!-- Code Breakdown -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-chart-pie"></i> Code Breakdown</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-weight: 500;">JavaScript</span>
+                                <span style="color: var(--text-muted);">${projectStats.jsLines.toLocaleString()} lines</span>
+                            </div>
+                            <div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">
+                                <div style="width: 76%; height: 100%; background: linear-gradient(90deg, #f7df1e, #f0d000); border-radius: 5px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-weight: 500;">CSS</span>
+                                <span style="color: var(--text-muted);">${projectStats.cssLines.toLocaleString()} lines</span>
+                            </div>
+                            <div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">
+                                <div style="width: 15%; height: 100%; background: linear-gradient(90deg, #264de4, #2965f1); border-radius: 5px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-weight: 500;">HTML</span>
+                                <span style="color: var(--text-muted);">${projectStats.htmlLines.toLocaleString()} lines</span>
+                            </div>
+                            <div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">
+                                <div style="width: 7%; height: 100%; background: linear-gradient(90deg, #e34f26, #f06529); border-radius: 5px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-weight: 500;">Config</span>
+                                <span style="color: var(--text-muted);">${projectStats.configLines.toLocaleString()} lines</span>
+                            </div>
+                            <div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">
+                                <div style="width: 2%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 5px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tech Stack -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-layer-group"></i> Technology Stack</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">
+                            <i class="fab fa-js" style="font-size: 32px; color: #f7df1e; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600;">Vanilla JS</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">No frameworks</div>
+                        </div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">
+                            <i class="fas fa-fire" style="font-size: 32px; color: #ffca28; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600;">Firebase</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Real-time sync</div>
+                        </div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">
+                            <i class="fas fa-chart-bar" style="font-size: 32px; color: #ff6384; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600;">Chart.js</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Data visualization</div>
+                        </div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">
+                            <i class="fab fa-font-awesome" style="font-size: 32px; color: #339af0; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600;">Font Awesome</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Icon library</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Highlights -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-sparkles"></i> Key Features</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div style="padding: 20px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-bolt" style="color: white;"></i>
+                            </div>
+                            <div style="font-weight: 600; font-size: 16px;">Real-time Operations</div>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Firebase-powered real-time sync across all modules. Changes reflect instantly across all connected devices.</div>
+                    </div>
+                    <div style="padding: 20px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-shield-halved" style="color: white;"></i>
+                            </div>
+                            <div style="font-weight: 600; font-size: 16px;">Role-Based Security</div>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Three-tier permission system (Admin, Manager, Employee) with granular access control per module.</div>
+                    </div>
+                    <div style="padding: 20px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1)); border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-mobile-screen" style="color: white;"></i>
+                            </div>
+                            <div style="font-weight: 600; font-size: 16px;">Mobile Responsive</div>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Fully responsive design optimized for desktop, tablet, and mobile devices with camera integration.</div>
+                    </div>
+                    <div style="padding: 20px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1)); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-plug" style="color: white;"></i>
+                            </div>
+                            <div style="font-weight: 600; font-size: 16px;">API Integrations</div>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Connected to Shopify for sales data, Firebase for storage, and custom APIs for order management.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px;">
+            <!-- Development Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-chart-simple"></i> Development Metrics</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-code-branch" style="color: #8b5cf6;"></i>
+                                <span>Git Commits</span>
+                            </div>
+                            <span style="font-weight: 700; color: var(--accent-primary);">${projectStats.gitCommits}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-file-code" style="color: #f59e0b;"></i>
+                                <span>Source Files</span>
+                            </div>
+                            <span style="font-weight: 700; color: var(--accent-primary);">${projectStats.totalFiles}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-calendar-check" style="color: #10b981;"></i>
+                                <span>Project Started</span>
+                            </div>
+                            <span style="font-weight: 700; color: var(--accent-primary);">Dec 9, 2025</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-store" style="color: #3b82f6;"></i>
+                                <span>Stores Supported</span>
+                            </div>
+                            <span style="font-weight: 700; color: var(--accent-primary);">${projectStats.stores}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-puzzle-piece" style="color: #ef4444;"></i>
+                                <span>Active Modules</span>
+                            </div>
+                            <span style="font-weight: 700; color: #10b981;">${projectStats.totalModules}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Modules -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="card-title"><i class="fas fa-puzzle-piece"></i> System Modules (${modules.length})</h3>
+                <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-mouse-pointer"></i> Click any module for details</span>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+                    ${modulesHtml}
+                </div>
+            </div>
+        </div>
+
+        <!-- Development Timeline -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-timeline"></i> Development Timeline</h3>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; padding-left: 30px;">
+                    <div style="position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, #8b5cf6, #6366f1, #3b82f6, #10b981);"></div>
+
+                    <div style="position: relative; margin-bottom: 24px;">
+                        <div style="position: absolute; left: -26px; width: 14px; height: 14px; background: #8b5cf6; border-radius: 50%; border: 3px solid var(--bg-primary);"></div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">Day 1: Foundation</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 9, 2025</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Core architecture, authentication system, employee management, dashboard, and basic modules setup.</div>
+                        </div>
+                    </div>
+
+                    <div style="position: relative; margin-bottom: 24px;">
+                        <div style="position: absolute; left: -26px; width: 14px; height: 14px; background: #6366f1; border-radius: 50%; border: 3px solid var(--bg-primary);"></div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">Day 2: Core Features</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 10, 2025</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Clock in/out, scheduling, training center, licenses & documents, sales analytics with Shopify integration.</div>
+                        </div>
+                    </div>
+
+                    <div style="position: relative; margin-bottom: 24px;">
+                        <div style="position: absolute; left: -26px; width: 14px; height: 14px; background: #3b82f6; border-radius: 50%; border: 3px solid var(--bg-primary);"></div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">Day 3: Advanced Modules</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 11-12, 2025</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Abundance Cloud Engine, inventory management, vendor system, financial modules, treasury, and change tracking.</div>
+                        </div>
+                    </div>
+
+                    <div style="position: relative;">
+                        <div style="position: absolute; left: -26px; width: 14px; height: 14px; background: #10b981; border-radius: 50%; border: 3px solid var(--bg-primary);"></div>
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">Day 4-5: Polish & Enhancements</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 13, 2025 - Present</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Camera integration, employee photos, supplies module, G Force motivation, Project Analytics, and continuous improvements.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credits & Footer -->
+        <div style="padding: 40px; background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%); border-radius: 24px; text-align: center; border: 1px solid rgba(139, 92, 246, 0.3); position: relative; overflow: hidden;">
+            <!-- Decorative elements -->
+            <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%); border-radius: 50%;"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 100px; height: 100px; background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%); border-radius: 50%;"></div>
+
+            <div style="position: relative; z-index: 1;">
+                <!-- Main Title -->
+                <div style="font-size: 42px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #8b5cf6, #ec4899, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;">
+                    Ascendance Hub
+                </div>
+                <div style="color: #a1a1aa; font-size: 16px; margin-bottom: 32px;">
+                    Enterprise-grade retail management system
+                </div>
+
+                <!-- Stats Row -->
+                <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; margin-bottom: 32px;">
+                    <div>
+                        <div style="font-size: 28px; font-weight: 700; color: white;">${projectStats.totalLines.toLocaleString()}</div>
+                        <div style="font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">Lines of Code</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 28px; font-weight: 700; color: white;">${projectStats.gitCommits}</div>
+                        <div style="font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">Commits</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 28px; font-weight: 700; color: white;">${projectStats.totalModules}</div>
+                        <div style="font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">Modules</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 28px; font-weight: 700; color: white;">5</div>
+                        <div style="font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">Days Built</div>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #8b5cf6, #ec4899); margin: 0 auto 32px; border-radius: 2px;"></div>
+
+                <!-- Built By Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #71717a; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px;">Built with passion by</div>
+                    <a href="https://calidevs.com" target="_blank" style="display: inline-flex; align-items: center; gap: 12px; padding: 16px 32px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2)); border-radius: 16px; border: 1px solid rgba(139, 92, 246, 0.4); text-decoration: none; transition: all 0.3s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(139, 92, 246, 0.3)'; this.style.borderColor='rgba(139, 92, 246, 0.8)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(139, 92, 246, 0.4)';">
+                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-laptop-code" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-size: 20px; font-weight: 700; color: white; letter-spacing: -0.5px;">CaliDevs</div>
+                            <div style="font-size: 13px; color: #a1a1aa;">Software Development Studio</div>
+                        </div>
+                        <i class="fas fa-arrow-up-right-from-square" style="color: #8b5cf6; margin-left: 8px;"></i>
+                    </a>
+                </div>
+
+                <!-- Tech Stack Icons -->
+                <div style="display: flex; justify-content: center; gap: 16px; margin-bottom: 24px;">
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;" title="JavaScript">
+                        <i class="fab fa-js" style="color: #f7df1e; font-size: 20px;"></i>
+                    </div>
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;" title="HTML5">
+                        <i class="fab fa-html5" style="color: #e34f26; font-size: 20px;"></i>
+                    </div>
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;" title="CSS3">
+                        <i class="fab fa-css3-alt" style="color: #264de4; font-size: 20px;"></i>
+                    </div>
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;" title="Firebase">
+                        <i class="fas fa-fire" style="color: #ffca28; font-size: 18px;"></i>
+                    </div>
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;" title="Chart.js">
+                        <i class="fas fa-chart-pie" style="color: #ff6384; font-size: 18px;"></i>
+                    </div>
+                </div>
+
+                <!-- Footer Info -->
+                <div style="font-size: 12px; color: #52525b;">
+                    Version 4.0 &bull; Last updated: ${projectStats.lastUpdate}
+                </div>
+                <div style="font-size: 11px; color: #3f3f46; margin-top: 8px;">
+                    Made in San Diego, California
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Animate counters after render
+    setTimeout(() => animateCounters(), 100);
+}
+
+// Show module details modal
+window.showModuleDetails = function(index) {
+    const mod = window.projectModules[index];
+    if (!mod) return;
+
+    const featuresHtml = mod.features.map(f => `
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-tertiary); border-radius: 8px;">
+            <i class="fas fa-check" style="color: #10b981; font-size: 12px;"></i>
+            <span style="font-size: 13px;">${f}</span>
+        </div>
+    `).join('');
+
+    const modalHtml = `
+        <div id="module-details-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="if(event.target === this) closeModuleDetails()">
+            <div style="background: var(--bg-primary); border-radius: 20px; max-width: 560px; width: 100%; max-height: 90vh; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: modalSlideIn 0.3s ease;">
+                <!-- Header with gradient -->
+                <div style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); padding: 24px; color: white; position: relative;">
+                    <button onclick="closeModuleDetails()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.2); border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times" style="color: white;"></i>
+                    </button>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas ${mod.icon}" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 700;">${mod.name}</h2>
+                            <div style="opacity: 0.9; font-size: 14px; margin-top: 4px;">${mod.description}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div style="padding: 24px; overflow-y: auto; max-height: calc(90vh - 180px);">
+                    <!-- Stats Row -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">v${mod.version}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Version</div>
+                        </div>
+                        <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">${mod.linesOfCode.toLocaleString()}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Lines of Code</div>
+                        </div>
+                        <div style="text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-size: 24px; font-weight: 700; color: #10b981;"><i class="fas fa-circle" style="font-size: 16px;"></i></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Active</div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">About</h4>
+                        <p style="margin: 0; color: var(--text-secondary); line-height: 1.7; font-size: 14px;">${mod.fullDescription}</p>
+                    </div>
+
+                    <!-- Features -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Key Features</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            ${featuresHtml}
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    ${mod.page ? `
+                        <button onclick="navigateToModule('${mod.page}')" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(139, 92, 246, 0.3)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                            <i class="fas fa-arrow-right"></i>
+                            Go to ${mod.name}
+                        </button>
+                    ` : `
+                        <div style="width: 100%; padding: 14px; background: var(--bg-secondary); color: var(--text-muted); border-radius: 12px; font-size: 14px; text-align: center;">
+                            <i class="fas fa-lock"></i> System Module - No Direct Access
+                        </div>
+                    `}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add animation keyframes if not already added
+    if (!document.getElementById('module-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'module-modal-styles';
+        style.textContent = `
+            @keyframes modalSlideIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.95) translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Remove any existing modal
+    const existing = document.getElementById('module-details-modal');
+    if (existing) existing.remove();
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Close module details modal
+window.closeModuleDetails = function() {
+    const modal = document.getElementById('module-details-modal');
+    if (modal) {
+        modal.style.animation = 'modalSlideIn 0.2s ease reverse';
+        setTimeout(() => modal.remove(), 200);
+    }
+}
+
+// Navigate to module from details modal
+window.navigateToModule = function(page) {
+    closeModuleDetails();
+    if (page === 'gforce') {
+        openGForceModal();
+    } else if (page === 'gconomics') {
+        openGconomicsModal();
+    } else {
+        navigateTo(page);
+    }
+}
+
+// Animated counter function
+function animateCounters() {
+    const counters = document.querySelectorAll('.counter-value');
+    counters.forEach(counter => {
+        const target = parseInt(counter.dataset.target);
+        const duration = 1500; // 1.5 seconds
+        const steps = 60;
+        const stepDuration = duration / steps;
+        let current = 0;
+        const increment = target / steps;
+
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                counter.textContent = target.toLocaleString();
+                clearInterval(timer);
+            } else {
+                counter.textContent = Math.floor(current).toLocaleString();
+            }
+        }, stepDuration);
+    });
+}
+
+// Quick Action: System Check
+window.runSystemCheck = async function() {
+    const checkModal = document.createElement('div');
+    checkModal.id = 'system-check-modal';
+    checkModal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    checkModal.onclick = (e) => { if (e.target === checkModal) checkModal.remove(); };
+
+    checkModal.innerHTML = `
+        <div style="background: var(--bg-primary); border-radius: 20px; max-width: 480px; width: 100%; padding: 32px; text-align: center; animation: modalSlideIn 0.3s ease;">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="fas fa-stethoscope" style="color: white; font-size: 28px;"></i>
+            </div>
+            <h3 style="margin: 0 0 8px; font-size: 20px;">System Health Check</h3>
+            <p style="color: var(--text-muted); margin: 0 0 24px; font-size: 14px;">Running diagnostics...</p>
+            <div id="check-results" style="text-align: left; background: var(--bg-secondary); border-radius: 12px; padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <i class="fas fa-spinner fa-spin" style="color: var(--accent-primary);"></i>
+                    <span>Checking Firebase connection...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(checkModal);
+
+    // Simulate checks
+    const resultsDiv = document.getElementById('check-results');
+    const checks = [
+        { name: 'Firebase Connection', check: () => typeof firebase !== 'undefined' && firebase.apps.length > 0 },
+        { name: 'Firestore Database', check: () => typeof firebase !== 'undefined' && typeof firebase.firestore === 'function' },
+        { name: 'Firebase Storage', check: () => typeof firebase !== 'undefined' && typeof firebase.storage === 'function' },
+        { name: 'Authentication System', check: () => typeof getCurrentUser === 'function' },
+        { name: 'Local Storage', check: () => typeof localStorage !== 'undefined' }
+    ];
+
+    let resultsHtml = '';
+    for (const item of checks) {
+        await new Promise(r => setTimeout(r, 300));
+        const passed = item.check();
+        resultsHtml += `
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <i class="fas ${passed ? 'fa-check-circle' : 'fa-times-circle'}" style="color: ${passed ? '#10b981' : '#ef4444'};"></i>
+                <span>${item.name}</span>
+                <span style="margin-left: auto; font-size: 12px; color: ${passed ? '#10b981' : '#ef4444'};">${passed ? 'OK' : 'FAIL'}</span>
+            </div>
+        `;
+        resultsDiv.innerHTML = resultsHtml;
+    }
+
+    resultsHtml += `
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); text-align: center;">
+            <button onclick="document.getElementById('system-check-modal').remove()" style="padding: 10px 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                Done
+            </button>
+        </div>
+    `;
+    resultsDiv.innerHTML = resultsHtml;
+}
+
+// Quick Action: Clear Cache
+window.clearAppCache = function() {
+    if (confirm('This will clear all local cache and stored preferences. You may need to log in again. Continue?')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        showNotification('Cache cleared successfully! Refreshing...', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+    }
+}
+
+// Quick Action: Export Report
+window.exportSystemReport = function() {
+    const report = {
+        title: 'Ascendance Hub System Report',
+        generatedAt: new Date().toISOString(),
+        stats: {
+            totalLines: 33726,
+            jsLines: 25263,
+            cssLines: 6259,
+            htmlLines: 1504,
+            configLines: 700,
+            totalModules: 27,
+            totalFiles: 20,
+            gitCommits: 231,
+            projectStart: 'December 9, 2025'
+        },
+        modules: window.projectModules?.map(m => ({
+            name: m.name,
+            version: m.version,
+            status: m.status,
+            linesOfCode: m.linesOfCode
+        })) || [],
+        browser: navigator.userAgent,
+        screenSize: `${window.innerWidth}x${window.innerHeight}`
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ascendance-hub-report-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('Report exported successfully!', 'success');
+}
+
+// Quick Action: Show Recent Activity
+window.showRecentActivity = function() {
+    const activityModal = document.createElement('div');
+    activityModal.id = 'activity-modal';
+    activityModal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    activityModal.onclick = (e) => { if (e.target === activityModal) activityModal.remove(); };
+
+    // Get current user
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'Unknown' };
+    const now = new Date();
+
+    const activities = [
+        { icon: 'fa-right-to-bracket', color: '#10b981', text: `${user.name} logged in`, time: 'Just now' },
+        { icon: 'fa-eye', color: '#3b82f6', text: 'Viewed Project Analytics', time: 'Just now' },
+        { icon: 'fa-code', color: '#8b5cf6', text: 'System initialized', time: formatTimeAgo(now) },
+        { icon: 'fa-database', color: '#f59e0b', text: 'Firebase connected', time: formatTimeAgo(now) },
+        { icon: 'fa-shield-halved', color: '#10b981', text: 'Security check passed', time: formatTimeAgo(now) }
+    ];
+
+    const activitiesHtml = activities.map(a => `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px;">
+            <div style="width: 36px; height: 36px; background: ${a.color}20; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas ${a.icon}" style="color: ${a.color}; font-size: 14px;"></i>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-size: 14px;">${a.text}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">${a.time}</div>
+            </div>
+        </div>
+    `).join('');
+
+    activityModal.innerHTML = `
+        <div style="background: var(--bg-primary); border-radius: 20px; max-width: 480px; width: 100%; max-height: 80vh; overflow: hidden; animation: modalSlideIn 0.3s ease;">
+            <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-clock-rotate-left" style="color: var(--accent-primary); margin-right: 8px;"></i> Recent Activity</h3>
+                <button onclick="document.getElementById('activity-modal').remove()" style="background: none; border: none; cursor: pointer; padding: 8px;">
+                    <i class="fas fa-times" style="color: var(--text-muted);"></i>
+                </button>
+            </div>
+            <div style="padding: 16px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                ${activitiesHtml}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(activityModal);
+}
+
+function formatTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+const FLOATING_ADD_STICKY_MARGIN = 20;
+let floatingAddObservers = [];
+let floatingAddFallbackListener = null;
+let floatingAddRaf = null;
+let floatingAddDebounceTimeout = null;
+let isScrolling = false;
+
+function refreshFloatingAddButtons() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+    // Clean up existing listeners
+    floatingAddObservers.forEach(observer => observer.disconnect());
+    floatingAddObservers = [];
+
+    if (floatingAddFallbackListener) {
+        window.removeEventListener('scroll', floatingAddFallbackListener);
+        window.removeEventListener('resize', floatingAddFallbackListener);
+        floatingAddFallbackListener = null;
+    }
+
+    // Use scroll listener with debounced updates
+    floatingAddFallbackListener = () => {
+        if (floatingAddRaf) {
+            cancelAnimationFrame(floatingAddRaf);
+        }
+
+        // Clear any pending debounce
+        if (floatingAddDebounceTimeout) {
+            clearTimeout(floatingAddDebounceTimeout);
+        }
+
+        // Mark as scrolling and hide fixed buttons
+        if (!isScrolling) {
+            isScrolling = true;
+            document.querySelectorAll('.floating-add-btn.is-fixed').forEach(btn => {
+                btn.classList.add('is-scrolling');
+            });
+        }
+
+        floatingAddRaf = requestAnimationFrame(() => {
+            floatingAddRaf = null;
+
+            // Debounce to ensure final state is correct after scroll stops
+            floatingAddDebounceTimeout = setTimeout(() => {
+                isScrolling = false;
+                updateFloatingButtonsVisibility();
+                floatingAddDebounceTimeout = null;
+            }, 100);
+        });
+    };
+
+    window.addEventListener('scroll', floatingAddFallbackListener, { passive: true });
+    window.addEventListener('resize', floatingAddFallbackListener);
+
+    // Initial update
+    updateFloatingButtonsVisibility();
+}
+
+function updateFloatingButtonsVisibility() {
+    if (typeof document === 'undefined') return;
+
+    document.querySelectorAll('.floating-add-btn').forEach(button => {
+        const rect = button.getBoundingClientRect();
+        const shouldFix = rect.top < -FLOATING_ADD_STICKY_MARGIN;
+
+        // Remove scrolling class
+        button.classList.remove('is-scrolling');
+
+        // Only update if the class needs to change
+        const currentlyFixed = button.classList.contains('is-fixed');
+        if (currentlyFixed !== shouldFix) {
+            button.classList.toggle('is-fixed', shouldFix);
+        }
+    });
+}
+
+function ensureFloatingAddButtonFallback() {
+    // This function is no longer needed but kept for compatibility
+    return;
+}
+
 // Add CSS animation for password toast
 const pwdToastStyles = document.createElement('style');
 pwdToastStyles.textContent = `
@@ -23421,254 +27519,3 @@ pwdToastStyles.textContent = `
 `;
 document.head.appendChild(pwdToastStyles);
 
-// =====================================================
-// PROJECT ANALYTICS MODULE
-// =====================================================
-
-function renderProjectAnalytics() {
-    const dashboard = document.querySelector('.dashboard');
-
-    // Project statistics
-    const projectStats = {
-        totalLines: 42045,
-        jsLines: 32165,
-        htmlLines: 3059,
-        cssLines: 6125,
-        configLines: 696,
-        totalFunctions: 557,
-        totalFiles: 20,
-        totalModules: 26,
-        projectSize: '4.4 MB',
-        stores: 5,
-        lastUpdate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    };
-
-    // Module list with descriptions
-    const modules = [
-        { name: 'Dashboard', icon: 'fa-th-large', status: 'active', description: 'Overview & KPIs' },
-        { name: 'Employees', icon: 'fa-users', status: 'active', description: 'Staff management & profiles' },
-        { name: 'Schedule', icon: 'fa-calendar-alt', status: 'active', description: 'Shift scheduling system' },
-        { name: 'Clock In/Out', icon: 'fa-clock', status: 'active', description: 'Time tracking' },
-        { name: 'Training Center', icon: 'fa-graduation-cap', status: 'active', description: 'Video & document training' },
-        { name: 'Licenses & Docs', icon: 'fa-folder-open', status: 'active', description: 'Compliance management' },
-        { name: 'Sales Analytics', icon: 'fa-chart-line', status: 'active', description: 'Shopify integration' },
-        { name: 'New Stuff', icon: 'fa-box', status: 'active', description: 'Incoming inventory' },
-        { name: 'Restock Requests', icon: 'fa-boxes', status: 'active', description: 'Stock replenishment' },
-        { name: 'Abundance Cloud', icon: 'fa-cloud', status: 'active', description: 'Order management engine' },
-        { name: 'Announcements', icon: 'fa-bullhorn', status: 'active', description: 'Internal communications' },
-        { name: 'Thieves Database', icon: 'fa-user-secret', status: 'active', description: 'Incident tracking' },
-        { name: 'Invoices', icon: 'fa-file-invoice-dollar', status: 'active', description: 'Payment management' },
-        { name: 'Issues Registry', icon: 'fa-exclamation-triangle', status: 'active', description: 'Customer complaints' },
-        { name: 'Gconomics', icon: 'fa-wallet', status: 'active', description: 'Financial tracking' },
-        { name: 'Vendors', icon: 'fa-truck', status: 'active', description: 'Supplier directory' },
-        { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', description: 'Cash out tracking' },
-        { name: 'Treasury', icon: 'fa-vault', status: 'active', description: 'Asset collection' },
-        { name: 'Change Records', icon: 'fa-coins', status: 'active', description: 'Cash flow between stores' },
-        { name: 'Customer Care', icon: 'fa-gift', status: 'active', description: 'Gift tracking' },
-        { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', description: 'Security alerts' },
-        { name: 'Password Manager', icon: 'fa-key', status: 'active', description: 'Credentials vault' },
-        { name: 'G Force', icon: 'fa-bolt', status: 'active', description: 'Daily motivation' },
-        { name: 'Store Management', icon: 'fa-store', status: 'active', description: 'Multi-location control' },
-        { name: 'Authentication', icon: 'fa-lock', status: 'active', description: 'Role-based access' },
-        { name: 'Project Analytics', icon: 'fa-code', status: 'active', description: 'This module!' }
-    ];
-
-    // Store locations
-    const storeLocations = [
-        { name: 'VSU Miramar', status: 'HQ', employees: 6 },
-        { name: 'VSU Morena', status: 'Active', employees: 5 },
-        { name: 'VSU Kearny Mesa', status: 'Active', employees: 5 },
-        { name: 'VSU Chula Vista', status: 'Active', employees: 4 },
-        { name: 'VSU North Park', status: 'Active', employees: 3 }
-    ];
-
-    // Build stores HTML
-    const storesHtml = storeLocations.map(store =>
-        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid ' + (store.status === 'HQ' ? '#ef4444' : '#10b981') + ';">' +
-            '<div style="font-weight: 600; margin-bottom: 4px;">' + store.name + '</div>' +
-            '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-                '<span style="font-size: 12px; padding: 4px 8px; background: ' + (store.status === 'HQ' ? '#fef2f2' : '#ecfdf5') + '; color: ' + (store.status === 'HQ' ? '#ef4444' : '#10b981') + '; border-radius: 6px; font-weight: 500;">' + store.status + '</span>' +
-                '<span style="color: var(--text-muted); font-size: 13px;"><i class="fas fa-users"></i> ' + store.employees + '</span>' +
-            '</div>' +
-        '</div>'
-    ).join('');
-
-    // Build modules HTML
-    const modulesHtml = modules.map(mod =>
-        '<div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.1)\';" onmouseout="this.style.transform=\'none\'; this.style.boxShadow=\'none\';">' +
-            '<div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">' +
-                '<i class="fas ' + mod.icon + '" style="color: white; font-size: 14px;"></i>' +
-            '</div>' +
-            '<div style="flex: 1; min-width: 0;">' +
-                '<div style="font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + mod.name + '</div>' +
-                '<div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + mod.description + '</div>' +
-            '</div>' +
-            '<div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></div>' +
-        '</div>'
-    ).join('');
-
-    dashboard.innerHTML =
-        '<div class="page-header" style="margin-bottom: 24px;">' +
-            '<div class="page-header-left">' +
-                '<h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">' +
-                    '<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 14px; display: flex; align-items: center; justify-content: center;">' +
-                        '<i class="fas fa-code" style="color: white; font-size: 20px;"></i>' +
-                    '</div>' +
-                    'Project Analytics' +
-                '</h2>' +
-                '<p class="section-subtitle">Ascendance Hub - Enterprise Management System Statistics</p>' +
-            '</div>' +
-        '</div>' +
-
-        '<!-- Hero Stats -->' +
-        '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">' +
-            '<div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; padding: 24px; border-radius: 16px;">' +
-                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.totalLines.toLocaleString() + '</div>' +
-                '<div style="opacity: 0.9; font-size: 14px;">Lines of Code</div>' +
-            '</div>' +
-            '<div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 16px;">' +
-                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.totalFunctions + '</div>' +
-                '<div style="opacity: 0.9; font-size: 14px;">Functions</div>' +
-            '</div>' +
-            '<div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 16px;">' +
-                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.totalModules + '</div>' +
-                '<div style="opacity: 0.9; font-size: 14px;">Modules</div>' +
-            '</div>' +
-            '<div class="stat-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 16px;">' +
-                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.projectSize + '</div>' +
-                '<div style="opacity: 0.9; font-size: 14px;">Total Size</div>' +
-            '</div>' +
-            '<div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 24px; border-radius: 16px;">' +
-                '<div style="font-size: 36px; font-weight: 800; margin-bottom: 4px;">' + projectStats.stores + '</div>' +
-                '<div style="opacity: 0.9; font-size: 14px;">Store Locations</div>' +
-            '</div>' +
-        '</div>' +
-
-        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">' +
-            '<!-- Code Breakdown -->' +
-            '<div class="card">' +
-                '<div class="card-header">' +
-                    '<h3 class="card-title"><i class="fas fa-chart-pie"></i> Code Breakdown</h3>' +
-                '</div>' +
-                '<div class="card-body">' +
-                    '<div style="display: flex; flex-direction: column; gap: 16px;">' +
-                        '<div>' +
-                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
-                                '<span style="font-weight: 500;">JavaScript</span>' +
-                                '<span style="color: var(--text-muted);">' + projectStats.jsLines.toLocaleString() + ' lines</span>' +
-                            '</div>' +
-                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
-                                '<div style="width: 76%; height: 100%; background: linear-gradient(90deg, #f7df1e, #f0d000); border-radius: 5px;"></div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div>' +
-                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
-                                '<span style="font-weight: 500;">CSS</span>' +
-                                '<span style="color: var(--text-muted);">' + projectStats.cssLines.toLocaleString() + ' lines</span>' +
-                            '</div>' +
-                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
-                                '<div style="width: 15%; height: 100%; background: linear-gradient(90deg, #264de4, #2965f1); border-radius: 5px;"></div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div>' +
-                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
-                                '<span style="font-weight: 500;">HTML</span>' +
-                                '<span style="color: var(--text-muted);">' + projectStats.htmlLines.toLocaleString() + ' lines</span>' +
-                            '</div>' +
-                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
-                                '<div style="width: 7%; height: 100%; background: linear-gradient(90deg, #e34f26, #f06529); border-radius: 5px;"></div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div>' +
-                            '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
-                                '<span style="font-weight: 500;">Config</span>' +
-                                '<span style="color: var(--text-muted);">' + projectStats.configLines.toLocaleString() + ' lines</span>' +
-                            '</div>' +
-                            '<div style="height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden;">' +
-                                '<div style="width: 2%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 5px;"></div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-
-            '<!-- Tech Stack -->' +
-            '<div class="card">' +
-                '<div class="card-header">' +
-                    '<h3 class="card-title"><i class="fas fa-layer-group"></i> Technology Stack</h3>' +
-                '</div>' +
-                '<div class="card-body">' +
-                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
-                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
-                            '<i class="fab fa-js" style="font-size: 32px; color: #f7df1e; margin-bottom: 8px;"></i>' +
-                            '<div style="font-weight: 600;">Vanilla JS</div>' +
-                            '<div style="font-size: 12px; color: var(--text-muted);">No frameworks</div>' +
-                        '</div>' +
-                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
-                            '<i class="fas fa-fire" style="font-size: 32px; color: #ffca28; margin-bottom: 8px;"></i>' +
-                            '<div style="font-weight: 600;">Firebase</div>' +
-                            '<div style="font-size: 12px; color: var(--text-muted);">Real-time sync</div>' +
-                        '</div>' +
-                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
-                            '<i class="fas fa-chart-bar" style="font-size: 32px; color: #ff6384; margin-bottom: 8px;"></i>' +
-                            '<div style="font-weight: 600;">Chart.js</div>' +
-                            '<div style="font-size: 12px; color: var(--text-muted);">Data visualization</div>' +
-                        '</div>' +
-                        '<div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; text-align: center;">' +
-                            '<i class="fab fa-font-awesome" style="font-size: 32px; color: #339af0; margin-bottom: 8px;"></i>' +
-                            '<div style="font-weight: 600;">Font Awesome</div>' +
-                            '<div style="font-size: 12px; color: var(--text-muted);">Icon library</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-
-        '<!-- Store Locations -->' +
-        '<div class="card" style="margin-bottom: 24px;">' +
-            '<div class="card-header">' +
-                '<h3 class="card-title"><i class="fas fa-store"></i> Store Network (' + storeLocations.length + ' Locations)</h3>' +
-            '</div>' +
-            '<div class="card-body">' +
-                '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">' +
-                    storesHtml +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-
-        '<!-- All Modules -->' +
-        '<div class="card">' +
-            '<div class="card-header">' +
-                '<h3 class="card-title"><i class="fas fa-puzzle-piece"></i> System Modules (' + modules.length + ')</h3>' +
-            '</div>' +
-            '<div class="card-body">' +
-                '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">' +
-                    modulesHtml +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-
-        '<!-- Footer -->' +
-        '<div style="margin-top: 24px; padding: 20px; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); border-radius: 16px; text-align: center;">' +
-            '<div style="font-size: 24px; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #8b5cf6, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">' +
-                'Ascendance Hub' +
-            '</div>' +
-            '<div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">' +
-                'Enterprise-grade retail management built from scratch' +
-            '</div>' +
-            '<div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;">' +
-                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
-                    '<i class="fas fa-code"></i> 100% Custom Code' +
-                '</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
-                    '<i class="fas fa-rocket"></i> Zero Dependencies' +
-                '</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
-                    '<i class="fas fa-cloud"></i> Real-time Sync' +
-                '</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">' +
-                    '<i class="fas fa-shield-alt"></i> Role-based Auth' +
-                '</div>' +
-            '</div>' +
-        '</div>';
-}

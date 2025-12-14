@@ -7,7 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/abundance-styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
 </head>
 <body class="light-theme">
     <div class="bg-gradient"></div>
@@ -120,6 +122,163 @@
         </div>
     </div>
 
+    <!-- Mark As Modal (Abundance Cloud) -->
+    <div class="modal" id="markAsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="markAsTitle">Mark Order</h2>
+                <button class="modal-close" onclick="closeMarkAsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="markAsForm">
+                    <div class="form-group">
+                        <label>Order ID or Number:</label>
+                        <input type="text" id="markAsOrderInput" class="form-input" placeholder="Enter order ID or scan barcode" required>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="button" class="btn-secondary" onclick="toggleBarcodeScanner()">
+                            <i class="fas fa-camera"></i>
+                            <span id="scannerBtnText">Scan with Camera</span>
+                        </button>
+                    </div>
+
+                    <div id="barcodeScannerContainer" style="display: none;">
+                        <video id="barcodeVideo" style="width: 100%; border-radius: 12px; margin: 16px 0;"></video>
+                        <canvas id="barcodeCanvas" style="display: none;"></canvas>
+                    </div>
+
+                    <div id="markAsMessage" class="alert" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeMarkAsModal()">Cancel</button>
+                <button type="button" class="btn-primary" id="markAsSubmitBtn" onclick="submitMarkAs()">
+                    <i class="fas fa-check"></i>
+                    <span id="markAsSubmitText">Submit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal (Abundance Cloud) -->
+    <div class="modal" id="orderDetailsModal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h2 id="orderDetailsTitle">Order Details</h2>
+                <button class="modal-close" onclick="closeOrderDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="orderDetailsBody">
+                <!-- Order details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeOrderDetailsModal()">Close</button>
+                <button type="button" class="btn-primary" onclick="printOrder()">
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thief Report Modal (Abundance Cloud) -->
+    <div class="modal" id="thiefReportModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-user-secret" style="color: var(--danger);"></i>
+                    Report Theft Incident
+                </h2>
+                <button class="modal-close" onclick="closeThiefReportModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="thiefReportForm">
+                    <!-- Photo Upload -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-camera"></i> Photo of Suspect *
+                        </label>
+                        <div id="photoUploadArea" class="photo-upload-area" onclick="document.getElementById('thiefPhotoInput').click()">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                            <p style="color: var(--text-muted); margin: 0;">Click to upload or drag and drop</p>
+                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">PNG, JPG up to 10MB</p>
+                        </div>
+                        <input type="file" id="thiefPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)" required>
+                        <div id="photoPreview" style="display: none; margin-top: 12px;">
+                            <img id="photoPreviewImg" style="max-width: 100%; max-height: 300px; border-radius: 12px; border: 2px solid var(--border-color);">
+                            <button type="button" class="btn-secondary" onclick="removePhoto()" style="margin-top: 8px; width: 100%;">
+                                <i class="fas fa-trash"></i> Remove Photo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Store Location -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-store"></i> Store Location *
+                        </label>
+                        <select id="storeLocation" class="form-input" required>
+                            <option value="">Select store...</option>
+                            <option value="VSU Miramar">VSU Miramar</option>
+                            <option value="VSU Chulavista">VSU Chulavista</option>
+                            <option value="VSU North Park">VSU North Park</option>
+                            <option value="VSU Morena">VSU Morena</option>
+                            <option value="VSU Kearny Mesa">VSU Kearny Mesa</option>
+                            <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                        </select>
+                    </div>
+
+                    <!-- Date and Time -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                                <i class="fas fa-calendar"></i> Approximate Date *
+                            </label>
+                            <input type="date" id="incidentDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                                <i class="fas fa-clock"></i> Approximate Time *
+                            </label>
+                            <input type="time" id="incidentTime" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <!-- Identifying Characteristics -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-id-badge"></i> Identifying Characteristics
+                        </label>
+                        <textarea id="identifyingMarks" class="form-input" rows="4" placeholder="Describe any distinctive features: tattoos, scars, clothing, accessories, approximate height/build, hair color, etc." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-clipboard"></i> Additional Notes
+                        </label>
+                        <textarea id="additionalNotes" class="form-input" rows="3" placeholder="Any other relevant information about the incident..." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <div id="thiefReportMessage" class="alert" style="display: none; margin-top: 16px;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeThiefReportModal()">Cancel</button>
+                <button type="button" class="btn-primary" id="submitThiefReportBtn" onclick="submitThiefReport()">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit Report
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="logo-section">
@@ -136,7 +295,7 @@
 
         <nav class="nav-section">
             <div class="nav-label">Main Menu</div>
-            <a href="#" class="nav-item active" data-page="dashboard">
+            <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard'); return false;">
                 <span class="nav-icon"><i class="fas fa-th-large"></i></span>
                 Dashboard
             </a>
@@ -178,7 +337,15 @@
                 <span class="nav-icon"><i class="fas fa-boxes"></i></span>
                 Restock Requests
             </a>
-            <a href="abundance-cloud.html" class="nav-item external-link" data-page="abundancecloud">
+            <a href="#" class="nav-item" data-page="supplies" onclick="navigateTo('supplies'); return false;">
+                <span class="nav-icon"><i class="fas fa-shopping-basket"></i></span>
+                Supplies
+            </a>
+            <a href="#" class="nav-item" data-page="dailychecklist" onclick="navigateTo('dailychecklist'); return false;">
+                <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span>
+                Daily Checklist
+            </a>
+            <a href="#" class="nav-item" data-page="abundancecloud" onclick="navigateTo('abundancecloud'); return false;">
                 <span class="nav-icon"><i class="fas fa-cloud"></i></span>
                 Abundance Cloud Engine
             </a>
@@ -235,7 +402,7 @@
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span>
                 G Force
             </a>
-            <a href="#" class="nav-item" data-page="projectanalytics" onclick="navigateTo('projectanalytics'); return false;">
+            <a href="index.html?page=projectanalytics" class="nav-item external-link" data-page="projectanalytics">
                 <span class="nav-icon"><i class="fas fa-code"></i></span>
                 Project Analytics
             </a>
@@ -311,7 +478,7 @@
         <div class="dashboard">
             <!-- Stats -->
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card" onclick="navigateTo('employees')" style="cursor: pointer;">
                     <div class="stat-header">
                         <div class="stat-icon purple">
                             <i class="fas fa-users"></i>
@@ -325,21 +492,21 @@
                     <div class="stat-label">Total Employees</div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="navigateTo('analytics')" style="cursor: pointer;" id="monthly-revenue-card">
                     <div class="stat-header">
                         <div class="stat-icon green">
                             <i class="fas fa-dollar-sign"></i>
                         </div>
-                        <div class="stat-trend up">
-                            <i class="fas fa-arrow-up"></i>
-                            +12.5%
+                        <div class="stat-trend up" id="revenue-trend">
+                            <i class="fas fa-sync fa-spin"></i>
+                            Loading...
                         </div>
                     </div>
-                    <div class="stat-value">$48.2K</div>
+                    <div class="stat-value" id="revenue-value">--</div>
                     <div class="stat-label">Monthly Revenue</div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="navigateTo('training')" style="cursor: pointer;">
                     <div class="stat-header">
                         <div class="stat-icon blue">
                             <i class="fas fa-file-alt"></i>
@@ -611,11 +778,19 @@
     <!-- Main Application Script -->
     <script src="js/script.js"></script>
 
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <!-- Shopify Analytics (Frontend API) -->
     <script src="js/shopify-analytics.js"></script>
 
     <!-- Shopify API Client -->
     <script src="js/api-client.js"></script>
+
+    <!-- Abundance Cloud Script -->
+    <script src="js/abundance-cloud.js"></script>
 
     <!-- Initialize Application -->
     <script>
@@ -754,9 +929,14 @@
             }
 
             // Restore the last viewed page from sessionStorage (persists on refresh, clears on tab close)
+            // URL parameter ?page= takes priority over sessionStorage
             try {
+                // Check URL for page parameter first (highest priority)
+                const urlParams = new URLSearchParams(window.location.search);
+                const pageFromUrl = urlParams.get('page');
+
                 const savedPage = sessionStorage.getItem('ascendance_current_page');
-                
+
                 // Determine default page based on user role
                 let defaultPage = 'dashboard';
                 if (user.role === 'employee') {
@@ -766,14 +946,25 @@
                 } else {
                     defaultPage = 'dashboard'; // Admins default to Dashboard
                 }
-                
+
                 // Validate that saved page is allowed for current user role
                 const userPermissions = window.ROLE_PERMISSIONS[user.role] || window.ROLE_PERMISSIONS['employee'];
                 const allowedPages = userPermissions.pages || [];
-                const isPageAllowed = savedPage && allowedPages.includes(savedPage);
-                
-                const pageToShow = isPageAllowed ? savedPage : defaultPage;
-                console.log(`📄 Navigating to page: ${pageToShow} (User role: ${user.role})`);
+
+                // URL parameter has highest priority, then sessionStorage, then default
+                let pageToShow;
+                if (pageFromUrl && allowedPages.includes(pageFromUrl)) {
+                    pageToShow = pageFromUrl;
+                    console.log(`📄 Navigating to page from URL parameter: ${pageToShow}`);
+                } else if (savedPage && allowedPages.includes(savedPage)) {
+                    pageToShow = savedPage;
+                    console.log(`📄 Navigating to saved page: ${pageToShow}`);
+                } else {
+                    pageToShow = defaultPage;
+                    console.log(`📄 Navigating to default page: ${pageToShow}`);
+                }
+
+                console.log(`📄 Final page selection: ${pageToShow} (User role: ${user.role})`);
                 navigateTo(pageToShow);
             } catch (error) {
                 console.warn('⚠️ Failed to restore page state, defaulting based on role:', error);
@@ -792,6 +983,12 @@
                     }, 300);
                 }
             }, 100);
+
+            // Load monthly revenue for the dashboard card (if on dashboard and function exists)
+            // This is called in addition to renderDashboard() for initial page load
+            if (typeof loadMonthlyRevenueFromShopify === 'function') {
+                loadMonthlyRevenueFromShopify();
+            }
         });
     </script>
 </body>
