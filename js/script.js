@@ -6700,6 +6700,55 @@ window.viewChecklistHistory = async function() {
                         color: var(--text-muted);
                     }
 
+                    /* Employee Picker - Mobile Responsive */
+                    @media (max-width: 480px) {
+                        .employee-picker-overlay {
+                            align-items: flex-end;
+                            padding: 0;
+                        }
+                        .employee-picker {
+                            width: 100%;
+                            max-width: 100%;
+                            max-height: 85vh;
+                            border-radius: 20px 20px 0 0;
+                        }
+                        .employee-picker-header {
+                            padding: 16px;
+                        }
+                        .employee-picker-header h3 {
+                            font-size: 16px;
+                        }
+                        .employee-picker-close {
+                            width: 32px;
+                            height: 32px;
+                        }
+                        .employee-picker-search {
+                            padding: 12px 16px;
+                        }
+                        .employee-picker-search input {
+                            padding: 10px 14px;
+                        }
+                        .employee-picker-list {
+                            padding: 8px;
+                            max-height: calc(85vh - 140px);
+                        }
+                        .employee-picker-item {
+                            padding: 10px;
+                            gap: 10px;
+                        }
+                        .employee-picker-avatar {
+                            width: 40px;
+                            height: 40px;
+                            font-size: 14px;
+                        }
+                        .employee-picker-name {
+                            font-size: 14px;
+                        }
+                        .employee-picker-store {
+                            font-size: 12px;
+                        }
+                    }
+
                     /* Time Editor Modal */
                     .time-editor-overlay {
                         position: fixed;
@@ -7069,6 +7118,65 @@ window.viewChecklistHistory = async function() {
                         border-top: 1px solid var(--border-color);
                         display: flex;
                         justify-content: flex-end;
+                    }
+
+                    /* Time Editor & Clone Modal - Mobile Responsive */
+                    @media (max-width: 480px) {
+                        .time-editor-overlay,
+                        .clone-modal-overlay {
+                            align-items: flex-end;
+                            padding: 0;
+                        }
+                        .time-editor-modal,
+                        .clone-modal {
+                            width: 100%;
+                            max-width: 100%;
+                            border-radius: 20px 20px 0 0;
+                            max-height: 90vh;
+                            overflow-y: auto;
+                        }
+                        .time-editor-header,
+                        .clone-modal-header {
+                            padding: 16px;
+                        }
+                        .time-editor-header h3,
+                        .clone-modal-header h3 {
+                            font-size: 16px;
+                        }
+                        .time-editor-close {
+                            width: 32px;
+                            height: 32px;
+                            font-size: 14px;
+                        }
+                        .time-editor-body,
+                        .clone-modal-body {
+                            padding: 16px;
+                        }
+                        .time-editor-presets {
+                            flex-wrap: wrap;
+                        }
+                        .time-editor-preset {
+                            flex: 1;
+                            min-width: 60px;
+                        }
+                        .clone-option {
+                            padding: 14px;
+                        }
+                        .clone-option-icon {
+                            width: 40px;
+                            height: 40px;
+                            font-size: 16px;
+                        }
+                        .clone-option-info h4 {
+                            font-size: 14px;
+                        }
+                        .clone-option-info p {
+                            font-size: 12px;
+                        }
+                        .time-editor-footer,
+                        .clone-modal-footer {
+                            padding: 14px 16px;
+                        }
                     }
 
                     /* All Stores View */
@@ -25776,11 +25884,11 @@ Return ONLY the JSON object, no additional text.`
             };
 
             riskNoteVoiceRecognition.onend = () => {
-                if (riskNoteIsRecording && riskNoteTranscript.trim()) {
-                    // Process with AI when recording ends
-                    processRiskNoteWithAI(riskNoteTranscript.trim());
+                // Processing is now handled in stopRiskNoteVoiceRecording
+                // This just cleans up if recording ends unexpectedly
+                if (riskNoteIsRecording) {
+                    resetRiskNoteVoiceUI();
                 }
-                resetRiskNoteVoiceUI();
             };
 
             riskNoteVoiceRecognition.start();
@@ -25788,8 +25896,18 @@ Return ONLY the JSON object, no additional text.`
 
         function stopRiskNoteVoiceRecording() {
             if (riskNoteVoiceRecognition) {
-                riskNoteIsRecording = false;
+                // Keep riskNoteIsRecording true until onend processes the transcript
                 riskNoteVoiceRecognition.stop();
+
+                // Process the transcript immediately when stop is clicked
+                if (riskNoteTranscript.trim()) {
+                    riskNoteIsRecording = false;
+                    resetRiskNoteVoiceUI();
+                    processRiskNoteWithAI(riskNoteTranscript.trim());
+                } else {
+                    riskNoteIsRecording = false;
+                    resetRiskNoteVoiceUI();
+                }
             }
         }
 
