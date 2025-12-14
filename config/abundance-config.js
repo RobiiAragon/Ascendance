@@ -49,6 +49,7 @@ window.ABUNDANCE_CONFIG = {
 window.FIREBASE_CONFIG = {
     apiKey: window.ENV_FIREBASE_API_KEY,
     authDomain: window.ENV_FIREBASE_AUTH_DOMAIN,
+    databaseURL: window.ENV_FIREBASE_DATABASE_URL,
     projectId: window.ENV_FIREBASE_PROJECT_ID,
     storageBucket: window.ENV_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: window.ENV_FIREBASE_MESSAGING_SENDER_ID,

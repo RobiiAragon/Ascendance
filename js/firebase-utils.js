@@ -4974,6 +4974,7 @@ const firebaseIssuesManager = new FirebaseIssuesManager();
 class FirebaseLicensesManager {
     constructor() {
         this.db = null;
+        this.rtdb = null; // Realtime Database
         this.storage = null;
         this.isInitialized = false;
         this.collectionName = 'licenses';
@@ -4992,6 +4993,11 @@ class FirebaseLicensesManager {
             if (firebase.apps && firebase.apps.length > 0) {
                 this.db = firebase.firestore();
                 this.storage = firebase.storage();
+                // Initialize Realtime Database
+                if (firebase.database) {
+                    this.rtdb = firebase.database();
+                    console.log('✅ Realtime Database initialized for licenses');
+                }
                 this.isInitialized = true;
                 console.log('✅ Firebase Licenses Manager initialized');
                 return true;
@@ -5006,6 +5012,11 @@ class FirebaseLicensesManager {
             firebase.initializeApp(config);
             this.db = firebase.firestore();
             this.storage = firebase.storage();
+            // Initialize Realtime Database
+            if (firebase.database) {
+                this.rtdb = firebase.database();
+                console.log('✅ Realtime Database initialized for licenses');
+            }
             this.isInitialized = true;
             console.log('✅ Firebase Licenses Manager initialized');
             return true;
@@ -5148,6 +5159,7 @@ class FirebaseLicensesManager {
 
     /**
      * Add a new license to Firestore with optional file upload
+     * Also creates a record in Realtime Database for tracking
      * @param {Object} licenseData - License metadata
      * @param {File} file - Optional PDF file to upload to Storage
      * @returns {Promise<string>} Document ID
@@ -5201,7 +5213,31 @@ class FirebaseLicensesManager {
             });
 
             const docRef = await this.db.collection(collectionName).add(dataToSave);
-            console.log('✅ License added with ID:', docRef.id);
+            console.log('✅ License added to Firestore with ID:', docRef.id);
+
+            // Also save to Realtime Database for tracking
+            if (this.rtdb) {
+                try {
+                    const rtdbData = {
+                        firestoreId: docRef.id,
+                        name: licenseData.name,
+                        store: licenseData.store,
+                        expires: licenseData.expires,
+                        status: licenseData.status,
+                        fileName: licenseData.fileName || null,
+                        fileUrl: licenseData.fileUrl || null,
+                        uploadedBy: licenseData.uploadedBy || null,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    await this.rtdb.ref('licenses/' + docRef.id).set(rtdbData);
+                    console.log('✅ License also saved to Realtime Database:', docRef.id);
+                } catch (rtdbError) {
+                    console.warn('⚠️ Could not save to Realtime Database:', rtdbError.message);
+                    // Don't fail the operation if RTDB fails, Firestore is primary
+                }
+            }
+
             return docRef.id;
         } catch (error) {
             console.error('Error adding license:', error);

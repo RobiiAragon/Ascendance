@@ -222,7 +222,7 @@
             });
 
             // Close on overlay click
-            overlay.addEventListener('click', (e) => {
+            overlay.addEventListener('mousedown', (e) => {
                 if (e.target === overlay) {
                     closeConfirmModal();
                     if (onCancel) onCancel();
@@ -238,6 +238,43 @@
                 }
             };
             document.addEventListener('keydown', handleEscape);
+        }
+
+        /**
+         * Upload image to Firebase Storage (sin límite de tamaño)
+         * @param {string} base64String - The base64 encoded image string
+         * @param {string} storagePath - Path in Firebase Storage (e.g., 'treasury/item1.jpg')
+         * @returns {Promise<string>} - Download URL from Firebase Storage
+         */
+        async function uploadImageToFirebaseStorage(base64String, storagePath) {
+            try {
+                if (!firebase || !firebase.storage) {
+                    throw new Error('Firebase Storage not initialized');
+                }
+
+                // Convert base64 to Blob
+                const arr = base64String.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                const n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                for (let i = 0; i < n; i++) {
+                    u8arr[i] = bstr.charCodeAt(i);
+                }
+                const blob = new Blob([u8arr], { type: mime });
+
+                // Upload to Firebase Storage
+                const storage = firebase.storage();
+                const fileRef = storage.ref(storagePath);
+                const snapshot = await fileRef.put(blob);
+                const downloadUrl = await snapshot.ref.getDownloadURL();
+
+                console.log(`✅ Image uploaded to Firebase Storage: ${storagePath}`);
+                return downloadUrl;
+            } catch (error) {
+                console.error('Error uploading image to Firebase Storage:', error);
+                throw error;
+            }
         }
 
         /**
@@ -1101,7 +1138,7 @@
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
                 cashout: 'Expenses Control',
-                treasury: 'Treasury - Select Pieces',
+                treasury: 'Treasury',
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
                 abundancecloud: 'Abundance Cloud Engine',
@@ -1816,11 +1853,12 @@
             const stores = ['Miramar', 'Miramar Wine & Liquor', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park'];
 
             const dashboard = document.querySelector('.dashboard');
+
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Licenses & Documents</h2>
-                        <div style="display: flex; align-items: center; gap: 16px; margin-top: 12px;">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
                             <p class="section-subtitle">Drag and drop documents between stores</p>
                             <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-secondary); border-radius: 6px;">
                                 <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Edit Mode:</span>
@@ -1881,12 +1919,15 @@
                                             <span>Drop documents here</span>
                                         </div>
                                     ` : ''}
-                                    ${storeLicenses.map(lic => `
+                                    ${storeLicenses.map(lic => {
+                                        const hasPdf = lic.fileUrl || lic.fileData;
+                                        return `
                                         <div class="license-item"
                                              draggable="${licensesEditMode ? 'true' : 'false'}"
                                              data-license-id="${lic.id}"
                                              ondragstart="handleLicenseDragStart(event, '${lic.id}')"
-                                             style="cursor: ${licensesEditMode ? 'grab' : 'default'}; opacity: ${licensesEditMode ? '1' : '0.95'};">
+                                             ondragend="handleLicenseDragEnd(event)"
+                                             style="cursor: ${licensesEditMode ? 'grab' : 'default'};">
                                             <div class="license-item-header">
                                                 <div class="license-item-name">
                                                     <i class="fas fa-file-pdf"></i>
@@ -1901,17 +1942,18 @@
                                                     <i class="fas fa-calendar"></i>
                                                     ${formatDate(lic.expires)}
                                                 </span>
-                                                <div class="license-item-actions">
-                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); viewLicense('${lic.id}')" title="View${lic.fileData ? ' PDF' : ''}">
-                                                        <i class="fas ${lic.fileData ? 'fa-file-pdf' : 'fa-eye'}"></i>
+                                                <div class="license-item-actions" style="pointer-events: auto;">
+                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); viewLicense('${lic.id}')" title="View${hasPdf ? ' PDF' : ''}" style="pointer-events: auto;">
+                                                        <i class="fas ${hasPdf ? 'fa-file-pdf' : 'fa-eye'}"></i>
                                                     </button>
-                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLicense('${lic.id}')" title="Delete" style="${!licensesEditMode ? 'opacity: 0.4; pointer-events: none;' : ''}">
+                                                    <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLicense('${lic.id}')" title="Delete" style="${!licensesEditMode ? 'opacity: 0.4; pointer-events: none;' : 'pointer-events: auto;'}">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
-                                    `).join('')}
+                                    `;
+                                    }).join('')}
                                 </div>
                             </div>
                         `;
@@ -4783,20 +4825,184 @@ window.renderDailyChecklist = async function() {
 
 // Toggle task completion
 window.toggleChecklistTask = async function(taskId, store, shift, completionId) {
+    // Find the clicked element
+    const clickedItem = event?.target?.closest('.checklist-item');
+
     if (completionId && completionId !== 'null') {
         // Uncomplete the task
         const success = await removeChecklistCompletion(completionId);
         if (success) {
-            renderDailyChecklist();
+            // Update UI without full reload
+            updateChecklistItemUI(clickedItem, taskId, store, shift, false, null);
+            updateChecklistProgress();
         }
     } else {
         // Complete the task
         const success = await saveChecklistCompletion(taskId, store, shift);
         if (success) {
+            // Get the new completion from the array
+            const newCompletion = checklistData.completions.find(c =>
+                c.taskId === taskId && c.store === store && c.shift === shift && c.date === getTodayDateString()
+            );
             showNotification('Task completed!', 'success');
-            renderDailyChecklist();
+            // Update UI without full reload
+            updateChecklistItemUI(clickedItem, taskId, store, shift, true, newCompletion);
+            updateChecklistProgress();
         }
     }
+}
+
+// Update a single checklist item UI without reloading
+function updateChecklistItemUI(element, taskId, store, shift, isCompleted, completion) {
+    if (!element) return;
+
+    const user = getCurrentUser();
+    const canManageTasks = user && (user.role === 'admin' || user.role === 'supervisor');
+    const task = checklistData.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const completionId = completion?.id || null;
+    const timeStr = completion?.completedAt ?
+        (completion.completedAt.toDate ? completion.completedAt.toDate() : new Date(completion.completedAt)).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})
+        : '';
+
+    // Update the element's onclick
+    element.setAttribute('onclick', `toggleChecklistTask('${taskId}', '${store}', '${shift}', ${isCompleted ? `'${completionId}'` : 'null'})`);
+
+    // Update border color
+    element.style.borderLeftColor = isCompleted ? '#10b981' : 'var(--accent-primary)';
+
+    // Update checkbox
+    const checkbox = element.querySelector('div:first-child');
+    if (checkbox) {
+        checkbox.style.borderColor = isCompleted ? '#10b981' : 'var(--border-color)';
+        checkbox.style.background = isCompleted ? '#10b981' : 'transparent';
+        checkbox.innerHTML = isCompleted
+            ? '<i class="fas fa-check" style="color: white; font-size: 14px;"></i>'
+            : '<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--border-color); opacity: 0.3;"></span>';
+    }
+
+    // Update task text area
+    const textArea = element.querySelector('div:nth-child(2)');
+    if (textArea) {
+        const taskTitle = textArea.querySelector('div:first-child');
+        if (taskTitle) {
+            taskTitle.style.textDecoration = isCompleted ? 'line-through' : 'none';
+            taskTitle.style.opacity = isCompleted ? '0.5' : '1';
+        }
+
+        // Update or add completion info
+        let infoDiv = textArea.querySelector('div:nth-child(2)');
+        if (isCompleted) {
+            const infoHtml = `<i class="fas fa-check-circle"></i> ${completion?.completedBy || user?.name || 'Unknown'} • ${timeStr}`;
+            if (infoDiv) {
+                infoDiv.style.color = '#10b981';
+                infoDiv.style.fontWeight = '500';
+                infoDiv.innerHTML = infoHtml;
+            } else {
+                infoDiv = document.createElement('div');
+                infoDiv.style.cssText = 'font-size: 12px; color: #10b981; margin-top: 4px; font-weight: 500;';
+                infoDiv.innerHTML = infoHtml;
+                textArea.appendChild(infoDiv);
+            }
+        } else {
+            if (infoDiv) {
+                infoDiv.style.color = 'var(--text-muted)';
+                infoDiv.style.fontWeight = 'normal';
+                infoDiv.innerHTML = 'Click to complete';
+            }
+        }
+    }
+
+    // Update trailing icon (before delete button)
+    const icons = element.querySelectorAll(':scope > i.fas');
+    icons.forEach(icon => {
+        if (icon.classList.contains('fa-check-double') || icon.classList.contains('fa-circle')) {
+            if (isCompleted) {
+                icon.className = 'fas fa-check-double';
+                icon.style.color = '#10b981';
+                icon.style.fontSize = '18px';
+                icon.style.opacity = '1';
+            } else {
+                icon.className = 'fas fa-circle';
+                icon.style.color = 'var(--text-muted)';
+                icon.style.fontSize = '8px';
+                icon.style.opacity = '0.3';
+            }
+        }
+    });
+}
+
+// Update the progress percentage display without full reload
+function updateChecklistProgress() {
+    const tasks = checklistData.tasks.filter(t => t.shift === checklistCurrentShift);
+    if (tasks.length === 0) return;
+
+    const completed = tasks.filter(t => {
+        return checklistData.completions.find(c =>
+            c.taskId === t.id &&
+            c.store === checklistCurrentStore &&
+            c.shift === checklistCurrentShift &&
+            c.date === getTodayDateString()
+        );
+    }).length;
+
+    const percentage = Math.round((completed / tasks.length) * 100);
+
+    // Update the percentage display in the card header
+    const cardHeader = document.querySelector('.card-header > div:last-child');
+    if (cardHeader && cardHeader.textContent.includes('% complete')) {
+        cardHeader.textContent = `${percentage}% complete`;
+    }
+
+    // Update store progress cards if visible
+    updateStoreProgressCards();
+}
+
+// Update store progress cards
+function updateStoreProgressCards() {
+    const stores = ['Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park'];
+
+    stores.forEach(store => {
+        const getCompletionPct = (targetStore, shift) => {
+            const tasks = checklistData.tasks.filter(t => t.shift === shift);
+            if (tasks.length === 0) return 100;
+            const completed = tasks.filter(t => {
+                return checklistData.completions.find(c =>
+                    c.taskId === t.id &&
+                    c.store === targetStore &&
+                    c.shift === shift &&
+                    c.date === getTodayDateString()
+                );
+            }).length;
+            return Math.round((completed / tasks.length) * 100);
+        };
+
+        const openingPct = getCompletionPct(store, 'opening');
+        const closingPct = getCompletionPct(store, 'closing');
+        const totalPct = Math.round((openingPct + closingPct) / 2);
+
+        // Find and update progress bars for this store
+        const storeCards = document.querySelectorAll('[onclick*="filterChecklistByStore"]');
+        storeCards.forEach(card => {
+            if (card.getAttribute('onclick')?.includes(store)) {
+                // Update total percentage text
+                const pctText = card.querySelector('div[style*="font-weight: 800"]');
+                if (pctText) {
+                    pctText.textContent = `${totalPct}%`;
+                }
+
+                // Update progress bars
+                const progressBars = card.querySelectorAll('div[style*="height: 6px"]');
+                progressBars.forEach((bar, index) => {
+                    const innerBar = bar.querySelector('div');
+                    if (innerBar) {
+                        innerBar.style.width = `${index === 0 ? openingPct : closingPct}%`;
+                    }
+                });
+            }
+        });
+    });
 }
 
 // Filter by store
@@ -4860,7 +5066,7 @@ window.viewChecklistHistory = async function() {
     const modal = document.createElement('div');
     modal.id = 'checklist-history-modal';
     modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.onmousedown = (e) => { if (e.target === modal) modal.remove(); };
 
     // Get last 7 days of completions
     const db = firebase.firestore();
@@ -7227,7 +7433,7 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Employee Picker Modal -->
-                <div class="employee-picker-overlay" id="employeePickerOverlay" onclick="closeEmployeePicker(event)">
+                <div class="employee-picker-overlay" id="employeePickerOverlay" onmousedown="closeEmployeePicker(event)">
                     <div class="employee-picker" onclick="event.stopPropagation()">
                         <div class="employee-picker-header">
                             <h3><i class="fas fa-user-plus" style="margin-right: 8px; color: var(--accent-primary);"></i>Assign Employee</h3>
@@ -7245,7 +7451,7 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Time Editor Modal -->
-                <div class="time-editor-overlay" id="timeEditorOverlay" onclick="closeTimeEditor(event)">
+                <div class="time-editor-overlay" id="timeEditorOverlay" onmousedown="closeTimeEditor(event)">
                     <div class="time-editor-modal" onclick="event.stopPropagation()">
                         <div class="time-editor-header">
                             <h3 id="timeEditorTitle"><i class="fas fa-clock"></i> Edit Shift</h3>
@@ -7322,7 +7528,7 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Clone Modal -->
-                <div class="clone-modal-overlay" id="cloneModalOverlay" onclick="closeCloneModal(event)">
+                <div class="clone-modal-overlay" id="cloneModalOverlay" onmousedown="closeCloneModal(event)">
                     <div class="clone-modal" onclick="event.stopPropagation()">
                         <div class="clone-modal-header">
                             <h3><i class="fas fa-clone" style="color: var(--accent-primary);"></i> Clone Schedule</h3>
@@ -8618,7 +8824,7 @@ window.viewChecklistHistory = async function() {
             const today = formatDateKey(new Date());
 
             let modalHTML = `
-                <div class="date-picker-modal-overlay" id="datePickerOverlay" onclick="closeDatePicker(event)">
+                <div class="date-picker-modal-overlay" id="datePickerOverlay" onmousedown="closeDatePicker(event)">
                     <div class="date-picker-modal">
                         <div class="date-picker-header">
                             <h3><i class="fas fa-calendar-day" style="color: var(--accent-primary);"></i> Select Day Off Date</h3>
@@ -10637,13 +10843,6 @@ window.viewChecklistHistory = async function() {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
 
-                // Validate file size (max 1MB for Firestore)
-                if (file.size > 1024 * 1024) {
-                    alert('File is too large. Please use a file smaller than 1MB.');
-                    input.value = '';
-                    return;
-                }
-
                 // Check if it's a PDF
                 if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
                     // Show PDF preview
@@ -11030,13 +11229,6 @@ window.viewChecklistHistory = async function() {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
 
-                // Validate file size (max 1MB for Firestore)
-                if (file.size > 1024 * 1024) {
-                    alert('File is too large. Please use a file smaller than 1MB.');
-                    input.value = '';
-                    return;
-                }
-
                 // Check if it's a PDF
                 if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
                     // Show PDF preview
@@ -11095,12 +11287,6 @@ window.viewChecklistHistory = async function() {
 
             if (fileInput && fileInput.files && fileInput.files[0]) {
                 const file = fileInput.files[0];
-
-                // Validate file size (max 1MB for Firestore)
-                if (file.size > 1024 * 1024) {
-                    showNotification('File is too large. Please use a file smaller than 1MB.', 'error');
-                    return;
-                }
 
                 // Determine file type
                 const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
@@ -11654,29 +11840,31 @@ window.viewChecklistHistory = async function() {
             const imagePreview = document.getElementById('treasury-image-preview');
 
             // Determine image value
-            let image = null;
+            let imageUrl = null;
             const wasRemoved = imagePreview?.getAttribute('data-removed') === 'true';
 
             if (wasRemoved) {
                 // Image was explicitly removed
-                image = null;
+                imageUrl = null;
             } else if (imageInput?.files && imageInput.files.length > 0) {
-                // New image uploaded - convert to base64 and compress
+                // New image uploaded - upload to Firebase Storage (sin límite de tamaño)
                 const rawBase64 = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(imageInput.files[0]);
                 });
                 try {
-                    image = await compressImage(rawBase64);
+                    const fileName = `treasury-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+                    imageUrl = await uploadImageToFirebaseStorage(rawBase64, `treasury/${fileName}`);
                 } catch (err) {
-                    console.error('Error compressing treasury image:', err);
-                    image = rawBase64;
+                    console.error('Error uploading treasury image:', err);
+                    showNotification('Error uploading image to Firebase Storage', 'error');
+                    return;
                 }
             } else if (isEdit) {
                 // Keep existing image
-                const existingItem = treasuryItems.find(t => t.id === itemId);
-                image = existingItem?.image || (existingItem?.photos && existingItem.photos.length > 0 ? existingItem.photos[0] : null);
+                const existingItem = treasuryItems.find(t => t.firestoreId === itemId || t.id === itemId);
+                imageUrl = existingItem?.image || (existingItem?.photos && existingItem.photos.length > 0 ? existingItem.photos[0] : null);
             }
 
             if (!artworkName || !location) {
@@ -11686,7 +11874,7 @@ window.viewChecklistHistory = async function() {
 
             try {
                 if (isEdit) {
-                    const item = treasuryItems.find(t => t.id === itemId);
+                    const item = treasuryItems.find(t => t.firestoreId === itemId || t.id === itemId);
                     if (item) {
                         item.artworkName = artworkName;
                         item.artist = artist;
@@ -11694,7 +11882,7 @@ window.viewChecklistHistory = async function() {
                         item.value = value;
                         item.location = location;
                         item.description = description;
-                        item.image = image;
+                        item.image = imageUrl;
 
                         // Update in Firebase
                         if (typeof firebase !== 'undefined' && firebase.firestore) {
@@ -11710,7 +11898,7 @@ window.viewChecklistHistory = async function() {
                                     value,
                                     location,
                                     description,
-                                    image,
+                                    image: imageUrl,
                                     updatedAt: new Date()
                                 });
                                 console.log('✅ Treasury item updated in Firebase');
@@ -11723,7 +11911,7 @@ window.viewChecklistHistory = async function() {
                                     value,
                                     location,
                                     description,
-                                    image,
+                                    image: imageUrl,
                                     createdAt: new Date(),
                                     updatedAt: new Date()
                                 });
@@ -11741,7 +11929,7 @@ window.viewChecklistHistory = async function() {
                         value,
                         location,
                         description,
-                        image
+                        image: imageUrl
                     };
 
                     // Save to Firebase
@@ -11756,7 +11944,7 @@ window.viewChecklistHistory = async function() {
                             value,
                             location,
                             description,
-                            image,
+                            image: imageUrl,
                             createdAt: new Date(),
                             updatedAt: new Date()
                         });
@@ -13095,7 +13283,7 @@ window.viewChecklistHistory = async function() {
             document.body.appendChild(modalOverlay);
 
             // Close on overlay click
-            modalOverlay.addEventListener('click', (e) => {
+            modalOverlay.addEventListener('mousedown', (e) => {
                 if (e.target === modalOverlay) {
                     closePdfPreviewModal();
                 }
@@ -13370,7 +13558,7 @@ window.viewChecklistHistory = async function() {
             document.body.appendChild(modalOverlay);
 
             // Close on overlay click
-            modalOverlay.addEventListener('click', (e) => {
+            modalOverlay.addEventListener('mousedown', (e) => {
                 if (e.target === modalOverlay) {
                     closeDocumentPreviewModal();
                 }
@@ -13405,7 +13593,7 @@ window.viewChecklistHistory = async function() {
             link.click();
         }
 
-        // Function to delete a license
+        // Function to delete a license (deletes immediately from Firebase)
         function deleteLicense(licenseId) {
             const license = licenses.find(l => l.id === licenseId || l.firestoreId === licenseId);
             if (!license) return;
@@ -13416,19 +13604,27 @@ window.viewChecklistHistory = async function() {
                 confirmText: 'Delete',
                 type: 'danger',
                 onConfirm: async () => {
-                    // Delete from Firebase
-                    if (firebaseLicensesManager && firebaseLicensesManager.isInitialized && license.firestoreId) {
-                        try {
-                            await firebaseLicensesManager.deleteLicense(license.firestoreId);
-                            console.log('✅ License deleted from Firebase');
-                        } catch (error) {
-                            console.error('Error deleting license from Firebase:', error);
-                        }
-                    }
+                    const licenseName = license.name;
+                    const firestoreId = license.firestoreId || license.id;
 
-                    // Remove from local array
+                    // Remove from local array immediately for UI feedback
                     licenses = licenses.filter(l => l.id !== licenseId && l.firestoreId !== licenseId);
-                    renderPage(currentPage);
+                    renderLicenses();
+
+                    // Delete from Firebase
+                    try {
+                        if (firebaseLicensesManager && firebaseLicensesManager.isInitialized) {
+                            await firebaseLicensesManager.deleteLicense(firestoreId);
+                            console.log(`✅ License "${licenseName}" deleted from Firebase`);
+                            showToast(`"${licenseName}" deleted successfully`, 'success');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error deleting license from Firebase:', error);
+                        showToast('Error deleting document. Please try again.', 'error');
+                        // Reload licenses to restore state
+                        await initializeFirebaseLicenses();
+                        renderLicenses();
+                    }
                 }
             });
         }
@@ -17460,6 +17656,9 @@ window.viewChecklistHistory = async function() {
                             <button class="btn-secondary" onclick="openInactiveEmployeesModal()">
                                 <i class="fas fa-arrow-left"></i> Back to List
                             </button>
+                            <button class="btn-danger" onclick="confirmDeleteEmployee('${offEmp.firestoreId || offEmp.id}', '${offEmp.name.replace(/'/g, "\\'")}');" style="background: #dc2626; color: white;">
+                                <i class="fas fa-trash-alt"></i> Delete Employee
+                            </button>
                             <button class="btn-primary" onclick="activateEmployee('${offEmp.firestoreId || offEmp.id}'); closeModal();">
                                 <i class="fas fa-user-check"></i> Reactivate Employee
                             </button>
@@ -18284,7 +18483,7 @@ window.viewChecklistHistory = async function() {
                                     <button type="button" class="btn-secondary" onclick="document.getElementById('invoice-photo').click()" style="margin: 0;">
                                         <i class="fas fa-upload"></i> Upload File
                                     </button>
-                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Upload a photo or PDF of the invoice (max 1MB)</p>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Upload a photo or PDF of the invoice</p>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -19184,7 +19383,7 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="saveTreasuryItem(true, ${treasuryId})">
+                            <button class="btn-primary" onclick="saveTreasuryItem(true, '${treasuryId}')">
                                 <i class="fas fa-save"></i>
                                 Update Piece
                             </button>
@@ -20504,6 +20703,68 @@ window.viewChecklistHistory = async function() {
         }
 
         /**
+         * Confirm and permanently delete an employee
+         */
+        function confirmDeleteEmployee(employeeId, employeeName) {
+            const confirmed = confirm(`Are you sure you want to PERMANENTLY DELETE "${employeeName}"?\n\nThis action cannot be undone. All employee data, documents, and records will be permanently removed.`);
+
+            if (confirmed) {
+                // Double confirmation for safety
+                const doubleConfirm = confirm(`FINAL WARNING: You are about to permanently delete "${employeeName}".\n\nType 'DELETE' in the next prompt to confirm.`);
+
+                if (doubleConfirm) {
+                    const userInput = prompt(`Type DELETE to permanently remove ${employeeName}:`);
+                    if (userInput === 'DELETE') {
+                        deleteEmployeePermanently(employeeId, employeeName);
+                    } else {
+                        showNotification('Deletion cancelled - confirmation text did not match', 'info');
+                    }
+                }
+            }
+        }
+
+        /**
+         * Permanently delete an employee from the database
+         */
+        async function deleteEmployeePermanently(employeeId, employeeName) {
+            try {
+                // Delete from Firebase if initialized
+                if (firebaseEmployeeManager.isInitialized) {
+                    const employeeRef = doc(db, 'employees', employeeId);
+                    await deleteDoc(employeeRef);
+
+                    // Also delete any associated paperwork
+                    try {
+                        const paperworkRef = collection(db, 'employees', employeeId, 'paperwork');
+                        const paperworkSnap = await getDocs(paperworkRef);
+                        const deletePromises = paperworkSnap.docs.map(doc => deleteDoc(doc.ref));
+                        await Promise.all(deletePromises);
+                    } catch (paperworkError) {
+                        console.log('No paperwork to delete or error:', paperworkError);
+                    }
+                }
+
+                // Remove from local array
+                const index = employees.findIndex(e => e.id === employeeId || e.firestoreId === employeeId);
+                if (index !== -1) {
+                    employees.splice(index, 1);
+                }
+
+                // Save to localStorage as backup
+                saveData();
+
+                closeModal();
+                renderPage(currentPage);
+                updateEmployeeCountBadge();
+                showNotification(`${employeeName} has been permanently deleted.`, 'success');
+
+            } catch (error) {
+                console.error('Error deleting employee:', error);
+                showNotification('Error deleting employee. Please try again.', 'error');
+            }
+        }
+
+        /**
          * View employee paperwork/documents
          */
         async function viewEmployeePaperwork(employeeId) {
@@ -21077,7 +21338,7 @@ window.viewChecklistHistory = async function() {
             `;
 
             // Close on background click
-            modal.addEventListener('click', (e) => {
+            modal.addEventListener('mousedown', (e) => {
                 if (e.target === modal) {
                     modal.remove();
                 }
@@ -21689,15 +21950,6 @@ window.viewChecklistHistory = async function() {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
 
-                // Validate file size (max 1MB for Firestore document limit)
-                const maxSize = 1 * 1024 * 1024; // 1MB
-                if (file.size > maxSize) {
-                    showToast('Image too large. Please use an image under 1MB.', 'error');
-                    input.value = '';
-                    preview.style.display = 'none';
-                    return;
-                }
-
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     img.src = e.target.result;  // Base64 DataURL
@@ -21810,14 +22062,6 @@ window.viewChecklistHistory = async function() {
 
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-
-                // Validate file size (max 1MB for Firestore document limit)
-                const maxSize = 1 * 1024 * 1024; // 1MB
-                if (file.size > maxSize) {
-                    showToast('Image too large. Please use an image under 1MB.', 'error');
-                    input.value = '';
-                    return;
-                }
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -21943,7 +22187,7 @@ window.viewChecklistHistory = async function() {
                             <button type="button" class="btn-secondary" onclick="document.getElementById('edit-product-image').click()" style="margin: 0;">
                                 <i class="fas fa-image"></i> ${product.image ? 'Change Image' : 'Select Image'}
                             </button>
-                            <small style="display: block; margin-top: 8px; color: var(--text-muted);">Max file size: 1MB</small>
+                            <small style="display: block; margin-top: 8px; color: var(--text-muted);">Stored securely in cloud storage</small>
                         </div>
 
                         <div>
@@ -23325,6 +23569,16 @@ window.viewChecklistHistory = async function() {
             draggedLicenseId = licenseId;
             event.target.classList.add('dragging');
             event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', licenseId);
+        }
+
+        function handleLicenseDragEnd(event) {
+            event.target.classList.remove('dragging');
+            draggedLicenseId = null;
+            // Remove drag-over class from all zones
+            document.querySelectorAll('.license-store-zone').forEach(zone => {
+                zone.classList.remove('drag-over');
+            });
         }
 
         function handleLicenseDragOver(event) {
@@ -23340,17 +23594,37 @@ window.viewChecklistHistory = async function() {
             dropZone.classList.remove('drag-over');
         }
 
-        function handleLicenseDrop(event, targetStore) {
+        async function handleLicenseDrop(event, targetStore) {
             if (!licensesEditMode) return;
             event.preventDefault();
             const dropZone = event.currentTarget;
             dropZone.classList.remove('drag-over');
 
             if (draggedLicenseId !== null) {
-                const license = licenses.find(l => l.id === draggedLicenseId);
+                const license = licenses.find(l => l.id === draggedLicenseId || l.firestoreId === draggedLicenseId);
                 if (license && license.store !== targetStore) {
+                    const oldStore = license.store;
+                    const licenseName = license.name;
+                    const licenseFirestoreId = license.firestoreId || license.id;
+
+                    // Update local state immediately
                     license.store = targetStore;
                     renderLicenses();
+
+                    // Save to Firebase immediately
+                    try {
+                        if (firebaseLicensesManager && firebaseLicensesManager.isInitialized) {
+                            await firebaseLicensesManager.updateLicense(licenseFirestoreId, { store: targetStore });
+                            console.log(`✅ License "${licenseName}" moved from ${oldStore} to ${targetStore} - saved to Firebase`);
+                            showToast(`"${licenseName}" moved to ${targetStore}`, 'success');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error saving license move to Firebase:', error);
+                        // Revert local change on error
+                        license.store = oldStore;
+                        renderLicenses();
+                        showToast('Error saving change. Please try again.', 'error');
+                    }
                 }
                 draggedLicenseId = null;
             }
@@ -27119,7 +27393,7 @@ window.showModuleDetails = function(index) {
     `).join('');
 
     const modalHtml = `
-        <div id="module-details-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="if(event.target === this) closeModuleDetails()">
+        <div id="module-details-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" onmousedown="if(event.target === this) closeModuleDetails()">
             <div style="background: var(--bg-primary); border-radius: 20px; max-width: 560px; width: 100%; max-height: 90vh; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: modalSlideIn 0.3s ease;">
                 <!-- Header with gradient -->
                 <div style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); padding: 24px; color: white; position: relative;">
@@ -27261,7 +27535,7 @@ window.runSystemCheck = async function() {
     const checkModal = document.createElement('div');
     checkModal.id = 'system-check-modal';
     checkModal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-    checkModal.onclick = (e) => { if (e.target === checkModal) checkModal.remove(); };
+    checkModal.onmousedown = (e) => { if (e.target === checkModal) checkModal.remove(); };
 
     checkModal.innerHTML = `
         <div style="background: var(--bg-primary); border-radius: 20px; max-width: 480px; width: 100%; padding: 32px; text-align: center; animation: modalSlideIn 0.3s ease;">
@@ -27365,7 +27639,7 @@ window.showRecentActivity = function() {
     const activityModal = document.createElement('div');
     activityModal.id = 'activity-modal';
     activityModal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-    activityModal.onclick = (e) => { if (e.target === activityModal) activityModal.remove(); };
+    activityModal.onmousedown = (e) => { if (e.target === activityModal) activityModal.remove(); };
 
     // Get current user
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'Unknown' };
@@ -27417,80 +27691,44 @@ function formatTimeAgo(date) {
     return `${Math.floor(hours / 24)}d ago`;
 }
 
-const FLOATING_ADD_STICKY_MARGIN = 20;
-let floatingAddObservers = [];
-let floatingAddFallbackListener = null;
-let floatingAddRaf = null;
-let floatingAddDebounceTimeout = null;
-let isScrolling = false;
+// Floating add button - simple scroll threshold approach
+const FLOATING_ADD_SCROLL_THRESHOLD = 150; // pixels scrolled before buttons become fixed
+let floatingAddScrollListener = null;
 
 function refreshFloatingAddButtons() {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
 
-    // Clean up existing listeners
-    floatingAddObservers.forEach(observer => observer.disconnect());
-    floatingAddObservers = [];
-
-    if (floatingAddFallbackListener) {
-        window.removeEventListener('scroll', floatingAddFallbackListener);
-        window.removeEventListener('resize', floatingAddFallbackListener);
-        floatingAddFallbackListener = null;
+    // Clean up existing listener
+    if (floatingAddScrollListener) {
+        window.removeEventListener('scroll', floatingAddScrollListener);
+        floatingAddScrollListener = null;
     }
 
-    // Use scroll listener with debounced updates
-    floatingAddFallbackListener = () => {
-        if (floatingAddRaf) {
-            cancelAnimationFrame(floatingAddRaf);
-        }
+    // Simple scroll listener - fix buttons when scrolled past threshold
+    floatingAddScrollListener = () => {
+        const scrollY = window.scrollY || window.pageYOffset;
+        const shouldFix = scrollY > FLOATING_ADD_SCROLL_THRESHOLD;
 
-        // Clear any pending debounce
-        if (floatingAddDebounceTimeout) {
-            clearTimeout(floatingAddDebounceTimeout);
-        }
-
-        // Mark as scrolling and hide fixed buttons
-        if (!isScrolling) {
-            isScrolling = true;
-            document.querySelectorAll('.floating-add-btn.is-fixed').forEach(btn => {
-                btn.classList.add('is-scrolling');
-            });
-        }
-
-        floatingAddRaf = requestAnimationFrame(() => {
-            floatingAddRaf = null;
-
-            // Debounce to ensure final state is correct after scroll stops
-            floatingAddDebounceTimeout = setTimeout(() => {
-                isScrolling = false;
-                updateFloatingButtonsVisibility();
-                floatingAddDebounceTimeout = null;
-            }, 100);
+        document.querySelectorAll('.floating-add-btn').forEach(button => {
+            if (shouldFix) {
+                button.classList.add('is-fixed');
+            } else {
+                button.classList.remove('is-fixed');
+            }
         });
     };
 
-    window.addEventListener('scroll', floatingAddFallbackListener, { passive: true });
-    window.addEventListener('resize', floatingAddFallbackListener);
+    window.addEventListener('scroll', floatingAddScrollListener, { passive: true });
 
     // Initial update
-    updateFloatingButtonsVisibility();
+    floatingAddScrollListener();
 }
 
 function updateFloatingButtonsVisibility() {
-    if (typeof document === 'undefined') return;
-
-    document.querySelectorAll('.floating-add-btn').forEach(button => {
-        const rect = button.getBoundingClientRect();
-        const shouldFix = rect.top < -FLOATING_ADD_STICKY_MARGIN;
-
-        // Remove scrolling class
-        button.classList.remove('is-scrolling');
-
-        // Only update if the class needs to change
-        const currentlyFixed = button.classList.contains('is-fixed');
-        if (currentlyFixed !== shouldFix) {
-            button.classList.toggle('is-fixed', shouldFix);
-        }
-    });
+    // Trigger scroll handler to update visibility
+    if (floatingAddScrollListener) {
+        floatingAddScrollListener();
+    }
 }
 
 function ensureFloatingAddButtonFallback() {
