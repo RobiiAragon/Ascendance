@@ -49,8 +49,17 @@ let abundanceState = {
     refreshIntervalId: null
 };
 
-// Initialize on page load
+// Initialize on page load - BUT NOT if we're on transfers page
 document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get('page');
+
+    // Don't initialize if we're on the transfers page
+    if (page === 'transfers') {
+        console.log('📦 Skipping Abundance Cloud init - Transfers page detected');
+        return;
+    }
+
     initializeAbundanceCloud();
 });
 

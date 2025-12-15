@@ -82,8 +82,13 @@ function saveTransfers() {
 
 // Render the transfers page content
 function renderTransfersPage() {
+    console.log('📝 renderTransfersPage called');
     const dashboard = document.querySelector('.dashboard');
-    if (!dashboard) return;
+    if (!dashboard) {
+        console.error('❌ Dashboard element not found!');
+        return;
+    }
+    console.log('✅ Dashboard found, rendering transfers...');
 
     // Calculate stats
     const stats = calculateTransferStats();
