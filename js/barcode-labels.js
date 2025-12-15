@@ -16,7 +16,7 @@ const LABEL_CONFIG = {
 // Labels state
 let labelProducts = [];
 let labelQueue = [];
-let selectedStore = 'vsu';
+let labelSelectedStore = 'vsu';
 
 /**
  * Generate EAN-13 checksum digit
@@ -287,7 +287,7 @@ function updateLabelQueueUI() {
         const price = variant?.price || product.variants?.[0]?.price || '0.00';
         const sku = variant?.sku || product.variants?.[0]?.sku || 'N/A';
         const image = product.image?.src || product.images?.[0]?.src || '';
-        const storeCode = getStoreCode(selectedStore);
+        const storeCode = getStoreCode(labelSelectedStore);
         const barcode = generateEAN13(product.id, storeCode);
 
         return `
@@ -353,7 +353,7 @@ function getStoreCode(store) {
  */
 function generateLabelPreview(product, variant, showPreview = true) {
     const price = variant?.price || product.variants?.[0]?.price || '0.00';
-    const storeCode = getStoreCode(selectedStore);
+    const storeCode = getStoreCode(labelSelectedStore);
     const barcode = generateEAN13(product.id, storeCode);
 
     // Create canvas for barcode
@@ -412,7 +412,7 @@ async function printLabels() {
         const product = item.product;
         const variant = item.variant;
         const price = variant?.price || product.variants?.[0]?.price || '0.00';
-        const storeCode = getStoreCode(selectedStore);
+        const storeCode = getStoreCode(labelSelectedStore);
         const barcode = generateEAN13(product.id, storeCode);
 
         // Create barcode canvas
@@ -597,7 +597,7 @@ async function exportLabelsPDF() {
         const product = item.product;
         const variant = item.variant;
         const price = variant?.price || product.variants?.[0]?.price || '0.00';
-        const storeCode = getStoreCode(selectedStore);
+        const storeCode = getStoreCode(labelSelectedStore);
         const barcode = generateEAN13(product.id, storeCode);
 
         // Draw label border (optional, for cutting guide)
@@ -808,7 +808,7 @@ async function handleLabelProductSearch(query) {
         `;
 
         try {
-            const products = await searchShopifyProducts(query, selectedStore);
+            const products = await searchShopifyProducts(query, labelSelectedStore);
             labelProducts = products;
             renderLabelProducts(products);
         } catch (error) {
@@ -826,7 +826,7 @@ async function handleLabelProductSearch(query) {
  * Handle store change
  */
 function handleLabelStoreChange(store) {
-    selectedStore = store;
+    labelSelectedStore = store;
     // Clear products and reload if there's a search query
     const searchInput = document.getElementById('label-product-search');
     if (searchInput && searchInput.value.length >= 2) {
@@ -849,7 +849,7 @@ async function loadRecentProducts() {
     `;
 
     try {
-        const products = await getAllShopifyProducts(selectedStore, 100);
+        const products = await getAllShopifyProducts(labelSelectedStore, 100);
         labelProducts = products;
         renderLabelProducts(products);
     } catch (error) {

@@ -1,9 +1,14 @@
 /**
  * Abundance Cloud Configuration
- * 
- * ACTUALIZADO: 10 de Diciembre 2025
+ *
+ * ACTUALIZADO: 15 de Diciembre 2025
  * Sistema completo con Firebase Authentication y Firestore
+ * Celeste AI Assistant con Claude
  */
+
+// Celeste AI Configuration (Claude API)
+// Get your API key from: https://console.anthropic.com/
+window.ANTHROPIC_API_KEY = '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';
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {
