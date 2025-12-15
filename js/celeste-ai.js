@@ -713,7 +713,7 @@ function initializeSpeechRecognition() {
         updateVoiceButton();
 
         if (event.error === 'not-allowed') {
-            addCelesteMessage('Por favor permite el acceso al micrófono para usar el reconocimiento de voz.', 'error');
+            addCelesteMessage('Please allow microphone access to use voice recognition.', 'error');
         }
     };
 }
@@ -723,7 +723,7 @@ function initializeSpeechRecognition() {
  */
 function toggleCelesteVoice() {
     if (!celesteRecognition) {
-        addCelesteMessage('El reconocimiento de voz no está disponible en este navegador.', 'error');
+        addCelesteMessage('Voice recognition is not available in this browser.', 'error');
         return;
     }
 
@@ -733,7 +733,7 @@ function toggleCelesteVoice() {
     } else {
         celesteRecognition.start();
         celesteIsListening = true;
-        addCelesteMessage('🎤 Escuchando... Habla ahora', 'system');
+        addCelesteMessage('🎤 Listening... Speak now', 'system');
     }
 
     updateVoiceButton();
