@@ -140,6 +140,10 @@
                 <span class="nav-icon"><i class="fas fa-cloud"></i></span>
                 Abundance Cloud Engine
             </a>
+            <a href="abundance-cloud.html?page=transfers" class="nav-item" data-page="transfers">
+                <span class="nav-icon"><i class="fas fa-exchange-alt"></i></span>
+                Transfers
+            </a>
             <a href="index.html" class="nav-item external-link" data-page="announcements">
                 <span class="nav-icon"><i class="fas fa-bullhorn"></i></span>
                 Announcements
@@ -408,6 +412,131 @@
         </div>
     </div>
 
+    <!-- Transfers Section (hidden by default) -->
+    <div class="transfers-section" id="transfersSection" style="display: none;">
+        <!-- Transfers Content will be loaded here by JS -->
+    </div>
+
+    <!-- Transfer Modal -->
+    <div class="modal" id="transferModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-exchange-alt" style="color: var(--accent-primary);"></i>
+                    Nueva Transferencia
+                </h2>
+                <button class="modal-close" onclick="closeTransferModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="transferForm">
+                    <!-- Store Origin -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-store"></i> Tienda Origen *
+                        </label>
+                        <select id="transferStoreOrigin" class="form-input" required onchange="handleOriginStoreChange()">
+                            <option value="">Seleccionar tienda...</option>
+                            <option value="North Park">VSU North Park</option>
+                            <option value="Morena">VSU Morena</option>
+                            <option value="Chula Vista">VSU Chula Vista</option>
+                            <option value="Miramar">VSU Miramar</option>
+                            <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                        </select>
+                    </div>
+
+                    <!-- Store Destination -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-map-marker-alt"></i> Tienda Destino *
+                        </label>
+                        <select id="transferStoreDestination" class="form-input" required>
+                            <option value="">Seleccionar tienda...</option>
+                            <option value="North Park">VSU North Park</option>
+                            <option value="Morena">VSU Morena</option>
+                            <option value="Chula Vista">VSU Chula Vista</option>
+                            <option value="Miramar">VSU Miramar</option>
+                            <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                        </select>
+                    </div>
+
+                    <!-- Product Search -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-box"></i> Producto *
+                        </label>
+                        <div class="product-search-container">
+                            <input type="text" id="transferProductSearch" class="form-input" placeholder="Buscar producto..." autocomplete="off">
+                            <div id="productSearchResults" class="product-search-results" style="display: none;"></div>
+                        </div>
+                        <input type="hidden" id="transferProductId" required>
+                        <div id="selectedProductDisplay" class="selected-product-display" style="display: none;"></div>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-hashtag"></i> Cantidad *
+                        </label>
+                        <input type="number" id="transferQuantity" class="form-input" min="1" placeholder="Cantidad a transferir" required>
+                    </div>
+
+                    <!-- Ship Date -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-calendar"></i> Fecha de Envio *
+                        </label>
+                        <input type="date" id="transferShipDate" class="form-input" required>
+                    </div>
+
+                    <!-- Sent By -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-user"></i> Enviado por *
+                        </label>
+                        <input type="text" id="transferSentBy" class="form-input" placeholder="Nombre del empleado" required>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block;">
+                            <i class="fas fa-sticky-note"></i> Notas (opcional)
+                        </label>
+                        <textarea id="transferNotes" class="form-input" rows="3" placeholder="Notas adicionales..." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <div id="transferMessage" class="alert" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeTransferModal()">Cancelar</button>
+                <button type="button" class="btn-primary" id="submitTransferBtn" onclick="submitTransfer()">
+                    <i class="fas fa-paper-plane"></i>
+                    Crear Transferencia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Details Modal -->
+    <div class="modal" id="transferDetailsModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="transferDetailsTitle">Detalles de Transferencia</h2>
+                <button class="modal-close" onclick="closeTransferDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="transferDetailsBody">
+                <!-- Transfer details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeTransferDetailsModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Thief Report Modal -->
     <div class="modal" id="thiefReportModal">
         <div class="modal-content" style="max-width: 700px;">
@@ -538,6 +667,9 @@
     <!-- Abundance Cloud Script -->
     <script src="js/abundance-cloud.js"></script>
 
+    <!-- Transfers Module Script -->
+    <script src="js/transfers.js"></script>
+
     <!-- Initialize Application -->
     <script>
         // Initialize authentication and filter navigation
@@ -571,12 +703,46 @@
                 console.error('Error filtering navigation:', error);
             }
 
-            // Initialize Abundance Cloud
-            try {
-                initializeAbundanceCloud();
-                console.log('✅ Abundance Cloud initialized');
-            } catch (error) {
-                console.error('Error initializing Abundance Cloud:', error);
+            // Check if we're on transfers page
+            const urlParams = new URLSearchParams(window.location.search);
+            const page = urlParams.get('page');
+
+            if (page === 'transfers') {
+                // Initialize Transfers Module
+                try {
+                    // Update page title and breadcrumb
+                    const pageTitle = document.querySelector('.page-title');
+                    if (pageTitle) pageTitle.textContent = 'Transferencias entre Tiendas';
+
+                    const breadcrumb = document.querySelector('.breadcrumb span');
+                    if (breadcrumb) breadcrumb.textContent = 'Transferencias';
+
+                    // Update search placeholder
+                    const searchInput = document.getElementById('orderSearch');
+                    if (searchInput) searchInput.placeholder = 'Buscar transferencias...';
+
+                    // Update nav active state
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                        if (item.getAttribute('data-page') === 'transfers') {
+                            item.classList.add('active');
+                        }
+                    });
+
+                    // Initialize transfers
+                    initializeTransfersModule();
+                    console.log('✅ Transfers Module initialized');
+                } catch (error) {
+                    console.error('Error initializing Transfers Module:', error);
+                }
+            } else {
+                // Initialize Abundance Cloud (Orders page)
+                try {
+                    initializeAbundanceCloud();
+                    console.log('✅ Abundance Cloud initialized');
+                } catch (error) {
+                    console.error('Error initializing Abundance Cloud:', error);
+                }
             }
 
             // Load employee count from Firebase
