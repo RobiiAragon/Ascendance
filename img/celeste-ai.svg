@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <!-- Gradient for the lines -->
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7"/>
+      <stop offset="50%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+
+    <!-- Lighter gradient for hair -->
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c4b5fd"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+
+    <!-- Vape gradient -->
+    <linearGradient id="vapeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#5b21b6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="url(#lineGrad)" stroke-width="2.5"/>
+
+  <!-- Hair back/long strands -->
+  <path d="M75 55
+           Q60 70 55 95
+           Q50 120 55 150
+           Q58 165 65 175"
+        fill="none" stroke="url(#hairGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <path d="M80 50
+           Q68 65 63 90
+           Q58 115 60 140
+           Q62 155 68 168"
+        fill="none" stroke="url(#hairGrad)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Hair top/head band area -->
+  <path d="M70 52 Q85 42 100 48 Q105 50 108 55"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Face profile -->
+  <path d="M108 55
+           Q115 60 118 70
+           Q120 80 118 90
+           L115 95
+           Q118 98 117 102
+           L112 108
+           Q115 115 112 120
+           Q108 128 100 130"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Neck -->
+  <path d="M100 130
+           Q98 140 95 150
+           Q93 155 90 158"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Shoulder/body hint -->
+  <path d="M90 158
+           Q75 162 60 170
+           Q50 175 45 180"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <path d="M90 158
+           Q100 165 110 168"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Arm holding vape -->
+  <path d="M95 155
+           Q110 150 120 140
+           Q130 130 135 125"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Hand hint -->
+  <path d="M135 125 Q138 122 140 120"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Vape device -->
+  <rect x="138" y="95" width="12" height="30" rx="3" fill="url(#vapeGrad)"/>
+  <rect x="140" y="90" width="8" height="8" rx="2" fill="#7c3aed"/>
+
+  <!-- Vapor/smoke swirls -->
+  <path d="M144 85
+           Q150 75 145 65
+           Q140 55 148 45"
+        fill="none" stroke="url(#hairGrad)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="d"
+             values="M144 85 Q150 75 145 65 Q140 55 148 45;
+                     M144 85 Q152 73 147 62 Q142 52 152 42;
+                     M144 85 Q150 75 145 65 Q140 55 148 45"
+             dur="3s" repeatCount="indefinite"/>
+  </path>
+
+  <path d="M148 80
+           Q155 68 150 55
+           Q147 45 155 38"
+        fill="none" stroke="url(#hairGrad)" stroke-width="1.5" stroke-linecap="round" opacity="0.7">
+    <animate attributeName="d"
+             values="M148 80 Q155 68 150 55 Q147 45 155 38;
+                     M148 80 Q158 65 152 52 Q148 42 158 35;
+                     M148 80 Q155 68 150 55 Q147 45 155 38"
+             dur="2.5s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Decorative leaf/plant element -->
+  <path d="M50 175
+           Q45 168 48 160
+           Q52 165 50 175"
+        fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linecap="round"/>
+
+  <path d="M48 172
+           Q40 170 35 175
+           Q42 173 48 172"
+        fill="none" stroke="url(#lineGrad)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <path d="M52 168
+           Q48 162 52 155
+           Q54 160 52 168"
+        fill="none" stroke="url(#lineGrad)" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

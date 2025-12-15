@@ -168,7 +168,7 @@ function createCelesteFloatingButton() {
         <div class="celeste-btn-inner">
             <div class="celeste-btn-glow"></div>
             <div class="celeste-btn-icon">
-                <img src="img/celeste-ai.png" alt="Celeste AI" class="celeste-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img src="img/celeste-ai.svg" alt="Celeste AI" class="celeste-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <i class="fas fa-stars" style="display: none;"></i>
             </div>
             <div class="celeste-btn-pulse"></div>
@@ -616,7 +616,7 @@ function createCelesteChatModal() {
     modal.innerHTML = `
         <div class="celeste-header">
             <div class="celeste-avatar">
-                <img src="img/celeste-ai.png" alt="Celeste AI" class="celeste-header-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img src="img/celeste-ai.svg" alt="Celeste AI" class="celeste-header-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <i class="fas fa-stars" style="display: none;"></i>
             </div>
             <div class="celeste-info">
@@ -1148,7 +1148,7 @@ window.renderCelesteAIPage = function() {
             <div class="celeste-page-header">
                 <div class="celeste-page-hero">
                     <div class="celeste-hero-avatar">
-                        <img src="img/celeste-ai.png" alt="Celeste AI" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <img src="img/celeste-ai.svg" alt="Celeste AI" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <div class="celeste-hero-fallback" style="display: none;">
                             <i class="fas fa-stars"></i>
                         </div>
@@ -1186,7 +1186,7 @@ window.renderCelesteAIPage = function() {
                     <div class="celeste-chat-container">
                         <div class="celeste-chat-messages" id="celeste-page-messages">
                             <div class="celeste-welcome-message">
-                                <img src="img/celeste-ai.png" alt="Celeste" class="celeste-welcome-avatar" onerror="this.outerHTML='<div class=\\'celeste-welcome-avatar-fallback\\'><i class=\\'fas fa-stars\\'></i></div>'">
+                                <img src="img/celeste-ai.svg" alt="Celeste" class="celeste-welcome-avatar" onerror="this.style.display='none'; var d=document.createElement('div'); d.className='celeste-welcome-avatar-fallback'; d.innerHTML='<i class=fa fa-stars></i>'; this.parentNode.insertBefore(d,this);">
                                 <h2>Hello! I'm Celeste</h2>
                                 <p>Your AI-powered assistant for managing VSU stores. I can help you navigate, record data, generate reports, and much more.</p>
                                 <div class="celeste-welcome-suggestions">
@@ -2039,7 +2039,7 @@ window.startNewCelesteConversation = function() {
     if (messagesContainer) {
         messagesContainer.innerHTML = `
             <div class="celeste-welcome-message">
-                <img src="img/celeste-ai.png" alt="Celeste" class="celeste-welcome-avatar" onerror="this.outerHTML='<div class=\\'celeste-welcome-avatar-fallback\\'><i class=\\'fas fa-stars\\'></i></div>'">
+                <img src="img/celeste-ai.svg" alt="Celeste" class="celeste-welcome-avatar" onerror="this.style.display='none';">
                 <h2>New Conversation</h2>
                 <p>How can I help you today?</p>
             </div>
@@ -2064,7 +2064,7 @@ window.loadCelesteConversation = function(convId) {
     if (conv.messages.length === 0) {
         messagesContainer.innerHTML = `
             <div class="celeste-welcome-message">
-                <img src="img/celeste-ai.png" alt="Celeste" class="celeste-welcome-avatar">
+                <img src="img/celeste-ai.svg" alt="Celeste" class="celeste-welcome-avatar">
                 <h2>Continue Conversation</h2>
                 <p>What would you like to discuss?</p>
             </div>
@@ -2072,16 +2072,17 @@ window.loadCelesteConversation = function(convId) {
         return;
     }
 
-    messagesContainer.innerHTML = conv.messages.map(msg => `
-        <div class="celeste-page-msg ${msg.role}">
-            <div class="celeste-page-msg-avatar">
-                ${msg.role === 'assistant'
-                    ? '<img src="img/celeste-ai.png" alt="Celeste" onerror="this.outerHTML=\\'<div class=\\'celeste-page-msg-avatar-fallback\\'><i class=\\'fas fa-stars\\'></i></div>\\'">'
-                    : '<div class="celeste-page-msg-avatar-fallback"><i class="fas fa-user"></i></div>'}
+    messagesContainer.innerHTML = conv.messages.map(msg => {
+        const avatarHtml = msg.role === 'assistant'
+            ? '<img src="img/celeste-ai.svg" alt="Celeste" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';"><div class="celeste-page-msg-avatar-fallback" style="display:none;"><i class="fas fa-stars"></i></div>'
+            : '<div class="celeste-page-msg-avatar-fallback"><i class="fas fa-user"></i></div>';
+        return `
+            <div class="celeste-page-msg ${msg.role}">
+                <div class="celeste-page-msg-avatar">${avatarHtml}</div>
+                <div class="celeste-page-msg-content">${msg.content}</div>
             </div>
-            <div class="celeste-page-msg-content">${msg.content}</div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
@@ -2139,7 +2140,7 @@ window.sendCelestePageMessage = async function() {
     messagesContainer.innerHTML += `
         <div class="celeste-page-msg assistant" id="celeste-typing-indicator">
             <div class="celeste-page-msg-avatar">
-                <img src="img/celeste-ai.png" alt="Celeste" onerror="this.outerHTML='<div class=\\'celeste-page-msg-avatar-fallback\\'><i class=\\'fas fa-stars\\'></i></div>'">
+                <img src="img/celeste-ai.svg" alt="Celeste" onerror="this.style.display='none';">
             </div>
             <div class="celeste-typing">
                 <div class="celeste-typing-dot"></div>
@@ -2163,7 +2164,7 @@ window.sendCelestePageMessage = async function() {
         messagesContainer.innerHTML += `
             <div class="celeste-page-msg assistant">
                 <div class="celeste-page-msg-avatar">
-                    <img src="img/celeste-ai.png" alt="Celeste" onerror="this.outerHTML='<div class=\\'celeste-page-msg-avatar-fallback\\'><i class=\\'fas fa-stars\\'></i></div>'">
+                    <img src="img/celeste-ai.svg" alt="Celeste" onerror="this.style.display='none';">
                 </div>
                 <div class="celeste-page-msg-content">${response.message}</div>
             </div>
@@ -2188,7 +2189,7 @@ window.sendCelestePageMessage = async function() {
         messagesContainer.innerHTML += `
             <div class="celeste-page-msg assistant">
                 <div class="celeste-page-msg-avatar">
-                    <img src="img/celeste-ai.png" alt="Celeste">
+                    <img src="img/celeste-ai.svg" alt="Celeste">
                 </div>
                 <div class="celeste-page-msg-content">Sorry, I encountered an error. Please try again.</div>
             </div>
