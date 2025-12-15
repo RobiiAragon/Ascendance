@@ -168,7 +168,8 @@ function createCelesteFloatingButton() {
         <div class="celeste-btn-inner">
             <div class="celeste-btn-glow"></div>
             <div class="celeste-btn-icon">
-                <i class="fas fa-stars"></i>
+                <img src="img/celeste-ai.png" alt="Celeste AI" class="celeste-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <i class="fas fa-stars" style="display: none;"></i>
             </div>
             <div class="celeste-btn-pulse"></div>
         </div>
@@ -236,6 +237,17 @@ function addCelesteStyles() {
             z-index: 2;
             color: white;
             font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .celeste-btn-icon .celeste-avatar-img {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.3);
         }
 
         .celeste-btn-pulse {
@@ -313,6 +325,14 @@ function addCelesteStyles() {
             justify-content: center;
             font-size: 20px;
             color: white;
+            overflow: hidden;
+        }
+
+        .celeste-avatar .celeste-header-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         .celeste-info {
@@ -596,7 +616,8 @@ function createCelesteChatModal() {
     modal.innerHTML = `
         <div class="celeste-header">
             <div class="celeste-avatar">
-                <i class="fas fa-stars"></i>
+                <img src="img/celeste-ai.png" alt="Celeste AI" class="celeste-header-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <i class="fas fa-stars" style="display: none;"></i>
             </div>
             <div class="celeste-info">
                 <div class="celeste-name">Celeste AI</div>
