@@ -1302,16 +1302,24 @@
                     renderRiskNotes();
                     break;
                 case 'passwords':
-                    renderPasswordManager();
+                    await window.renderPasswordManager();
                     break;
                 case 'projectanalytics':
-                    renderProjectAnalytics();
+                    window.renderProjectAnalytics();
                     break;
                 case 'labels':
                     renderLabels();
                     break;
                 case 'celesteai':
                     renderCelesteAIPage();
+                    break;
+                case 'transfers':
+                    if (typeof initializeTransfersModule === 'function') {
+                        initializeTransfersModule();
+                    } else {
+                        console.error('Transfers module not loaded');
+                        render404(page);
+                    }
                     break;
                 default:
                     render404(page);
@@ -25425,7 +25433,9 @@ Return ONLY the JSON object, no additional text.`,
 
         // Initialize navigation
         document.querySelectorAll('.nav-item').forEach(item => {
-            const page = item.querySelector('.nav-icon i').className.split(' ')[1].replace('fa-', '');
+            const iconEl = item.querySelector('.nav-icon i');
+            if (!iconEl) return; // Skip if no icon element found
+            const page = iconEl.className.split(' ')[1].replace('fa-', '');
             const pageMap = {
                 'th-large': 'dashboard',
                 'users': 'employees',
@@ -26708,7 +26718,7 @@ Return ONLY the JSON object, no additional text.`,
             console.error('Failed to initialize IndexedDB:', err);
         });
 
-        let riskNotesState = {
+        var riskNotesState = {
             notes: JSON.parse(localStorage.getItem('riskNotes')) || [],
             filterStore: 'all',
             filterLevel: 'all',
@@ -28565,113 +28575,8 @@ Return ONLY the JSON object, no additional text.`
             modal.classList.add('active');
         }
 
-        // G FORCE FUNCTIONALITY
-        function renderGForce() {
-            const dashboard = document.querySelector('.dashboard');
-            const quote = getDailyGForceQuote();
-            const affirmations = getDailyGForceAffirmations(5);
-            const philosophy = getDailyGForcePhilosophy();
-
-            dashboard.innerHTML = `
-                <div class="page-header">
-                    <div class="page-header-left">
-                        <h2 class="section-title">
-                            <i class="fas fa-bolt" style="color: var(--accent-primary);"></i>
-                            G Force - Giselle's Daily Motivation
-                        </h2>
-                        <p class="section-subtitle">${getGForceDate()}</p>
-                    </div>
-                </div>
-
-                <!-- Quote Card -->
-                <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);">
-                    <div class="card-body" style="text-align: center; padding: 40px;">
-                        <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
-                        <div id="gforce-quote-text" style="font-size: 1.6rem; line-height: 1.7; margin-bottom: 20px; font-weight: 300; color: var(--text-primary);">"${quote.text}"</div>
-                        <div id="gforce-quote-author" style="text-align: right; color: var(--accent-primary); font-size: 1.1rem; font-style: italic;">— ${quote.author}</div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
-                    <!-- Affirmations Card -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-heart" style="color: #ec4899;"></i>
-                                Today's Affirmations
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="gforce-affirmations-page">
-                                ${affirmations.map(aff => `
-                                    <div style="background: var(--bg-secondary); padding: 14px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid var(--accent-primary); transition: transform 0.2s; cursor: default;" onmouseover="this.style.transform='translateX(6px)'" onmouseout="this.style.transform='translateX(0)'">
-                                        <span style="color: var(--success); margin-right: 8px;">✓</span> ${aff}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Philosophy Card -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
-                                Self-Care Philosophy
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="gforce-philosophy-page-text" style="font-size: 15px; line-height: 1.8; margin-bottom: 24px; color: var(--text-secondary);">${philosophy.text}</div>
-                            <div id="gforce-tips-page">
-                                ${philosophy.tips.map(tip => `
-                                    <div style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; transition: all 0.2s; cursor: default;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                                        <div style="font-size: 1.8rem; flex-shrink: 0;">${tip.icon}</div>
-                                        <div style="font-size: 14px; line-height: 1.6;">${tip.text}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Motivational Footer -->
-                <div style="text-align: center; margin-top: 32px; padding: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); border-radius: 16px;">
-                    <div style="font-size: 32px; margin-bottom: 12px;">🌟</div>
-                    <div style="font-size: 18px; font-weight: 500; color: var(--text-primary);">Remember: You are capable of amazing things!</div>
-                    <div style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">Take a deep breath and embrace today with gratitude.</div>
-                </div>
-            `;
-        }
-
-        function refreshGForceQuote() {
-            const quote = getRandomGForceQuote();
-            document.getElementById('gforce-quote-text').textContent = '"' + quote.text + '"';
-            document.getElementById('gforce-quote-author').textContent = '— ' + quote.author;
-        }
-
-        function refreshGForceAffirmations() {
-            const affirmations = getRandomGForceAffirmations(5);
-            const container = document.getElementById('gforce-affirmations-page');
-            container.innerHTML = affirmations.map(aff => `
-                <div style="background: var(--bg-secondary); padding: 14px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid var(--accent-primary); transition: transform 0.2s; cursor: default;" onmouseover="this.style.transform='translateX(6px)'" onmouseout="this.style.transform='translateX(0)'">
-                    <span style="color: var(--success); margin-right: 8px;">✓</span> ${aff}
-                </div>
-            `).join('');
-        }
-
-        function refreshGForcePhilosophy() {
-            const philosophy = getRandomGForcePhilosophy();
-            document.getElementById('gforce-philosophy-page-text').textContent = philosophy.text;
-            const tipsContainer = document.getElementById('gforce-tips-page');
-            tipsContainer.innerHTML = philosophy.tips.map(tip => `
-                <div style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; transition: all 0.2s; cursor: default;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                    <div style="font-size: 1.8rem; flex-shrink: 0;">${tip.icon}</div>
-                    <div style="font-size: 14px; line-height: 1.6;">${tip.text}</div>
-                </div>
-            `).join('');
-        }
-
-        const gforceQuotes = [
+        // G FORCE DATA - Must be declared before renderGForce
+        var gforceQuotes = [
             // Abundance & Prosperity
             { text: "Abundance is not something we acquire, it is something we tune into.", author: "Wayne Dyer" },
             { text: "The universe is always conspiring in your favor when you raise your vibration.", author: "G Force" },
@@ -28739,7 +28644,7 @@ Return ONLY the JSON object, no additional text.`
             { text: "Your wings already exist. All you have to do is fly.", author: "G Force" }
         ];
 
-        const gforceAffirmations = [
+        var gforceAffirmations = [
             // Abundance & Prosperity
             "I am a magnet for infinite abundance and prosperity",
             "The universe is constantly working in my favor",
@@ -28807,7 +28712,7 @@ Return ONLY the JSON object, no additional text.`
             "I stand in my power with grace and confidence"
         ];
 
-        const gforcePhilosophies = [
+        var gforcePhilosophies = [
             {
                 text: "Self-love is not selfish; it's the foundation of all healthy relationships. When you fill your own cup first, you overflow with love and kindness for others. Remember that caring for yourself allows you to show up fully in the world.",
                 tips: [
@@ -28929,6 +28834,112 @@ Return ONLY the JSON object, no additional text.`
                 ]
             }
         ];
+
+        // G FORCE FUNCTIONALITY
+        function renderGForce() {
+            const dashboard = document.querySelector('.dashboard');
+            const quote = getDailyGForceQuote();
+            const affirmations = getDailyGForceAffirmations(5);
+            const philosophy = getDailyGForcePhilosophy();
+
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">
+                            <i class="fas fa-bolt" style="color: var(--accent-primary);"></i>
+                            G Force - Giselle's Daily Motivation
+                        </h2>
+                        <p class="section-subtitle">${getGForceDate()}</p>
+                    </div>
+                </div>
+
+                <!-- Quote Card -->
+                <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);">
+                    <div class="card-body" style="text-align: center; padding: 40px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
+                        <div id="gforce-quote-text" style="font-size: 1.6rem; line-height: 1.7; margin-bottom: 20px; font-weight: 300; color: var(--text-primary);">"${quote.text}"</div>
+                        <div id="gforce-quote-author" style="text-align: right; color: var(--accent-primary); font-size: 1.1rem; font-style: italic;">— ${quote.author}</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+                    <!-- Affirmations Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-heart" style="color: #ec4899;"></i>
+                                Today's Affirmations
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="gforce-affirmations-page">
+                                ${affirmations.map(aff => `
+                                    <div style="background: var(--bg-secondary); padding: 14px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid var(--accent-primary); transition: transform 0.2s; cursor: default;" onmouseover="this.style.transform='translateX(6px)'" onmouseout="this.style.transform='translateX(0)'">
+                                        <span style="color: var(--success); margin-right: 8px;">✓</span> ${aff}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Philosophy Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
+                                Self-Care Philosophy
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="gforce-philosophy-page-text" style="font-size: 15px; line-height: 1.8; margin-bottom: 24px; color: var(--text-secondary);">${philosophy.text}</div>
+                            <div id="gforce-tips-page">
+                                ${philosophy.tips.map(tip => `
+                                    <div style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; transition: all 0.2s; cursor: default;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                        <div style="font-size: 1.8rem; flex-shrink: 0;">${tip.icon}</div>
+                                        <div style="font-size: 14px; line-height: 1.6;">${tip.text}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivational Footer -->
+                <div style="text-align: center; margin-top: 32px; padding: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); border-radius: 16px;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">🌟</div>
+                    <div style="font-size: 18px; font-weight: 500; color: var(--text-primary);">Remember: You are capable of amazing things!</div>
+                    <div style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">Take a deep breath and embrace today with gratitude.</div>
+                </div>
+            `;
+        }
+
+        function refreshGForceQuote() {
+            const quote = getRandomGForceQuote();
+            document.getElementById('gforce-quote-text').textContent = '"' + quote.text + '"';
+            document.getElementById('gforce-quote-author').textContent = '— ' + quote.author;
+        }
+
+        function refreshGForceAffirmations() {
+            const affirmations = getRandomGForceAffirmations(5);
+            const container = document.getElementById('gforce-affirmations-page');
+            container.innerHTML = affirmations.map(aff => `
+                <div style="background: var(--bg-secondary); padding: 14px 18px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid var(--accent-primary); transition: transform 0.2s; cursor: default;" onmouseover="this.style.transform='translateX(6px)'" onmouseout="this.style.transform='translateX(0)'">
+                    <span style="color: var(--success); margin-right: 8px;">✓</span> ${aff}
+                </div>
+            `).join('');
+        }
+
+        function refreshGForcePhilosophy() {
+            const philosophy = getRandomGForcePhilosophy();
+            document.getElementById('gforce-philosophy-page-text').textContent = philosophy.text;
+            const tipsContainer = document.getElementById('gforce-tips-page');
+            tipsContainer.innerHTML = philosophy.tips.map(tip => `
+                <div style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; transition: all 0.2s; cursor: default;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <div style="font-size: 1.8rem; flex-shrink: 0;">${tip.icon}</div>
+                    <div style="font-size: 14px; line-height: 1.6;">${tip.text}</div>
+                </div>
+            `).join('');
+        }
 
         // Get day of year for consistent daily content
         function getDayOfYear() {
@@ -29055,7 +29066,7 @@ Return ONLY the JSON object, no additional text.`
 // =============================================================================
 
 // Expense categories
-const GCONOMICS_CATEGORIES = [
+var GCONOMICS_CATEGORIES = [
     { id: 'food', name: 'Food', icon: 'fa-utensils', color: '#f59e0b' },
     { id: 'home', name: 'Home', icon: 'fa-home', color: '#3b82f6' },
     { id: 'subscriptions', name: 'Subscriptions', icon: 'fa-credit-card', color: '#8b5cf6' },
@@ -29065,7 +29076,7 @@ const GCONOMICS_CATEGORIES = [
 ];
 
 // Gconomics state
-let gconomicsState = {
+var gconomicsState = {
     expenses: JSON.parse(localStorage.getItem('gconomicsExpenses')) || [],
     currentMonth: '2025-12', // December 2025
     selectedCategory: 'all',
@@ -29088,14 +29099,20 @@ async function initializeGconomicsFirebase(userId, userEmail) {
         return false;
     }
 
+    // Guard against gconomicsState not yet initialized
+    if (typeof gconomicsState === 'undefined' || !gconomicsState) {
+        console.warn('Gconomics state not yet initialized');
+        return false;
+    }
+
     try {
         const initialized = await window.gconomicsFirebase.initialize();
         if (!initialized) return false;
 
         window.gconomicsFirebase.setCurrentUser(userId, userEmail);
-        
+
         // Sync existing local expenses to Firebase
-        if (gconomicsState.expenses.length > 0) {
+        if (gconomicsState.expenses && gconomicsState.expenses.length > 0) {
             await window.gconomicsFirebase.syncExpensesToFirestore(gconomicsState.expenses);
         }
 
@@ -29110,6 +29127,12 @@ async function initializeGconomicsFirebase(userId, userEmail) {
 async function loadGconomicsFromFirebase() {
     if (!window.gconomicsFirebase) {
         console.warn('Gconomics Firebase module not available');
+        return false;
+    }
+
+    // Guard against gconomicsState not yet initialized
+    if (typeof gconomicsState === 'undefined' || !gconomicsState) {
+        console.warn('Gconomics state not yet initialized');
         return false;
     }
 
@@ -29131,7 +29154,7 @@ async function loadGconomicsFromFirebase() {
         }
 
         // Create a map of existing local expenses by ID
-        const localMap = new Map(gconomicsState.expenses.map(e => [String(e.id), e]));
+        const localMap = new Map((gconomicsState.expenses || []).map(e => [String(e.id), e]));
 
         // Merge Firebase expenses - Firebase takes priority for existing items
         firebaseExpenses.forEach(fbExp => {
@@ -30171,9 +30194,9 @@ async function syncExpenseToFirebaseAsync(expenseToSync) {
 let passwordViewMode = 'list'; // 'list' or 'grid'
 
 // Firebase Password Manager
-let firebasePasswords = [];
+var firebasePasswords = [];
 
-const firebasePasswordsManager = {
+var firebasePasswordsManager = {
     isInitialized: false,
     db: null,
 
@@ -30279,17 +30302,23 @@ const firebasePasswordsManager = {
 
 // Initialize Firebase Passwords
 async function initializeFirebasePasswords() {
+    // Guard against firebasePasswordsManager not yet initialized
+    if (typeof firebasePasswordsManager === 'undefined' || !firebasePasswordsManager) {
+        console.warn('Firebase Passwords Manager not yet initialized');
+        return;
+    }
+
     try {
         await firebasePasswordsManager.initialize();
         firebasePasswords = await firebasePasswordsManager.loadPasswords();
-        
+
     } catch (error) {
         console.error('Error initializing Firebase Passwords:', error);
     }
 }
 
 // Password categories with icons and colors
-const passwordCategories = {
+var passwordCategories = {
     'gas': { label: 'Gas & Utilities', icon: 'fa-fire-flame-curved', color: '#f97316' },
     'suppliers': { label: 'Suppliers', icon: 'fa-truck', color: '#8b5cf6' },
     'email': { label: 'Email Accounts', icon: 'fa-envelope', color: '#3b82f6' },
@@ -30366,7 +30395,7 @@ function togglePasswordVisibility(inputId, iconId) {
 }
 
 // Render Password Manager Page
-async function renderPasswordManager() {
+window.renderPasswordManager = async function renderPasswordManager() {
     const dashboard = document.querySelector('.dashboard');
 
     // Initialize if not already done
@@ -33304,10 +33333,10 @@ window.VoiceAssistant = VoiceAssistant;
 // ========== END REUSABLE VOICE ASSISTANT COMPONENT ==========
 
 // Floating add button - simple scroll threshold approach
-const FLOATING_ADD_SCROLL_THRESHOLD = 150; // pixels scrolled before buttons become fixed
-const FLOATING_ADD_MOBILE_THRESHOLD = 50; // smaller threshold for mobile
-let floatingAddScrollListener = null;
-let floatingAddScrollTimeout = null;
+var FLOATING_ADD_SCROLL_THRESHOLD = 150; // pixels scrolled before buttons become fixed
+var FLOATING_ADD_MOBILE_THRESHOLD = 50; // smaller threshold for mobile
+var floatingAddScrollListener = null;
+var floatingAddScrollTimeout = null;
 
 function isMobileView() {
     return window.innerWidth <= 768;
