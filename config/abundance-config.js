@@ -137,7 +137,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
+        pages: ['dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics']
     },
     'manager': {
         // Action Permissions
@@ -151,7 +151,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule']
+        pages: ['dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule']
     },
     'employee': {
         // Action Permissions
@@ -165,7 +165,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['clockin', 'newstuff', 'abundancecloud', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics']
+        pages: ['clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics']
     }
 };
 

@@ -423,7 +423,7 @@
             <div class="modal-header">
                 <h2 style="display: flex; align-items: center; gap: 10px;">
                     <i class="fas fa-exchange-alt" style="color: var(--accent-primary);"></i>
-                    Nueva Transferencia
+                    New Transfer
                 </h2>
                 <button class="modal-close" onclick="closeTransferModal()">
                     <i class="fas fa-times"></i>
@@ -434,10 +434,10 @@
                     <!-- Store Origin -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-store"></i> Tienda Origen *
+                            <i class="fas fa-store"></i> Origin Store *
                         </label>
                         <select id="transferStoreOrigin" class="form-input" required onchange="handleOriginStoreChange()">
-                            <option value="">Seleccionar tienda...</option>
+                            <option value="">Select store...</option>
                             <option value="North Park">VSU North Park</option>
                             <option value="Morena">VSU Morena</option>
                             <option value="Chula Vista">VSU Chula Vista</option>
@@ -449,10 +449,10 @@
                     <!-- Store Destination -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-map-marker-alt"></i> Tienda Destino *
+                            <i class="fas fa-map-marker-alt"></i> Destination Store *
                         </label>
                         <select id="transferStoreDestination" class="form-input" required>
-                            <option value="">Seleccionar tienda...</option>
+                            <option value="">Select store...</option>
                             <option value="North Park">VSU North Park</option>
                             <option value="Morena">VSU Morena</option>
                             <option value="Chula Vista">VSU Chula Vista</option>
@@ -464,10 +464,10 @@
                     <!-- Product Search -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-box"></i> Producto *
+                            <i class="fas fa-box"></i> Product *
                         </label>
                         <div class="product-search-container">
-                            <input type="text" id="transferProductSearch" class="form-input" placeholder="Buscar producto..." autocomplete="off">
+                            <input type="text" id="transferProductSearch" class="form-input" placeholder="Search product..." autocomplete="off">
                             <div id="productSearchResults" class="product-search-results" style="display: none;"></div>
                         </div>
                         <input type="hidden" id="transferProductId" required>
@@ -477,15 +477,15 @@
                     <!-- Quantity -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-hashtag"></i> Cantidad *
+                            <i class="fas fa-hashtag"></i> Quantity *
                         </label>
-                        <input type="number" id="transferQuantity" class="form-input" min="1" placeholder="Cantidad a transferir" required>
+                        <input type="number" id="transferQuantity" class="form-input" min="1" placeholder="Quantity to transfer" required>
                     </div>
 
                     <!-- Ship Date -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-calendar"></i> Fecha de Envio *
+                            <i class="fas fa-calendar"></i> Ship Date *
                         </label>
                         <input type="date" id="transferShipDate" class="form-input" required>
                     </div>
@@ -493,27 +493,27 @@
                     <!-- Sent By -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-user"></i> Enviado por *
+                            <i class="fas fa-user"></i> Sent by *
                         </label>
-                        <input type="text" id="transferSentBy" class="form-input" placeholder="Nombre del empleado" required>
+                        <input type="text" id="transferSentBy" class="form-input" placeholder="Employee name" required>
                     </div>
 
                     <!-- Notes -->
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 8px; display: block;">
-                            <i class="fas fa-sticky-note"></i> Notas (opcional)
+                            <i class="fas fa-sticky-note"></i> Notes (optional)
                         </label>
-                        <textarea id="transferNotes" class="form-input" rows="3" placeholder="Notas adicionales..." style="resize: vertical;"></textarea>
+                        <textarea id="transferNotes" class="form-input" rows="3" placeholder="Additional notes..." style="resize: vertical;"></textarea>
                     </div>
 
                     <div id="transferMessage" class="alert" style="display: none;"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeTransferModal()">Cancelar</button>
+                <button type="button" class="btn-secondary" onclick="closeTransferModal()">Cancel</button>
                 <button type="button" class="btn-primary" id="submitTransferBtn" onclick="submitTransfer()">
                     <i class="fas fa-paper-plane"></i>
-                    Crear Transferencia
+                    Create Transfer
                 </button>
             </div>
         </div>
@@ -523,7 +523,7 @@
     <div class="modal" id="transferDetailsModal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h2 id="transferDetailsTitle">Detalles de Transferencia</h2>
+                <h2 id="transferDetailsTitle">Transfer Details</h2>
                 <button class="modal-close" onclick="closeTransferDetailsModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -532,7 +532,7 @@
                 <!-- Transfer details will be loaded here -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeTransferDetailsModal()">Cerrar</button>
+                <button type="button" class="btn-secondary" onclick="closeTransferDetailsModal()">Close</button>
             </div>
         </div>
     </div>

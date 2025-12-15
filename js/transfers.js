@@ -97,15 +97,15 @@ function renderTransfersPage() {
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-left">
-                <h2 class="section-title">Transferencias entre Tiendas</h2>
-                <p class="section-subtitle">Gestiona el movimiento de inventario entre ubicaciones</p>
+                <h2 class="section-title">Store Transfers</h2>
+                <p class="section-subtitle">Manage inventory movement between locations</p>
             </div>
             <div style="display: flex; gap: 12px;">
                 <button class="btn-secondary" onclick="loadTransfers(); renderTransfersPage();">
-                    <i class="fas fa-sync-alt"></i> Actualizar
+                    <i class="fas fa-sync-alt"></i> Refresh
                 </button>
                 <button class="btn-primary" onclick="openTransferModal()">
-                    <i class="fas fa-plus"></i> Nueva Transferencia
+                    <i class="fas fa-plus"></i> New Transfer
                 </button>
             </div>
         </div>
@@ -118,7 +118,7 @@ function renderTransfersPage() {
                 </div>
                 <div class="stat-content">
                     <div class="stat-value">${stats.total}</div>
-                    <div class="stat-label">Total Transferencias</div>
+                    <div class="stat-label">Total Transfers</div>
                 </div>
             </div>
             <div class="transfer-stat-card">
@@ -127,7 +127,7 @@ function renderTransfersPage() {
                 </div>
                 <div class="stat-content">
                     <div class="stat-value">${stats.pending}</div>
-                    <div class="stat-label">Pendientes</div>
+                    <div class="stat-label">Pending</div>
                 </div>
             </div>
             <div class="transfer-stat-card">
@@ -136,7 +136,7 @@ function renderTransfersPage() {
                 </div>
                 <div class="stat-content">
                     <div class="stat-value">${stats.inTransit}</div>
-                    <div class="stat-label">En Transito</div>
+                    <div class="stat-label">In Transit</div>
                 </div>
             </div>
             <div class="transfer-stat-card">
@@ -145,7 +145,7 @@ function renderTransfersPage() {
                 </div>
                 <div class="stat-content">
                     <div class="stat-value">${stats.received}</div>
-                    <div class="stat-label">Recibidas</div>
+                    <div class="stat-label">Received</div>
                 </div>
             </div>
         </div>
@@ -154,19 +154,19 @@ function renderTransfersPage() {
         <div class="transfers-filter-tabs">
             <button class="filter-tab ${transfersState.currentFilter === 'all' ? 'active' : ''}" onclick="filterTransfers('all')">
                 <i class="fas fa-border-all"></i>
-                <span>Todas</span>
+                <span>All</span>
             </button>
             <button class="filter-tab ${transfersState.currentFilter === 'pending' ? 'active' : ''}" onclick="filterTransfers('pending')">
                 <i class="fas fa-clock"></i>
-                <span>Pendientes</span>
+                <span>Pending</span>
             </button>
             <button class="filter-tab ${transfersState.currentFilter === 'in-transit' ? 'active' : ''}" onclick="filterTransfers('in-transit')">
                 <i class="fas fa-truck"></i>
-                <span>En Transito</span>
+                <span>In Transit</span>
             </button>
             <button class="filter-tab ${transfersState.currentFilter === 'received' ? 'active' : ''}" onclick="filterTransfers('received')">
                 <i class="fas fa-check-circle"></i>
-                <span>Recibidas</span>
+                <span>Received</span>
             </button>
         </div>
 
@@ -175,7 +175,7 @@ function renderTransfersPage() {
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-list"></i>
-                    Historial de Transferencias
+                    Transfer History
                 </h3>
             </div>
             <div class="card-body" style="padding: 0;">
@@ -212,8 +212,8 @@ function renderTransfersTable() {
         return `
             <div class="empty-state">
                 <i class="fas fa-exchange-alt"></i>
-                <h3>No hay transferencias</h3>
-                <p>Las transferencias apareceran aqui una vez creadas</p>
+                <h3>No transfers</h3>
+                <p>Transfers will appear here once created</p>
             </div>
         `;
     }
@@ -223,13 +223,13 @@ function renderTransfersTable() {
             <thead>
                 <tr>
                     <th>Folio</th>
-                    <th>Ruta</th>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Fecha</th>
-                    <th>Enviado por</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th>Route</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Date</th>
+                    <th>Sent by</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -243,12 +243,12 @@ function renderTransfersTable() {
 function renderTransferRow(transfer) {
     const statusClass = transfer.status;
     const statusLabels = {
-        'pending': 'Pendiente',
-        'in-transit': 'En Transito',
-        'received': 'Recibida'
+        'pending': 'Pending',
+        'in-transit': 'In Transit',
+        'received': 'Received'
     };
 
-    const formattedDate = new Date(transfer.shipDate).toLocaleDateString('es-MX', {
+    const formattedDate = new Date(transfer.shipDate).toLocaleDateString('en-US', {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
@@ -288,12 +288,12 @@ function renderTransferRow(transfer) {
                 <div class="order-actions">
                     <button class="order-action-btn view" onclick="viewTransferDetails('${transfer.id}')">
                         <i class="fas fa-eye"></i>
-                        Ver
+                        View
                     </button>
                     ${transfer.status !== 'received' ? `
                         <button class="confirm-receive-btn" onclick="confirmReceiveTransfer('${transfer.id}')">
                             <i class="fas fa-check"></i>
-                            Recibir
+                            Receive
                         </button>
                     ` : ''}
                 </div>
@@ -429,7 +429,7 @@ async function searchProducts(query) {
     resultsContainer.innerHTML = `
         <div class="product-search-loading">
             <i class="fas fa-spinner fa-spin"></i>
-            Buscando productos...
+            Searching products...
         </div>
     `;
     resultsContainer.style.display = 'block';
@@ -460,7 +460,7 @@ async function searchProducts(query) {
             resultsContainer.innerHTML = `
                 <div class="product-search-no-results">
                     <i class="fas fa-search"></i>
-                    No se encontraron productos para "${query}"
+                    No products found for "${query}"
                 </div>
             `;
             return;
@@ -483,7 +483,7 @@ async function searchProducts(query) {
         resultsContainer.innerHTML = `
             <div class="product-search-no-results">
                 <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                Error al buscar productos. Intenta de nuevo.
+                Error searching products. Please try again.
             </div>
         `;
     }
@@ -562,43 +562,43 @@ async function submitTransfer() {
 
     // Validation
     if (!storeOrigin) {
-        showTransferMessage('Por favor selecciona la tienda origen', 'error');
+        showTransferMessage('Please select origin store', 'error');
         return;
     }
 
     if (!storeDestination) {
-        showTransferMessage('Por favor selecciona la tienda destino', 'error');
+        showTransferMessage('Please select destination store', 'error');
         return;
     }
 
     if (storeOrigin === storeDestination) {
-        showTransferMessage('La tienda origen y destino no pueden ser la misma', 'error');
+        showTransferMessage('Origin and destination stores cannot be the same', 'error');
         return;
     }
 
     if (!transfersState.selectedProduct) {
-        showTransferMessage('Por favor selecciona un producto', 'error');
+        showTransferMessage('Please select a product', 'error');
         return;
     }
 
     if (!quantity || parseInt(quantity) < 1) {
-        showTransferMessage('Por favor ingresa una cantidad valida', 'error');
+        showTransferMessage('Please enter a valid quantity', 'error');
         return;
     }
 
     if (!shipDate) {
-        showTransferMessage('Por favor selecciona la fecha de envio', 'error');
+        showTransferMessage('Please select a ship date', 'error');
         return;
     }
 
     if (!sentBy) {
-        showTransferMessage('Por favor ingresa quien envia', 'error');
+        showTransferMessage('Please enter who is sending', 'error');
         return;
     }
 
     // Disable submit button
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
 
     try {
         // Create transfer object
@@ -630,7 +630,7 @@ async function submitTransfer() {
         await saveTransferToFirebase(transfer);
 
         // Show success message
-        showTransferMessage(`Transferencia ${transfer.folio} creada exitosamente!`, 'success');
+        showTransferMessage(`Transfer ${transfer.folio} created successfully!`, 'success');
 
         // Close modal and refresh after delay
         setTimeout(() => {
@@ -640,10 +640,10 @@ async function submitTransfer() {
 
     } catch (error) {
         console.error('Error creating transfer:', error);
-        showTransferMessage('Error al crear la transferencia. Intenta de nuevo.', 'error');
+        showTransferMessage('Error creating transfer. Please try again.', 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Crear Transferencia';
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Create Transfer';
     }
 }
 
@@ -684,43 +684,43 @@ function viewTransferDetails(transferId) {
     if (!modal || !title || !body) return;
 
     const statusLabels = {
-        'pending': 'Pendiente',
-        'in-transit': 'En Transito',
-        'received': 'Recibida'
+        'pending': 'Pending',
+        'in-transit': 'In Transit',
+        'received': 'Received'
     };
 
     title.innerHTML = `<i class="fas fa-exchange-alt" style="color: var(--accent-primary); margin-right: 10px;"></i> ${transfer.folio}`;
 
     body.innerHTML = `
         <div class="order-detail-section">
-            <h3>Informacion de Transferencia</h3>
+            <h3>Transfer Information</h3>
             <div class="order-detail-grid">
                 <div class="order-detail-item">
                     <span class="order-detail-label">Folio</span>
                     <span class="order-detail-value transfer-folio">${transfer.folio}</span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Estado</span>
+                    <span class="order-detail-label">Status</span>
                     <span class="order-detail-value">
                         <span class="transfer-status-badge ${transfer.status}">${statusLabels[transfer.status]}</span>
                     </span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Tienda Origen</span>
+                    <span class="order-detail-label">Origin Store</span>
                     <span class="order-detail-value">VSU ${transfer.storeOrigin}</span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Tienda Destino</span>
+                    <span class="order-detail-label">Destination Store</span>
                     <span class="order-detail-value">VSU ${transfer.storeDestination}</span>
                 </div>
             </div>
         </div>
 
         <div class="order-detail-section">
-            <h3>Producto</h3>
+            <h3>Product</h3>
             <div class="order-detail-grid">
                 <div class="order-detail-item" style="grid-column: 1 / -1;">
-                    <span class="order-detail-label">Nombre</span>
+                    <span class="order-detail-label">Name</span>
                     <span class="order-detail-value">${transfer.productName}</span>
                 </div>
                 ${transfer.productSku ? `
@@ -730,34 +730,34 @@ function viewTransferDetails(transferId) {
                     </div>
                 ` : ''}
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Cantidad</span>
+                    <span class="order-detail-label">Quantity</span>
                     <span class="order-detail-value" style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">${transfer.quantity}</span>
                 </div>
             </div>
         </div>
 
         <div class="order-detail-section">
-            <h3>Envio</h3>
+            <h3>Shipping</h3>
             <div class="order-detail-grid">
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Fecha de Envio</span>
-                    <span class="order-detail-value">${new Date(transfer.shipDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                    <span class="order-detail-label">Ship Date</span>
+                    <span class="order-detail-value">${new Date(transfer.shipDate).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Enviado por</span>
+                    <span class="order-detail-label">Sent by</span>
                     <span class="order-detail-value">${transfer.sentBy}</span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Creado</span>
-                    <span class="order-detail-value">${new Date(transfer.createdAt).toLocaleString('es-MX')}</span>
+                    <span class="order-detail-label">Created</span>
+                    <span class="order-detail-value">${new Date(transfer.createdAt).toLocaleString('en-US')}</span>
                 </div>
                 ${transfer.receivedAt ? `
                     <div class="order-detail-item">
-                        <span class="order-detail-label">Recibido</span>
-                        <span class="order-detail-value">${new Date(transfer.receivedAt).toLocaleString('es-MX')}</span>
+                        <span class="order-detail-label">Received</span>
+                        <span class="order-detail-value">${new Date(transfer.receivedAt).toLocaleString('en-US')}</span>
                     </div>
                     <div class="order-detail-item">
-                        <span class="order-detail-label">Recibido por</span>
+                        <span class="order-detail-label">Received by</span>
                         <span class="order-detail-value">${transfer.receivedBy}</span>
                     </div>
                 ` : ''}
@@ -766,7 +766,7 @@ function viewTransferDetails(transferId) {
 
         ${transfer.notes ? `
             <div class="order-detail-section">
-                <h3>Notas</h3>
+                <h3>Notes</h3>
                 <div class="order-detail-item">
                     <span class="order-detail-value">${transfer.notes}</span>
                 </div>
@@ -777,7 +777,7 @@ function viewTransferDetails(transferId) {
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
                 <button class="btn-primary" onclick="confirmReceiveTransfer('${transfer.id}'); closeTransferDetailsModal();" style="width: 100%;">
                     <i class="fas fa-check"></i>
-                    Confirmar Recepcion
+                    Confirm Receipt
                 </button>
             </div>
         ` : ''}
@@ -798,12 +798,12 @@ function closeTransferDetailsModal() {
 async function confirmReceiveTransfer(transferId) {
     const transfer = transfersState.transfers.find(t => t.id === transferId);
     if (!transfer) {
-        alert('Transferencia no encontrada');
+        alert('Transfer not found');
         return;
     }
 
     if (transfer.status === 'received') {
-        alert('Esta transferencia ya fue recibida');
+        alert('This transfer has already been received');
         return;
     }
 
@@ -839,7 +839,7 @@ async function confirmReceiveTransfer(transferId) {
     }
 
     // Show confirmation
-    alert(`Transferencia ${transfer.folio} recibida exitosamente!`);
+    alert(`Transfer ${transfer.folio} received successfully!`);
 
     // Refresh page
     renderTransfersPage();
@@ -857,20 +857,16 @@ function checkTransfersPage() {
 
 // Show transfers page (hide orders, show transfers)
 function showTransfersPage() {
-    // Hide main dashboard content
-    const dashboard = document.querySelector('.dashboard');
-    const transfersSection = document.getElementById('transfersSection');
-
     // Update page title
     const pageTitle = document.querySelector('.page-title');
     if (pageTitle) {
-        pageTitle.textContent = 'Transferencias entre Tiendas';
+        pageTitle.textContent = 'Store Transfers';
     }
 
     // Update search placeholder
     const searchInput = document.getElementById('orderSearch');
     if (searchInput) {
-        searchInput.placeholder = 'Buscar transferencias...';
+        searchInput.placeholder = 'Search transfers...';
     }
 
     // Update nav active state
