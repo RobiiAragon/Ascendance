@@ -1193,6 +1193,9 @@
             renderPage(page);
         }
 
+        // Expose navigateTo globally
+        window.navigateTo = navigateTo;
+
         // Handle browser back/forward buttons
         window.addEventListener('popstate', function(event) {
             if (event.state && event.state.page) {
