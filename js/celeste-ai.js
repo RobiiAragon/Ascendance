@@ -1,6 +1,6 @@
 /**
  * Celeste AI - Intelligent Assistant for Ascendance Hub
- * Voice & Text powered by Claude AI
+ * Voice & Text powered by Anthropic AI
  * Handles all module actions through natural language
  */
 
@@ -830,12 +830,12 @@ async function processCelesteMessage(userMessage) {
     // If no API key, use local processing only
     if (!CELESTE_CONFIG.apiKey) {
         return {
-            message: 'I understand you want to do something, but I need the Claude API key to give you smarter responses. For now, try being more specific with commands like "record expense $50" or "go to sales".',
+            message: 'I understand you want to do something, but I need the Anthropic API key to give you smarter responses. For now, try being more specific with commands like "record expense $50" or "go to sales".',
             action: null
         };
     }
 
-    // Call Claude API
+    // Call Anthropic API
     try {
         const systemPrompt = buildCelesteSystemPrompt();
 
@@ -870,10 +870,10 @@ async function processCelesteMessage(userMessage) {
         celesteConversation.push({ role: 'assistant', content: assistantMessage });
 
         // Parse response for actions
-        return parseClaudeResponse(assistantMessage);
+        return parseAnthropicResponse(assistantMessage);
 
     } catch (error) {
-        console.error('Claude API error:', error);
+        console.error('Anthropic API error:', error);
         // Fallback to local processing
         return {
             message: "I couldn't connect to my cloud brain, but I can still help you. What do you need to do?",
@@ -883,7 +883,7 @@ async function processCelesteMessage(userMessage) {
 }
 
 /**
- * Build system prompt for Claude
+ * Build system prompt for Anthropic
  */
 function buildCelesteSystemPrompt() {
     const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'User' };
@@ -974,9 +974,9 @@ function detectLocalIntent(message) {
 }
 
 /**
- * Parse Claude response for actions
+ * Parse Anthropic response for actions
  */
-function parseClaudeResponse(response) {
+function parseAnthropicResponse(response) {
     // Look for action JSON in response
     const actionMatch = response.match(/\[ACTION:(\{.*?\})\]/);
 
@@ -1159,7 +1159,7 @@ window.renderCelesteAIPage = function() {
                         <p>Your intelligent assistant for Ascendance Hub</p>
                         <div class="celeste-hero-badges">
                             <span class="celeste-badge"><i class="fas fa-microphone"></i> Voice Enabled</span>
-                            <span class="celeste-badge"><i class="fas fa-brain"></i> Claude Powered</span>
+                            <span class="celeste-badge"><i class="fas fa-brain"></i> Anthropic Powered</span>
                             <span class="celeste-badge"><i class="fas fa-bolt"></i> Real-time Actions</span>
                         </div>
                     </div>
@@ -2263,7 +2263,7 @@ function checkCelesteConnection() {
 
     if (apiKey) {
         statusEl.className = 'celeste-connection-status connected';
-        statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>Connected to Claude AI</span>';
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>Connected to Anthropic AI</span>';
     } else {
         statusEl.className = 'celeste-connection-status disconnected';
         statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>API key not configured</span>';

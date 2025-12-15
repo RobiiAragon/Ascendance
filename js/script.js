@@ -31216,7 +31216,7 @@ window.renderProjectAnalytics = function() {
                 <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 300px;">
                         <p style="margin: 0 0 12px; color: var(--text-secondary); font-size: 13px;">
-                            Configure your Claude API key to enable Celeste AI's intelligent features. Get your key from
+                            Configure your Anthropic API key to enable Celeste AI's intelligent features. Get your key from
                             <a href="https://console.anthropic.com/" target="_blank" style="color: #a855f7;">console.anthropic.com</a>
                         </p>
                         <div style="display: flex; gap: 12px;">
@@ -31233,8 +31233,8 @@ window.renderProjectAnalytics = function() {
                             <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
                         </div>
                         <div>
-                            <div style="font-weight: 600; font-size: 14px;">Claude 3.5 Sonnet</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Powered by Anthropic</div>
+                            <div style="font-weight: 600; font-size: 14px;">Anthropic AI</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Sonnet 3.5 Model</div>
                         </div>
                     </div>
                 </div>
