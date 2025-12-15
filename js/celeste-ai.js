@@ -602,7 +602,7 @@ function createCelesteChatModal() {
                 <div class="celeste-name">Celeste AI</div>
                 <div class="celeste-status">
                     <span class="celeste-status-dot"></span>
-                    Siempre lista para ayudarte
+                    Always ready to help
                 </div>
             </div>
             <button class="celeste-close" onclick="toggleCelesteChat()">
@@ -612,40 +612,40 @@ function createCelesteChatModal() {
 
         <div class="celeste-messages" id="celeste-messages">
             <div class="celeste-message assistant">
-                ¡Hola! Soy Celeste, tu asistente de Ascendance Hub. 🌟<br><br>
-                Puedo ayudarte a:<br>
-                • Registrar gastos<br>
-                • Reportar sospechosos<br>
-                • Crear anuncios<br>
-                • Navegar a cualquier módulo<br>
-                • ¡Y mucho más!<br><br>
-                ¿En qué te puedo ayudar?
+                Hi! I'm Celeste, your Ascendance Hub assistant. 🌟<br><br>
+                I can help you:<br>
+                • Record expenses<br>
+                • Report suspicious people<br>
+                • Create announcements<br>
+                • Navigate to any module<br>
+                • And much more!<br><br>
+                How can I help you today?
             </div>
         </div>
 
         <div class="celeste-quick-actions">
-            <button class="celeste-quick-btn" onclick="celesteQuickAction('Registrar un gasto')">
-                <i class="fas fa-money-bill"></i> Gasto
+            <button class="celeste-quick-btn" onclick="celesteQuickAction('Record an expense')">
+                <i class="fas fa-money-bill"></i> Expense
             </button>
-            <button class="celeste-quick-btn" onclick="celesteQuickAction('Reportar sospechoso')">
-                <i class="fas fa-user-secret"></i> Sospechoso
+            <button class="celeste-quick-btn" onclick="celesteQuickAction('Report suspicious person')">
+                <i class="fas fa-user-secret"></i> Suspicious
             </button>
-            <button class="celeste-quick-btn" onclick="celesteQuickAction('Crear anuncio')">
-                <i class="fas fa-bullhorn"></i> Anuncio
+            <button class="celeste-quick-btn" onclick="celesteQuickAction('Create announcement')">
+                <i class="fas fa-bullhorn"></i> Announce
             </button>
-            <button class="celeste-quick-btn" onclick="celesteQuickAction('Ver ventas')">
-                <i class="fas fa-chart-line"></i> Ventas
+            <button class="celeste-quick-btn" onclick="celesteQuickAction('Show sales')">
+                <i class="fas fa-chart-line"></i> Sales
             </button>
         </div>
 
         <div class="celeste-input-area">
-            <button class="celeste-voice-btn" id="celeste-voice-btn" onclick="toggleCelesteVoice()" title="Hablar con voz">
+            <button class="celeste-voice-btn" id="celeste-voice-btn" onclick="toggleCelesteVoice()" title="Speak">
                 <i class="fas fa-microphone"></i>
             </button>
             <input type="text" class="celeste-input" id="celeste-input"
-                placeholder="Escribe o habla con Celeste..."
+                placeholder="Type or speak to Celeste..."
                 onkeypress="if(event.key==='Enter') sendCelesteMessage()">
-            <button class="celeste-send-btn" onclick="sendCelesteMessage()" title="Enviar">
+            <button class="celeste-send-btn" onclick="sendCelesteMessage()" title="Send">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
@@ -687,7 +687,7 @@ function initializeSpeechRecognition() {
     celesteRecognition = new SpeechRecognition();
     celesteRecognition.continuous = false;
     celesteRecognition.interimResults = true;
-    celesteRecognition.lang = 'es-MX'; // Spanish Mexico
+    celesteRecognition.lang = 'en-US'; // English US
 
     celesteRecognition.onresult = (event) => {
         const transcript = Array.from(event.results)
