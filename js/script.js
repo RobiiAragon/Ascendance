@@ -1184,7 +1184,8 @@
                 restock: 'Restock Requests',
                 supplies: 'Supplies',
                 dailychecklist: 'Daily Checklist',
-                labels: 'Barcode Labels'
+                labels: 'Barcode Labels',
+                celesteai: 'Celeste AI'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
@@ -1305,6 +1306,9 @@
                     break;
                 case 'labels':
                     renderLabels();
+                    break;
+                case 'celesteai':
+                    renderCelesteAIPage();
                     break;
                 default:
                     render404(page);
@@ -22681,16 +22685,24 @@ Return ONLY the JSON object, no additional text.`,
                 }
             });
 
+            // Always show Celeste AI (it's available to all roles if in their permissions)
+            if (allowedPages.includes('celesteai')) {
+                const celesteItem = document.querySelector('.nav-item[data-page="celesteai"]');
+                if (celesteItem) {
+                    celesteItem.style.display = '';
+                }
+            }
+
             // Show only allowed pages using data-page attribute
             allowedPages.forEach(page => {
                 document.querySelectorAll(`.nav-item[data-page="${page}"], .nav-dropdown-item[data-page="${page}"]`).forEach(item => {
                     item.style.display = '';
-                    
+
                     // Show parent div if it's a nav-item
                     if (item.classList.contains('nav-item') && item.parentElement.tagName === 'DIV') {
                         item.parentElement.style.display = '';
                     }
-                    
+
                     // If it's a dropdown item, show parent dropdown and parent nav-item
                     if (item.classList.contains('nav-dropdown-item')) {
                         const dropdownContainer = item.closest('.nav-dropdown');
