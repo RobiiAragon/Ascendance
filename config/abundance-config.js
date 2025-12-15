@@ -7,8 +7,8 @@
  */
 
 // Celeste AI Configuration (Claude API)
-// Get your API key from: https://console.anthropic.com/
-window.ANTHROPIC_API_KEY = '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';
+// API key is now managed via Project Analytics > API Settings (stored in localStorage)
+// Or you can set it here for all users: window.ANTHROPIC_API_KEY = 'your-key-here';
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {

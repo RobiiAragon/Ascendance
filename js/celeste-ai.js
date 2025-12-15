@@ -11,9 +11,9 @@ const CELESTE_CONFIG = {
     apiEndpoint: 'https://api.anthropic.com/v1/messages',
     model: 'claude-3-5-sonnet-20241022',
     maxTokens: 1024,
-    // API Key - Set this in abundance-config.js as window.ANTHROPIC_API_KEY
+    // API Key - Can be set in abundance-config.js or via Project Analytics > API Settings
     get apiKey() {
-        return window.ANTHROPIC_API_KEY || '';
+        return window.ANTHROPIC_API_KEY || localStorage.getItem('anthropic_api_key') || '';
     }
 };
 
@@ -790,7 +790,7 @@ async function sendCelesteMessage() {
 
     } catch (error) {
         hideCelesteTyping();
-        addCelesteMessage('Lo siento, hubo un error. Por favor intenta de nuevo.', 'error');
+        addCelesteMessage('Sorry, there was an error. Please try again.', 'error');
         console.error('Celeste error:', error);
     }
 }
@@ -809,7 +809,7 @@ async function processCelesteMessage(userMessage) {
     // If no API key, use local processing only
     if (!CELESTE_CONFIG.apiKey) {
         return {
-            message: 'Entiendo que quieres hacer algo, pero necesito que configures la API key de Claude para darte una respuesta más inteligente. Por ahora, intenta ser más específico con comandos como "registrar gasto de $50" o "ir a ventas".',
+            message: 'I understand you want to do something, but I need the Claude API key to give you smarter responses. For now, try being more specific with commands like "record expense $50" or "go to sales".',
             action: null
         };
     }
@@ -855,7 +855,7 @@ async function processCelesteMessage(userMessage) {
         console.error('Claude API error:', error);
         // Fallback to local processing
         return {
-            message: 'No pude conectar con mi cerebro en la nube, pero aún puedo ayudarte. ¿Qué necesitas hacer?',
+            message: "I couldn't connect to my cloud brain, but I can still help you. What do you need to do?",
             action: null
         };
     }
@@ -865,42 +865,42 @@ async function processCelesteMessage(userMessage) {
  * Build system prompt for Claude
  */
 function buildCelesteSystemPrompt() {
-    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'Usuario' };
-    const currentStore = localStorage.getItem('selectedStore') || 'la tienda';
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'User' };
+    const currentStore = localStorage.getItem('selectedStore') || 'the store';
 
-    return `Eres Celeste, una asistente virtual amigable y eficiente para Ascendance Hub, un sistema de gestión de tiendas de vape/smoke shop llamadas VSU (Vape Smoke Universe).
+    return `You are Celeste, a friendly and efficient virtual assistant for Ascendance Hub, a management system for vape/smoke shops called VSU (Vape Smoke Universe).
 
-INFORMACIÓN DEL CONTEXTO:
-- Usuario actual: ${currentUser.name || 'Usuario'}
-- Tienda: ${currentStore}
-- Sistema: Ascendance Hub
+CONTEXT INFORMATION:
+- Current user: ${currentUser.name || 'User'}
+- Store: ${currentStore}
+- System: Ascendance Hub
 
-TU PERSONALIDAD:
-- Eres amigable, profesional y eficiente
-- Usas español mexicano casual pero profesional
-- Puedes usar emojis ocasionalmente
-- Das respuestas concisas y directas
+YOUR PERSONALITY:
+- You are friendly, professional and efficient
+- You use casual but professional English
+- You can use emojis occasionally
+- You give concise and direct answers
 
-ACCIONES QUE PUEDES REALIZAR:
-Cuando detectes que el usuario quiere hacer una acción, incluye al final de tu respuesta un JSON con el formato:
-[ACTION:{"type":"tipo_accion","data":{...}}]
+ACTIONS YOU CAN PERFORM:
+When you detect that the user wants to perform an action, include at the end of your response a JSON with the format:
+[ACTION:{"type":"action_type","data":{...}}]
 
-Tipos de acciones disponibles:
-1. "navigate" - Navegar a un módulo: {"type":"navigate","data":{"module":"nombre_modulo"}}
-2. "expense" - Registrar gasto: {"type":"expense","data":{"amount":0,"description":"","store":""}}
-3. "thief" - Reportar sospechoso: {"type":"thief","data":{"description":""}}
-4. "announcement" - Crear anuncio: {"type":"announcement","data":{"title":"","content":""}}
-5. "change" - Registrar cambio: {"type":"change","data":{"amount":0,"type":"in/out"}}
-6. "gift" - Registrar regalo: {"type":"gift","data":{"description":"","value":0}}
-7. "risk" - Nota de riesgo: {"type":"risk","data":{"description":"","level":"low/medium/high"}}
-8. "restock" - Solicitar restock: {"type":"restock","data":{"product":"","quantity":0}}
-9. "issue" - Reportar problema: {"type":"issue","data":{"description":""}}
+Available action types:
+1. "navigate" - Navigate to a module: {"type":"navigate","data":{"module":"module_name"}}
+2. "expense" - Record expense: {"type":"expense","data":{"amount":0,"description":"","store":""}}
+3. "thief" - Report suspicious person: {"type":"thief","data":{"description":""}}
+4. "announcement" - Create announcement: {"type":"announcement","data":{"title":"","content":""}}
+5. "change" - Record change: {"type":"change","data":{"amount":0,"type":"in/out"}}
+6. "gift" - Record gift: {"type":"gift","data":{"description":"","value":0}}
+7. "risk" - Risk note: {"type":"risk","data":{"description":"","level":"low/medium/high"}}
+8. "restock" - Request restock: {"type":"restock","data":{"product":"","quantity":0}}
+9. "issue" - Report issue: {"type":"issue","data":{"description":""}}
 
-MÓDULOS DISPONIBLES PARA NAVEGACIÓN:
+AVAILABLE MODULES FOR NAVIGATION:
 dashboard, employees, clockin, analytics, cashout, thieves, announcements, change, restock, issues, gifts, risknotes, labels, supplies, treasury, vendors, invoices, training, licenses, schedule, gconomics, passwords, gforce, abundancecloud
 
-Si el usuario no especifica toda la información necesaria para una acción, pídela amablemente.
-Si no estás segura de qué quiere el usuario, pregunta para clarificar.`;
+If the user doesn't specify all the information needed for an action, ask for it politely.
+If you're not sure what the user wants, ask to clarify.`;
 }
 
 /**
@@ -915,9 +915,10 @@ function detectLocalIntent(message) {
             if (lowerMessage.includes(alias) &&
                 (lowerMessage.includes('ir ') || lowerMessage.includes('abrir') ||
                  lowerMessage.includes('ver') || lowerMessage.includes('mostrar') ||
-                 lowerMessage.includes('go to') || lowerMessage.includes('open'))) {
+                 lowerMessage.includes('go to') || lowerMessage.includes('open') ||
+                 lowerMessage.includes('show') || lowerMessage.includes('take me'))) {
                 return {
-                    message: `¡Claro! Te llevo a ${module}... 🚀`,
+                    message: `Sure! Taking you to ${module}... 🚀`,
                     action: { type: 'navigate', data: { module } }
                 };
             }
@@ -934,7 +935,7 @@ function detectLocalIntent(message) {
 
                 if (actionConfig.module) {
                     return {
-                        message: `Entendido, vamos a ${actionConfig.description}. Te llevo al módulo correspondiente... ✨`,
+                        message: `Got it! Taking you to the right module... ✨`,
                         action: {
                             type: 'navigate',
                             data: {
