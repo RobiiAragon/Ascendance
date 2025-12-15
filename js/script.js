@@ -1177,7 +1177,7 @@
                 abundancecloud: 'Abundance Cloud Engine',
                 newstuff: 'New Stuff',
                 change: 'Change',
-                gifts: 'Customer Care',
+                gifts: 'Gift Tracking',
                 risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
                 projectanalytics: 'Project Analytics',
@@ -2754,6 +2754,243 @@
         let clockInterval = null;
         let clockPollingInterval = null; // For real-time AJAX polling
 
+        // ==========================================
+        // GEOFENCING FUNCTIONS FOR CLOCK IN/OUT
+        // ==========================================
+
+        /**
+         * Get user's current location
+         * @returns {Promise<{latitude: number, longitude: number, accuracy: number}>}
+         */
+        async function getCurrentLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation is not supported by this browser'));
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    (error) => {
+                        let errorMessage;
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'Location permission denied. Please enable location access.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'Location information is unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'Location request timed out.';
+                                break;
+                            default:
+                                errorMessage = 'An unknown error occurred getting location.';
+                        }
+                        reject(new Error(errorMessage));
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            });
+        }
+
+        /**
+         * Calculate distance between two coordinates using Haversine formula
+         * @param {number} lat1 - Latitude of point 1
+         * @param {number} lon1 - Longitude of point 1
+         * @param {number} lat2 - Latitude of point 2
+         * @param {number} lon2 - Longitude of point 2
+         * @returns {number} Distance in meters
+         */
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                      Math.cos(phi1) * Math.cos(phi2) *
+                      Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Distance in meters
+        }
+
+        /**
+         * Check if user is within store geofence
+         * @param {string} storeName - Name of the store
+         * @param {number} userLat - User's latitude
+         * @param {number} userLon - User's longitude
+         * @returns {{isWithinGeofence: boolean, distance: number, storeLocation: object}}
+         */
+        function checkGeofence(storeName, userLat, userLon) {
+            const storeLocations = window.STORE_LOCATIONS || {};
+
+            // Try to find the store location with flexible matching
+            let storeLocation = storeLocations[storeName];
+            let matchedStoreName = storeName;
+
+            // If not found directly, try to match by partial name or variations
+            if (!storeLocation) {
+                const normalizedStoreName = storeName.toLowerCase().replace('vsu ', '').trim();
+
+                for (const [key, location] of Object.entries(storeLocations)) {
+                    const normalizedKey = key.toLowerCase().replace('vsu ', '').trim();
+                    const normalizedLocationName = (location.name || '').toLowerCase().replace('vsu ', '').trim();
+
+                    if (normalizedKey === normalizedStoreName ||
+                        normalizedLocationName === normalizedStoreName ||
+                        normalizedKey.includes(normalizedStoreName) ||
+                        normalizedStoreName.includes(normalizedKey)) {
+                        storeLocation = location;
+                        matchedStoreName = key;
+                        console.log(`📍 Matched store "${storeName}" to "${key}"`);
+                        break;
+                    }
+                }
+            }
+
+            if (!storeLocation) {
+                console.warn(`Store location not configured for: ${storeName}`);
+                return {
+                    isWithinGeofence: true, // Allow if store not configured
+                    distance: 0,
+                    storeLocation: null,
+                    storeName: storeName,
+                    error: 'Store location not configured'
+                };
+            }
+
+            const distance = calculateDistance(
+                userLat, userLon,
+                storeLocation.latitude, storeLocation.longitude
+            );
+
+            const radius = storeLocation.radius || window.GEOFENCE_CONFIG?.defaultRadius || 100;
+            const isWithinGeofence = distance <= radius;
+
+            return {
+                isWithinGeofence,
+                distance: Math.round(distance),
+                radius,
+                storeLocation,
+                storeName: matchedStoreName
+            };
+        }
+
+        /**
+         * Verify location for clock in/out
+         * @param {string} storeName - Store to check against
+         * @returns {Promise<{allowed: boolean, location: object, geofenceResult: object, message: string}>}
+         */
+        async function verifyClockLocation(storeName) {
+            const geofenceConfig = window.GEOFENCE_CONFIG || { enabled: false };
+
+            // If geofencing is disabled, still try to record location if configured
+            if (!geofenceConfig.enabled && !geofenceConfig.recordLocationAlways) {
+                return {
+                    allowed: true,
+                    location: null,
+                    geofenceResult: null,
+                    message: 'Geofencing disabled'
+                };
+            }
+
+            try {
+                const location = await getCurrentLocation();
+                const geofenceResult = checkGeofence(storeName, location.latitude, location.longitude);
+
+                // Get display name for store
+                const displayStoreName = geofenceResult.storeLocation?.name || geofenceResult.storeName || storeName;
+
+                if (geofenceResult.error === 'Store location not configured') {
+                    // Store location not set up - allow but note it
+                    return {
+                        allowed: true,
+                        location,
+                        geofenceResult,
+                        warning: true,
+                        message: `Store "${displayStoreName}" location not configured. Location recorded.`
+                    };
+                }
+
+                if (geofenceResult.isWithinGeofence) {
+                    return {
+                        allowed: true,
+                        location,
+                        geofenceResult,
+                        message: `Location verified - you're at ${displayStoreName} (${geofenceResult.distance}m)`
+                    };
+                } else {
+                    // Outside geofence
+                    if (geofenceConfig.strictMode) {
+                        return {
+                            allowed: false,
+                            location,
+                            geofenceResult,
+                            message: `You are ${geofenceResult.distance}m away from ${displayStoreName}. Must be within ${geofenceResult.radius}m to clock in.`
+                        };
+                    } else {
+                        // Non-strict mode: warn but allow
+                        return {
+                            allowed: true,
+                            location,
+                            geofenceResult,
+                            warning: true,
+                            message: `Warning: You're ${geofenceResult.distance}m away from your assigned store (${displayStoreName}). This will be recorded.`
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('Location error:', error);
+
+                // If we can't get location
+                if (geofenceConfig.strictMode) {
+                    return {
+                        allowed: false,
+                        location: null,
+                        geofenceResult: null,
+                        message: `Location required: ${error.message}`
+                    };
+                } else {
+                    return {
+                        allowed: true,
+                        location: null,
+                        geofenceResult: null,
+                        warning: true,
+                        message: `Could not verify location: ${error.message}`
+                    };
+                }
+            }
+        }
+
+        /**
+         * Format location for display
+         * @param {object} locationData - Location data from clock record
+         * @returns {string} Formatted location string
+         */
+        function formatLocationDisplay(locationData) {
+            if (!locationData) return 'No location data';
+
+            let display = '';
+            if (locationData.isWithinGeofence) {
+                display = `<span style="color: var(--success);"><i class="fas fa-map-marker-alt"></i> At store (${locationData.distance}m)</span>`;
+            } else {
+                display = `<span style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Off-site (${locationData.distance}m away)</span>`;
+            }
+            return display;
+        }
+
         function renderClockIn() {
             const dashboard = document.querySelector('.dashboard');
             dashboard.innerHTML = `
@@ -2922,6 +3159,7 @@
                                         <th>Lunch End</th>
                                         <th>Clock Out</th>
                                         <th>Total Hours</th>
+                                        <th>Location</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -2991,7 +3229,9 @@
          */
         async function pollForClockUpdates() {
             try {
-                const dateString = new Date().toISOString().split('T')[0];
+                // Use local date (not UTC) for consistency
+                const today = new Date();
+                const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
                 // Initialize Firebase if needed
                 if (!firebaseClockInManager.isInitialized) {
@@ -3204,10 +3444,56 @@
 
             const store = employee.store || 'VSU Miramar';
 
+            // ==========================================
+            // GEOFENCE VERIFICATION
+            // ==========================================
+            let locationData = null;
 
-            // Format date as YYYY-MM-DD for consistency
+            // Show loading indicator
+            showNotification('Verifying location...', 'info');
+
+            try {
+                const locationResult = await verifyClockLocation(store);
+
+                if (!locationResult.allowed) {
+                    // Strict mode: block clock action if outside geofence
+                    showNotification(locationResult.message, 'error');
+                    return;
+                }
+
+                if (locationResult.warning) {
+                    // Non-strict mode: warn but allow
+                    showNotification(locationResult.message, 'warning');
+                }
+
+                // Store location data for the record
+                if (locationResult.location || locationResult.geofenceResult) {
+                    locationData = {
+                        latitude: locationResult.location?.latitude || null,
+                        longitude: locationResult.location?.longitude || null,
+                        accuracy: locationResult.location?.accuracy || null,
+                        isWithinGeofence: locationResult.geofenceResult?.isWithinGeofence ?? null,
+                        distance: locationResult.geofenceResult?.distance || null,
+                        timestamp: new Date().toISOString()
+                    };
+                    console.log('📍 Location recorded:', locationData);
+                }
+            } catch (locationError) {
+                console.warn('Location verification error:', locationError);
+                // Continue without location data if geofencing is not in strict mode
+                const geofenceConfig = window.GEOFENCE_CONFIG || { enabled: false };
+                if (geofenceConfig.strictMode) {
+                    showNotification('Location verification failed. Cannot clock in.', 'error');
+                    return;
+                }
+            }
+
+            // Format date as YYYY-MM-DD for consistency (use local date, not UTC)
             const today = new Date();
-            const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`; // YYYY-MM-DD format (local time)
             const dateDisplayString = today.toDateString();
 
             // Find record by EMPLOYEE NAME (primary identifier to avoid duplicates)
@@ -3301,18 +3587,29 @@
                 }
 
                 // Prepare clock record for Firebase
+                // Use firestoreId if available for better matching with employees collection
                 const firebaseRecord = {
-                    employeeId: employee.id,
+                    employeeId: employee.firestoreId || employee.id,
                     employeeName: employee.name,
                     employeeRole: employee.role,
                     store: store,
-                    date: dateString, // YYYY-MM-DD format
+                    date: dateString, // YYYY-MM-DD format (local time)
                     clockIn: record.clockIn,
                     lunchStart: record.lunchStart,
                     lunchEnd: record.lunchEnd,
                     clockOut: record.clockOut,
                     notes: record.notes || ''
                 };
+
+                // Add location data based on action type
+                if (locationData) {
+                    const actionLocationKey = `${currentClockAction}Location`;
+                    firebaseRecord[actionLocationKey] = locationData;
+
+                    // Also store the most recent location for easy access
+                    firebaseRecord.lastLocation = locationData;
+                    firebaseRecord.lastLocationAction = currentClockAction;
+                }
 
                 // Save to Firebase
                 await firebaseClockInManager.saveClockRecord(firebaseRecord);
@@ -3374,8 +3671,10 @@
         }
 
         async function loadAttendanceData() {
-            const today = new Date().toDateString();
-            const dateString = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            const todayDate = new Date();
+            const today = todayDate.toDateString();
+            // Use local date (not UTC) for consistency with Schedule page
+            const dateString = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
             
             const loadingDiv = document.getElementById('loadingAttendance');
             const tableContainer = document.getElementById('attendanceTableContainer');
@@ -3475,6 +3774,7 @@
             tableBody.innerHTML = records.map(record => {
                 const status = getAttendanceStatus(record);
                 const totalHours = calculateAttendanceTotalHours(record);
+                const locationDisplay = getLocationDisplayForRecord(record);
 
                 return `
                     <tr>
@@ -3493,6 +3793,7 @@
                         <td><span class="time-cell ${!record.lunchEnd ? 'empty' : ''}">${record.lunchEnd || '-'}</span></td>
                         <td><span class="time-cell ${!record.clockOut ? 'empty' : ''}">${record.clockOut || '-'}</span></td>
                         <td><span class="total-hours">${totalHours}</span></td>
+                        <td>${locationDisplay}</td>
                         <td><span class="status-badge ${status.class}">${status.text}</span></td>
                         <td>
                             <button class="table-action-btn" onclick="viewAttendanceDetails('${record.id}')">
@@ -3502,6 +3803,36 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        /**
+         * Get location display HTML for attendance record
+         * @param {object} record - Attendance record
+         * @returns {string} HTML for location display
+         */
+        function getLocationDisplayForRecord(record) {
+            // Check for location data (check inLocation first, then lastLocation)
+            const locationData = record.inLocation || record.lastLocation;
+
+            if (!locationData) {
+                return '<span style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-question-circle"></i> N/A</span>';
+            }
+
+            if (locationData.isWithinGeofence === true) {
+                return `<span style="color: var(--success); font-size: 12px;" title="Distance: ${locationData.distance}m">
+                    <i class="fas fa-map-marker-alt"></i> At store
+                </span>`;
+            } else if (locationData.isWithinGeofence === false) {
+                return `<span style="color: var(--danger); font-size: 12px;" title="Distance: ${locationData.distance}m from store">
+                    <i class="fas fa-exclamation-triangle"></i> Off-site (${locationData.distance}m)
+                </span>`;
+            } else if (locationData.latitude && locationData.longitude) {
+                return `<span style="color: var(--warning); font-size: 12px;" title="Lat: ${locationData.latitude.toFixed(4)}, Lon: ${locationData.longitude.toFixed(4)}">
+                    <i class="fas fa-map-pin"></i> Recorded
+                </span>`;
+            }
+
+            return '<span style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-question-circle"></i> Unknown</span>';
         }
 
         function getAttendanceStatus(record) {
@@ -7479,6 +7810,7 @@ window.viewChecklistHistory = async function() {
                             </button>
                             <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
                                 <option value="all">All Stores</option>
+                                <option value="employees">Employees Hours</option>
                                 <option value="Miramar">VSU Miramar</option>
                                 <option value="Morena">VSU Morena</option>
                                 <option value="Kearny Mesa">VSU Kearny Mesa</option>
@@ -7694,6 +8026,12 @@ window.viewChecklistHistory = async function() {
             // If "All Stores" is selected, show the stores grid view
             if (storeFilter === 'all') {
                 renderAllStoresView(container, weekDates, today);
+                return;
+            }
+
+            // If "Employees Hours" is selected, show the employees worked hours view
+            if (storeFilter === 'employees') {
+                renderEmployeesHoursView(container, weekDates, today);
                 return;
             }
 
@@ -8238,6 +8576,412 @@ window.viewChecklistHistory = async function() {
 
             html += '</div>';
             container.innerHTML = html;
+        }
+
+        // Render Employees Hours View - shows worked hours from Clock In/Out data
+        async function renderEmployeesHoursView(container, weekDates, today) {
+            // Show loading state
+            container.innerHTML = `
+                <div style="padding: 60px; text-align: center;">
+                    <div class="loading-spinner"></div>
+                    <p style="color: var(--text-muted); margin-top: 15px;">Loading employee hours...</p>
+                </div>
+            `;
+
+            try {
+                // Initialize Firebase Clock In Manager if not already done
+                if (!firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.initialize();
+                }
+
+                // Get all clock records for the week
+                const weekClockRecords = {};
+                for (const date of weekDates) {
+                    const dateKey = formatDateKey(date);
+                    // Use the same format as formatDateKey (local date, not UTC)
+                    const dateString = dateKey;
+                    try {
+                        const records = await firebaseClockInManager.loadClockRecordsByDate(dateString);
+                        weekClockRecords[dateKey] = records;
+                        if (records.length > 0) {
+                            console.log(`📅 Loaded ${records.length} clock records for ${dateString}`);
+                        }
+                    } catch (err) {
+                        console.warn(`Could not load clock records for ${dateString}:`, err);
+                        weekClockRecords[dateKey] = [];
+                    }
+                }
+
+                // Calculate hours per employee per day
+                const employeeHoursMap = {};
+
+                employees.forEach(emp => {
+                    employeeHoursMap[emp.id] = {
+                        employee: emp,
+                        dailyHours: {},
+                        totalHours: 0,
+                        totalMinutes: 0
+                    };
+
+                    weekDates.forEach(date => {
+                        const dateKey = formatDateKey(date);
+                        employeeHoursMap[emp.id].dailyHours[dateKey] = { hours: 0, minutes: 0, hasRecord: false };
+                    });
+                });
+
+                // Process clock records
+                for (const dateKey of Object.keys(weekClockRecords)) {
+                    const records = weekClockRecords[dateKey];
+                    records.forEach(record => {
+                        // Find matching employee by multiple criteria for robust matching
+                        const matchingEmp = employees.find(e => {
+                            // Match by firestoreId (most reliable)
+                            if (e.firestoreId && e.firestoreId === record.employeeId) return true;
+                            // Match by id
+                            if (e.id && e.id === record.employeeId) return true;
+                            // Match by name (case-insensitive)
+                            if (e.name && record.employeeName &&
+                                e.name.toLowerCase().trim() === record.employeeName.toLowerCase().trim()) return true;
+                            return false;
+                        });
+
+                        if (matchingEmp && employeeHoursMap[matchingEmp.id]) {
+                            const workedTime = calculateWorkedTimeFromRecord(record);
+                            // Show record even if no clock out yet (in progress)
+                            if (workedTime.totalMinutes > 0 || record.clockIn) {
+                                employeeHoursMap[matchingEmp.id].dailyHours[dateKey] = {
+                                    hours: workedTime.hours,
+                                    minutes: workedTime.minutes,
+                                    hasRecord: true,
+                                    clockIn: record.clockIn,
+                                    clockOut: record.clockOut,
+                                    inProgress: record.clockIn && !record.clockOut
+                                };
+                                if (workedTime.totalMinutes > 0) {
+                                    employeeHoursMap[matchingEmp.id].totalMinutes += workedTime.totalMinutes;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Calculate total hours for each employee
+                Object.values(employeeHoursMap).forEach(empData => {
+                    empData.totalHours = Math.floor(empData.totalMinutes / 60);
+                    const remainingMinutes = Math.floor(empData.totalMinutes % 60);
+                    // Show hours and minutes in a clean format
+                    // e.g., "8h 30m" or just "45m" if less than an hour
+                    if (empData.totalHours > 0) {
+                        empData.totalHoursDisplay = `${empData.totalHours}h ${remainingMinutes}m`;
+                    } else if (remainingMinutes > 0) {
+                        empData.totalHoursDisplay = `${remainingMinutes}m`;
+                    } else {
+                        empData.totalHoursDisplay = '-';
+                    }
+                });
+
+                // Build the HTML table
+                let html = `
+                    <div class="employees-hours-container">
+                        <div class="employees-hours-header">
+                            <h3><i class="fas fa-clock" style="color: var(--accent-primary); margin-right: 8px;"></i>Employee Worked Hours</h3>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Based on Clock In/Out records for this week</p>
+                        </div>
+                        <div class="employees-hours-table-wrapper">
+                            <table class="employees-hours-table">
+                                <thead>
+                                    <tr>
+                                        <th class="employee-col">Employee</th>
+                `;
+
+                // Add day columns
+                weekDates.forEach(date => {
+                    const dateKey = formatDateKey(date);
+                    const isToday = dateKey === today;
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayNumber = date.getDate();
+                    html += `<th class="day-col ${isToday ? 'today' : ''}">${dayName}<br><span class="day-number">${dayNumber}</span></th>`;
+                });
+
+                html += `<th class="total-col">Total</th></tr></thead><tbody>`;
+
+                // Add rows for each employee (sorted by name)
+                const sortedEmployees = Object.values(employeeHoursMap)
+                    .filter(empData => empData.employee.name)
+                    .sort((a, b) => a.employee.name.localeCompare(b.employee.name));
+
+                if (sortedEmployees.length === 0) {
+                    html += `
+                        <tr>
+                            <td colspan="${weekDates.length + 2}" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fas fa-users" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+                                No employees found
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    sortedEmployees.forEach(empData => {
+                        const emp = empData.employee;
+                        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+                        const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                        const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                        html += `
+                            <tr>
+                                <td class="employee-col">
+                                    <div class="emp-info">
+                                        <div class="emp-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                        <div class="emp-details">
+                                            <div class="emp-name">${emp.name}</div>
+                                            <div class="emp-store">${emp.store || 'No Store'}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                        `;
+
+                        // Add hours for each day
+                        weekDates.forEach(date => {
+                            const dateKey = formatDateKey(date);
+                            const isToday = dateKey === today;
+                            const dayData = empData.dailyHours[dateKey];
+
+                            if (dayData.hasRecord) {
+                                let hoursDisplay;
+                                let cellClass = 'has-hours';
+
+                                if (dayData.inProgress) {
+                                    // Employee clocked in but not out yet
+                                    hoursDisplay = '<i class="fas fa-clock"></i> Active';
+                                    cellClass = 'in-progress';
+                                } else if (dayData.hours > 0 || dayData.minutes > 0) {
+                                    // Show hours and minutes in a clean format
+                                    // e.g., "1h 23m" or just "23m" if less than an hour
+                                    if (dayData.hours > 0) {
+                                        hoursDisplay = `${dayData.hours}h ${dayData.minutes}m`;
+                                    } else {
+                                        hoursDisplay = `${dayData.minutes}m`;
+                                    }
+                                } else {
+                                    hoursDisplay = '-';
+                                }
+
+                                const tooltipText = dayData.clockIn && dayData.clockOut
+                                    ? `${dayData.clockIn} - ${dayData.clockOut}`
+                                    : (dayData.clockIn ? `Clocked in: ${dayData.clockIn} (still working)` : '');
+                                html += `
+                                    <td class="day-col ${isToday ? 'today' : ''} ${cellClass}" title="${tooltipText}">
+                                        <span class="hours-value">${hoursDisplay}</span>
+                                    </td>
+                                `;
+                            } else {
+                                html += `<td class="day-col ${isToday ? 'today' : ''} no-hours">-</td>`;
+                            }
+                        });
+
+                        // Add total
+                        const hasAnyHours = empData.totalMinutes > 0;
+                        html += `
+                            <td class="total-col ${hasAnyHours ? 'has-total' : ''}">
+                                <span class="total-value">${hasAnyHours ? empData.totalHoursDisplay : '-'}</span>
+                            </td>
+                        </tr>
+                        `;
+                    });
+                }
+
+                html += `</tbody></table></div></div>`;
+
+                // Add styles for the table
+                html += `
+                    <style>
+                        .employees-hours-container {
+                            background: var(--bg-card);
+                            border-radius: 16px;
+                            padding: 24px;
+                            box-shadow: var(--shadow-sm);
+                        }
+                        .employees-hours-header {
+                            margin-bottom: 20px;
+                        }
+                        .employees-hours-header h3 {
+                            font-size: 18px;
+                            font-weight: 600;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .employees-hours-table-wrapper {
+                            overflow-x: auto;
+                        }
+                        .employees-hours-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 14px;
+                        }
+                        .employees-hours-table th,
+                        .employees-hours-table td {
+                            padding: 12px 16px;
+                            text-align: center;
+                            border-bottom: 1px solid var(--border-color);
+                        }
+                        .employees-hours-table th {
+                            background: var(--bg-secondary);
+                            font-weight: 600;
+                            color: var(--text-secondary);
+                            font-size: 13px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .employees-hours-table th.today {
+                            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+                            color: white;
+                        }
+                        .employees-hours-table th .day-number {
+                            font-size: 16px;
+                            font-weight: 700;
+                        }
+                        .employees-hours-table .employee-col {
+                            text-align: left;
+                            min-width: 200px;
+                        }
+                        .employees-hours-table .day-col {
+                            min-width: 80px;
+                        }
+                        .employees-hours-table .total-col {
+                            min-width: 100px;
+                            background: var(--bg-secondary);
+                            font-weight: 600;
+                        }
+                        .employees-hours-table td.today {
+                            background: rgba(79, 70, 229, 0.05);
+                        }
+                        .employees-hours-table td.has-hours {
+                            color: var(--success);
+                            font-weight: 500;
+                        }
+                        .employees-hours-table td.in-progress {
+                            color: var(--warning);
+                            font-weight: 500;
+                        }
+                        .employees-hours-table td.in-progress .hours-value {
+                            background: rgba(245, 158, 11, 0.15);
+                            color: var(--warning);
+                            animation: pulse-active 2s infinite;
+                        }
+                        @keyframes pulse-active {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.7; }
+                        }
+                        .employees-hours-table td.no-hours {
+                            color: var(--text-muted);
+                        }
+                        .employees-hours-table td.has-total {
+                            color: var(--accent-primary);
+                        }
+                        .employees-hours-table .hours-value {
+                            background: rgba(34, 197, 94, 0.1);
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            font-size: 13px;
+                        }
+                        .employees-hours-table .total-value {
+                            background: rgba(79, 70, 229, 0.1);
+                            padding: 6px 12px;
+                            border-radius: 8px;
+                            font-weight: 600;
+                        }
+                        .emp-info {
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                        }
+                        .emp-avatar {
+                            width: 36px;
+                            height: 36px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 13px;
+                            font-weight: 600;
+                        }
+                        .emp-details {
+                            text-align: left;
+                        }
+                        .emp-name {
+                            font-weight: 600;
+                            color: var(--text-primary);
+                        }
+                        .emp-store {
+                            font-size: 12px;
+                            color: var(--text-muted);
+                        }
+                        .employees-hours-table tbody tr:hover {
+                            background: var(--bg-hover);
+                        }
+                    </style>
+                `;
+
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error rendering employees hours view:', error);
+                container.innerHTML = `
+                    <div style="padding: 60px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
+                        <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Error Loading Hours</h3>
+                        <p style="color: var(--text-muted);">Unable to load employee hours data.</p>
+                        <button class="btn-primary" style="margin-top: 20px;" onclick="renderScheduleGrid()">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Calculate worked time from a clock record
+        function calculateWorkedTimeFromRecord(record) {
+            if (!record.clockIn) {
+                return { hours: 0, minutes: 0, totalMinutes: 0 };
+            }
+
+            const clockIn = parseClockTime(record.clockIn);
+            const clockOut = record.clockOut ? parseClockTime(record.clockOut) : null;
+
+            if (!clockOut) {
+                return { hours: 0, minutes: 0, totalMinutes: 0 };
+            }
+
+            let totalMinutes = (clockOut - clockIn) / 1000 / 60;
+
+            // Subtract lunch time if applicable
+            if (record.lunchStart && record.lunchEnd) {
+                const lunchStart = parseClockTime(record.lunchStart);
+                const lunchEnd = parseClockTime(record.lunchEnd);
+                const lunchMinutes = (lunchEnd - lunchStart) / 1000 / 60;
+                if (lunchMinutes > 0) {
+                    totalMinutes -= lunchMinutes;
+                }
+            }
+
+            // Handle negative or invalid values
+            if (totalMinutes < 0) {
+                totalMinutes = 0;
+            }
+
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.floor(totalMinutes % 60);
+
+            return { hours, minutes, totalMinutes: Math.floor(totalMinutes) };
+        }
+
+        // Parse clock time string to Date object
+        function parseClockTime(timeString) {
+            if (!timeString) return null;
+            const today = new Date();
+            const [hours, minutes] = timeString.split(':');
+            today.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            return today;
         }
 
         // Drag handlers for All Stores view
@@ -14289,7 +15033,7 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Customer Care</h2>
+                        <h2 class="section-title">Gift Tracking</h2>
                         <p class="section-subtitle">In-Kind Gifts & Product Giveaways</p>
                     </div>
                     <button class="btn-primary floating-add-btn" onclick="openModal('add-gift')">
@@ -18588,8 +19332,11 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Password (leave blank to keep current)</label>
-                                    <input type="password" class="form-input" id="edit-emp-password" placeholder="Enter new password or leave blank">
+                                    <label>Reset Password</label>
+                                    <input type="password" class="form-input" id="edit-emp-password" placeholder="Enter new password to send reset email">
+                                    <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block;">
+                                        <i class="fas fa-info-circle"></i> Entering a password will send a reset email to the employee
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Confirm Password</label>
@@ -21820,8 +22567,11 @@ Return ONLY the JSON object, no additional text.`,
             };
 
             // Only include password if it's being changed
+            // Note: This will trigger a password reset email to be sent to the employee
+            let passwordResetRequested = false;
             if (password) {
                 updatedData.password = password;
+                passwordResetRequested = true;
             }
 
             // Show saving indicator
@@ -21952,7 +22702,13 @@ Return ONLY the JSON object, no additional text.`,
 
                 closeModal();
                 renderPage(currentPage);
-                showNotification('Employee updated successfully!', 'success');
+
+                // Show appropriate notification based on whether password reset was requested
+                if (passwordResetRequested) {
+                    showNotification('Employee updated! A password reset email has been sent to the employee.', 'success');
+                } else {
+                    showNotification('Employee updated successfully!', 'success');
+                }
             } catch (error) {
                 console.error('Error updating employee:', error);
                 alert('Error updating employee. Please try again.');
@@ -22774,7 +23530,11 @@ Return ONLY the JSON object, no additional text.`,
                         renderPage(currentPage);
 
                         // Show success message
-                        showNotification('Employee added successfully!', 'success');
+                        if (newEmployee.firebaseUid) {
+                            showNotification('Employee added with login account created!', 'success');
+                        } else {
+                            showNotification('Employee added successfully!', 'success');
+                        }
                     } else {
                         throw new Error('Failed to get Firestore ID');
                     }
@@ -24880,7 +25640,7 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Expenses Control', page: 'cashout', icon: 'fa-money-bill-wave' },
                 { name: 'Heady Pieces', page: 'treasury', icon: 'fa-vault' },
                 { name: 'Change Records', page: 'change', icon: 'fa-coins' },
-                { name: 'Customer Care', page: 'gifts', icon: 'fa-gift' },
+                { name: 'Gift Tracking', page: 'gifts', icon: 'fa-gift' },
                 { name: 'Risk Notes', page: 'risknotes', icon: 'fa-shield-halved' },
                 { name: 'Password Manager', page: 'passwords', icon: 'fa-key' },
                 { name: 'G Force', page: 'gforce', icon: 'fa-bolt' },
@@ -30065,7 +30825,7 @@ window.renderProjectAnalytics = function() {
         { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', page: 'cashout', description: 'Cash out tracking', fullDescription: 'Daily expense tracking and cash out management with receipt documentation.', features: ['Receipt upload', 'Category tracking', 'Daily totals', 'Approval workflow'], version: '1.8', linesOfCode: 890 },
         { name: 'Heady Pieces', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Art collection', fullDescription: 'Heady glass and art piece collection management with photos and valuations.', features: ['Photo gallery', 'Artist tracking', 'Valuation records', 'Location tracking'], version: '1.6', linesOfCode: 620 },
         { name: 'Change Records', icon: 'fa-coins', status: 'active', page: 'change', description: 'Cash flow between stores', fullDescription: 'Track change and cash transfers between store locations with photo verification.', features: ['Photo verification', 'Transfer tracking', 'Store-to-store', 'Balance history'], version: '1.4', linesOfCode: 480 },
-        { name: 'Customer Care', icon: 'fa-gift', status: 'active', page: 'gifts', description: 'Gift tracking', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.3', linesOfCode: 440 },
+        { name: 'Gift Tracking', icon: 'fa-gift', status: 'active', page: 'gifts', description: 'Gift tracking', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.3', linesOfCode: 440 },
         { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', page: 'risknotes', description: 'Security alerts', fullDescription: 'Security risk documentation and alert system for potential threats.', features: ['Risk assessment', 'Alert system', 'Action tracking', 'Priority levels'], version: '1.1', linesOfCode: 380 },
         { name: 'Password Manager', icon: 'fa-key', status: 'active', page: 'passwords', description: 'Credentials vault', fullDescription: 'Secure password and credential storage with encrypted access.', features: ['Secure storage', 'Category organization', 'Quick copy', 'Access logging'], version: '1.5', linesOfCode: 520 },
         { name: 'G Force', icon: 'fa-bolt', status: 'active', page: 'gforce', description: 'Daily motivation', fullDescription: 'Daily motivational quotes, affirmations, and philosophy for team inspiration.', features: ['Daily quotes', 'Affirmations', 'Philosophy tips', 'Random generation'], version: '1.2', linesOfCode: 340 },
@@ -30204,6 +30964,15 @@ window.renderProjectAnalytics = function() {
                         <div style="text-align: left;">
                             <div style="font-weight: 600; color: var(--text-primary);">Recent Activity</div>
                             <div style="font-size: 12px; color: var(--text-muted);">View system logs</div>
+                        </div>
+                    </button>
+                    <button onclick="openStoreLocationsModal()" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#ec4899'; this.style.background='rgba(236,72,153,0.1)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)';">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ec4899, #db2777); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-map-marker-alt" style="color: white;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: var(--text-primary);">Store Locations</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Configure geofencing</div>
                         </div>
                     </button>
                 </div>
@@ -30842,6 +31611,288 @@ function formatTimeAgo(date) {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
+}
+
+// Store Locations Modal for Geofencing Configuration
+window.openStoreLocationsModal = function() {
+    const existingModal = document.getElementById('store-locations-modal');
+    if (existingModal) existingModal.remove();
+
+    // Get current store locations from config
+    const storeLocations = window.STORE_LOCATIONS || {};
+    const geofenceConfig = window.GEOFENCE_CONFIG || { enabled: true, strictMode: false, defaultRadius: 100 };
+
+    // Build store rows HTML
+    const storeRows = Object.entries(storeLocations).map(([key, store]) => `
+        <div class="store-location-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr 80px auto; gap: 10px; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 10px;">
+            <div>
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Store</label>
+                <span style="font-weight: 600; font-size: 13px;">${store.name || key}</span>
+            </div>
+            <div>
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Latitude</label>
+                <input type="number" step="0.0001" value="${store.latitude || ''}"
+                    data-store="${key}" data-field="latitude"
+                    style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 12px;"
+                    placeholder="32.8934">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Longitude</label>
+                <input type="number" step="0.0001" value="${store.longitude || ''}"
+                    data-store="${key}" data-field="longitude"
+                    style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 12px;"
+                    placeholder="-117.1489">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Radius (m)</label>
+                <input type="number" value="${store.radius || 100}"
+                    data-store="${key}" data-field="radius"
+                    style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 12px;"
+                    placeholder="100">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">&nbsp;</label>
+                <button onclick="getStoreCurrentLocation('${key}')"
+                    style="padding: 8px 12px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; white-space: nowrap;"
+                    title="Use current location">
+                    <i class="fas fa-crosshairs"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'store-locations-modal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    modal.onmousedown = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+        <div style="background: var(--bg-primary); border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; overflow: hidden; animation: modalSlideIn 0.3s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-map-marker-alt" style="color: #ec4899;"></i> Store Locations (Geofencing)
+                </h3>
+                <button onclick="document.getElementById('store-locations-modal').remove()" style="background: none; border: none; cursor: pointer; padding: 8px; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                    <i class="fas fa-times" style="color: var(--text-muted);"></i>
+                </button>
+            </div>
+            <div style="padding: 24px; overflow-y: auto; flex: 1;">
+                <!-- Geofence Settings -->
+                <div style="margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-secondary);">
+                        <i class="fas fa-cog" style="margin-right: 8px;"></i>Geofence Settings
+                    </h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="geofence-enabled" ${geofenceConfig.enabled ? 'checked' : ''}
+                                style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 13px;">Enable Geofencing</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="geofence-strict" ${geofenceConfig.strictMode ? 'checked' : ''}
+                                style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 13px;">Strict Mode (Block off-site clock-ins)</span>
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-size: 13px;">Default Radius:</label>
+                            <input type="number" id="geofence-default-radius" value="${geofenceConfig.defaultRadius || 100}"
+                                style="width: 70px; padding: 6px 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 12px;">
+                            <span style="font-size: 12px; color: var(--text-muted);">meters</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Store Locations -->
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-secondary);">
+                    <i class="fas fa-store" style="margin-right: 8px;"></i>Store Coordinates
+                </h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+                    Set GPS coordinates for each store. Use the <i class="fas fa-crosshairs"></i> button to use your current location.
+                </p>
+                <div id="store-locations-list">
+                    ${storeRows}
+                </div>
+            </div>
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="document.getElementById('store-locations-modal').remove()"
+                    style="padding: 10px 20px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; color: var(--text-primary);">
+                    Cancel
+                </button>
+                <button onclick="saveStoreLocations()"
+                    style="padding: 10px 20px; background: linear-gradient(135deg, #ec4899, #db2777); border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: 600;">
+                    <i class="fas fa-save" style="margin-right: 6px;"></i>Save Locations
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Get current location for a specific store input
+window.getStoreCurrentLocation = async function(storeKey) {
+    try {
+        showNotification('Getting current location...', 'info');
+
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000
+            });
+        });
+
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        // Find and update the inputs
+        const latInput = document.querySelector(`input[data-store="${storeKey}"][data-field="latitude"]`);
+        const lonInput = document.querySelector(`input[data-store="${storeKey}"][data-field="longitude"]`);
+
+        if (latInput) latInput.value = lat.toFixed(6);
+        if (lonInput) lonInput.value = lon.toFixed(6);
+
+        showNotification(`Location set: ${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'success');
+    } catch (error) {
+        console.error('Geolocation error:', error);
+        showNotification('Could not get location. Please enable GPS.', 'error');
+    }
+}
+
+// Save store locations to Firebase and localStorage
+window.saveStoreLocations = async function() {
+    try {
+        // Collect all store location data from inputs
+        const storeLocations = {};
+        const rows = document.querySelectorAll('.store-location-row');
+
+        rows.forEach(row => {
+            const latInput = row.querySelector('input[data-field="latitude"]');
+            const lonInput = row.querySelector('input[data-field="longitude"]');
+            const radiusInput = row.querySelector('input[data-field="radius"]');
+
+            if (latInput && lonInput) {
+                const storeKey = latInput.dataset.store;
+                const originalStore = window.STORE_LOCATIONS?.[storeKey] || {};
+
+                storeLocations[storeKey] = {
+                    name: originalStore.name || storeKey,
+                    latitude: parseFloat(latInput.value) || 0,
+                    longitude: parseFloat(lonInput.value) || 0,
+                    radius: parseInt(radiusInput?.value) || 100
+                };
+            }
+        });
+
+        // Collect geofence config
+        const geofenceConfig = {
+            enabled: document.getElementById('geofence-enabled')?.checked ?? true,
+            strictMode: document.getElementById('geofence-strict')?.checked ?? false,
+            defaultRadius: parseInt(document.getElementById('geofence-default-radius')?.value) || 100,
+            recordLocationAlways: true
+        };
+
+        // Save to Firebase
+        try {
+            const db = firebase.firestore();
+            const settingsCollection = window.FIREBASE_COLLECTIONS?.settings || 'settings';
+
+            // Save store locations
+            await db.collection(settingsCollection).doc('storeLocations').set({
+                locations: storeLocations,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: getCurrentUser()?.name || 'Unknown'
+            });
+
+            // Save geofence config
+            await db.collection(settingsCollection).doc('geofenceConfig').set({
+                config: geofenceConfig,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: getCurrentUser()?.name || 'Unknown'
+            });
+
+            console.log('✅ Store locations saved to Firebase');
+        } catch (firebaseError) {
+            console.error('Firebase save error:', firebaseError);
+            // Continue to save locally even if Firebase fails
+        }
+
+        // Also save to localStorage as backup/cache
+        localStorage.setItem('store_locations', JSON.stringify(storeLocations));
+        localStorage.setItem('geofence_config', JSON.stringify(geofenceConfig));
+
+        // Update window objects immediately
+        window.STORE_LOCATIONS = storeLocations;
+        window.GEOFENCE_CONFIG = geofenceConfig;
+
+        showNotification('Store locations saved successfully!', 'success');
+        document.getElementById('store-locations-modal')?.remove();
+
+    } catch (error) {
+        console.error('Error saving store locations:', error);
+        showNotification('Error saving locations. Please try again.', 'error');
+    }
+}
+
+// Load saved store locations from Firebase (with localStorage fallback)
+window.loadSavedStoreLocations = async function() {
+    try {
+        // First, try to load from localStorage as quick cache
+        const cachedLocations = localStorage.getItem('store_locations');
+        const cachedGeofenceConfig = localStorage.getItem('geofence_config');
+
+        if (cachedLocations) {
+            const locations = JSON.parse(cachedLocations);
+            window.STORE_LOCATIONS = { ...window.STORE_LOCATIONS, ...locations };
+        }
+
+        if (cachedGeofenceConfig) {
+            window.GEOFENCE_CONFIG = JSON.parse(cachedGeofenceConfig);
+        }
+
+        // Then try to load from Firebase (will override cache if successful)
+        try {
+            // Wait a moment for Firebase to initialize
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                const db = firebase.firestore();
+                const settingsCollection = window.FIREBASE_COLLECTIONS?.settings || 'settings';
+
+                // Load store locations
+                const locationsDoc = await db.collection(settingsCollection).doc('storeLocations').get();
+                if (locationsDoc.exists) {
+                    const data = locationsDoc.data();
+                    if (data.locations) {
+                        window.STORE_LOCATIONS = { ...window.STORE_LOCATIONS, ...data.locations };
+                        // Update local cache
+                        localStorage.setItem('store_locations', JSON.stringify(data.locations));
+                        console.log('✅ Store locations loaded from Firebase');
+                    }
+                }
+
+                // Load geofence config
+                const configDoc = await db.collection(settingsCollection).doc('geofenceConfig').get();
+                if (configDoc.exists) {
+                    const data = configDoc.data();
+                    if (data.config) {
+                        window.GEOFENCE_CONFIG = data.config;
+                        // Update local cache
+                        localStorage.setItem('geofence_config', JSON.stringify(data.config));
+                        console.log('✅ Geofence config loaded from Firebase');
+                    }
+                }
+            }
+        } catch (firebaseError) {
+            console.warn('Could not load from Firebase, using cached data:', firebaseError.message);
+        }
+    } catch (error) {
+        console.error('Error loading saved store locations:', error);
+    }
+}
+
+// Load saved locations on page load
+if (typeof window !== 'undefined') {
+    // Load immediately from cache
+    window.loadSavedStoreLocations();
 }
 
 // API Settings Modal

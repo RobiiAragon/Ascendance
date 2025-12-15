@@ -1443,14 +1443,34 @@ class FirebaseEmployeeManager {
             // Create user in Firebase Authentication if email and password provided
             if (email && password) {
                 try {
-                    const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                    // Use a secondary Firebase app to create users without affecting the current admin session
+                    // This is the recommended approach for creating users from an admin context
+                    let secondaryApp;
+                    try {
+                        secondaryApp = firebase.app('secondary');
+                    } catch (e) {
+                        // Secondary app doesn't exist, create it
+                        const config = window.FIREBASE_CONFIG;
+                        secondaryApp = firebase.initializeApp(config, 'secondary');
+                    }
+
+                    const secondaryAuth = secondaryApp.auth();
+
+                    // Create user with secondary app (won't affect main app's auth state)
+                    const userCredential = await secondaryAuth.createUserWithEmailAndPassword(email, password);
                     const userId = userCredential.user.uid;
-                    
+
                     // Add the Firebase Auth UID to the employee data
                     employeeData.firebaseUid = userId;
                     employeeData.authEmail = email;
-                    
+
+                    console.log('✅ Firebase Auth user created successfully:', userId);
+
+                    // Sign out from secondary app (doesn't affect main app)
+                    await secondaryAuth.signOut();
+
                 } catch (authError) {
+                    console.error('Firebase Auth error:', authError.code, authError.message);
                     // Check if email already exists or other auth errors
                     if (authError.code === 'auth/email-already-in-use') {
                         throw new Error('Email already registered. Please use a different email or login with existing account.');
@@ -1487,14 +1507,72 @@ class FirebaseEmployeeManager {
                 return false;
             }
 
+            // If password is being updated, we need to handle Firebase Auth
+            if (updateData.password) {
+                // Get the employee's email to send password reset
+                const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
+                const doc = await this.db.collection(employeesCollection).doc(employeeId).get();
+
+                if (doc.exists) {
+                    const employeeData = doc.data();
+                    const email = employeeData.authEmail || employeeData.email;
+
+                    if (email) {
+                        try {
+                            // Send password reset email - this is the secure way to update passwords
+                            // for users other than the currently logged-in user
+                            await firebase.auth().sendPasswordResetEmail(email);
+                            console.log(`Password reset email sent to ${email}`);
+
+                            // Store flag that password reset was requested
+                            updateData.passwordResetPending = true;
+                            updateData.passwordResetRequestedAt = new Date();
+
+                            // Don't store the plain text password in Firestore for security
+                            delete updateData.password;
+                        } catch (authError) {
+                            console.error('Error sending password reset email:', authError);
+                            // Continue with update even if email fails
+                            // Remove password from updateData since we can't update Firebase Auth from client
+                            delete updateData.password;
+                        }
+                    } else {
+                        // No email found, just remove password from update
+                        console.warn('No email found for employee, cannot send password reset');
+                        delete updateData.password;
+                    }
+                }
+            }
+
             updateData.updatedAt = new Date();
 
             const employeesCollection = window.FIREBASE_COLLECTIONS?.employees || 'employees';
             await this.db.collection(employeesCollection).doc(employeeId).update(updateData);
-            
+
             return true;
         } catch (error) {
             console.error('Error updating employee:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Send password reset email to employee
+     * @param {string} email - Employee email address
+     * @returns {Promise<boolean>} Success status
+     */
+    async sendPasswordResetEmail(email) {
+        try {
+            if (!email) {
+                console.error('Email is required to send password reset');
+                return false;
+            }
+
+            await firebase.auth().sendPasswordResetEmail(email);
+            console.log(`Password reset email sent to ${email}`);
+            return true;
+        } catch (error) {
+            console.error('Error sending password reset email:', error);
             return false;
         }
     }

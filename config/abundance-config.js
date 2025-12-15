@@ -76,7 +76,58 @@ window.FIREBASE_COLLECTIONS = {
     issues: 'issues',           // Firestore collection for issues registry
     gconomics: 'gconomics',     // Firestore collection for personal expense tracking
     licenses: 'licenses',       // Firestore collection for licenses and documents
-    passwords: 'passwords'      // Firestore collection for password manager
+    passwords: 'passwords',     // Firestore collection for password manager
+    settings: 'settings'        // Firestore collection for app settings (store locations, geofence config, etc.)
+};
+
+// Store Locations for Geofencing (Clock In/Out)
+// Each store has coordinates and a radius (in meters) for the geofence
+window.STORE_LOCATIONS = {
+    'Miramar': {
+        name: 'VSU Miramar',
+        latitude: 32.8934,      // Update with actual coordinates
+        longitude: -117.1489,   // Update with actual coordinates
+        radius: 100             // 100 meters radius
+    },
+    'Morena': {
+        name: 'VSU Morena',
+        latitude: 32.7657,      // Update with actual coordinates
+        longitude: -117.1949,   // Update with actual coordinates
+        radius: 100
+    },
+    'Kearny Mesa': {
+        name: 'VSU Kearny Mesa',
+        latitude: 32.8225,      // Update with actual coordinates
+        longitude: -117.1533,   // Update with actual coordinates
+        radius: 100
+    },
+    'Chula Vista': {
+        name: 'VSU Chula Vista',
+        latitude: 32.6401,      // Update with actual coordinates
+        longitude: -117.0842,   // Update with actual coordinates
+        radius: 100
+    },
+    'North Park': {
+        name: 'VSU North Park',
+        latitude: 32.7405,      // Update with actual coordinates
+        longitude: -117.1292,   // Update with actual coordinates
+        radius: 100
+    },
+    'Miramar Wine & Liquor': {
+        name: 'Miramar Wine & Liquor',
+        latitude: 32.8934,      // Update with actual coordinates
+        longitude: -117.1489,   // Update with actual coordinates
+        radius: 100
+    }
+};
+
+// Geofencing Configuration
+window.GEOFENCE_CONFIG = {
+    enabled: true,                    // Enable/disable geofencing
+    strictMode: false,                // If true, blocks clock-in outside geofence. If false, just warns and records location
+    defaultRadius: 100,               // Default radius in meters
+    allowLocationOverride: false,     // Allow admins to override location check
+    recordLocationAlways: true        // Always record location even if geofencing is disabled
 };
 
 // Employee Roles Configuration
