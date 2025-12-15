@@ -1307,10 +1307,273 @@
                     renderLabels();
                     break;
                 default:
-                    renderDashboard();
+                    render404(page);
             }
 
             refreshFloatingAddButtons();
+        }
+
+        // Render 404 Page - Beautiful cosmic theme
+        function render404(attemptedPage = '') {
+            const dashboard = document.querySelector('.dashboard');
+            dashboard.innerHTML = `
+                <style>
+                    .page-404 {
+                        min-height: 70vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        position: relative;
+                        overflow: hidden;
+                    }
+
+                    .page-404-bg {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: radial-gradient(ellipse at center, rgba(102,126,234,0.1) 0%, transparent 70%);
+                        pointer-events: none;
+                    }
+
+                    .page-404-stars {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        overflow: hidden;
+                        pointer-events: none;
+                    }
+
+                    .page-404-star {
+                        position: absolute;
+                        background: var(--accent-primary);
+                        border-radius: 50%;
+                        animation: twinkle404 var(--duration) ease-in-out infinite;
+                    }
+
+                    @keyframes twinkle404 {
+                        0%, 100% { opacity: 0.2; transform: scale(1); }
+                        50% { opacity: 0.8; transform: scale(1.3); }
+                    }
+
+                    .page-404-content {
+                        position: relative;
+                        z-index: 10;
+                        text-align: center;
+                        padding: 40px;
+                        max-width: 500px;
+                    }
+
+                    .page-404-astronaut {
+                        font-size: 80px;
+                        margin-bottom: 24px;
+                        animation: float404 4s ease-in-out infinite;
+                        color: var(--accent-primary);
+                        text-shadow: 0 0 40px rgba(168, 85, 247, 0.4);
+                    }
+
+                    @keyframes float404 {
+                        0%, 100% { transform: translateY(0) rotate(-5deg); }
+                        50% { transform: translateY(-15px) rotate(5deg); }
+                    }
+
+                    .page-404-code {
+                        font-size: 120px;
+                        font-weight: 800;
+                        line-height: 1;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a855f7 100%);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        margin-bottom: 16px;
+                        animation: glow404 3s ease-in-out infinite;
+                    }
+
+                    @keyframes glow404 {
+                        0%, 100% { filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.3)); }
+                        50% { filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.5)); }
+                    }
+
+                    .page-404-title {
+                        font-size: 28px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                        margin-bottom: 12px;
+                    }
+
+                    .page-404-subtitle {
+                        font-size: 16px;
+                        color: var(--text-muted);
+                        margin-bottom: 8px;
+                    }
+
+                    .page-404-quote {
+                        font-size: 18px;
+                        font-weight: 600;
+                        font-style: italic;
+                        background: linear-gradient(135deg, #667eea, #a855f7);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        margin: 24px 0 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 12px;
+                    }
+
+                    .page-404-quote i {
+                        -webkit-text-fill-color: #a855f7;
+                        font-size: 14px;
+                    }
+
+                    .page-404-buttons {
+                        display: flex;
+                        gap: 16px;
+                        justify-content: center;
+                        flex-wrap: wrap;
+                    }
+
+                    .page-404-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 14px 28px;
+                        border-radius: 14px;
+                        font-size: 15px;
+                        font-weight: 600;
+                        text-decoration: none;
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+                        border: none;
+                    }
+
+                    .page-404-btn-primary {
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        box-shadow: 0 6px 24px rgba(102, 126, 234, 0.4);
+                    }
+
+                    .page-404-btn-primary:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 10px 32px rgba(102, 126, 234, 0.5);
+                    }
+
+                    .page-404-btn-secondary {
+                        background: var(--bg-secondary);
+                        color: var(--text-primary);
+                        border: 1px solid var(--border-color);
+                    }
+
+                    .page-404-btn-secondary:hover {
+                        border-color: var(--accent-primary);
+                        background: rgba(168, 85, 247, 0.1);
+                        transform: translateY(-2px);
+                    }
+
+                    .page-404-attempted {
+                        margin-top: 24px;
+                        font-size: 12px;
+                        color: var(--text-muted);
+                        opacity: 0.6;
+                    }
+
+                    .page-404-attempted code {
+                        background: var(--bg-secondary);
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        font-family: monospace;
+                    }
+
+                    .page-404-orbit {
+                        position: absolute;
+                        width: 350px;
+                        height: 350px;
+                        border: 1px solid rgba(168, 85, 247, 0.15);
+                        border-radius: 50%;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        animation: orbit404 25s linear infinite;
+                        pointer-events: none;
+                    }
+
+                    .page-404-orbit::before {
+                        content: '';
+                        position: absolute;
+                        width: 10px;
+                        height: 10px;
+                        background: linear-gradient(135deg, #667eea, #a855f7);
+                        border-radius: 50%;
+                        top: 0;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+                    }
+
+                    @keyframes orbit404 {
+                        from { transform: translate(-50%, -50%) rotate(0deg); }
+                        to { transform: translate(-50%, -50%) rotate(360deg); }
+                    }
+                </style>
+
+                <div class="page-404">
+                    <div class="page-404-bg"></div>
+                    <div class="page-404-stars" id="stars-404"></div>
+                    <div class="page-404-orbit"></div>
+
+                    <div class="page-404-content">
+                        <div class="page-404-astronaut">
+                            <i class="fas fa-user-astronaut"></i>
+                        </div>
+
+                        <div class="page-404-code">404</div>
+
+                        <h1 class="page-404-title">Lost in Space</h1>
+                        <p class="page-404-subtitle">This page has drifted into another dimension</p>
+
+                        <p class="page-404-quote">
+                            <i class="fas fa-star"></i>
+                            "Exploring the unknown, never truly lost"
+                            <i class="fas fa-star"></i>
+                        </p>
+
+                        <div class="page-404-buttons">
+                            <button class="page-404-btn page-404-btn-primary" onclick="if(typeof toggleCelesteChat === 'function') toggleCelesteChat(); else navigateTo('dashboard');">
+                                <i class="fas fa-stars"></i>
+                                Ask Celeste AI
+                            </button>
+                            <button class="page-404-btn page-404-btn-secondary" onclick="navigateTo('dashboard')">
+                                <i class="fas fa-rocket"></i>
+                                Return to Base
+                            </button>
+                        </div>
+
+                        ${attemptedPage ? `<p class="page-404-attempted">Attempted route: <code>${attemptedPage}</code></p>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Generate stars
+            setTimeout(() => {
+                const starsContainer = document.getElementById('stars-404');
+                if (starsContainer) {
+                    for (let i = 0; i < 50; i++) {
+                        const star = document.createElement('div');
+                        star.className = 'page-404-star';
+                        star.style.left = Math.random() * 100 + '%';
+                        star.style.top = Math.random() * 100 + '%';
+                        star.style.width = Math.random() * 3 + 1 + 'px';
+                        star.style.height = star.style.width;
+                        star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                        star.style.animationDelay = Math.random() * 3 + 's';
+                        starsContainer.appendChild(star);
+                    }
+                }
+            }, 100);
         }
 
         function renderDashboard() {
