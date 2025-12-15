@@ -1,19 +1,57 @@
 /**
  * Celeste AI - Intelligent Assistant for Ascendance Hub
- * Voice & Text powered by Anthropic AI
+ * Voice & Text powered by OpenAI GPT-4 / Anthropic Claude (Switchable)
  * Handles all module actions through natural language
  */
 
-// Celeste AI Configuration
+// ═══════════════════════════════════════════════════════════════
+// AI PROVIDER CONFIGURATION - Easy Switch Between OpenAI & Anthropic
+// ═══════════════════════════════════════════════════════════════
+// Change 'provider' to switch: 'openai' or 'anthropic'
+const AI_PROVIDER = 'openai'; // <-- CHANGE THIS TO SWITCH PROVIDERS
+
+// Provider-specific configurations
+const AI_PROVIDERS = {
+    openai: {
+        name: 'OpenAI GPT-4',
+        apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+        model: 'gpt-4o',
+        maxTokens: 1024,
+        getApiKey: () => window.OPENAI_API_KEY || localStorage.getItem('openai_api_key') || ''
+    },
+    anthropic: {
+        name: 'Anthropic Claude',
+        apiEndpoint: 'https://api.anthropic.com/v1/messages',
+        model: 'claude-3-5-sonnet-20241022',
+        maxTokens: 1024,
+        getApiKey: () => window.ANTHROPIC_API_KEY || localStorage.getItem('anthropic_api_key') || ''
+    }
+};
+
+// Celeste AI Configuration (uses selected provider)
 const CELESTE_CONFIG = {
     name: 'Celeste',
     version: '1.0',
-    apiEndpoint: 'https://api.anthropic.com/v1/messages',
-    model: 'claude-3-5-sonnet-20241022',
-    maxTokens: 1024,
-    // API Key - Can be set in abundance-config.js or via Project Analytics > API Settings
+    get provider() {
+        return AI_PROVIDER;
+    },
+    get providerConfig() {
+        return AI_PROVIDERS[AI_PROVIDER];
+    },
+    get apiEndpoint() {
+        return this.providerConfig.apiEndpoint;
+    },
+    get model() {
+        return this.providerConfig.model;
+    },
+    get maxTokens() {
+        return this.providerConfig.maxTokens;
+    },
     get apiKey() {
-        return window.ANTHROPIC_API_KEY || localStorage.getItem('anthropic_api_key') || '';
+        return this.providerConfig.getApiKey();
+    },
+    get providerName() {
+        return this.providerConfig.name;
     }
 };
 
@@ -806,7 +844,7 @@ async function sendCelesteMessage() {
 
         // Execute action if detected
         if (response.action) {
-            await executeCelesteAction(response.action, response.data);
+            await executeCelesteAction(response.action, response.action.data);
         }
 
     } catch (error) {
@@ -817,7 +855,7 @@ async function sendCelesteMessage() {
 }
 
 /**
- * Process message with Claude AI
+ * Process message with AI (OpenAI or Anthropic based on config)
  */
 async function processCelesteMessage(userMessage) {
     // First, try to detect intent locally
@@ -830,50 +868,85 @@ async function processCelesteMessage(userMessage) {
     // If no API key, use local processing only
     if (!CELESTE_CONFIG.apiKey) {
         return {
-            message: 'I understand you want to do something, but I need the Anthropic API key to give you smarter responses. For now, try being more specific with commands like "record expense $50" or "go to sales".',
+            message: `I understand you want to do something, but I need the ${CELESTE_CONFIG.providerName} API key to give you smarter responses. For now, try being more specific with commands like "record expense $50" or "go to sales".`,
             action: null
         };
     }
 
-    // Call Anthropic API
+    // Call AI API based on provider
     try {
         const systemPrompt = buildCelesteSystemPrompt();
+        let response, data, assistantMessage;
 
-        const response = await fetch(CELESTE_CONFIG.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': CELESTE_CONFIG.apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: CELESTE_CONFIG.model,
-                max_tokens: CELESTE_CONFIG.maxTokens,
-                system: systemPrompt,
-                messages: [
-                    ...celesteConversation.slice(-6), // Keep last 6 messages for context
-                    { role: 'user', content: userMessage }
-                ]
-            })
-        });
+        if (CELESTE_CONFIG.provider === 'openai') {
+            // ═══════════════════════════════════════════════════════════
+            // OpenAI GPT-4 API Call
+            // ═══════════════════════════════════════════════════════════
+            response = await fetch(CELESTE_CONFIG.apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CELESTE_CONFIG.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: CELESTE_CONFIG.model,
+                    max_tokens: CELESTE_CONFIG.maxTokens,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        ...celesteConversation.slice(-6), // Keep last 6 messages for context
+                        { role: 'user', content: userMessage }
+                    ]
+                })
+            });
 
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+            }
+
+            data = await response.json();
+            assistantMessage = data.choices[0].message.content;
+
+        } else {
+            // ═══════════════════════════════════════════════════════════
+            // Anthropic Claude API Call
+            // ═══════════════════════════════════════════════════════════
+            response = await fetch(CELESTE_CONFIG.apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': CELESTE_CONFIG.apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: CELESTE_CONFIG.model,
+                    max_tokens: CELESTE_CONFIG.maxTokens,
+                    system: systemPrompt,
+                    messages: [
+                        ...celesteConversation.slice(-6), // Keep last 6 messages for context
+                        { role: 'user', content: userMessage }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Anthropic API error: ${response.status}`);
+            }
+
+            data = await response.json();
+            assistantMessage = data.content[0].text;
         }
-
-        const data = await response.json();
-        const assistantMessage = data.content[0].text;
 
         // Add to conversation history
         celesteConversation.push({ role: 'user', content: userMessage });
         celesteConversation.push({ role: 'assistant', content: assistantMessage });
 
-        // Parse response for actions
+        // Parse response for actions (same format for both providers)
         return parseAnthropicResponse(assistantMessage);
 
     } catch (error) {
-        console.error('Anthropic API error:', error);
+        console.error(`${CELESTE_CONFIG.providerName} API error:`, error);
         // Fallback to local processing
         return {
             message: "I couldn't connect to my cloud brain, but I can still help you. What do you need to do?",
@@ -883,45 +956,220 @@ async function processCelesteMessage(userMessage) {
 }
 
 /**
- * Build system prompt for Anthropic
+ * Build system prompt for AI - Full Integration with All Modules
+ * Works with both OpenAI GPT-4 and Anthropic Claude
  */
 function buildCelesteSystemPrompt() {
-    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'User' };
-    const currentStore = localStorage.getItem('selectedStore') || 'the store';
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'User', role: 'employee' };
+    const currentStore = localStorage.getItem('selectedStore') || 'vsu';
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-    return `You are Celeste, a friendly and efficient virtual assistant for Ascendance Hub, a management system for vape/smoke shops called VSU (Vape Smoke Universe).
+    return `You are Celeste, a powerful AI assistant for Ascendance Hub - a comprehensive management system for VSU (Vape Smoke Universe) smoke shops.
 
-CONTEXT INFORMATION:
-- Current user: ${currentUser.name || 'User'}
+CURRENT CONTEXT:
+- User: ${currentUser.name || 'User'} (${currentUser.role || 'employee'})
 - Store: ${currentStore}
-- System: Ascendance Hub
+- Date: ${today}
+- System: Ascendance Hub v2.0
 
-YOUR PERSONALITY:
-- You are friendly, professional and efficient
-- You use casual but professional English
-- You can use emojis occasionally
-- You give concise and direct answers
+PERSONALITY:
+- Friendly, efficient, and proactive
+- Use emojis sparingly but effectively
+- Give concise, actionable responses
+- Always confirm actions before executing
 
-ACTIONS YOU CAN PERFORM:
-When you detect that the user wants to perform an action, include at the end of your response a JSON with the format:
-[ACTION:{"type":"action_type","data":{...}}]
+═══════════════════════════════════════════════════════════════
+ACTIONS - Include [ACTION:{"type":"...","data":{...}}] at end
+═══════════════════════════════════════════════════════════════
 
-Available action types:
-1. "navigate" - Navigate to a module: {"type":"navigate","data":{"module":"module_name"}}
-2. "expense" - Record expense: {"type":"expense","data":{"amount":0,"description":"","store":""}}
-3. "thief" - Report suspicious person: {"type":"thief","data":{"description":""}}
-4. "announcement" - Create announcement: {"type":"announcement","data":{"title":"","content":""}}
-5. "change" - Record change: {"type":"change","data":{"amount":0,"type":"in/out"}}
-6. "gift" - Record gift: {"type":"gift","data":{"description":"","value":0}}
-7. "risk" - Risk note: {"type":"risk","data":{"description":"","level":"low/medium/high"}}
-8. "restock" - Request restock: {"type":"restock","data":{"product":"","quantity":0}}
-9. "issue" - Report issue: {"type":"issue","data":{"description":""}}
+1. NAVIGATION
+   {"type":"navigate","data":{"module":"module_name"}}
+   Modules: dashboard, employees, clockin, analytics, cashout, thieves, announcements,
+            change, restock, issues, gifts, risknotes, labels, supplies, treasury,
+            vendors, invoices, training, licenses, schedule, gconomics, passwords,
+            gforce, abundancecloud, celesteai, projectanalytics
 
-AVAILABLE MODULES FOR NAVIGATION:
-dashboard, employees, clockin, analytics, cashout, thieves, announcements, change, restock, issues, gifts, risknotes, labels, supplies, treasury, vendors, invoices, training, licenses, schedule, gconomics, passwords, gforce, abundancecloud
+2. CREATE EMPLOYEE
+   {"type":"create_employee","data":{
+     "name":"Full Name",
+     "role":"Sales Associate|Shift Lead|Store Manager|Inventory Specialist",
+     "store":"miramar|morena|kearnymesa|chulavista|hillcrest",
+     "email":"email@example.com",
+     "phone":"(619) 555-0000",
+     "emergencyContact":"Name - Phone",
+     "allergies":"None or list"
+   }}
 
-If the user doesn't specify all the information needed for an action, ask for it politely.
-If you're not sure what the user wants, ask to clarify.`;
+3. RECORD EXPENSE (Cashout)
+   {"type":"create_expense","data":{
+     "amount":0.00,
+     "description":"What was purchased",
+     "category":"supplies|maintenance|inventory|utilities|other",
+     "store":"store_name",
+     "paymentMethod":"cash|card|transfer"
+   }}
+
+4. CREATE ANNOUNCEMENT
+   {"type":"create_announcement","data":{
+     "title":"Announcement Title",
+     "content":"Full message content",
+     "priority":"normal|important|urgent",
+     "targetStores":["all"] or ["miramar","morena"],
+     "targetRoles":["all"] or ["manager","employee"]
+   }}
+
+5. REPORT SUSPICIOUS PERSON (Thieves)
+   {"type":"create_thief","data":{
+     "description":"Physical description, behavior",
+     "incident":"What happened",
+     "store":"store_name",
+     "date":"YYYY-MM-DD",
+     "severity":"low|medium|high"
+   }}
+
+6. RECORD CHANGE (Cash transfers)
+   {"type":"create_change","data":{
+     "amount":0.00,
+     "direction":"in|out",
+     "fromStore":"store_name",
+     "toStore":"store_name",
+     "reason":"Why the transfer"
+   }}
+
+7. RECORD GIFT
+   {"type":"create_gift","data":{
+     "recipient":"Customer/Person name",
+     "item":"What was given",
+     "value":0.00,
+     "reason":"Why it was given",
+     "store":"store_name"
+   }}
+
+8. CREATE RISK NOTE
+   {"type":"create_risk","data":{
+     "title":"Brief title",
+     "description":"Full risk description",
+     "level":"low|medium|high|critical",
+     "store":"store_name or all",
+     "actionRequired":"What should be done"
+   }}
+
+9. REQUEST RESTOCK
+   {"type":"create_restock","data":{
+     "product":"Product name",
+     "quantity":0,
+     "urgency":"low|normal|high|urgent",
+     "store":"store_name",
+     "notes":"Additional notes"
+   }}
+
+10. REPORT ISSUE (Customer complaints)
+    {"type":"create_issue","data":{
+      "customerName":"Name if known",
+      "description":"Issue description",
+      "category":"product|service|refund|complaint|other",
+      "store":"store_name",
+      "resolution":"Proposed resolution"
+    }}
+
+11. ADD SUPPLY REQUEST
+    {"type":"create_supply","data":{
+      "item":"Supply item needed",
+      "quantity":0,
+      "store":"store_name",
+      "urgency":"low|normal|high"
+    }}
+
+12. CREATE INVOICE
+    {"type":"create_invoice","data":{
+      "vendor":"Vendor name",
+      "amount":0.00,
+      "dueDate":"YYYY-MM-DD",
+      "description":"What it's for",
+      "status":"pending|paid|overdue"
+    }}
+
+13. ADD VENDOR
+    {"type":"create_vendor","data":{
+      "name":"Vendor/Supplier name",
+      "contact":"Contact person",
+      "phone":"Phone number",
+      "email":"Email",
+      "category":"products|supplies|services|other"
+    }}
+
+14. SAVE PASSWORD
+    {"type":"create_password","data":{
+      "service":"Service/Website name",
+      "username":"Username or email",
+      "password":"The password",
+      "url":"Website URL",
+      "notes":"Additional notes"
+    }}
+
+15. ADD HEADY PIECE (Treasury)
+    {"type":"create_treasury","data":{
+      "name":"Piece name/description",
+      "artist":"Artist name",
+      "value":0.00,
+      "store":"store_name",
+      "description":"Details about the piece"
+    }}
+
+16. CLOCK IN/OUT
+    {"type":"clock_action","data":{
+      "action":"in|out",
+      "store":"store_name"
+    }}
+
+17. UPDATE/EDIT RECORD
+    {"type":"update_record","data":{
+      "module":"module_name",
+      "id":"record_id",
+      "updates":{field:value,...}
+    }}
+
+18. DELETE RECORD
+    {"type":"delete_record","data":{
+      "module":"module_name",
+      "id":"record_id",
+      "confirm":true
+    }}
+
+19. SEARCH DATA
+    {"type":"search","data":{
+      "module":"module_name or all",
+      "query":"search terms"
+    }}
+
+20. GET ANALYTICS
+    {"type":"get_analytics","data":{
+      "type":"sales|employees|inventory|expenses",
+      "period":"today|week|month|year"
+    }}
+
+═══════════════════════════════════════════════════════════════
+STORES AVAILABLE:
+- miramar (VSU Miramar)
+- morena (VSU Morena)
+- kearnymesa (VSU Kearny Mesa)
+- chulavista (VSU Chula Vista)
+- hillcrest (VSU Hillcrest)
+
+IMPORTANT RULES:
+1. Always confirm destructive actions (delete, update) before executing
+2. Ask for missing required fields politely
+3. For amounts, extract numbers from natural language ("fifty dollars" = 50)
+4. When unsure, ask clarifying questions
+5. After creating something, offer to navigate to that module
+6. Use the current store context unless user specifies differently
+
+EXAMPLES:
+- "Add an expense of $45 for cleaning supplies" → create_expense with amount:45, category:supplies
+- "Record that John Smith was caught stealing" → create_thief with description
+- "Tell everyone the store closes early today" → create_announcement
+- "We need more RAZ disposables" → create_restock with product info
+- "Clock me in" → clock_action with action:in`;
 }
 
 /**
@@ -974,22 +1222,25 @@ function detectLocalIntent(message) {
 }
 
 /**
- * Parse Anthropic response for actions
+ * Parse AI response for actions (works with both OpenAI and Anthropic)
  */
 function parseAnthropicResponse(response) {
-    // Look for action JSON in response
-    const actionMatch = response.match(/\[ACTION:(\{.*?\})\]/);
+    // Look for action JSON in response - support multi-line JSON
+    const actionMatch = response.match(/\[ACTION:(\{[\s\S]*?\})\]/);
 
     let action = null;
     let message = response;
 
     if (actionMatch) {
         try {
-            action = JSON.parse(actionMatch[1]);
+            // Clean up the JSON (remove newlines, extra spaces)
+            const jsonStr = actionMatch[1].replace(/\n/g, '').replace(/\s+/g, ' ');
+            action = JSON.parse(jsonStr);
             // Remove action JSON from message
             message = response.replace(actionMatch[0], '').trim();
+            console.log('Parsed action:', action);
         } catch (e) {
-            console.error('Error parsing action:', e);
+            console.error('Error parsing action:', e, 'Raw JSON:', actionMatch[1]);
         }
     }
 
@@ -997,40 +1248,404 @@ function parseAnthropicResponse(response) {
 }
 
 /**
- * Execute detected action
+ * Execute detected action - Full Firebase Integration
  */
 async function executeCelesteAction(action, data) {
-    switch (action.type) {
-        case 'navigate':
-            if (data?.module && typeof navigateTo === 'function') {
-                setTimeout(() => {
-                    navigateTo(data.module);
-                    toggleCelesteChat(); // Close chat after navigation
-                }, 500);
-            }
-            break;
+    const db = window.db || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'System' };
+    const currentStore = localStorage.getItem('selectedStore') || 'vsu';
+    const timestamp = new Date().toISOString();
 
-        case 'expense':
-            navigateTo('cashout');
-            // Could prefill form here if needed
-            break;
+    console.log('Executing Celeste action:', action.type, data);
 
-        case 'thief':
-            navigateTo('thieves');
-            // Open report modal
-            if (typeof openThiefReportModal === 'function') {
-                setTimeout(() => openThiefReportModal(), 500);
-            }
-            break;
+    try {
+        switch (action.type) {
+            // ═══════════════════════════════════════════════════════════
+            // NAVIGATION
+            // ═══════════════════════════════════════════════════════════
+            case 'navigate':
+                if (data?.module && typeof window.navigateTo === 'function') {
+                    setTimeout(() => {
+                        window.navigateTo(data.module);
+                        if (typeof toggleCelesteChat === 'function') {
+                            toggleCelesteChat();
+                        }
+                    }, 500);
+                    return { success: true, message: `Navigating to ${data.module}...` };
+                }
+                break;
 
-        case 'announcement':
-            navigateTo('announcements');
-            break;
+            // ═══════════════════════════════════════════════════════════
+            // CREATE EMPLOYEE
+            // ═══════════════════════════════════════════════════════════
+            case 'create_employee':
+                if (db && data) {
+                    const employeeData = {
+                        name: data.name || 'New Employee',
+                        role: data.role || 'Sales Associate',
+                        store: data.store || currentStore,
+                        email: data.email || '',
+                        phone: data.phone || '',
+                        emergencyContact: data.emergencyContact || '',
+                        allergies: data.allergies || 'None',
+                        status: 'active',
+                        hireDate: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('employees').add(employeeData);
+                    return { success: true, message: `Employee "${data.name}" created!`, id: docRef.id };
+                }
+                break;
 
-        // Add more action handlers as needed
-        default:
-            console.log('Unknown action:', action.type);
+            // ═══════════════════════════════════════════════════════════
+            // CREATE EXPENSE (Cashout)
+            // ═══════════════════════════════════════════════════════════
+            case 'create_expense':
+                if (db && data) {
+                    const expenseData = {
+                        amount: parseFloat(data.amount) || 0,
+                        description: data.description || 'Expense',
+                        category: data.category || 'other',
+                        store: data.store || currentStore,
+                        paymentMethod: data.paymentMethod || 'cash',
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('expenses').add(expenseData);
+                    return { success: true, message: `Expense of $${data.amount} recorded!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE ANNOUNCEMENT
+            // ═══════════════════════════════════════════════════════════
+            case 'create_announcement':
+                if (db && data) {
+                    const announcementData = {
+                        title: data.title || 'Announcement',
+                        content: data.content || '',
+                        priority: data.priority || 'normal',
+                        targetStores: data.targetStores || ['all'],
+                        targetRoles: data.targetRoles || ['all'],
+                        author: currentUser.name,
+                        createdAt: timestamp,
+                        createdByCeleste: true,
+                        active: true
+                    };
+                    const docRef = await db.collection('announcements').add(announcementData);
+                    return { success: true, message: `Announcement "${data.title}" posted!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE THIEF REPORT
+            // ═══════════════════════════════════════════════════════════
+            case 'create_thief':
+                if (db && data) {
+                    const thiefData = {
+                        description: data.description || '',
+                        incident: data.incident || '',
+                        store: data.store || currentStore,
+                        date: data.date || timestamp.split('T')[0],
+                        severity: data.severity || 'medium',
+                        reportedBy: currentUser.name,
+                        createdAt: timestamp,
+                        createdByCeleste: true,
+                        status: 'active'
+                    };
+                    const docRef = await db.collection('thieves').add(thiefData);
+                    return { success: true, message: `Suspicious person report filed!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE CHANGE RECORD
+            // ═══════════════════════════════════════════════════════════
+            case 'create_change':
+                if (db && data) {
+                    const changeData = {
+                        amount: parseFloat(data.amount) || 0,
+                        direction: data.direction || 'out',
+                        fromStore: data.fromStore || currentStore,
+                        toStore: data.toStore || '',
+                        reason: data.reason || '',
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('changes').add(changeData);
+                    return { success: true, message: `Change of $${data.amount} recorded!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE GIFT RECORD
+            // ═══════════════════════════════════════════════════════════
+            case 'create_gift':
+                if (db && data) {
+                    const giftData = {
+                        recipient: data.recipient || 'Customer',
+                        item: data.item || '',
+                        value: parseFloat(data.value) || 0,
+                        reason: data.reason || '',
+                        store: data.store || currentStore,
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('gifts').add(giftData);
+                    return { success: true, message: `Gift to "${data.recipient}" recorded!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE RISK NOTE
+            // ═══════════════════════════════════════════════════════════
+            case 'create_risk':
+                if (db && data) {
+                    const riskData = {
+                        title: data.title || 'Risk Alert',
+                        description: data.description || '',
+                        level: data.level || 'medium',
+                        store: data.store || currentStore,
+                        actionRequired: data.actionRequired || '',
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true,
+                        status: 'active'
+                    };
+                    const docRef = await db.collection('risknotes').add(riskData);
+                    return { success: true, message: `Risk note "${data.title}" created!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE RESTOCK REQUEST
+            // ═══════════════════════════════════════════════════════════
+            case 'create_restock':
+                if (db && data) {
+                    const restockData = {
+                        product: data.product || '',
+                        quantity: parseInt(data.quantity) || 1,
+                        urgency: data.urgency || 'normal',
+                        store: data.store || currentStore,
+                        notes: data.notes || '',
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true,
+                        status: 'pending'
+                    };
+                    const docRef = await db.collection('restock').add(restockData);
+                    return { success: true, message: `Restock request for "${data.product}" submitted!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE ISSUE REPORT
+            // ═══════════════════════════════════════════════════════════
+            case 'create_issue':
+                if (db && data) {
+                    const issueData = {
+                        customerName: data.customerName || 'Anonymous',
+                        description: data.description || '',
+                        category: data.category || 'complaint',
+                        store: data.store || currentStore,
+                        resolution: data.resolution || '',
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true,
+                        status: 'open'
+                    };
+                    const docRef = await db.collection('issues').add(issueData);
+                    return { success: true, message: `Issue report filed!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE SUPPLY REQUEST
+            // ═══════════════════════════════════════════════════════════
+            case 'create_supply':
+                if (db && data) {
+                    const supplyData = {
+                        item: data.item || '',
+                        quantity: parseInt(data.quantity) || 1,
+                        store: data.store || currentStore,
+                        urgency: data.urgency || 'normal',
+                        date: timestamp.split('T')[0],
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true,
+                        status: 'pending'
+                    };
+                    const docRef = await db.collection('supplies').add(supplyData);
+                    return { success: true, message: `Supply request for "${data.item}" added!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE INVOICE
+            // ═══════════════════════════════════════════════════════════
+            case 'create_invoice':
+                if (db && data) {
+                    const invoiceData = {
+                        vendor: data.vendor || '',
+                        amount: parseFloat(data.amount) || 0,
+                        dueDate: data.dueDate || '',
+                        description: data.description || '',
+                        status: data.status || 'pending',
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('invoices').add(invoiceData);
+                    return { success: true, message: `Invoice for $${data.amount} from "${data.vendor}" created!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE VENDOR
+            // ═══════════════════════════════════════════════════════════
+            case 'create_vendor':
+                if (db && data) {
+                    const vendorData = {
+                        name: data.name || '',
+                        contact: data.contact || '',
+                        phone: data.phone || '',
+                        email: data.email || '',
+                        category: data.category || 'other',
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true,
+                        active: true
+                    };
+                    const docRef = await db.collection('vendors').add(vendorData);
+                    return { success: true, message: `Vendor "${data.name}" added!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE PASSWORD ENTRY
+            // ═══════════════════════════════════════════════════════════
+            case 'create_password':
+                if (db && data) {
+                    const passwordData = {
+                        service: data.service || '',
+                        username: data.username || '',
+                        password: data.password || '', // Note: In production, encrypt this
+                        url: data.url || '',
+                        notes: data.notes || '',
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('passwords').add(passwordData);
+                    return { success: true, message: `Password for "${data.service}" saved!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CREATE TREASURY/HEADY PIECE
+            // ═══════════════════════════════════════════════════════════
+            case 'create_treasury':
+                if (db && data) {
+                    const treasuryData = {
+                        name: data.name || '',
+                        artist: data.artist || 'Unknown',
+                        value: parseFloat(data.value) || 0,
+                        store: data.store || currentStore,
+                        description: data.description || '',
+                        createdAt: timestamp,
+                        createdBy: currentUser.name,
+                        createdByCeleste: true,
+                        status: 'available'
+                    };
+                    const docRef = await db.collection('treasury').add(treasuryData);
+                    return { success: true, message: `Heady piece "${data.name}" added to treasury!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // CLOCK IN/OUT
+            // ═══════════════════════════════════════════════════════════
+            case 'clock_action':
+                if (db && data) {
+                    const clockData = {
+                        action: data.action || 'in',
+                        store: data.store || currentStore,
+                        employee: currentUser.name,
+                        employeeId: currentUser.id || null,
+                        timestamp: timestamp,
+                        createdByCeleste: true
+                    };
+                    const docRef = await db.collection('clockins').add(clockData);
+                    const actionText = data.action === 'in' ? 'clocked in' : 'clocked out';
+                    return { success: true, message: `You've been ${actionText}!`, id: docRef.id };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // UPDATE RECORD
+            // ═══════════════════════════════════════════════════════════
+            case 'update_record':
+                if (db && data && data.module && data.id && data.updates) {
+                    const updateData = {
+                        ...data.updates,
+                        updatedAt: timestamp,
+                        updatedBy: currentUser.name,
+                        updatedByCeleste: true
+                    };
+                    await db.collection(data.module).doc(data.id).update(updateData);
+                    return { success: true, message: `Record updated successfully!` };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // DELETE RECORD
+            // ═══════════════════════════════════════════════════════════
+            case 'delete_record':
+                if (db && data && data.module && data.id && data.confirm) {
+                    await db.collection(data.module).doc(data.id).delete();
+                    return { success: true, message: `Record deleted successfully!` };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // SEARCH
+            // ═══════════════════════════════════════════════════════════
+            case 'search':
+                // Trigger global search
+                if (data?.query && typeof performGlobalSearch === 'function') {
+                    performGlobalSearch(data.query);
+                    return { success: true, message: `Searching for "${data.query}"...` };
+                }
+                break;
+
+            // ═══════════════════════════════════════════════════════════
+            // GET ANALYTICS
+            // ═══════════════════════════════════════════════════════════
+            case 'get_analytics':
+                window.navigateTo('analytics');
+                return { success: true, message: `Opening analytics...` };
+
+            default:
+                console.log('Unknown action type:', action.type);
+                return { success: false, message: `Unknown action: ${action.type}` };
+        }
+    } catch (error) {
+        console.error('Error executing Celeste action:', error);
+        return { success: false, message: `Error: ${error.message}` };
     }
+
+    return { success: false, message: 'Action could not be completed' };
 }
 
 /**
@@ -2176,7 +2791,7 @@ window.sendCelestePageMessage = async function() {
 
         // Execute action if any
         if (response.action) {
-            await executeCelesteAction(response.action, response.data);
+            await executeCelesteAction(response.action, response.action.data);
         }
 
     } catch (error) {

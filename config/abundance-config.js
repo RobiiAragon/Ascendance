@@ -6,9 +6,16 @@
  * Celeste AI Assistant con Claude
  */
 
-// Celeste AI Configuration (Claude API)
-// API key is now managed via Project Analytics > API Settings (stored in localStorage)
-// Or you can set it here for all users: window.ANTHROPIC_API_KEY = 'your-key-here';
+// ═══════════════════════════════════════════════════════════════
+// CELESTE AI - API KEYS
+// Currently using: OpenAI GPT-4 (switch in js/celeste-ai.js → AI_PROVIDER)
+// ═══════════════════════════════════════════════════════════════
+
+// OpenAI API Key (GPT-4) - CURRENTLY ACTIVE
+window.OPENAI_API_KEY = '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';
+
+// Anthropic API Key (Claude) - For switching back to Claude
+window.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-placeholder';
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {
