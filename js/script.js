@@ -1171,7 +1171,7 @@
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
                 cashout: 'Expenses Control',
-                treasury: 'Treasury',
+                treasury: 'Heady Pieces',
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
                 abundancecloud: 'Abundance Cloud Engine',
@@ -11653,7 +11653,7 @@ Return ONLY the JSON object, no additional text.`
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Treasury - Select Pieces</h2>
+                        <h2 class="section-title">Heady Pieces - Select Collection</h2>
                         <p class="section-subtitle">Manage your valuable collection</p>
                     </div>
                     <button class="btn-primary floating-add-btn" onclick="openModal('add-treasury')">
@@ -11964,7 +11964,7 @@ Return ONLY the JSON object, no additional text.`
 
         async function deleteTreasuryItem(id) {
             showConfirmModal({
-                title: 'Delete Treasury Item',
+                title: 'Delete Heady Piece',
                 message: 'Are you sure you want to delete this piece from the collection? This action cannot be undone.',
                 confirmText: 'Delete',
                 type: 'danger',
@@ -20634,7 +20634,7 @@ Return ONLY the JSON object, no additional text.`,
                 case 'add-treasury':
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-gem"></i> Add Treasury Piece</h2>
+                            <h2><i class="fas fa-gem"></i> Add Heady Piece</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
@@ -20710,7 +20710,7 @@ Return ONLY the JSON object, no additional text.`,
 
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-edit"></i> Edit Treasury Piece</h2>
+                            <h2><i class="fas fa-edit"></i> Edit Heady Piece</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
@@ -24878,7 +24878,7 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Gconomics', page: 'gconomics', icon: 'fa-wallet' },
                 { name: 'Vendors & Suppliers', page: 'vendors', icon: 'fa-truck' },
                 { name: 'Expenses Control', page: 'cashout', icon: 'fa-money-bill-wave' },
-                { name: 'Treasury Pieces', page: 'treasury', icon: 'fa-vault' },
+                { name: 'Heady Pieces', page: 'treasury', icon: 'fa-vault' },
                 { name: 'Change Records', page: 'change', icon: 'fa-coins' },
                 { name: 'Customer Care', page: 'gifts', icon: 'fa-gift' },
                 { name: 'Risk Notes', page: 'risknotes', icon: 'fa-shield-halved' },
@@ -30063,7 +30063,7 @@ window.renderProjectAnalytics = function() {
         { name: 'Gconomics', icon: 'fa-wallet', status: 'active', page: 'gconomics', description: 'Financial tracking', fullDescription: 'Personal finance tracking for expense planning and budget management.', features: ['Expense categories', 'Budget planning', 'Monthly reports', 'Spending insights'], version: '1.5', linesOfCode: 750 },
         { name: 'Vendors', icon: 'fa-truck', status: 'active', page: 'vendors', description: 'Supplier directory', fullDescription: 'Vendor and supplier management with contact information and order history.', features: ['Contact directory', 'Order history', 'Rating system', 'Quick reorder'], version: '1.2', linesOfCode: 420 },
         { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', page: 'cashout', description: 'Cash out tracking', fullDescription: 'Daily expense tracking and cash out management with receipt documentation.', features: ['Receipt upload', 'Category tracking', 'Daily totals', 'Approval workflow'], version: '1.8', linesOfCode: 890 },
-        { name: 'Treasury', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Asset collection', fullDescription: 'Safe and treasury management for tracking cash, deposits, and valuable assets.', features: ['Safe tracking', 'Deposit records', 'Asset inventory', 'Audit trail'], version: '1.6', linesOfCode: 620 },
+        { name: 'Heady Pieces', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Art collection', fullDescription: 'Heady glass and art piece collection management with photos and valuations.', features: ['Photo gallery', 'Artist tracking', 'Valuation records', 'Location tracking'], version: '1.6', linesOfCode: 620 },
         { name: 'Change Records', icon: 'fa-coins', status: 'active', page: 'change', description: 'Cash flow between stores', fullDescription: 'Track change and cash transfers between store locations with photo verification.', features: ['Photo verification', 'Transfer tracking', 'Store-to-store', 'Balance history'], version: '1.4', linesOfCode: 480 },
         { name: 'Customer Care', icon: 'fa-gift', status: 'active', page: 'gifts', description: 'Gift tracking', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.3', linesOfCode: 440 },
         { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', page: 'risknotes', description: 'Security alerts', fullDescription: 'Security risk documentation and alert system for potential threats.', features: ['Risk assessment', 'Alert system', 'Action tracking', 'Priority levels'], version: '1.1', linesOfCode: 380 },
