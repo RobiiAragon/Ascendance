@@ -437,7 +437,8 @@ async function processOrdersData(orders, storeConfig) {
         daily: dailyData,
         hourly: hourlyData,
         monthly: monthlyData,
-        recentOrders: orders.slice(0, 10).map(order => ({
+        recentOrders: orders.map(order => ({
+            id: order.id,
             name: order.name,
             createdAt: order.created_at,
             status: order.financial_status?.toUpperCase() || 'PENDING',
@@ -445,7 +446,13 @@ async function processOrdersData(orders, storeConfig) {
             total: parseFloat(order.total_price),
             customer: order.customer ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() : 'Guest',
             cecetTax: order._taxBreakdown?.cecetTax || 0,
-            salesTax: order._taxBreakdown?.salesTax || 0
+            salesTax: order._taxBreakdown?.salesTax || 0,
+            lineItems: order.line_items?.map(item => ({
+                name: item.name,
+                sku: item.sku || '-',
+                quantity: item.quantity,
+                price: parseFloat(item.price)
+            })) || []
         }))
     };
 
@@ -562,6 +569,11 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
                         productType
                         status
                         totalInventory
+                        images(first: 1) {
+                            nodes {
+                                url
+                            }
+                        }
                         variants(first: 50) {
                             edges {
                                 node {
@@ -609,6 +621,7 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
         // Transform to inventory format
         const products = data.data.products.edges.map(edge => {
             const product = edge.node;
+            const imageUrl = product.images?.nodes?.[0]?.url || null;
             return product.variants.edges.map(variantEdge => {
                 const variant = variantEdge.node;
                 return {
@@ -624,7 +637,8 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
                     stock: variant.inventoryQuantity || 0,
                     minStock: 10, // Default min stock
                     productType: product.productType || 'General',
-                    status: product.status
+                    status: product.status,
+                    imageUrl: imageUrl
                 };
             });
         }).flat();
@@ -699,6 +713,11 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
                             vendor
                             productType
                             status
+                            images(first: 1) {
+                                nodes {
+                                    url
+                                }
+                            }
                             variants(first: 50) {
                                 edges {
                                     node {
@@ -765,6 +784,9 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
                 const variant = variantEdge.node;
                 const inventoryLevels = variant.inventoryItem?.inventoryLevels?.edges || [];
 
+                // Get product image URL from images array
+                const imageUrl = product.images?.nodes?.[0]?.url || null;
+
                 // If no inventory levels, use total inventory quantity with store name
                 if (inventoryLevels.length === 0) {
                     allInventory.push({
@@ -781,7 +803,8 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
                         stock: variant.inventoryQuantity || 0,
                         minStock: 10,
                         productType: product.productType || 'General',
-                        status: product.status
+                        status: product.status,
+                        imageUrl: imageUrl
                     });
                     return;
                 }
@@ -811,7 +834,8 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
                         stock: availableQty,
                         minStock: 10,
                         productType: product.productType || 'General',
-                        status: product.status
+                        status: product.status,
+                        imageUrl: imageUrl
                     });
                 });
             });

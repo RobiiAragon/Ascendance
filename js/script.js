@@ -5772,6 +5772,30 @@ window.viewChecklistHistory = async function() {
         let shopifyInventory = []; // Loaded from Shopify API
         let isLoadingInventory = false;
         let inventoryLoadError = null;
+        let inventorySortColumn = null; // Current sort column ('stock', 'price', 'brand', 'product', etc.)
+        let inventorySortDirection = 'asc'; // 'asc' or 'desc'
+        let inventoryStockChart = null; // Chart.js instance for inventory stock chart
+        let stockLevelsExpanded = false; // Track if stock levels chart is expanded
+
+        // Toggle the Stock Levels chart dropdown
+        function toggleStockLevelsChart() {
+            const content = document.getElementById('stockLevelsContent');
+            const chevron = document.getElementById('stockLevelsChevron');
+
+            if (!content || !chevron) return;
+
+            stockLevelsExpanded = !stockLevelsExpanded;
+
+            if (stockLevelsExpanded) {
+                content.style.display = 'block';
+                chevron.style.transform = 'rotate(0deg)';
+                // Initialize chart when expanded (if not already)
+                displayInventoryStockChart();
+            } else {
+                content.style.display = 'none';
+                chevron.style.transform = 'rotate(-90deg)';
+            }
+        }
 
         // Load inventory from Shopify API
         async function loadShopifyInventory(forceRefresh = false) {
@@ -5840,6 +5864,7 @@ window.viewChecklistHistory = async function() {
                 const tabContent = document.getElementById('restock-tab-content');
                 if (tabContent) {
                     tabContent.innerHTML = renderInventoryTab();
+                    displayInventoryStockChart();
                 }
             }
         }
@@ -5855,6 +5880,7 @@ window.viewChecklistHistory = async function() {
 
             if (tabContent && currentRestockTab === 'inventory') {
                 tabContent.innerHTML = renderInventoryTab();
+                displayInventoryStockChart();
             }
         }
 
@@ -5890,6 +5916,47 @@ window.viewChecklistHistory = async function() {
                         (item.store && item.store.toLowerCase().includes(query)) ||
                         (item.productType && item.productType.toLowerCase().includes(query))
                     );
+                });
+            }
+
+            // Apply sorting
+            if (inventorySortColumn) {
+                filteredInventory = [...filteredInventory].sort((a, b) => {
+                    let aVal, bVal;
+
+                    switch (inventorySortColumn) {
+                        case 'stock':
+                            aVal = parseInt(a.stock) || 0;
+                            bVal = parseInt(b.stock) || 0;
+                            break;
+                        case 'price':
+                            aVal = parseFloat(a.unitPrice) || 0;
+                            bVal = parseFloat(b.unitPrice) || 0;
+                            break;
+                        case 'brand':
+                            aVal = (a.brand || '').toLowerCase();
+                            bVal = (b.brand || '').toLowerCase();
+                            break;
+                        case 'product':
+                            aVal = (a.productName || '').toLowerCase();
+                            bVal = (b.productName || '').toLowerCase();
+                            break;
+                        case 'store':
+                            aVal = (a.store || '').toLowerCase();
+                            bVal = (b.store || '').toLowerCase();
+                            break;
+                        default:
+                            return 0;
+                    }
+
+                    // Compare values
+                    if (typeof aVal === 'number' && typeof bVal === 'number') {
+                        return inventorySortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                    } else {
+                        if (aVal < bVal) return inventorySortDirection === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return inventorySortDirection === 'asc' ? 1 : -1;
+                        return 0;
+                    }
                 });
             }
 
@@ -5936,6 +6003,26 @@ window.viewChecklistHistory = async function() {
 
             return `
                 ${errorMessage}
+                <div style="background: var(--bg-secondary); border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color); overflow: hidden;">
+                    <div onclick="toggleStockLevelsChart()" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; cursor: pointer; user-select: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                        <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary);">
+                            <i class="fas fa-chart-bar" style="margin-right: 8px; color: var(--primary);"></i>
+                            Stock Levels (Lowest 20)
+                        </h4>
+                        <i class="fas fa-chevron-down" id="stockLevelsChevron" style="color: var(--text-muted); transition: transform 0.3s; transform: rotate(-90deg);"></i>
+                    </div>
+                    <div id="stockLevelsContent" style="display: none; padding: 0 16px 16px 16px;">
+                        <div style="position: relative; height: 200px; width: 100%;">
+                            <canvas id="inventoryStockChart"></canvas>
+                        </div>
+                        <div id="inventoryChartImages" style="position: relative; height: 56px; margin-top: 8px;"></div>
+                    </div>
+                    <!-- Image hover popup -->
+                    <div id="inventoryImagePopup" style="display: none; position: fixed; z-index: 9999; pointer-events: none; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                        <img id="inventoryImagePopupImg" src="" style="width: 180px; height: 180px; object-fit: contain; border-radius: 8px; display: block;">
+                        <div id="inventoryImagePopupText" style="text-align: center; margin-top: 8px; font-size: 12px; color: var(--text-primary); max-width: 180px; word-wrap: break-word;"></div>
+                    </div>
+                </div>
                 <div class="restock-filter-header" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                         <div style="position: relative;">
@@ -5968,13 +6055,23 @@ window.viewChecklistHistory = async function() {
                     <table class="data-table restock-inventory-table">
                         <thead style="position: sticky; top: 0; background: var(--bg-primary); z-index: 10;">
                             <tr>
-                                <th>Store</th>
-                                <th>Brand</th>
-                                <th>Product Name</th>
+                                <th onclick="sortInventoryBy('store')" style="cursor: pointer; user-select: none;" title="Click to sort by store">
+                                    Store ${inventorySortColumn === 'store' ? (inventorySortDirection === 'asc' ? '<i class="fas fa-sort-up" style="margin-left: 4px;"></i>' : '<i class="fas fa-sort-down" style="margin-left: 4px;"></i>') : '<i class="fas fa-sort" style="margin-left: 4px; opacity: 0.3;"></i>'}
+                                </th>
+                                <th onclick="sortInventoryBy('brand')" style="cursor: pointer; user-select: none;" title="Click to sort by brand">
+                                    Brand ${inventorySortColumn === 'brand' ? (inventorySortDirection === 'asc' ? '<i class="fas fa-sort-up" style="margin-left: 4px;"></i>' : '<i class="fas fa-sort-down" style="margin-left: 4px;"></i>') : '<i class="fas fa-sort" style="margin-left: 4px; opacity: 0.3;"></i>'}
+                                </th>
+                                <th onclick="sortInventoryBy('product')" style="cursor: pointer; user-select: none;" title="Click to sort by product">
+                                    Product Name ${inventorySortColumn === 'product' ? (inventorySortDirection === 'asc' ? '<i class="fas fa-sort-up" style="margin-left: 4px;"></i>' : '<i class="fas fa-sort-down" style="margin-left: 4px;"></i>') : '<i class="fas fa-sort" style="margin-left: 4px; opacity: 0.3;"></i>'}
+                                </th>
                                 <th>Variant</th>
                                 <th>SKU</th>
-                                <th>Unit Price</th>
-                                <th>Stock</th>
+                                <th onclick="sortInventoryBy('price')" style="cursor: pointer; user-select: none;" title="Click to sort by price">
+                                    Unit Price ${inventorySortColumn === 'price' ? (inventorySortDirection === 'asc' ? '<i class="fas fa-sort-up" style="margin-left: 4px;"></i>' : '<i class="fas fa-sort-down" style="margin-left: 4px;"></i>') : '<i class="fas fa-sort" style="margin-left: 4px; opacity: 0.3;"></i>'}
+                                </th>
+                                <th onclick="sortInventoryBy('stock')" style="cursor: pointer; user-select: none;" title="Click to sort by stock">
+                                    Stock ${inventorySortColumn === 'stock' ? (inventorySortDirection === 'asc' ? '<i class="fas fa-sort-up" style="margin-left: 4px;"></i>' : '<i class="fas fa-sort-down" style="margin-left: 4px;"></i>') : '<i class="fas fa-sort" style="margin-left: 4px; opacity: 0.3;"></i>'}
+                                </th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -6036,6 +6133,7 @@ window.viewChecklistHistory = async function() {
                 const tabContent = document.getElementById('restock-tab-content');
                 if (tabContent && currentRestockTab === 'inventory') {
                     tabContent.innerHTML = renderInventoryTab();
+                    displayInventoryStockChart();
                     // Restore focus to search input
                     const searchInput = document.getElementById('inventory-search');
                     if (searchInput) {
@@ -6050,9 +6148,272 @@ window.viewChecklistHistory = async function() {
         function clearInventoryFilters() {
             inventorySearchQuery = '';
             selectedStoreFilter = 'all';
+            inventorySortColumn = null;
+            inventorySortDirection = 'asc';
             const tabContent = document.getElementById('restock-tab-content');
             if (tabContent && currentRestockTab === 'inventory') {
                 tabContent.innerHTML = renderInventoryTab();
+                displayInventoryStockChart();
+            }
+        }
+
+        // Sort inventory by column
+        function sortInventoryBy(column) {
+            // If clicking the same column, toggle direction
+            if (inventorySortColumn === column) {
+                inventorySortDirection = inventorySortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // New column, default to ascending (except stock defaults to ascending to show lowest first)
+                inventorySortColumn = column;
+                inventorySortDirection = 'asc';
+            }
+
+            // Re-render the table
+            const tabContent = document.getElementById('restock-tab-content');
+            if (tabContent && currentRestockTab === 'inventory') {
+                tabContent.innerHTML = renderInventoryTab();
+                displayInventoryStockChart();
+            }
+        }
+
+        // Display inventory stock chart (shows lowest stock items)
+        function displayInventoryStockChart() {
+            const ctx = document.getElementById('inventoryStockChart');
+            const imagesContainer = document.getElementById('inventoryChartImages');
+            if (!ctx) return;
+
+            // Get inventory data
+            const inventoryData = shopifyInventory.length > 0 ? shopifyInventory : inventory;
+
+            // Filter by current store filter
+            let filteredData = selectedStoreFilter === 'all'
+                ? inventoryData
+                : inventoryData.filter(item => {
+                    if (selectedStoreFilter === 'VSU') {
+                        return item.store.startsWith('VSU ') || item.storeKey === 'vsu';
+                    }
+                    if (selectedStoreFilter.startsWith('VSU ')) {
+                        return item.store === selectedStoreFilter;
+                    }
+                    return item.store === selectedStoreFilter || item.storeKey === selectedStoreFilter;
+                });
+
+            // Apply search filter if active
+            if (inventorySearchQuery.trim()) {
+                const query = inventorySearchQuery.toLowerCase().trim();
+                filteredData = filteredData.filter(item => {
+                    return (
+                        (item.brand && item.brand.toLowerCase().includes(query)) ||
+                        (item.productName && item.productName.toLowerCase().includes(query)) ||
+                        (item.flavor && item.flavor.toLowerCase().includes(query)) ||
+                        (item.sku && item.sku.toLowerCase().includes(query)) ||
+                        (item.store && item.store.toLowerCase().includes(query))
+                    );
+                });
+            }
+
+            // Sort by stock ascending and take lowest 20
+            const lowestStock = [...filteredData]
+                .sort((a, b) => (parseInt(a.stock) || 0) - (parseInt(b.stock) || 0))
+                .slice(0, 20);
+
+            // Prepare chart data - use empty labels since we'll show images instead
+            const labels = lowestStock.map(() => '');
+
+            const stockData = lowestStock.map(item => parseInt(item.stock) || 0);
+
+            // Calculate min/max for symmetric axis around 0
+            const minStock = Math.min(...stockData);
+            const maxStock = Math.max(...stockData);
+            const absMax = Math.max(Math.abs(minStock), Math.abs(maxStock), 10); // At least 10 for visibility
+
+            // Color based on stock level
+            const backgroundColors = lowestStock.map(item => {
+                const stock = parseInt(item.stock) || 0;
+                const itemMinStock = item.minStock || 10;
+                if (stock < 0) return 'rgba(248, 87, 87, 1)'; // Red - negative stock
+                if (stock === 0) return 'rgba(255, 54, 54, 0.8)'; // Red - out of stock
+                if (stock < itemMinStock) return 'rgba(245, 158, 11, 0.8)'; // Orange - low stock
+                if (stock < itemMinStock * 2) return 'rgba(234, 179, 8, 0.8)'; // Yellow - getting low
+                return 'rgba(34, 197, 94, 0.8)'; // Green - good stock
+            });
+
+            const borderColors = backgroundColors.map(c => c.replace('0.8', '1'));
+
+            // Destroy existing chart
+            if (inventoryStockChart) {
+                inventoryStockChart.destroy();
+            }
+
+            // Create new chart
+            inventoryStockChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Stock Quantity',
+                        data: stockData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 0,
+                        borderRadius: 0,
+                        barThickness: 48, // Same width as images (48px)
+                        maxBarThickness: 48
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0 // Disable animation to prevent resize issues
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    const item = lowestStock[idx];
+                                    return item.productName + (item.flavor && item.flavor !== 'N/A' ? ` - ${item.flavor}` : '');
+                                },
+                                label: function(context) {
+                                    return `Stock: ${context.raw} units`;
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const item = lowestStock[idx];
+                                    return `Store: ${item.store}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false // Hide x-axis labels - we'll show images instead
+                            }
+                        },
+                        y: {
+                            min: -absMax,
+                            max: absMax,
+                            grid: {
+                                color: function(context) {
+                                    // Make the zero line more visible
+                                    if (context.tick.value === 0) {
+                                        return 'rgba(255, 255, 255, 0.5)';
+                                    }
+                                    return 'rgba(255, 255, 255, 0.1)';
+                                },
+                                lineWidth: function(context) {
+                                    return context.tick.value === 0 ? 2 : 1;
+                                }
+                            },
+                            ticks: {
+                                color: 'var(--text-muted)',
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Render product images below the chart - positioned to match bar centers
+            if (imagesContainer) {
+                const defaultImage = 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                        <rect fill="#374151" width="48" height="48" rx="6"/>
+                        <text x="24" y="30" fill="#9CA3AF" font-size="14" text-anchor="middle" font-family="Arial">?</text>
+                    </svg>
+                `);
+
+                // Debug: Log image URLs
+                console.log('[Inventory Chart] Product images:');
+                lowestStock.forEach((item, idx) => {
+                    console.log(`  [${idx}] ${item.productName}: imageUrl =`, item.imageUrl);
+                });
+
+                // Wait for chart to render, then position images based on bar positions
+                setTimeout(() => {
+                    const chartArea = inventoryStockChart.chartArea;
+                    const xScale = inventoryStockChart.scales.x;
+
+                    if (!chartArea || !xScale) return;
+
+                    // Get the container's position relative to the chart
+                    const containerRect = imagesContainer.getBoundingClientRect();
+                    const canvasRect = ctx.getBoundingClientRect();
+                    const offsetLeft = canvasRect.left - containerRect.left;
+
+                    imagesContainer.innerHTML = lowestStock.map((item, index) => {
+                        const imgSrc = item.imageUrl || defaultImage;
+                        const title = item.productName + (item.flavor && item.flavor !== 'N/A' ? ` - ${item.flavor}` : '');
+
+                        // Get the x position of each bar from the chart scale
+                        const barX = xScale.getPixelForValue(index);
+                        const leftPos = barX + offsetLeft - 24; // Center the 48px image on the bar
+
+                        return `
+                            <div
+                                style="position: absolute; left: ${leftPos}px; top: 0; width: 48px;"
+                                onmouseenter="showInventoryImagePopup(event, '${imgSrc.replace(/'/g, "\\'")}', '${title.replace(/'/g, "\\'")}', ${item.stock}, '${item.store}')"
+                                onmousemove="moveInventoryImagePopup(event)"
+                                onmouseleave="hideInventoryImagePopup()"
+                            >
+                                <img
+                                    src="${imgSrc}"
+                                    alt="${title}"
+                                    style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer;"
+                                    onerror="this.src='${defaultImage}'"
+                                />
+                            </div>
+                        `;
+                    }).join('');
+                }, 100);
+            }
+        }
+
+        // Show image popup on hover
+        function showInventoryImagePopup(event, imgSrc, title, stock, store) {
+            const popup = document.getElementById('inventoryImagePopup');
+            const popupImg = document.getElementById('inventoryImagePopupImg');
+            const popupText = document.getElementById('inventoryImagePopupText');
+
+            if (!popup || !popupImg || !popupText) return;
+
+            popupImg.src = imgSrc;
+            popupText.innerHTML = `<strong>${title}</strong><br>Stock: ${stock}<br>Store: ${store}`;
+            popup.style.display = 'block';
+
+            moveInventoryImagePopup(event);
+        }
+
+        // Move popup with mouse
+        function moveInventoryImagePopup(event) {
+            const popup = document.getElementById('inventoryImagePopup');
+            if (!popup) return;
+
+            const x = event.clientX + 15;
+            const y = event.clientY - 100;
+
+            // Keep popup within viewport
+            const rect = popup.getBoundingClientRect();
+            const maxX = window.innerWidth - 220;
+            const maxY = window.innerHeight - 250;
+
+            popup.style.left = Math.min(x, maxX) + 'px';
+            popup.style.top = Math.max(10, Math.min(y, maxY)) + 'px';
+        }
+
+        // Hide image popup
+        function hideInventoryImagePopup() {
+            const popup = document.getElementById('inventoryImagePopup');
+            if (popup) {
+                popup.style.display = 'none';
             }
         }
 
@@ -6200,6 +6561,7 @@ window.viewChecklistHistory = async function() {
             const tabContent = document.getElementById('restock-tab-content');
             if (tabContent && currentRestockTab === 'inventory') {
                 tabContent.innerHTML = renderInventoryTab();
+                displayInventoryStockChart();
             }
         }
 

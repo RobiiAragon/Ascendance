@@ -116,6 +116,11 @@ let selectedStore = 'vsu';
 let selectedLocation = null;
 let vsuLocations = [];
 
+// Pagination state for Recent Orders
+let analyticsOrdersPage = 1;
+const ORDERS_PER_PAGE = 15;
+let currentSalesData = null; // Store sales data for re-rendering orders table
+
 // Initialize VSU locations on page load
 async function initializeVSULocations() {
     if (vsuLocations.length === 0) {
@@ -589,44 +594,9 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Recent Orders</h3>
                 </div>
-                <div class="card-body">
-                    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                        <table style="width: 100%; min-width: 900px; border-collapse: collapse;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Order</th>
-                                    <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Customer</th>
-                                    <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Date</th>
-                                    <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Status</th>
-                                    <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Fulfillment</th>
-                                    <th style="text-align: right; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">CECET Tax</th>
-                                    <th style="text-align: right; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Sales Tax</th>
-                                    <th style="text-align: right; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${salesData.recentOrders.map(order => `
-                                    <tr style="border-bottom: 1px solid var(--border-color);">
-                                        <td style="padding: 12px 8px; font-weight: 500;">${order.name}</td>
-                                        <td style="padding: 12px 8px; color: var(--text-secondary);">${order.customer}</td>
-                                        <td style="padding: 12px 8px; color: var(--text-secondary);">${formatDateTime(order.createdAt)}</td>
-                                        <td style="padding: 12px 8px;">
-                                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${order.status === 'PAID' ? 'var(--success)' : 'var(--warning)'}; color: white;">
-                                                ${order.status}
-                                            </span>
-                                        </td>
-                                        <td style="padding: 12px 8px;">
-                                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${order.fulfillment === 'FULFILLED' ? 'var(--success)' : 'var(--accent-primary)'}; color: white;">
-                                                ${order.fulfillment}
-                                            </span>
-                                        </td>
-                                        <td style="padding: 12px 8px; text-align: right; color: var(--text-secondary);">${order.cecetTax > 0 ? formatCurrency(order.cecetTax) : ''}</td>
-                                        <td style="padding: 12px 8px; text-align: right; color: var(--text-secondary);">${order.salesTax > 0 ? formatCurrency(order.salesTax) : ''}</td>
-                                        <td style="padding: 12px 8px; text-align: right; font-weight: 600; color: var(--success);">${formatCurrency(order.total)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                <div class="card-body" style="padding: 0;">
+                    <div id="recent-orders-container">
+                        ${renderAnalyticsOrdersTable(salesData.recentOrders || [])}
                     </div>
                 </div>
             </div>
@@ -652,6 +622,10 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             daily: salesData.daily,
             hourly: salesData.hourly
         };
+
+        // Store sales data for orders table re-rendering (pagination)
+        currentSalesData = salesData;
+        analyticsOrdersPage = 1; // Reset to page 1 on new data load
 
         // Initialize the chart with daily view
         displaySalesChart('daily', SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
@@ -999,6 +973,220 @@ function displaySalesChart(type, showOrders = true, showTax = true) {
 function updateChartView() {
     const chartType = document.getElementById('chartTypeSelect').value;
     displaySalesChart(chartType, SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
+}
+
+// =============================================================================
+// Recent Orders Table with Expandable Rows & Pagination
+// =============================================================================
+
+/**
+ * Render the analytics orders table with expandable rows and pagination
+ */
+function renderAnalyticsOrdersTable(orders) {
+    console.log('[renderOrdersTable] Starting with', orders?.length, 'orders');
+
+    // Defensive check for undefined/null/non-array orders
+    if (!orders || !Array.isArray(orders)) {
+        console.warn('[renderOrdersTable] Invalid orders data:', orders);
+        return `
+            <div style="padding: 48px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>No orders data available</p>
+            </div>
+        `;
+    }
+
+    if (orders.length === 0) {
+        return `
+            <div style="padding: 48px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>No orders found for this period</p>
+            </div>
+        `;
+    }
+
+    const totalOrders = orders.length;
+    const totalPages = Math.ceil(totalOrders / ORDERS_PER_PAGE);
+    const startIndex = (analyticsOrdersPage - 1) * ORDERS_PER_PAGE;
+    const endIndex = Math.min(startIndex + ORDERS_PER_PAGE, totalOrders);
+    const paginatedOrders = orders.slice(startIndex, endIndex);
+
+    console.log('[renderOrdersTable] Paginated orders:', paginatedOrders.length, 'of', totalOrders);
+
+    let tableHTML = `
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table style="width: 100%; min-width: 900px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500; width: 40px;"></th>
+                        <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Order</th>
+                        <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Customer</th>
+                        <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Date</th>
+                        <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Status</th>
+                        <th style="text-align: left; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Fulfillment</th>
+                        <th style="text-align: right; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">CECET Tax</th>
+                        <th style="text-align: right; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Sales Tax</th>
+                        <th style="text-align: right; padding: 12px 8px; color: var(--text-muted); font-weight: 500;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    for (let i = 0; i < paginatedOrders.length; i++) {
+        const order = paginatedOrders[i];
+        const hasLineItems = order.lineItems && order.lineItems.length > 0;
+        const itemCount = hasLineItems ? order.lineItems.length : 0;
+
+        // Main order row
+        tableHTML += `
+            <tr onclick="toggleOrderDetails('${order.id}')" style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 12px 8px; text-align: center;">
+                    <i class="fas fa-chevron-right order-chevron" id="chevron-${order.id}" style="color: var(--text-muted); transition: transform 0.2s; font-size: 12px;"></i>
+                </td>
+                <td style="padding: 12px 8px; font-weight: 500;">
+                    ${order.name || 'N/A'}
+                    ${hasLineItems ? `<span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">(${itemCount} item${itemCount !== 1 ? 's' : ''})</span>` : ''}
+                </td>
+                <td style="padding: 12px 8px; color: var(--text-secondary);">${order.customer || 'Guest'}</td>
+                <td style="padding: 12px 8px; color: var(--text-secondary);">${order.createdAt ? formatDateTime(order.createdAt) : 'N/A'}</td>
+                <td style="padding: 12px 8px;">
+                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${order.status === 'PAID' ? 'var(--success)' : 'var(--warning)'}; color: white;">
+                        ${order.status || 'PENDING'}
+                    </span>
+                </td>
+                <td style="padding: 12px 8px;">
+                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${order.fulfillment === 'FULFILLED' ? 'var(--success)' : 'var(--accent-primary)'}; color: white;">
+                        ${order.fulfillment || 'UNFULFILLED'}
+                    </span>
+                </td>
+                <td style="padding: 12px 8px; text-align: right; color: var(--text-secondary);">${order.cecetTax > 0 ? formatCurrency(order.cecetTax) : ''}</td>
+                <td style="padding: 12px 8px; text-align: right; color: var(--text-secondary);">${order.salesTax > 0 ? formatCurrency(order.salesTax) : ''}</td>
+                <td style="padding: 12px 8px; text-align: right; font-weight: 600; color: var(--success);">${formatCurrency(order.total || 0)}</td>
+            </tr>
+        `;
+
+        // Expandable details row with line items
+        let lineItemsHTML = '';
+        if (hasLineItems) {
+            lineItemsHTML = order.lineItems.map(function(item) {
+                return `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px 12px; color: var(--text-primary);">${item.name || 'Unknown'}</td>
+                        <td style="padding: 10px 12px; color: var(--text-muted); font-family: monospace; font-size: 12px;">${item.sku || '-'}</td>
+                        <td style="padding: 10px 12px; text-align: center; color: var(--text-secondary);">${item.quantity || 0}</td>
+                        <td style="padding: 10px 12px; text-align: right; color: var(--text-secondary);">${formatCurrency(item.price || 0)}</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: 500; color: var(--text-primary);">${formatCurrency((item.price || 0) * (item.quantity || 0))}</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            lineItemsHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">
+                        <i class="fas fa-box-open" style="margin-right: 8px;"></i>
+                        No line items available for this order
+                    </td>
+                </tr>
+            `;
+        }
+
+        tableHTML += `
+            <tr id="details-${order.id}" style="display: none;">
+                <td colspan="9" style="padding: 0; background: var(--bg-tertiary);">
+                    <div style="padding: 16px 24px 16px 48px;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px; font-size: 13px;">
+                            <i class="fas fa-box" style="margin-right: 8px; color: var(--accent-primary);"></i>
+                            Order Items
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <thead>
+                                <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                                    <th style="text-align: left; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 12px;">Product</th>
+                                    <th style="text-align: left; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 12px;">SKU</th>
+                                    <th style="text-align: center; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 12px;">Qty</th>
+                                    <th style="text-align: right; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 12px;">Unit Price</th>
+                                    <th style="text-align: right; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 12px;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${lineItemsHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Add pagination controls if more than one page
+    if (totalPages > 1) {
+        tableHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+                <span style="color: var(--text-muted); font-size: 13px;">
+                    Showing ${startIndex + 1}-${endIndex} of ${totalOrders} orders
+                </span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button onclick="changeOrdersPage(-1)" ${analyticsOrdersPage === 1 ? 'disabled' : ''} class="btn-secondary" style="padding: 8px 12px; font-size: 13px; ${analyticsOrdersPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                        <i class="fas fa-chevron-left" style="margin-right: 4px;"></i> Prev
+                    </button>
+                    <span style="color: var(--text-primary); font-weight: 500; padding: 0 12px;">
+                        Page ${analyticsOrdersPage} of ${totalPages}
+                    </span>
+                    <button onclick="changeOrdersPage(1)" ${analyticsOrdersPage === totalPages ? 'disabled' : ''} class="btn-secondary" style="padding: 8px 12px; font-size: 13px; ${analyticsOrdersPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                        Next <i class="fas fa-chevron-right" style="margin-left: 4px;"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    console.log('[renderOrdersTable] Returning HTML, length:', tableHTML.length);
+    return tableHTML;
+}
+
+/**
+ * Toggle order details expansion
+ */
+function toggleOrderDetails(orderId) {
+    const detailsRow = document.getElementById(`details-${orderId}`);
+    const chevron = document.getElementById(`chevron-${orderId}`);
+
+    if (!detailsRow || !chevron) return;
+
+    if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
+        detailsRow.style.display = 'table-row';
+        chevron.style.transform = 'rotate(90deg)';
+    } else {
+        detailsRow.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+    }
+}
+
+/**
+ * Change orders page (pagination)
+ */
+function changeOrdersPage(delta) {
+    if (!currentSalesData || !currentSalesData.recentOrders) return;
+
+    const totalOrders = currentSalesData.recentOrders.length;
+    const totalPages = Math.ceil(totalOrders / ORDERS_PER_PAGE);
+    const newPage = analyticsOrdersPage + delta;
+
+    if (newPage < 1 || newPage > totalPages) return;
+
+    analyticsOrdersPage = newPage;
+
+    // Re-render just the orders table
+    const container = document.getElementById('recent-orders-container');
+    if (container) {
+        container.innerHTML = renderAnalyticsOrdersTable(currentSalesData.recentOrders);
+    }
 }
 
 // =============================================================================
