@@ -1183,7 +1183,8 @@
                 projectanalytics: 'Project Analytics',
                 restock: 'Restock Requests',
                 supplies: 'Supplies',
-                dailychecklist: 'Daily Checklist'
+                dailychecklist: 'Daily Checklist',
+                labels: 'Barcode Labels'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
@@ -1301,6 +1302,9 @@
                     break;
                 case 'projectanalytics':
                     renderProjectAnalytics();
+                    break;
+                case 'labels':
+                    renderLabels();
                     break;
                 default:
                     renderDashboard();
@@ -32401,4 +32405,26 @@ pwdToastStyles.textContent = `
     }
 `;
 document.head.appendChild(pwdToastStyles);
+
+// =====================================================
+// BARCODE LABELS MODULE
+// =====================================================
+
+function renderLabels() {
+    const dashboard = document.querySelector('.dashboard');
+
+    if (typeof renderLabelsPage === 'function') {
+        dashboard.innerHTML = renderLabelsPage();
+        // Initialize the labels module UI
+        updateLabelQueueUI();
+    } else {
+        dashboard.innerHTML = `
+            <div style="text-align: center; padding: 60px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 48px; color: var(--danger); margin-bottom: 16px;"></i>
+                <h3>Labels Module Not Loaded</h3>
+                <p style="color: var(--text-muted);">Please refresh the page to load the barcode labels module.</p>
+            </div>
+        `;
+    }
+}
 

@@ -6711,3 +6711,53 @@
         padding: 8px 10px;
     }
 }
+
+/* =====================================================
+   BARCODE LABELS MODULE STYLES
+   ===================================================== */
+
+.labels-page {
+    padding: 0;
+}
+
+.label-product-item {
+    border: 1px solid var(--border-color);
+}
+
+.label-product-item:hover {
+    border-color: var(--accent-primary);
+}
+
+.label-queue-item {
+    border: 1px solid var(--border-color);
+}
+
+.label-preview-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Labels Page */
+@media (max-width: 900px) {
+    .labels-page > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Print Styles for Labels */
+@media print {
+    .labels-page,
+    .sidebar,
+    .header,
+    .mobile-menu-btn {
+        display: none !important;
+    }
+
+    .label-print-area {
+        display: block !important;
+    }
+
+    .label {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+}
