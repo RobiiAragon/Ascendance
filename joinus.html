@@ -419,13 +419,19 @@
         .form-section-title {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 16px;
+            gap: 12px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--text-primary);
-            padding: 16px 0 8px;
-            margin-top: 16px;
-            border-top: 1px solid var(--border-color);
+            padding: 20px 0 12px;
+            margin-top: 32px;
+            margin-bottom: 8px;
+            border-top: 2px solid var(--border-color);
+            background: linear-gradient(to right, rgba(102, 126, 234, 0.05), transparent);
+            margin-left: -36px;
+            margin-right: -36px;
+            padding-left: 36px;
+            padding-right: 36px;
         }
 
         .form-section-title:first-child {
@@ -436,242 +442,328 @@
 
         .form-section-title i {
             color: var(--accent-primary);
-            font-size: 18px;
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            border-radius: 10px;
         }
 
         /* Job Entry */
         .job-entry {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .job-entry-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .job-entry-header span {
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 15px;
             color: var(--text-primary);
         }
 
         .job-entry-header button {
-            background: none;
+            background: rgba(239, 68, 68, 0.1);
             border: none;
             color: var(--danger);
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 8px 12px;
             font-size: 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .job-entry-header button:hover {
+            background: rgba(239, 68, 68, 0.2);
         }
 
         .job-entry .form-grid {
-            gap: 12px;
+            gap: 16px;
         }
 
         /* Reference Entry */
         .reference-entry {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .reference-header {
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 15px;
             color: var(--text-primary);
-            margin-bottom: 16px;
-            padding-bottom: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .reference-entry .form-grid {
-            gap: 12px;
+            gap: 16px;
         }
 
         /* Availability Schedule Table */
         .schedule-table-wrapper {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
             margin-top: 8px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
 
         .availability-schedule {
             width: 100%;
-            min-width: 450px;
-            border-collapse: collapse;
+            min-width: 500px;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         .availability-schedule th,
         .availability-schedule td {
-            border: 1px solid var(--border-color);
-            padding: 10px 8px;
+            padding: 12px 10px;
             text-align: center;
-            font-size: 12px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .availability-schedule th {
-            background: var(--bg-tertiary);
+        .availability-schedule thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             font-weight: 600;
-            color: var(--text-primary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 14px 10px;
             white-space: nowrap;
         }
 
-        .availability-schedule th:first-child,
-        .availability-schedule td:first-child {
+        .availability-schedule thead th:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .availability-schedule thead th:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .availability-schedule tbody td:first-child {
             background: var(--bg-tertiary);
-            font-weight: 500;
+            font-weight: 600;
+            color: var(--text-primary);
             text-align: left;
-            padding-left: 12px;
+            padding-left: 16px;
             position: sticky;
             left: 0;
             z-index: 1;
+            border-right: 2px solid var(--border-color);
+        }
+
+        .availability-schedule tbody tr:nth-child(odd) {
+            background: var(--bg-primary);
         }
 
         .availability-schedule tbody tr:nth-child(even) {
             background: var(--bg-secondary);
         }
 
+        .availability-schedule tbody tr:nth-child(odd) td:first-child {
+            background: var(--bg-tertiary);
+        }
+
         .availability-schedule tbody tr:nth-child(even) td:first-child {
-            background: var(--bg-secondary);
+            background: #e8ecf3;
+        }
+
+        .availability-schedule tbody tr:last-child td:first-child {
+            border-radius: 0 0 0 12px;
+        }
+
+        .availability-schedule tbody tr:last-child td:last-child {
+            border-radius: 0 0 12px 0;
+        }
+
+        .availability-schedule tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .availability-schedule tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .availability-schedule tbody tr:hover td:first-child {
+            background: rgba(102, 126, 234, 0.1);
         }
 
         .availability-schedule input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             accent-color: var(--accent-primary);
             cursor: pointer;
+            border-radius: 4px;
         }
 
         /* Product Knowledge Quiz */
         .product-quiz-container {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
             border-radius: 12px;
-            padding: 16px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
 
         .product-quiz-intro {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
-            margin-bottom: 16px;
-            line-height: 1.5;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-primary);
         }
 
         .product-quiz-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 10px;
         }
 
         .product-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 12px;
-            background: var(--bg-primary);
+            padding: 12px 14px;
+            background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .product-item:hover {
+            border-color: var(--accent-primary);
+            background: rgba(102, 126, 234, 0.03);
         }
 
         .product-item label {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-primary);
             font-weight: 500;
             flex: 1;
+            padding-right: 10px;
         }
 
         .product-item input[type="number"] {
-            width: 50px;
-            padding: 6px 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            width: 55px;
+            padding: 8px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
             text-align: center;
-            font-size: 13px;
-            background: var(--bg-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
         }
 
         .product-item input[type="number"]:focus {
             outline: none;
             border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
         }
 
         /* Essay Questions */
         .essay-question {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .essay-question-text {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 12px;
-            line-height: 1.5;
+            margin-bottom: 16px;
+            line-height: 1.6;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-primary);
         }
 
         .essay-question textarea {
             width: 100%;
-            min-height: 120px;
+            min-height: 140px;
         }
 
         /* Military Service */
         .military-entry {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .military-entry .form-grid {
-            gap: 12px;
+            gap: 16px;
         }
 
         /* Signature Section */
         .signature-section {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .disclaimer-text {
             font-size: 12px;
             color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 16px;
-            padding: 12px;
+            line-height: 1.7;
+            margin-bottom: 24px;
+            padding: 16px;
             background: var(--bg-primary);
-            border-radius: 8px;
+            border-radius: 12px;
             border: 1px solid var(--border-color);
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .signature-input {
-            border-bottom: 2px solid var(--border-color) !important;
+            border-bottom: 2px solid var(--accent-primary) !important;
             border-radius: 0 !important;
             background: transparent !important;
             font-style: italic;
+            font-size: 18px !important;
         }
 
         /* Add More Button */
         .add-more-btn {
             width: 100%;
-            padding: 12px;
+            padding: 16px;
             background: var(--bg-secondary);
             border: 2px dashed var(--border-color);
-            border-radius: 10px;
+            border-radius: 12px;
             color: var(--accent-primary);
             font-size: 14px;
             font-weight: 600;
@@ -680,40 +772,52 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
+            margin-top: 8px;
         }
 
         .add-more-btn:hover {
-            background: rgba(102, 126, 234, 0.05);
+            background: rgba(102, 126, 234, 0.08);
             border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .add-more-btn i {
+            font-size: 16px;
         }
 
         /* Checkbox */
         .checkbox-group {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            padding: 12px 14px;
-            background: var(--bg-secondary);
-            border-radius: 10px;
+            gap: 14px;
+            padding: 16px 18px;
+            background: var(--bg-primary);
+            border-radius: 12px;
             border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-group:hover {
+            border-color: var(--accent-primary);
+            background: rgba(102, 126, 234, 0.02);
         }
 
         .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
             accent-color: var(--accent-primary);
             cursor: pointer;
-            margin-top: 1px;
+            margin-top: 2px;
             flex-shrink: 0;
         }
 
         .checkbox-group label {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
             cursor: pointer;
             font-weight: 400;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         /* Submit Button */
@@ -893,39 +997,70 @@
             }
 
             /* Availability Schedule Table - Mobile */
+            .schedule-table-wrapper {
+                border-radius: 10px;
+            }
+
             .availability-schedule {
-                display: block;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+                min-width: 420px;
             }
 
             .availability-schedule th,
             .availability-schedule td {
-                padding: 8px 6px;
+                padding: 10px 8px;
                 font-size: 11px;
-                min-width: 50px;
             }
 
-            .availability-schedule td:first-child {
-                min-width: 70px;
-                position: sticky;
-                left: 0;
-                z-index: 1;
+            .availability-schedule thead th {
+                padding: 12px 8px;
+                font-size: 10px;
+            }
+
+            .availability-schedule tbody td:first-child {
+                min-width: 80px;
+                padding-left: 12px;
+                font-size: 12px;
+            }
+
+            .availability-schedule thead th:first-child {
+                border-radius: 10px 0 0 0;
+            }
+
+            .availability-schedule thead th:last-child {
+                border-radius: 0 10px 0 0;
+            }
+
+            .availability-schedule tbody tr:last-child td:first-child {
+                border-radius: 0 0 0 10px;
+            }
+
+            .availability-schedule tbody tr:last-child td:last-child {
+                border-radius: 0 0 10px 0;
             }
 
             .availability-schedule input[type="checkbox"] {
-                width: 16px;
-                height: 16px;
+                width: 18px;
+                height: 18px;
             }
 
             /* Product Quiz - Mobile */
+            .product-quiz-container {
+                padding: 16px;
+            }
+
+            .product-quiz-intro {
+                font-size: 13px;
+                padding: 10px 12px;
+                margin-bottom: 16px;
+            }
+
             .product-quiz-grid {
                 grid-template-columns: 1fr;
                 gap: 8px;
             }
 
             .product-item {
-                padding: 10px 12px;
+                padding: 12px 14px;
             }
 
             .product-item label {
@@ -938,22 +1073,41 @@
                 font-size: 14px;
             }
 
+            /* Section Titles - Mobile */
+            .form-section-title {
+                font-size: 16px;
+                margin-top: 24px;
+                padding: 16px 20px 10px;
+                margin-left: -20px;
+                margin-right: -20px;
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .form-section-title i {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+
             /* Essay Questions - Mobile */
             .essay-question {
-                padding: 14px;
+                padding: 18px;
+                margin-bottom: 16px;
             }
 
             .essay-question-text {
                 font-size: 13px;
+                padding: 10px 12px;
             }
 
             .essay-question textarea {
-                min-height: 100px;
+                min-height: 120px;
             }
 
             /* Military Entry - Mobile */
             .military-entry {
-                padding: 14px;
+                padding: 18px;
             }
 
             .military-entry .form-grid {
@@ -962,16 +1116,36 @@
 
             /* Signature Section - Mobile */
             .signature-section {
-                padding: 16px;
+                padding: 20px;
             }
 
             .disclaimer-text {
                 font-size: 11px;
-                padding: 10px;
+                padding: 12px;
+                max-height: 200px;
             }
 
             .signature-section .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .signature-input {
+                font-size: 16px !important;
+            }
+
+            /* Checkbox - Mobile */
+            .checkbox-group {
+                padding: 14px 16px;
+                gap: 12px;
+            }
+
+            .checkbox-group input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+            }
+
+            .checkbox-group label {
+                font-size: 13px;
             }
 
             /* Reference Entry - Mobile */
