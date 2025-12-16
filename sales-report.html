@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .export-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .export-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* Filters Section */
+        .filters {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            font-weight: 500;
+        }
+
+        /* Quick Presets */
+        .presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            background: #252525;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #333;
+            border-color: #444;
+        }
+
+        .preset-btn.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        /* Store Selection */
+        .store-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .store-chip {
+            background: #252525;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .store-chip:hover {
+            background: #333;
+        }
+
+        .store-chip.selected {
+            background: #1e3a5f;
+            border-color: #2563eb;
+            color: #60a5fa;
+        }
+
+        .store-chip .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .store-chip[data-store="innato"] .dot { background: #10b981; }
+        .store-chip[data-store="loncheria"] .dot { background: #f59e0b; }
+        .store-chip[data-store="vsu1"] .dot { background: #8b5cf6; }
+        .store-chip[data-store="vsu2"] .dot { background: #ec4899; }
+
+        /* Date Range */
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .date-input {
+            background: #252525;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            width: 160px;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .date-separator {
+            color: #666;
+        }
+
+        .apply-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .apply-btn:hover {
+            background: #059669;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .summary-card .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .summary-card .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .summary-card .value.positive { color: #10b981; }
+        .summary-card .value.negative { color: #ef4444; }
+
+        .summary-card .subtext {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Table Container */
+        .table-container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #252525;
+        }
+
+        .table-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .table-meta {
+            font-size: 0.875rem;
+            color: #888;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #151515;
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table th.right,
+        .data-table td.right {
+            text-align: right;
+        }
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #222;
+            font-size: 0.875rem;
+        }
+
+        .data-table tbody tr:hover {
+            background: #1f1f1f;
+        }
+
+        .data-table .date-group {
+            background: #151515;
+        }
+
+        .data-table .date-group td {
+            padding: 10px 16px;
+            font-weight: 600;
+            color: #60a5fa;
+            border-bottom: 1px solid #333;
+        }
+
+        /* Store Badge */
+        .store-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .store-badge.innato { background: #064e3b; color: #34d399; }
+        .store-badge.loncheria { background: #78350f; color: #fbbf24; }
+        .store-badge.vsu1 { background: #4c1d95; color: #a78bfa; }
+        .store-badge.vsu2 { background: #831843; color: #f472b6; }
+
+        /* Payment Badge */
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .payment-badge.cash { background: #1e3a1e; color: #86efac; }
+        .payment-badge.card { background: #1e2a4a; color: #93c5fd; }
+
+        /* Products List */
+        .products-list {
+            max-width: 300px;
+        }
+
+        .products-list .item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 2px 0;
+        }
+
+        .products-list .item-name {
+            color: #ccc;
+        }
+
+        .products-list .item-qty {
+            color: #888;
+            margin-left: 8px;
+        }
+
+        /* Subtotal Row */
+        .subtotal-row {
+            background: #1f1f1f;
+        }
+
+        .subtotal-row td {
+            font-weight: 600;
+            border-bottom: 2px solid #333;
+        }
+
+        /* Table Scroll */
+        .table-scroll {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .table-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-scroll::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-table {
+                font-size: 0.8rem;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 10px 12px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .data-table {
+                min-width: 1000px;
+            }
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            background: #252525;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .view-toggle button {
+            background: none;
+            border: none;
+            color: #888;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .view-toggle button:hover {
+            color: #e0e0e0;
+        }
+
+        .view-toggle button.active {
+            background: #2563eb;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Sales Report Dashboard</h1>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="view-toggle">
+                    <button class="active" data-view="detailed">Detailed</button>
+                    <button data-view="summary">Summary</button>
+                </div>
+                <button class="export-btn" onclick="exportToCSV()">⬇ Export CSV</button>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>Quick Select</label>
+                <div class="presets">
+                    <button class="preset-btn active" data-preset="today">Today</button>
+                    <button class="preset-btn" data-preset="yesterday">Yesterday</button>
+                    <button class="preset-btn" data-preset="week">This Week</button>
+                    <button class="preset-btn" data-preset="month">This Month</button>
+                    <button class="preset-btn" data-preset="year">This Year</button>
+                    <button class="preset-btn" data-preset="custom">Custom</button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Stores</label>
+                <div class="store-selector">
+                    <div class="store-chip selected" data-store="all">All Stores</div>
+                    <div class="store-chip" data-store="innato"><span class="dot"></span>INNATO</div>
+                    <div class="store-chip" data-store="loncheria"><span class="dot"></span>La Lonchería</div>
+                    <div class="store-chip" data-store="vsu1"><span class="dot"></span>VSU Store 1</div>
+                    <div class="store-chip" data-store="vsu2"><span class="dot"></span>VSU Store 2</div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Date Range</label>
+                <div class="date-range">
+                    <input type="date" class="date-input" id="dateFrom">
+                    <span class="date-separator">→</span>
+                    <input type="date" class="date-input" id="dateTo">
+                    <button class="apply-btn" onclick="applyFilters()">Apply</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="label">Total Orders</div>
+                <div class="value" id="totalOrders">--</div>
+                <div class="subtext" id="ordersPerDay">-- orders/day avg</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Gross Sales</div>
+                <div class="value" id="grossSales">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">CECET Tax (12.5%)</div>
+                <div class="value" id="cecetTax">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">CA Tax (7.5%)</div>
+                <div class="value" id="caTax">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Total Taxes</div>
+                <div class="value negative" id="totalTaxes">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Net Sales</div>
+                <div class="value positive" id="netSales">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Cash</div>
+                <div class="value" id="cashTotal">--</div>
+                <div class="subtext" id="cashPercent">--% of total</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Card</div>
+                <div class="value" id="cardTotal">--</div>
+                <div class="subtext" id="cardPercent">--% of total</div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">Sales Transactions</div>
+                <div class="table-meta" id="tableMeta">Loading...</div>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date / Time</th>
+                            <th>Order #</th>
+                            <th>Store</th>
+                            <th>Products</th>
+                            <th>Payment</th>
+                            <th class="right">Gross</th>
+                            <th class="right">CECET 12.5%</th>
+                            <th class="right">CA Tax 7.5%</th>
+                            <th class="right">Total Tax</th>
+                            <th class="right">Net Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
+                        <!-- Data rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let state = {
+            preset: 'today',
+            dateFrom: new Date(),
+            dateTo: new Date(),
+            stores: ['all'],
+            view: 'detailed'
+        };
+
+        // Sample data generator
+        function generateSampleData() {
+            const stores = [
+                { id: 'innato', name: 'INNATO' },
+                { id: 'loncheria', name: 'La Lonchería' },
+                { id: 'vsu1', name: 'VSU Store 1' },
+                { id: 'vsu2', name: 'VSU Store 2' }
+            ];
+
+            const products = {
+                innato: ['Tacos al Pastor x2', 'Birria Quesadilla', 'Horchata', 'Guacamole', 'Elote'],
+                loncheria: ['Ramen Tonkotsu', 'Onigiri Set', 'Matcha Latte', 'Gyoza x6', 'Miso Soup'],
+                vsu1: ['Vape Pod 5%', 'E-Liquid 30ml', 'Coil Pack', 'Battery 510', 'Disposable'],
+                vsu2: ['Vape Pod 5%', 'E-Liquid 50ml', 'Mod Kit', 'Charger USB', 'Disposable']
+            };
+
+            const data = [];
+            const days = Math.ceil((state.dateTo - state.dateFrom) / (1000 * 60 * 60 * 24)) + 1;
+
+            for (let d = 0; d < days; d++) {
+                const date = new Date(state.dateFrom);
+                date.setDate(date.getDate() + d);
+                
+                // Generate 5-15 orders per day per store
+                const filteredStores = state.stores.includes('all') ? stores : stores.filter(s => state.stores.includes(s.id));
+                
+                filteredStores.forEach(store => {
+                    const ordersCount = Math.floor(Math.random() * 10) + 5;
+                    
+                    for (let i = 0; i < ordersCount; i++) {
+                        const hour = Math.floor(Math.random() * 12) + 10; // 10am - 10pm
+                        const minute = Math.floor(Math.random() * 60);
+                        const orderTime = new Date(date);
+                        orderTime.setHours(hour, minute);
+
+                        const storeProducts = products[store.id];
+                        const numProducts = Math.floor(Math.random() * 3) + 1;
+                        const selectedProducts = [];
+                        
+                        for (let p = 0; p < numProducts; p++) {
+                            selectedProducts.push(storeProducts[Math.floor(Math.random() * storeProducts.length)]);
+                        }
+
+                        const gross = Math.floor(Math.random() * 150) + 15;
+                        const cecetTax = gross * 0.125;
+                        const caTax = gross * 0.075;
+                        const totalTax = cecetTax + caTax;
+                        const netSales = gross - totalTax;
+
+                        data.push({
+                            datetime: orderTime,
+                            orderNumber: `${store.id.toUpperCase().slice(0,3)}-${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}-${String(i+1).padStart(4,'0')}`,
+                            store: store,
+                            products: selectedProducts,
+                            payment: Math.random() > 0.4 ? 'card' : 'cash',
+                            gross: gross,
+                            cecetTax: cecetTax,
+                            caTax: caTax,
+                            totalTax: totalTax,
+                            netSales: netSales
+                        });
+                    }
+                });
+            }
+
+            return data.sort((a, b) => b.datetime - a.datetime);
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        // Format date
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Format time
+        function formatTime(date) {
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Render table
+        function renderTable(data) {
+            const tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+
+            let currentDate = null;
+            let dateSubtotals = {
+                gross: 0, cecetTax: 0, caTax: 0, totalTax: 0, netSales: 0, count: 0
+            };
+
+            data.forEach((row, index) => {
+                const rowDate = formatDate(row.datetime);
+                
+                // Check if we need a new date group
+                if (rowDate !== currentDate) {
+                    // Add subtotal for previous date if exists
+                    if (currentDate !== null) {
+                        tbody.innerHTML += `
+                            <tr class="subtotal-row">
+                                <td colspan="5" style="text-align: right;">Subtotal (${dateSubtotals.count} orders)</td>
+                                <td class="right">${formatCurrency(dateSubtotals.gross)}</td>
+                                <td class="right">${formatCurrency(dateSubtotals.cecetTax)}</td>
+                                <td class="right">${formatCurrency(dateSubtotals.caTax)}</td>
+                                <td class="right">${formatCurrency(dateSubtotals.totalTax)}</td>
+                                <td class="right">${formatCurrency(dateSubtotals.netSales)}</td>
+                            </tr>
+                        `;
+                        dateSubtotals = { gross: 0, cecetTax: 0, caTax: 0, totalTax: 0, netSales: 0, count: 0 };
+                    }
+                    
+                    // Add date group header
+                    tbody.innerHTML += `
+                        <tr class="date-group">
+                            <td colspan="10">📅 ${rowDate}</td>
+                        </tr>
+                    `;
+                    currentDate = rowDate;
+                }
+
+                // Accumulate subtotals
+                dateSubtotals.gross += row.gross;
+                dateSubtotals.cecetTax += row.cecetTax;
+                dateSubtotals.caTax += row.caTax;
+                dateSubtotals.totalTax += row.totalTax;
+                dateSubtotals.netSales += row.netSales;
+                dateSubtotals.count++;
+
+                // Products list
+                const productsList = row.products.map(p => `<div class="item"><span class="item-name">${p}</span></div>`).join('');
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${formatTime(row.datetime)}</td>
+                        <td><strong>${row.orderNumber}</strong></td>
+                        <td><span class="store-badge ${row.store.id}">${row.store.name}</span></td>
+                        <td><div class="products-list">${productsList}</div></td>
+                        <td><span class="payment-badge ${row.payment}">${row.payment === 'cash' ? '💵 Cash' : '💳 Card'}</span></td>
+                        <td class="right">${formatCurrency(row.gross)}</td>
+                        <td class="right">${formatCurrency(row.cecetTax)}</td>
+                        <td class="right">${formatCurrency(row.caTax)}</td>
+                        <td class="right">${formatCurrency(row.totalTax)}</td>
+                        <td class="right"><strong>${formatCurrency(row.netSales)}</strong></td>
+                    </tr>
+                `;
+
+                // Add final subtotal
+                if (index === data.length - 1) {
+                    tbody.innerHTML += `
+                        <tr class="subtotal-row">
+                            <td colspan="5" style="text-align: right;">Subtotal (${dateSubtotals.count} orders)</td>
+                            <td class="right">${formatCurrency(dateSubtotals.gross)}</td>
+                            <td class="right">${formatCurrency(dateSubtotals.cecetTax)}</td>
+                            <td class="right">${formatCurrency(dateSubtotals.caTax)}</td>
+                            <td class="right">${formatCurrency(dateSubtotals.totalTax)}</td>
+                            <td class="right">${formatCurrency(dateSubtotals.netSales)}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            // Update table meta
+            document.getElementById('tableMeta').textContent = `${data.length} transactions`;
+        }
+
+        // Update summary cards
+        function updateSummary(data) {
+            const totals = data.reduce((acc, row) => {
+                acc.gross += row.gross;
+                acc.cecetTax += row.cecetTax;
+                acc.caTax += row.caTax;
+                acc.totalTax += row.totalTax;
+                acc.netSales += row.netSales;
+                if (row.payment === 'cash') acc.cash += row.gross;
+                else acc.card += row.gross;
+                return acc;
+            }, { gross: 0, cecetTax: 0, caTax: 0, totalTax: 0, netSales: 0, cash: 0, card: 0 });
+
+            const days = Math.ceil((state.dateTo - state.dateFrom) / (1000 * 60 * 60 * 24)) + 1;
+
+            document.getElementById('totalOrders').textContent = data.length;
+            document.getElementById('ordersPerDay').textContent = `${(data.length / days).toFixed(1)} orders/day avg`;
+            document.getElementById('grossSales').textContent = formatCurrency(totals.gross);
+            document.getElementById('cecetTax').textContent = formatCurrency(totals.cecetTax);
+            document.getElementById('caTax').textContent = formatCurrency(totals.caTax);
+            document.getElementById('totalTaxes').textContent = formatCurrency(totals.totalTax);
+            document.getElementById('netSales').textContent = formatCurrency(totals.netSales);
+            document.getElementById('cashTotal').textContent = formatCurrency(totals.cash);
+            document.getElementById('cashPercent').textContent = `${((totals.cash / totals.gross) * 100).toFixed(1)}% of total`;
+            document.getElementById('cardTotal').textContent = formatCurrency(totals.card);
+            document.getElementById('cardPercent').textContent = `${((totals.card / totals.gross) * 100).toFixed(1)}% of total`;
+        }
+
+        // Apply filters and refresh data
+        function applyFilters() {
+            state.dateFrom = new Date(document.getElementById('dateFrom').value);
+            state.dateTo = new Date(document.getElementById('dateTo').value);
+            
+            const data = generateSampleData();
+            renderTable(data);
+            updateSummary(data);
+        }
+
+        // Set preset dates
+        function setPreset(preset) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let from = new Date(today);
+            let to = new Date(today);
+
+            switch(preset) {
+                case 'today':
+                    break;
+                case 'yesterday':
+                    from.setDate(from.getDate() - 1);
+                    to.setDate(to.getDate() - 1);
+                    break;
+                case 'week':
+                    from.setDate(from.getDate() - from.getDay());
+                    break;
+                case 'month':
+                    from.setDate(1);
+                    break;
+                case 'year':
+                    from.setMonth(0, 1);
+                    break;
+                case 'custom':
+                    // Keep current selection
+                    return;
+            }
+
+            state.dateFrom = from;
+            state.dateTo = to;
+            state.preset = preset;
+
+            document.getElementById('dateFrom').value = from.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = to.toISOString().split('T')[0];
+
+            applyFilters();
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const data = generateSampleData();
+            let csv = 'Date,Time,Order Number,Store,Products,Payment,Gross,CECET Tax,CA Tax,Total Tax,Net Sales\n';
+            
+            data.forEach(row => {
+                csv += `${formatDate(row.datetime)},${formatTime(row.datetime)},${row.orderNumber},${row.store.name},"${row.products.join('; ')}",${row.payment},${row.gross.toFixed(2)},${row.cecetTax.toFixed(2)},${row.caTax.toFixed(2)},${row.totalTax.toFixed(2)},${row.netSales.toFixed(2)}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sales-report-${state.dateFrom.toISOString().split('T')[0]}-to-${state.dateTo.toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Event listeners
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                setPreset(this.dataset.preset);
+            });
+        });
+
+        document.querySelectorAll('.store-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                const store = this.dataset.store;
+                
+                if (store === 'all') {
+                    // Select only "All"
+                    document.querySelectorAll('.store-chip').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    state.stores = ['all'];
+                } else {
+                    // Toggle individual store
+                    document.querySelector('.store-chip[data-store="all"]').classList.remove('selected');
+                    this.classList.toggle('selected');
+                    
+                    const selected = Array.from(document.querySelectorAll('.store-chip.selected'))
+                        .map(c => c.dataset.store)
+                        .filter(s => s !== 'all');
+                    
+                    if (selected.length === 0) {
+                        document.querySelector('.store-chip[data-store="all"]').classList.add('selected');
+                        state.stores = ['all'];
+                    } else {
+                        state.stores = selected;
+                    }
+                }
+                
+                applyFilters();
+            });
+        });
+
+        document.querySelectorAll('.view-toggle button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                state.view = this.dataset.view;
+                // Toggle view mode (could expand summary vs detailed views)
+            });
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setPreset('today');
+        });
+    </script>
+</body>
+</html>
