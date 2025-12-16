@@ -2277,33 +2277,34 @@ window.renderCelesteAIPage = function() {
 
             /* Chat Input */
             .celeste-chat-input-container {
-                padding: 16px 24px 24px;
+                padding: 20px 24px 28px;
                 border-top: 1px solid var(--border-color);
             }
 
             .celeste-chat-input-wrapper {
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 14px;
                 background: var(--bg-primary);
                 border: 2px solid var(--border-color);
-                border-radius: 16px;
-                padding: 8px 12px;
+                border-radius: 20px;
+                padding: 14px 18px;
                 transition: all 0.2s;
             }
 
             .celeste-chat-input-wrapper:focus-within {
                 border-color: #a855f7;
-                box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+                box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
             }
 
             .celeste-chat-input {
                 flex: 1;
                 border: none;
                 background: none;
-                font-size: 15px;
+                font-size: 16px;
                 color: var(--text-primary);
                 outline: none;
+                padding: 4px 0;
             }
 
             .celeste-chat-input::placeholder {
@@ -2312,15 +2313,16 @@ window.renderCelesteAIPage = function() {
 
             .celeste-voice-toggle,
             .celeste-send-toggle {
-                width: 40px;
-                height: 40px;
-                border-radius: 12px;
+                width: 44px;
+                height: 44px;
+                border-radius: 14px;
                 border: none;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s;
+                font-size: 18px;
             }
 
             .celeste-voice-toggle {
