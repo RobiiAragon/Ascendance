@@ -17760,6 +17760,7 @@ Return ONLY the JSON object, no additional text.`
         let currentIssueStatusFilter = 'all';
         let currentIssueStoreFilter = 'all';
         let issuesFirebaseInitialized = false;
+        let issuesViewMode = 'table'; // 'table' or 'gallery'
 
         async function renderIssues() {
             // Initialize Firebase for issues on first render
@@ -17882,20 +17883,30 @@ Return ONLY the JSON object, no additional text.`
 
                 <!-- All Issues List -->
                 <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-list"></i>
-                            ${currentIssueStatusFilter === 'all' ? 'All Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Issues'}
-                        </h3>
-                        <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
+                    <div class="card-header" style="justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 class="card-title">
+                                <i class="fas fa-${issuesViewMode === 'gallery' ? 'th' : 'list'}"></i>
+                                ${currentIssueStatusFilter === 'all' ? 'All Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Issues'}
+                            </h3>
+                            <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
+                        </div>
+                        <div class="view-toggle" style="display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;">
+                            <button class="view-toggle-btn ${issuesViewMode === 'table' ? 'active' : ''}" onclick="toggleIssuesView('table')" title="Table View">
+                                <i class="fas fa-table"></i>
+                            </button>
+                            <button class="view-toggle-btn ${issuesViewMode === 'gallery' ? 'active' : ''}" onclick="toggleIssuesView('gallery')" title="Gallery View">
+                                <i class="fas fa-th"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="card-body" style="padding: 0;">
+                    <div class="card-body" style="padding: ${issuesViewMode === 'gallery' ? '20px' : '0'};">
                         ${sortedIssues.length === 0 ? `
                             <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
                                 No issues ${currentIssueStatusFilter !== 'all' ? 'with this status' : 'recorded yet'}
                             </div>
-                        ` : `
+                        ` : issuesViewMode === 'table' ? `
                             <table class="data-table issues-table">
                                 <thead>
                                     <tr>
@@ -17974,6 +17985,87 @@ Return ONLY the JSON object, no additional text.`
                                     `}).join('')}
                                 </tbody>
                             </table>
+                        ` : `
+                            <!-- Gallery View -->
+                            <div class="issues-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                                ${sortedIssues.map(issue => {
+                                    const status = issue.status || 'open';
+                                    const statusConfig = issueStatusConfig[status] || issueStatusConfig['open'];
+                                    return `
+                                    <div class="issue-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; transition: all 0.2s; cursor: pointer; position: relative; overflow: hidden;" onclick="viewIssueDetails('${issue.firestoreId || issue.id}')">
+                                        <!-- Status Badge -->
+                                        <div style="position: absolute; top: 12px; right: 12px;">
+                                            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: ${statusConfig.bg}; color: ${statusConfig.color}; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                                                <i class="fas ${statusConfig.icon}"></i>
+                                                ${statusConfig.label}
+                                            </span>
+                                        </div>
+
+                                        <!-- Customer Info -->
+                                        <div style="margin-bottom: 16px; padding-right: 80px;">
+                                            <h4 style="font-size: 18px; font-weight: 600; margin: 0 0 4px 0; color: var(--text-primary);">${issue.customer}</h4>
+                                            <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                <span><i class="fas fa-calendar"></i> ${formatDate(issue.incidentDate)}</span>
+                                                ${issue.store ? `<span><i class="fas fa-store"></i> ${issue.store}</span>` : ''}
+                                            </div>
+                                        </div>
+
+                                        <!-- Issue Type -->
+                                        <div style="margin-bottom: 12px;">
+                                            <span class="badge" style="background: ${issue.type === 'In Store' ? 'var(--accent-primary)' : 'var(--info)'}; font-size: 11px;">
+                                                <i class="fas fa-${issue.type === 'In Store' ? 'store' : 'globe'}"></i>
+                                                ${issue.type}
+                                            </span>
+                                        </div>
+
+                                        <!-- Description -->
+                                        <div style="margin-bottom: 16px; font-size: 14px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                            ${issue.description || 'No description provided'}
+                                        </div>
+
+                                        <!-- Customer Perception -->
+                                        <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; text-align: center;">
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Customer Perception</div>
+                                            <div style="font-size: 32px;">
+                                                ${issue.perception ? getPerceptionEmoji(issue.perception) : '❓'}
+                                            </div>
+                                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                                                ${issue.perception ? getPerceptionLabel(issue.perception) : 'Not Set'}
+                                            </div>
+                                        </div>
+
+                                        <!-- Contact Info -->
+                                        ${issue.phone ? `
+                                            <div style="margin-bottom: 16px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                                                <i class="fas fa-phone" style="color: var(--accent-primary);"></i>
+                                                <a href="tel:${issue.phone}" style="color: var(--text-primary); text-decoration: none; font-size: 13px;" onclick="event.stopPropagation();">${issue.phone}</a>
+                                            </div>
+                                        ` : ''}
+
+                                        <!-- Actions -->
+                                        <div style="display: flex; gap: 6px; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);" onclick="event.stopPropagation();">
+                                            ${status !== 'follow-up' ? `
+                                                <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'follow-up'); event.stopPropagation();" title="Mark as Need Follow Up" style="background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b50; flex: 1;">
+                                                    <i class="fas fa-clock"></i>
+                                                </button>
+                                            ` : ''}
+                                            ${status !== 'resolved' ? `
+                                                <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'resolved'); event.stopPropagation();" title="Mark as Resolved" style="background: #10b98120; color: #10b981; border: 1px solid #10b98150; flex: 1;">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            ` : ''}
+                                            ${status !== 'open' ? `
+                                                <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'open'); event.stopPropagation();" title="Reopen Issue" style="background: #ef444420; color: #ef4444; border: 1px solid #ef444450; flex: 1;">
+                                                    <i class="fas fa-rotate-left"></i>
+                                                </button>
+                                            ` : ''}
+                                            <button class="btn-icon danger" onclick="deleteIssue('${issue.firestoreId || issue.id}'); event.stopPropagation();" title="Delete" style="flex: 1;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    `}).join('')}
+                            </div>
                         `}
                     </div>
                 </div>
@@ -17981,6 +18073,12 @@ Return ONLY the JSON object, no additional text.`
 
             // Update sidebar badge
             updateIssuesSidebarBadge();
+        }
+
+        // Toggle issues view mode
+        function toggleIssuesView(mode) {
+            issuesViewMode = mode;
+            renderIssues();
         }
 
         // Filter issues by status

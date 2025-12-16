@@ -6761,3 +6761,46 @@
         break-inside: avoid;
     }
 }
+
+/* View Toggle Buttons */
+.view-toggle-btn {
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-toggle-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.view-toggle-btn.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+/* Issues Gallery View */
+.issues-gallery .issue-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .issues-gallery {
+        grid-template-columns: 1fr !important;
+    }
+
+    .view-toggle-btn {
+        padding: 6px 10px;
+        font-size: 14px;
+    }
+}
