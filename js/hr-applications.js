@@ -297,7 +297,15 @@ function openApplicationDetail(appId) {
                     </div>
                     <div>
                         <span style="font-size: 12px; color: var(--text-muted);">Phone</span>
-                        <p style="color: var(--text-primary);"><a href="tel:${app.phone}" style="color: var(--accent-primary); text-decoration: none;">${app.phone}</a></p>
+                        <p style="color: var(--text-primary);">${app.phone}</p>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <span style="font-size: 12px; color: var(--text-muted);">Address</span>
+                        <p style="color: var(--text-primary);">${app.streetAddress || ''} ${app.city || ''}, ${app.state || ''} ${app.zipCode || ''}</p>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Emergency Contact</span>
+                        <p style="color: var(--text-primary);">${app.emergencyContact || 'Not provided'}</p>
                     </div>
                     <div>
                         <span style="font-size: 12px; color: var(--text-muted);">Availability</span>
@@ -310,13 +318,101 @@ function openApplicationDetail(appId) {
                 </div>
             </div>
 
-            <!-- Experience -->
-            ${app.experience ? `
+            <!-- Legal & Background -->
+            <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                    <i class="fas fa-gavel" style="margin-right: 8px;"></i>Legal & Background
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">U.S. Citizen</span>
+                        <p style="color: var(--text-primary);">${app.usCitizen || 'Not answered'}</p>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Authorized to Work in U.S.</span>
+                        <p style="color: var(--text-primary);">${app.workAuthorized || 'Not answered'}</p>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Worked for VSU Before</span>
+                        <p style="color: var(--text-primary);">${app.workedBefore || 'No'} ${app.workedBeforeDetails ? `(${app.workedBeforeDetails})` : ''}</p>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Felony Conviction</span>
+                        <p style="color: ${app.felonyConviction === 'Yes' ? '#ef4444' : 'var(--text-primary)'};">${app.felonyConviction || 'No'}</p>
+                    </div>
+                    ${app.felonyDetails ? `
+                        <div style="grid-column: span 2;">
+                            <span style="font-size: 12px; color: var(--text-muted);">Felony Details</span>
+                            <p style="color: var(--text-primary); white-space: pre-wrap;">${app.felonyDetails}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Education -->
+            <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                    <i class="fas fa-graduation-cap" style="margin-right: 8px;"></i>Education
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Level</span>
+                        <p style="color: var(--text-primary);">${app.educationLevel || 'Not specified'}</p>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">School</span>
+                        <p style="color: var(--text-primary);">${app.schoolName || 'Not specified'}</p>
+                    </div>
+                    ${app.schoolAddress ? `
+                        <div style="grid-column: span 2;">
+                            <span style="font-size: 12px; color: var(--text-muted);">School Address</span>
+                            <p style="color: var(--text-primary);">${app.schoolAddress}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Previous Employment -->
+            ${app.previousJobs && app.previousJobs.length > 0 ? `
                 <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                     <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
-                        <i class="fas fa-briefcase" style="margin-right: 8px;"></i>Experience
+                        <i class="fas fa-building" style="margin-right: 8px;"></i>Previous Employment
                     </h4>
-                    <p style="color: var(--text-primary); white-space: pre-wrap; line-height: 1.6;">${app.experience}</p>
+                    ${app.previousJobs.map((job, index) => `
+                        <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <strong style="color: var(--text-primary);">${job.title || 'Position'} at ${job.company || 'Company'}</strong>
+                                <span style="font-size: 12px; color: var(--text-muted);">${job.startDate || ''} - ${job.endDate || ''}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                <div><span style="color: var(--text-muted);">Supervisor:</span> ${job.supervisor || 'N/A'}</div>
+                                <div><span style="color: var(--text-muted);">Can Contact:</span> ${job.canContact || 'N/A'}</div>
+                                <div style="grid-column: span 2;"><span style="color: var(--text-muted);">Reason for Leaving:</span> ${job.reasonLeaving || 'N/A'}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+
+            <!-- References -->
+            ${app.references && app.references.length > 0 ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-users" style="margin-right: 8px;"></i>Professional References
+                    </h4>
+                    ${app.references.map((ref, index) => ref.name ? `
+                        <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <strong style="color: var(--text-primary);">${ref.name}</strong>
+                                <span style="font-size: 12px; color: var(--accent-primary);">${ref.relationship || ''}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                <div><span style="color: var(--text-muted);">Company:</span> ${ref.company || 'N/A'}</div>
+                                <div><span style="color: var(--text-muted);">Phone:</span> ${ref.phone || 'N/A'}</div>
+                                ${ref.address ? `<div style="grid-column: span 2;"><span style="color: var(--text-muted);">Address:</span> ${ref.address}</div>` : ''}
+                            </div>
+                        </div>
+                    ` : '').join('')}
                 </div>
             ` : ''}
 
