@@ -496,6 +496,175 @@
             gap: 12px;
         }
 
+        /* Availability Schedule Table */
+        .schedule-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-top: 8px;
+        }
+
+        .availability-schedule {
+            width: 100%;
+            min-width: 450px;
+            border-collapse: collapse;
+        }
+
+        .availability-schedule th,
+        .availability-schedule td {
+            border: 1px solid var(--border-color);
+            padding: 10px 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .availability-schedule th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .availability-schedule th:first-child,
+        .availability-schedule td:first-child {
+            background: var(--bg-tertiary);
+            font-weight: 500;
+            text-align: left;
+            padding-left: 12px;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+        }
+
+        .availability-schedule tbody tr:nth-child(even) {
+            background: var(--bg-secondary);
+        }
+
+        .availability-schedule tbody tr:nth-child(even) td:first-child {
+            background: var(--bg-secondary);
+        }
+
+        .availability-schedule input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        /* Product Knowledge Quiz */
+        .product-quiz-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .product-quiz-intro {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .product-quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .product-item label {
+            font-size: 12px;
+            color: var(--text-primary);
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .product-item input[type="number"] {
+            width: 50px;
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 13px;
+            background: var(--bg-secondary);
+        }
+
+        .product-item input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* Essay Questions */
+        .essay-question {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .essay-question-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .essay-question textarea {
+            width: 100%;
+            min-height: 120px;
+        }
+
+        /* Military Service */
+        .military-entry {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .military-entry .form-grid {
+            gap: 12px;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .disclaimer-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .signature-input {
+            border-bottom: 2px solid var(--border-color) !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            font-style: italic;
+        }
+
         /* Add More Button */
         .add-more-btn {
             width: 100%;
@@ -722,6 +891,106 @@
             .header-badge {
                 display: none;
             }
+
+            /* Availability Schedule Table - Mobile */
+            .availability-schedule {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .availability-schedule th,
+            .availability-schedule td {
+                padding: 8px 6px;
+                font-size: 11px;
+                min-width: 50px;
+            }
+
+            .availability-schedule td:first-child {
+                min-width: 70px;
+                position: sticky;
+                left: 0;
+                z-index: 1;
+            }
+
+            .availability-schedule input[type="checkbox"] {
+                width: 16px;
+                height: 16px;
+            }
+
+            /* Product Quiz - Mobile */
+            .product-quiz-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .product-item {
+                padding: 10px 12px;
+            }
+
+            .product-item label {
+                font-size: 13px;
+            }
+
+            .product-item input[type="number"] {
+                width: 55px;
+                padding: 8px;
+                font-size: 14px;
+            }
+
+            /* Essay Questions - Mobile */
+            .essay-question {
+                padding: 14px;
+            }
+
+            .essay-question-text {
+                font-size: 13px;
+            }
+
+            .essay-question textarea {
+                min-height: 100px;
+            }
+
+            /* Military Entry - Mobile */
+            .military-entry {
+                padding: 14px;
+            }
+
+            .military-entry .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Signature Section - Mobile */
+            .signature-section {
+                padding: 16px;
+            }
+
+            .disclaimer-text {
+                font-size: 11px;
+                padding: 10px;
+            }
+
+            .signature-section .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Reference Entry - Mobile */
+            .reference-entry {
+                padding: 14px;
+            }
+
+            .reference-entry .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Job Entry - Mobile */
+            .job-entry {
+                padding: 14px;
+            }
+
+            .job-entry .form-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -888,6 +1157,80 @@
                             <option value="Weekends Only">Weekends Only</option>
                             <option value="Flexible">Flexible / Open Availability</option>
                         </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Weekly Availability Schedule <span class="required">*</span></label>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Check all shifts you are available to work:</p>
+                        <div class="schedule-table-wrapper">
+                            <table class="availability-schedule">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>All Day</th>
+                                        <th>Morning<br>(8:30am - 4pm)</th>
+                                        <th>Night<br>(4pm - 11:30pm)</th>
+                                        <th>Other</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Monday</td>
+                                        <td><input type="checkbox" name="avail_mon_all" id="avail_mon_all"></td>
+                                        <td><input type="checkbox" name="avail_mon_morning" id="avail_mon_morning"></td>
+                                        <td><input type="checkbox" name="avail_mon_night" id="avail_mon_night"></td>
+                                        <td><input type="checkbox" name="avail_mon_other" id="avail_mon_other"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tuesday</td>
+                                        <td><input type="checkbox" name="avail_tue_all" id="avail_tue_all"></td>
+                                        <td><input type="checkbox" name="avail_tue_morning" id="avail_tue_morning"></td>
+                                        <td><input type="checkbox" name="avail_tue_night" id="avail_tue_night"></td>
+                                        <td><input type="checkbox" name="avail_tue_other" id="avail_tue_other"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Wednesday</td>
+                                        <td><input type="checkbox" name="avail_wed_all" id="avail_wed_all"></td>
+                                        <td><input type="checkbox" name="avail_wed_morning" id="avail_wed_morning"></td>
+                                        <td><input type="checkbox" name="avail_wed_night" id="avail_wed_night"></td>
+                                        <td><input type="checkbox" name="avail_wed_other" id="avail_wed_other"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Thursday</td>
+                                        <td><input type="checkbox" name="avail_thu_all" id="avail_thu_all"></td>
+                                        <td><input type="checkbox" name="avail_thu_morning" id="avail_thu_morning"></td>
+                                        <td><input type="checkbox" name="avail_thu_night" id="avail_thu_night"></td>
+                                        <td><input type="checkbox" name="avail_thu_other" id="avail_thu_other"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Friday</td>
+                                        <td><input type="checkbox" name="avail_fri_all" id="avail_fri_all"></td>
+                                        <td><input type="checkbox" name="avail_fri_morning" id="avail_fri_morning"></td>
+                                        <td><input type="checkbox" name="avail_fri_night" id="avail_fri_night"></td>
+                                        <td><input type="checkbox" name="avail_fri_other" id="avail_fri_other"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Saturday</td>
+                                        <td><input type="checkbox" name="avail_sat_all" id="avail_sat_all"></td>
+                                        <td><input type="checkbox" name="avail_sat_morning" id="avail_sat_morning"></td>
+                                        <td><input type="checkbox" name="avail_sat_night" id="avail_sat_night"></td>
+                                        <td><input type="checkbox" name="avail_sat_other" id="avail_sat_other"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sunday</td>
+                                        <td><input type="checkbox" name="avail_sun_all" id="avail_sun_all"></td>
+                                        <td><input type="checkbox" name="avail_sun_morning" id="avail_sun_morning"></td>
+                                        <td><input type="checkbox" name="avail_sun_night" id="avail_sun_night"></td>
+                                        <td><input type="checkbox" name="avail_sun_other" id="avail_sun_other"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Which location(s) would you prefer based on your commute?</label>
+                        <textarea id="locationPreferenceCommute" name="locationPreferenceCommute" placeholder="List locations that are convenient for your commute..."></textarea>
                     </div>
 
                     <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1117,10 +1460,235 @@
                     </div>
 
                     <!-- ═══════════════════════════════════════════════════════════ -->
+                    <!-- SECTION: Pre-Employment Product Knowledge Quiz -->
+                    <!-- ═══════════════════════════════════════════════════════════ -->
+                    <div class="form-section-title full-width">
+                        <i class="fas fa-clipboard-list"></i> Pre-Employment Product Knowledge Quiz
+                    </div>
+
+                    <div class="form-group full-width">
+                        <div class="product-quiz-container">
+                            <p class="product-quiz-intro">
+                                Rate your knowledge of the following products from <strong>0</strong> (no knowledge) to <strong>10</strong> (expert level).
+                                This helps us understand your familiarity with our product categories.
+                            </p>
+                            <div class="product-quiz-grid">
+                                <div class="product-item">
+                                    <label>Disposable Vapes</label>
+                                    <input type="number" name="pk_disposable_vapes" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Rechargeable Disposable Vapes</label>
+                                    <input type="number" name="pk_rechargeable_disposable" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Sub Ohm Juice</label>
+                                    <input type="number" name="pk_sub_ohm_juice" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Salt Nicotine</label>
+                                    <input type="number" name="pk_salt_nicotine" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Pod/Mod Devices</label>
+                                    <input type="number" name="pk_pod_mod_devices" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Sub Ohm Devices</label>
+                                    <input type="number" name="pk_sub_ohm_devices" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Replaceable Coils/Pods</label>
+                                    <input type="number" name="pk_replaceable_coils" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>RDA</label>
+                                    <input type="number" name="pk_rda" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>RDTA</label>
+                                    <input type="number" name="pk_rdta" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Squonk Mods</label>
+                                    <input type="number" name="pk_squonk_mods" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Mechanical Mods</label>
+                                    <input type="number" name="pk_mechanical_mods" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Refillable Pods (JUUL)</label>
+                                    <input type="number" name="pk_refillable_pods" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Water Pipes</label>
+                                    <input type="number" name="pk_water_pipes" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Bubblers</label>
+                                    <input type="number" name="pk_bubblers" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Bangers</label>
+                                    <input type="number" name="pk_bangers" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Detox Drinks</label>
+                                    <input type="number" name="pk_detox_drinks" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Rigs</label>
+                                    <input type="number" name="pk_rigs" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Herbal Vaporizers</label>
+                                    <input type="number" name="pk_herbal_vaporizers" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Wax Vapes</label>
+                                    <input type="number" name="pk_wax_vapes" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Hookah</label>
+                                    <input type="number" name="pk_hookah" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Shisha</label>
+                                    <input type="number" name="pk_shisha" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Nectar Collectors</label>
+                                    <input type="number" name="pk_nectar_collectors" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>One Hitters</label>
+                                    <input type="number" name="pk_one_hitters" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Rolling Papers</label>
+                                    <input type="number" name="pk_rolling_papers" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Cleaners</label>
+                                    <input type="number" name="pk_cleaners" min="0" max="10" value="0">
+                                </div>
+                                <div class="product-item">
+                                    <label>Blunts/Wraps/Tobacco</label>
+                                    <input type="number" name="pk_blunts_wraps" min="0" max="10" value="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Any additional product knowledge not listed above?</label>
+                        <textarea id="additionalProductKnowledge" name="additionalProductKnowledge" placeholder="List any other relevant product knowledge or certifications..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Is this your first time working in a vape/smoke shop? <span class="required">*</span></label>
+                        <select id="firstTimeVapeShop" name="firstTimeVapeShop" required>
+                            <option value="">Select...</option>
+                            <option value="Yes">Yes, first time</option>
+                            <option value="No">No, I have experience</option>
+                        </select>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════════════ -->
+                    <!-- SECTION: Military Service -->
+                    <!-- ═══════════════════════════════════════════════════════════ -->
+                    <div class="form-section-title full-width">
+                        <i class="fas fa-medal"></i> Military Service
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Have you served in the U.S. Military?</label>
+                        <select id="militaryService" name="militaryService" onchange="toggleMilitaryDetails()">
+                            <option value="">Select...</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="military-entry full-width" id="militaryDetailsSection" style="display: none;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Branch of Service</label>
+                                <select id="militaryBranch" name="militaryBranch">
+                                    <option value="">Select branch...</option>
+                                    <option value="Army">Army</option>
+                                    <option value="Navy">Navy</option>
+                                    <option value="Air Force">Air Force</option>
+                                    <option value="Marines">Marines</option>
+                                    <option value="Coast Guard">Coast Guard</option>
+                                    <option value="Space Force">Space Force</option>
+                                    <option value="National Guard">National Guard</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Rank at Discharge</label>
+                                <input type="text" id="militaryRank" name="militaryRank" placeholder="e.g., Sergeant, E-5">
+                            </div>
+                            <div class="form-group">
+                                <label>From (Start Date)</label>
+                                <input type="text" id="militaryFrom" name="militaryFrom" placeholder="MM/YYYY">
+                            </div>
+                            <div class="form-group">
+                                <label>To (End Date)</label>
+                                <input type="text" id="militaryTo" name="militaryTo" placeholder="MM/YYYY">
+                            </div>
+                            <div class="form-group">
+                                <label>Type of Discharge</label>
+                                <select id="dischargeType" name="dischargeType">
+                                    <option value="">Select...</option>
+                                    <option value="Honorable">Honorable</option>
+                                    <option value="General">General (Under Honorable Conditions)</option>
+                                    <option value="Other Than Honorable">Other Than Honorable</option>
+                                    <option value="Bad Conduct">Bad Conduct</option>
+                                    <option value="Dishonorable">Dishonorable</option>
+                                    <option value="Entry Level Separation">Entry Level Separation</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width" id="dischargeExplanationGroup" style="display: none;">
+                                <label>If discharge was not honorable, please explain:</label>
+                                <textarea id="dischargeExplanation" name="dischargeExplanation" placeholder="Please provide an explanation..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════════════ -->
+                    <!-- SECTION: Essay Questions -->
+                    <!-- ═══════════════════════════════════════════════════════════ -->
+                    <div class="form-section-title full-width">
+                        <i class="fas fa-pen-fancy"></i> Essay Questions
+                    </div>
+
+                    <div class="essay-question full-width">
+                        <div class="essay-question-text">
+                            How do you think your experience can contribute and benefit our company's growth?
+                        </div>
+                        <textarea id="essayContribution" name="essayContribution" placeholder="Share how your skills and experience can help VSU grow..."></textarea>
+                    </div>
+
+                    <div class="essay-question full-width">
+                        <div class="essay-question-text">
+                            VSU is a fast-paced environment with multiple customers requiring attention simultaneously.
+                            Can you work efficiently with multiple customers at once? What skills or experience will you implement to handle this?
+                        </div>
+                        <textarea id="essayMultitasking" name="essayMultitasking" placeholder="Describe your ability to multitask and handle busy situations..."></textarea>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════════════ -->
                     <!-- SECTION: Additional Information -->
                     <!-- ═══════════════════════════════════════════════════════════ -->
                     <div class="form-section-title full-width">
                         <i class="fas fa-info-circle"></i> Additional Information
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Is there any additional information that would be beneficial in considering your application for employment?</label>
+                        <textarea id="additionalInfo" name="additionalInfo" placeholder="Any additional information you'd like us to know..."></textarea>
                     </div>
 
                     <div class="form-group full-width">
@@ -1147,33 +1715,49 @@
                     </div>
 
                     <!-- ═══════════════════════════════════════════════════════════ -->
-                    <!-- SECTION: Certifications -->
+                    <!-- SECTION: Disclaimer & Signature -->
                     <!-- ═══════════════════════════════════════════════════════════ -->
                     <div class="form-section-title full-width">
-                        <i class="fas fa-check-circle"></i> Certifications & Agreements
+                        <i class="fas fa-file-signature"></i> Disclaimer & Signature
                     </div>
 
-                    <!-- Age Verification -->
-                    <div class="form-group full-width">
-                        <div class="checkbox-group">
+                    <div class="signature-section full-width">
+                        <div class="disclaimer-text">
+                            <strong>APPLICANT'S STATEMENT</strong><br><br>
+                            I certify that all information provided in this application is true and complete to the best of my knowledge. I understand that any false information or omission may disqualify me from further consideration for employment and may result in my dismissal if discovered at a later date.<br><br>
+                            I authorize the investigation of any or all statements contained in this application. I also authorize, whether listed or not, any person, school, current employer, past employers, and organizations to provide relevant information and opinions that may be useful in making a hiring decision. I release such persons and organizations from any legal liability in making such statements.<br><br>
+                            I understand I may be required to successfully pass a drug screening examination. I hereby consent to a pre- and/or post-employment drug screen as a condition of employment, if required.<br><br>
+                            I understand that if I am extended an offer of employment, it may be contingent upon my successfully passing a complete background check, including but not limited to verification of Social Security number, past employment, education, criminal background, and driving record where applicable.<br><br>
+                            <strong>I UNDERSTAND THAT THIS APPLICATION, VERBAL STATEMENTS BY MANAGEMENT, OR SUBSEQUENT EMPLOYMENT DOES NOT CREATE AN EXPRESS OR IMPLIED CONTRACT OF EMPLOYMENT NOR GUARANTEE EMPLOYMENT FOR ANY DEFINITE PERIOD OF TIME. ONLY THE PRESIDENT OF THE ORGANIZATION HAS THE AUTHORITY TO ENTER INTO AN AGREEMENT OF EMPLOYMENT FOR ANY SPECIFIED PERIOD AND SUCH AGREEMENT MUST BE IN WRITING, SIGNED BY THE PRESIDENT AND THE EMPLOYEE. IF EMPLOYED, I UNDERSTAND THAT I HAVE BEEN HIRED AT THE WILL OF THE EMPLOYER AND MY EMPLOYMENT MAY BE TERMINATED AT ANY TIME, WITH OR WITHOUT REASON AND WITH OR WITHOUT NOTICE.</strong>
+                        </div>
+
+                        <!-- Age Verification -->
+                        <div class="checkbox-group" style="margin-bottom: 12px;">
                             <input type="checkbox" id="ageVerify" name="ageVerify" required>
                             <label for="ageVerify">I confirm that I am at least 21 years of age <span class="required">*</span></label>
                         </div>
-                    </div>
 
-                    <!-- Information Accuracy -->
-                    <div class="form-group full-width">
-                        <div class="checkbox-group">
+                        <!-- Information Accuracy -->
+                        <div class="checkbox-group" style="margin-bottom: 12px;">
                             <input type="checkbox" id="infoAccurate" name="infoAccurate" required>
-                            <label for="infoAccurate">I certify that all information provided in this application is true and complete to the best of my knowledge. I understand that falsification of any information may result in disqualification or termination of employment. <span class="required">*</span></label>
+                            <label for="infoAccurate">I have read, understand, and agree to the above disclaimer <span class="required">*</span></label>
                         </div>
-                    </div>
 
-                    <!-- Background Check Authorization -->
-                    <div class="form-group full-width">
-                        <div class="checkbox-group">
+                        <!-- Background Check Authorization -->
+                        <div class="checkbox-group" style="margin-bottom: 16px;">
                             <input type="checkbox" id="backgroundCheck" name="backgroundCheck" required>
-                            <label for="backgroundCheck">I authorize VSU to conduct a background check and verify all information provided, including contacting previous employers and references. <span class="required">*</span></label>
+                            <label for="backgroundCheck">I authorize VSU to conduct a background check and verify all information provided, including contacting previous employers and references <span class="required">*</span></label>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Signature (Type Full Name) <span class="required">*</span></label>
+                                <input type="text" id="signatureName" name="signatureName" class="signature-input" placeholder="Type your full legal name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Date <span class="required">*</span></label>
+                                <input type="date" id="signatureDate" name="signatureDate" required>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1323,6 +1907,29 @@
             detailsGroup.style.display = select.value === 'Yes' ? 'flex' : 'none';
         }
 
+        // Toggle military service details
+        function toggleMilitaryDetails() {
+            const select = document.getElementById('militaryService');
+            const detailsSection = document.getElementById('militaryDetailsSection');
+            detailsSection.style.display = select.value === 'Yes' ? 'block' : 'none';
+        }
+
+        // Toggle discharge explanation (if not honorable)
+        document.getElementById('dischargeType')?.addEventListener('change', function() {
+            const explanationGroup = document.getElementById('dischargeExplanationGroup');
+            const nonHonorableTypes = ['Other Than Honorable', 'Bad Conduct', 'Dishonorable'];
+            explanationGroup.style.display = nonHonorableTypes.includes(this.value) ? 'flex' : 'none';
+        });
+
+        // Set today's date for signature date
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            const signatureDate = document.getElementById('signatureDate');
+            if (signatureDate) {
+                signatureDate.value = today;
+            }
+        });
+
         // Add previous job counter
         let jobCount = 1;
 
@@ -1423,6 +2030,82 @@
                     }
                 });
 
+                // Collect availability schedule
+                const availabilitySchedule = {
+                    monday: {
+                        allDay: document.getElementById('avail_mon_all')?.checked || false,
+                        morning: document.getElementById('avail_mon_morning')?.checked || false,
+                        night: document.getElementById('avail_mon_night')?.checked || false,
+                        other: document.getElementById('avail_mon_other')?.checked || false
+                    },
+                    tuesday: {
+                        allDay: document.getElementById('avail_tue_all')?.checked || false,
+                        morning: document.getElementById('avail_tue_morning')?.checked || false,
+                        night: document.getElementById('avail_tue_night')?.checked || false,
+                        other: document.getElementById('avail_tue_other')?.checked || false
+                    },
+                    wednesday: {
+                        allDay: document.getElementById('avail_wed_all')?.checked || false,
+                        morning: document.getElementById('avail_wed_morning')?.checked || false,
+                        night: document.getElementById('avail_wed_night')?.checked || false,
+                        other: document.getElementById('avail_wed_other')?.checked || false
+                    },
+                    thursday: {
+                        allDay: document.getElementById('avail_thu_all')?.checked || false,
+                        morning: document.getElementById('avail_thu_morning')?.checked || false,
+                        night: document.getElementById('avail_thu_night')?.checked || false,
+                        other: document.getElementById('avail_thu_other')?.checked || false
+                    },
+                    friday: {
+                        allDay: document.getElementById('avail_fri_all')?.checked || false,
+                        morning: document.getElementById('avail_fri_morning')?.checked || false,
+                        night: document.getElementById('avail_fri_night')?.checked || false,
+                        other: document.getElementById('avail_fri_other')?.checked || false
+                    },
+                    saturday: {
+                        allDay: document.getElementById('avail_sat_all')?.checked || false,
+                        morning: document.getElementById('avail_sat_morning')?.checked || false,
+                        night: document.getElementById('avail_sat_night')?.checked || false,
+                        other: document.getElementById('avail_sat_other')?.checked || false
+                    },
+                    sunday: {
+                        allDay: document.getElementById('avail_sun_all')?.checked || false,
+                        morning: document.getElementById('avail_sun_morning')?.checked || false,
+                        night: document.getElementById('avail_sun_night')?.checked || false,
+                        other: document.getElementById('avail_sun_other')?.checked || false
+                    }
+                };
+
+                // Collect product knowledge quiz
+                const productKnowledge = {
+                    disposableVapes: parseInt(document.querySelector('[name="pk_disposable_vapes"]')?.value) || 0,
+                    rechargeableDisposable: parseInt(document.querySelector('[name="pk_rechargeable_disposable"]')?.value) || 0,
+                    subOhmJuice: parseInt(document.querySelector('[name="pk_sub_ohm_juice"]')?.value) || 0,
+                    saltNicotine: parseInt(document.querySelector('[name="pk_salt_nicotine"]')?.value) || 0,
+                    podModDevices: parseInt(document.querySelector('[name="pk_pod_mod_devices"]')?.value) || 0,
+                    subOhmDevices: parseInt(document.querySelector('[name="pk_sub_ohm_devices"]')?.value) || 0,
+                    replaceableCoils: parseInt(document.querySelector('[name="pk_replaceable_coils"]')?.value) || 0,
+                    rda: parseInt(document.querySelector('[name="pk_rda"]')?.value) || 0,
+                    rdta: parseInt(document.querySelector('[name="pk_rdta"]')?.value) || 0,
+                    squonkMods: parseInt(document.querySelector('[name="pk_squonk_mods"]')?.value) || 0,
+                    mechanicalMods: parseInt(document.querySelector('[name="pk_mechanical_mods"]')?.value) || 0,
+                    refillablePods: parseInt(document.querySelector('[name="pk_refillable_pods"]')?.value) || 0,
+                    waterPipes: parseInt(document.querySelector('[name="pk_water_pipes"]')?.value) || 0,
+                    bubblers: parseInt(document.querySelector('[name="pk_bubblers"]')?.value) || 0,
+                    bangers: parseInt(document.querySelector('[name="pk_bangers"]')?.value) || 0,
+                    detoxDrinks: parseInt(document.querySelector('[name="pk_detox_drinks"]')?.value) || 0,
+                    rigs: parseInt(document.querySelector('[name="pk_rigs"]')?.value) || 0,
+                    herbalVaporizers: parseInt(document.querySelector('[name="pk_herbal_vaporizers"]')?.value) || 0,
+                    waxVapes: parseInt(document.querySelector('[name="pk_wax_vapes"]')?.value) || 0,
+                    hookah: parseInt(document.querySelector('[name="pk_hookah"]')?.value) || 0,
+                    shisha: parseInt(document.querySelector('[name="pk_shisha"]')?.value) || 0,
+                    nectarCollectors: parseInt(document.querySelector('[name="pk_nectar_collectors"]')?.value) || 0,
+                    oneHitters: parseInt(document.querySelector('[name="pk_one_hitters"]')?.value) || 0,
+                    rollingPapers: parseInt(document.querySelector('[name="pk_rolling_papers"]')?.value) || 0,
+                    cleaners: parseInt(document.querySelector('[name="pk_cleaners"]')?.value) || 0,
+                    bluntsWraps: parseInt(document.querySelector('[name="pk_blunts_wraps"]')?.value) || 0
+                };
+
                 // Prepare application data
                 const applicationData = {
                     refNumber: refNumber,
@@ -1441,6 +2124,8 @@
                     preferredStore: document.getElementById('preferredStore').value,
                     position: document.getElementById('position').value,
                     availability: document.getElementById('availability').value,
+                    availabilitySchedule: availabilitySchedule,
+                    locationPreferenceCommute: document.getElementById('locationPreferenceCommute')?.value?.trim() || '',
                     // Legal & Background
                     usCitizen: document.getElementById('usCitizen').value,
                     workAuthorized: document.getElementById('workAuthorized').value,
@@ -1478,10 +2163,29 @@
                             address: document.getElementById('ref3Address').value.trim()
                         }
                     ],
+                    // Product Knowledge Quiz
+                    productKnowledge: productKnowledge,
+                    additionalProductKnowledge: document.getElementById('additionalProductKnowledge')?.value?.trim() || '',
+                    firstTimeVapeShop: document.getElementById('firstTimeVapeShop')?.value || '',
+                    // Military Service
+                    militaryService: document.getElementById('militaryService')?.value || '',
+                    militaryBranch: document.getElementById('militaryBranch')?.value || '',
+                    militaryRank: document.getElementById('militaryRank')?.value?.trim() || '',
+                    militaryFrom: document.getElementById('militaryFrom')?.value?.trim() || '',
+                    militaryTo: document.getElementById('militaryTo')?.value?.trim() || '',
+                    dischargeType: document.getElementById('dischargeType')?.value || '',
+                    dischargeExplanation: document.getElementById('dischargeExplanation')?.value?.trim() || '',
+                    // Essay Questions
+                    essayContribution: document.getElementById('essayContribution')?.value?.trim() || '',
+                    essayMultitasking: document.getElementById('essayMultitasking')?.value?.trim() || '',
                     // Additional
+                    additionalInfo: document.getElementById('additionalInfo')?.value?.trim() || '',
                     whyJoin: document.getElementById('whyJoin').value.trim(),
                     resumeUrl: resumeUrl,
                     resumeFileName: selectedFile ? selectedFile.name : '',
+                    // Signature
+                    signatureName: document.getElementById('signatureName')?.value?.trim() || '',
+                    signatureDate: document.getElementById('signatureDate')?.value || '',
                     // Certifications
                     ageVerified: true,
                     infoAccurate: true,

@@ -416,6 +416,163 @@ function openApplicationDetail(appId) {
                 </div>
             ` : ''}
 
+            <!-- Availability Schedule -->
+            ${app.availabilitySchedule ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>Weekly Availability
+                    </h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: var(--bg-tertiary);">
+                                    <th style="padding: 8px; border: 1px solid var(--border-color); text-align: left;">Day</th>
+                                    <th style="padding: 8px; border: 1px solid var(--border-color);">All Day</th>
+                                    <th style="padding: 8px; border: 1px solid var(--border-color);">Morning</th>
+                                    <th style="padding: 8px; border: 1px solid var(--border-color);">Night</th>
+                                    <th style="padding: 8px; border: 1px solid var(--border-color);">Other</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => `
+                                    <tr>
+                                        <td style="padding: 8px; border: 1px solid var(--border-color); font-weight: 500; text-transform: capitalize;">${day}</td>
+                                        <td style="padding: 8px; border: 1px solid var(--border-color); text-align: center; color: ${app.availabilitySchedule[day]?.allDay ? '#10b981' : 'var(--text-muted)'};">${app.availabilitySchedule[day]?.allDay ? '✓' : '—'}</td>
+                                        <td style="padding: 8px; border: 1px solid var(--border-color); text-align: center; color: ${app.availabilitySchedule[day]?.morning ? '#10b981' : 'var(--text-muted)'};">${app.availabilitySchedule[day]?.morning ? '✓' : '—'}</td>
+                                        <td style="padding: 8px; border: 1px solid var(--border-color); text-align: center; color: ${app.availabilitySchedule[day]?.night ? '#10b981' : 'var(--text-muted)'};">${app.availabilitySchedule[day]?.night ? '✓' : '—'}</td>
+                                        <td style="padding: 8px; border: 1px solid var(--border-color); text-align: center; color: ${app.availabilitySchedule[day]?.other ? '#10b981' : 'var(--text-muted)'};">${app.availabilitySchedule[day]?.other ? '✓' : '—'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    ${app.locationPreferenceCommute ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <span style="font-size: 12px; color: var(--text-muted);">Location Preference (Commute):</span>
+                            <p style="color: var(--text-primary); margin-top: 4px;">${app.locationPreferenceCommute}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
+
+            <!-- Product Knowledge Quiz -->
+            ${app.productKnowledge ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-clipboard-list" style="margin-right: 8px;"></i>Product Knowledge Quiz
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                        ${Object.entries({
+                            'Disposable Vapes': app.productKnowledge.disposableVapes,
+                            'Rechargeable Disposable': app.productKnowledge.rechargeableDisposable,
+                            'Sub Ohm Juice': app.productKnowledge.subOhmJuice,
+                            'Salt Nicotine': app.productKnowledge.saltNicotine,
+                            'Pod/Mod Devices': app.productKnowledge.podModDevices,
+                            'Sub Ohm Devices': app.productKnowledge.subOhmDevices,
+                            'Replaceable Coils': app.productKnowledge.replaceableCoils,
+                            'RDA': app.productKnowledge.rda,
+                            'RDTA': app.productKnowledge.rdta,
+                            'Squonk Mods': app.productKnowledge.squonkMods,
+                            'Mechanical Mods': app.productKnowledge.mechanicalMods,
+                            'Refillable Pods': app.productKnowledge.refillablePods,
+                            'Water Pipes': app.productKnowledge.waterPipes,
+                            'Bubblers': app.productKnowledge.bubblers,
+                            'Bangers': app.productKnowledge.bangers,
+                            'Detox Drinks': app.productKnowledge.detoxDrinks,
+                            'Rigs': app.productKnowledge.rigs,
+                            'Herbal Vaporizers': app.productKnowledge.herbalVaporizers,
+                            'Wax Vapes': app.productKnowledge.waxVapes,
+                            'Hookah': app.productKnowledge.hookah,
+                            'Shisha': app.productKnowledge.shisha,
+                            'Nectar Collectors': app.productKnowledge.nectarCollectors,
+                            'One Hitters': app.productKnowledge.oneHitters,
+                            'Rolling Papers': app.productKnowledge.rollingPapers,
+                            'Cleaners': app.productKnowledge.cleaners,
+                            'Blunts/Wraps': app.productKnowledge.bluntsWraps
+                        }).map(([product, score]) => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-primary); border-radius: 6px; border: 1px solid var(--border-color);">
+                                <span style="font-size: 11px; color: var(--text-primary);">${product}</span>
+                                <span style="font-size: 12px; font-weight: 600; color: ${score >= 7 ? '#10b981' : score >= 4 ? '#f59e0b' : 'var(--text-muted)'};">${score || 0}/10</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${app.additionalProductKnowledge ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <span style="font-size: 12px; color: var(--text-muted);">Additional Product Knowledge:</span>
+                            <p style="color: var(--text-primary); margin-top: 4px; white-space: pre-wrap;">${app.additionalProductKnowledge}</p>
+                        </div>
+                    ` : ''}
+                    <div style="margin-top: 12px; padding: 10px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 12px; color: var(--text-muted);">First time working in vape/smoke shop:</span>
+                        <span style="font-size: 13px; font-weight: 600; color: ${app.firstTimeVapeShop === 'No' ? '#10b981' : '#f59e0b'}; margin-left: 8px;">${app.firstTimeVapeShop || 'Not answered'}</span>
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Military Service -->
+            ${app.militaryService === 'Yes' ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-medal" style="margin-right: 8px;"></i>Military Service
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Branch</span>
+                            <p style="color: var(--text-primary);">${app.militaryBranch || 'Not specified'}</p>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Rank at Discharge</span>
+                            <p style="color: var(--text-primary);">${app.militaryRank || 'Not specified'}</p>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Service Period</span>
+                            <p style="color: var(--text-primary);">${app.militaryFrom || '?'} - ${app.militaryTo || '?'}</p>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Type of Discharge</span>
+                            <p style="color: ${app.dischargeType === 'Honorable' ? '#10b981' : app.dischargeType === 'General' ? '#f59e0b' : '#ef4444'};">${app.dischargeType || 'Not specified'}</p>
+                        </div>
+                        ${app.dischargeExplanation ? `
+                            <div style="grid-column: span 2;">
+                                <span style="font-size: 12px; color: var(--text-muted);">Discharge Explanation</span>
+                                <p style="color: var(--text-primary); white-space: pre-wrap;">${app.dischargeExplanation}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Essay Questions -->
+            ${(app.essayContribution || app.essayMultitasking) ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-pen-fancy" style="margin-right: 8px;"></i>Essay Questions
+                    </h4>
+                    ${app.essayContribution ? `
+                        <div style="margin-bottom: 16px;">
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">How can your experience contribute to our company's growth?</span>
+                            <p style="color: var(--text-primary); white-space: pre-wrap; line-height: 1.6; padding: 12px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-color);">${app.essayContribution}</p>
+                        </div>
+                    ` : ''}
+                    ${app.essayMultitasking ? `
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">Can you work efficiently with multiple customers? What skills will you implement?</span>
+                            <p style="color: var(--text-primary); white-space: pre-wrap; line-height: 1.6; padding: 12px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-color);">${app.essayMultitasking}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
+
+            <!-- Additional Info -->
+            ${app.additionalInfo ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Additional Information
+                    </h4>
+                    <p style="color: var(--text-primary); white-space: pre-wrap; line-height: 1.6;">${app.additionalInfo}</p>
+                </div>
+            ` : ''}
+
             <!-- Why Join -->
             ${app.whyJoin ? `
                 <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
@@ -423,6 +580,31 @@ function openApplicationDetail(appId) {
                         <i class="fas fa-heart" style="margin-right: 8px;"></i>Why They Want to Join
                     </h4>
                     <p style="color: var(--text-primary); white-space: pre-wrap; line-height: 1.6;">${app.whyJoin}</p>
+                </div>
+            ` : ''}
+
+            <!-- Signature -->
+            ${app.signatureName ? `
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">
+                        <i class="fas fa-file-signature" style="margin-right: 8px;"></i>Signature & Certification
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Digital Signature</span>
+                            <p style="color: var(--text-primary); font-style: italic; font-size: 16px;">${app.signatureName}</p>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Date Signed</span>
+                            <p style="color: var(--text-primary);">${app.signatureDate || 'Not recorded'}</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <p style="font-size: 12px; color: #10b981;">
+                            <i class="fas fa-check-circle" style="margin-right: 6px;"></i>
+                            Applicant has certified all information is accurate and authorized background check
+                        </p>
+                    </div>
                 </div>
             ` : ''}
 
