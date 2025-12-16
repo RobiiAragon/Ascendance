@@ -65,6 +65,25 @@ function cancelAnalyticsRequest() {
     analyticsRequestId++;
 }
 
+// Run analytics query - called when user clicks "Run Query" button
+function runAnalyticsQuery() {
+    const periodSelect = document.getElementById('period-select');
+    const period = periodSelect ? periodSelect.value : 'month';
+
+    // Validate custom range if selected
+    if (period === 'custom') {
+        const { startDate, endDate } = window.analyticsCustomRange || {};
+        if (!startDate || !endDate) {
+            showToast('Please select a custom date range first', 'error');
+            toggleAnalyticsCalendarPopup();
+            return;
+        }
+    }
+
+    console.log(`[Analytics] Running query - Store: ${selectedStore}, Period: ${period}`);
+    renderAnalyticsWithData(period, selectedStore, selectedLocation);
+}
+
 // Check if we're still on the analytics page
 function isOnAnalyticsPage() {
     const dashboard = document.querySelector('.dashboard');
@@ -242,6 +261,88 @@ function updateStoreSelectorState() {
     }
 }
 
+// Render Analytics Page without auto-running query (user must click "Run Query")
+async function renderAnalyticsPage(period = 'month') {
+    console.log('[Analytics] Rendering page - waiting for user to click "Run Query"');
+
+    // Initialize VSU locations if needed
+    await initializeVSULocations();
+
+    const dashboard = document.querySelector('.dashboard');
+
+    // Build custom date text if applicable
+    let customDateText = 'Pick dates';
+    if (period === 'custom' && window.analyticsCustomRange?.startDate && window.analyticsCustomRange?.endDate) {
+        const formatDate = (date) => date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+        customDateText = `${formatDate(window.analyticsCustomRange.startDate)} → ${formatDate(window.analyticsCustomRange.endDate)}`;
+    }
+
+    // Render page with controls but show "Ready to query" state
+    dashboard.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-left">
+                <h2 class="section-title">Sales & Analytics</h2>
+                <p class="section-subtitle">Select store & date range, then click "Run Query"</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <select id="period-select" onchange="handlePeriodChange(this.value)" class="btn-secondary" style="padding: 10px 16px; font-family: 'Outfit', sans-serif; font-weight: 500;">
+                    <option value="today" ${period === 'today' ? 'selected' : ''}>Today</option>
+                    <option value="week" ${period === 'week' ? 'selected' : ''}>This Week</option>
+                    <option value="month" ${period === 'month' ? 'selected' : ''}>This Month</option>
+                    <option value="year" ${period === 'year' ? 'selected' : ''}>This Year</option>
+                    <option value="custom" ${period === 'custom' ? 'selected' : ''}>Custom Range</option>
+                </select>
+                <div style="position: relative;" id="custom-calendar-wrapper">
+                    <button class="btn-secondary" onclick="toggleAnalyticsCalendarPopup()" id="calendar-btn" style="display: ${period === 'custom' ? 'inline-flex' : 'none'}; align-items: center; gap: 8px; padding: 10px 16px;">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span id="calendar-btn-text">${customDateText}</span>
+                    </button>
+                    <div id="analytics-calendar-popup" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; z-index: 1000;">
+                        <div style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 2px 10px rgba(0,0,0,0.1); padding: 20px; min-width: 560px; border: 1px solid #e5e7eb;">
+                            <div style="text-align: center; padding: 12px 16px; background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%); border-radius: 10px; margin-bottom: 20px;">
+                                <span id="selected-range-display" style="color: white; font-size: 14px; font-weight: 600;">${customDateText}</span>
+                            </div>
+                            <div style="display: flex; gap: 24px;">
+                                <div id="calendar-month-1" style="flex: 1; min-width: 240px;"></div>
+                                <div id="calendar-month-2" style="flex: 1; min-width: 240px;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                <button class="btn-secondary" onclick="event.stopPropagation(); clearAnalyticsCustomRange()" style="padding: 10px 20px;">Clear</button>
+                                <button class="btn-primary" onclick="event.stopPropagation(); applyAnalyticsCustomRange()" style="padding: 10px 24px;">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="runAnalyticsQuery()" id="run-query-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <i class="fas fa-play"></i> Run Query
+                </button>
+            </div>
+        </div>
+
+        ${renderStoreSelector()}
+
+        <div id="analytics-content">
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 400px;">
+                <div style="text-align: center; max-width: 500px;">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                        <i class="fas fa-chart-line" style="font-size: 32px; color: white;"></i>
+                    </div>
+                    <h3 style="color: var(--text-primary); margin-bottom: 12px; font-size: 20px;">Ready to Load Analytics</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 14px; line-height: 1.6;">
+                        Select a <strong>store</strong> and <strong>date range</strong> above, then click the
+                        <span style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+                            <i class="fas fa-play"></i> Run Query
+                        </span> button to fetch analytics data.
+                    </p>
+                    <p style="color: var(--text-muted); font-size: 12px;">
+                        <i class="fas fa-info-circle"></i> Using GraphQL Bulk Operations - no order limits!
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 // Render Analytics Page with Real Data
 async function renderAnalyticsWithData(period = 'month', storeKey = null, locationId = null) {
     // Cancel any previous pending request and get a new request ID
@@ -328,6 +429,10 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                 };
             }
         }
+
+        // Cancel any existing bulk operation before starting a new one
+        console.log('[Analytics] Cancelling any existing bulk operation...');
+        await cancelBulkOperation(selectedStore);
 
         // Use GraphQL Bulk Operations API for unlimited order fetching (no 2500 cap)
         console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
@@ -423,8 +528,8 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                         </div>
                     </div>
                 </div>
-                <button class="btn-secondary" onclick="renderAnalyticsWithData('${period}')">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                <button class="btn-primary" onclick="runAnalyticsQuery()" id="run-query-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <i class="fas fa-play"></i> Run Query
                 </button>
                 <div style="position: relative;">
                     <button class="btn-primary" onclick="toggleExportDropdown()" id="exportBtn">
@@ -1515,23 +1620,29 @@ function handleStoreChange(storeKey) {
     selectedStore = storeKey;
     selectedLocation = null; // Reset location when changing stores
 
-    // Get current period
-    const periodSelect = document.getElementById('period-select');
-    const period = periodSelect ? periodSelect.value : 'month';
+    // Update UI to show selected store (toggle active class)
+    document.querySelectorAll('.store-toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`store-btn-${storeKey}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
 
-    // Reload analytics with new store
-    renderAnalyticsWithData(period, storeKey, null);
+    // Cancel any in-progress bulk operation when changing stores
+    cancelAnalyticsRequest();
+    cancelBulkOperation(storeKey);
+
+    console.log(`[Analytics] Store changed to: ${storeKey} - Click "Run Query" to load data`);
 }
 
 function handleLocationChange(locationId) {
     selectedLocation = locationId === '' ? null : locationId;
 
-    // Get current period
-    const periodSelect = document.getElementById('period-select');
-    const period = periodSelect ? periodSelect.value : 'month';
+    // Cancel any in-progress bulk operation when changing location
+    cancelAnalyticsRequest();
 
-    // Reload analytics with new location
-    renderAnalyticsWithData(period, selectedStore, selectedLocation);
+    console.log(`[Analytics] Location changed to: ${locationId || 'All Locations'} - Click "Run Query" to load data`);
 }
 
 // =============================================================================
@@ -1561,6 +1672,9 @@ function handleLocationChange(locationId) {
 function handlePeriodChange(value) {
     const calendarBtn = document.getElementById('calendar-btn');
 
+    // Cancel any in-progress bulk operation when changing period
+    cancelAnalyticsRequest();
+
     if (value === 'custom') {
         // Show calendar button
         if (calendarBtn) {
@@ -1579,8 +1693,8 @@ function handlePeriodChange(value) {
         if (popup) {
             popup.style.display = 'none';
         }
-        // Fetch data with selected period
-        renderAnalyticsWithData(value);
+        // Do NOT auto-fetch - user must click "Run Query" button
+        console.log(`[Analytics] Period changed to: ${value} - Click "Run Query" to load data`);
     }
 }
 
@@ -1800,7 +1914,7 @@ function clearAnalyticsCustomRange() {
     if (btnText) btnText.textContent = 'Pick dates';
 }
 
-// Apply custom range and fetch data
+// Apply custom range (just save selection, don't fetch data)
 function applyAnalyticsCustomRange() {
     const { startDate, endDate } = window.analyticsCustomRange;
 
@@ -1818,8 +1932,8 @@ function applyAnalyticsCustomRange() {
     const formatDate = (date) => date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
     if (btnText) btnText.textContent = `${formatDate(startDate)} → ${formatDate(endDate)}`;
 
-    // Fetch data with custom range
-    renderAnalyticsWithData('custom');
+    // Do NOT auto-fetch - user must click "Run Query" button
+    console.log(`[Analytics] Custom range set: ${formatDate(startDate)} → ${formatDate(endDate)} - Click "Run Query" to load data`);
 }
 
 // Close popup when clicking outside

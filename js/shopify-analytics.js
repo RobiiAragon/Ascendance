@@ -155,6 +155,85 @@ function buildBulkOrdersQuery(startDate, endDate) {
 }
 
 /**
+ * Cancel the current bulk operation for a store
+ *
+ * @param {string} storeKey - Store identifier ('vsu', 'loyalvaper', etc.)
+ * @returns {Promise<boolean>} True if cancelled successfully, false otherwise
+ */
+async function cancelBulkOperation(storeKey = 'vsu') {
+    const storeConfig = STORES_CONFIG[storeKey];
+    if (!storeConfig) {
+        console.warn('⚠️ [BULK CANCEL] Invalid store key:', storeKey);
+        return false;
+    }
+
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const mutation = `
+        mutation {
+            bulkOperationCancel {
+                bulkOperation {
+                    id
+                    status
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+    `;
+
+    try {
+        console.log('🛑 [BULK CANCEL] Cancelling bulk operation for:', storeConfig.name);
+
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: mutation })
+        });
+
+        if (!response.ok) {
+            console.warn('⚠️ [BULK CANCEL] Request failed:', response.status);
+            return false;
+        }
+
+        const result = await response.json();
+
+        if (result.errors) {
+            console.warn('⚠️ [BULK CANCEL] GraphQL errors:', result.errors);
+            return false;
+        }
+
+        const { bulkOperation, userErrors } = result.data.bulkOperationCancel;
+
+        if (userErrors && userErrors.length > 0) {
+            // "No bulk operation in progress" is not really an error
+            const noOpError = userErrors.find(e => e.message.includes('No bulk operation'));
+            if (noOpError) {
+                console.log('ℹ️ [BULK CANCEL] No bulk operation was in progress');
+                return true;
+            }
+            console.warn('⚠️ [BULK CANCEL] User errors:', userErrors);
+            return false;
+        }
+
+        if (bulkOperation) {
+            console.log(`✅ [BULK CANCEL] Cancelled: ${bulkOperation.id} (${bulkOperation.status})`);
+        }
+
+        return true;
+
+    } catch (error) {
+        console.error('❌ [BULK CANCEL] Failed:', error);
+        return false;
+    }
+}
+
+/**
  * Start a GraphQL Bulk Operation to export orders
  *
  * @param {string} startDate - Start of date range (ISO string)

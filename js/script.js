@@ -1237,7 +1237,7 @@
                     renderLicenses();
                     break;
                 case 'analytics':
-                    if (typeof renderAnalyticsWithData === 'function') { renderAnalyticsWithData(); } else { renderAnalytics(); }
+                    if (typeof renderAnalyticsPage === 'function') { renderAnalyticsPage(); } else if (typeof renderAnalyticsWithData === 'function') { renderAnalyticsWithData(); } else { renderAnalytics(); }
                     break;
                 case 'newstuff':
                     renderNewStuff();
