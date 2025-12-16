@@ -1799,135 +1799,140 @@ window.renderCelesteAIPage = function() {
                 </div>
             </div>
 
-            <!-- Main Content Grid -->
-            <div class="celeste-page-grid">
-                <!-- Left Sidebar - Conversations -->
-                <div class="celeste-sidebar">
-                    <div class="celeste-sidebar-header">
-                        <h3><i class="fas fa-comments"></i> Conversations</h3>
-                        <button class="celeste-new-chat-btn" onclick="startNewCelesteConversation()">
-                            <i class="fas fa-plus"></i> New
+            <!-- Main Chat - Full Width -->
+            <div class="celeste-main-chat">
+                <div class="celeste-chat-container">
+                    <div class="celeste-chat-messages" id="celeste-page-messages">
+                        <div class="celeste-welcome-message">
+                            <img src="img/celeste-ai.svg" alt="Celeste" class="celeste-welcome-avatar" onerror="this.style.display='none'; var d=document.createElement('div'); d.className='celeste-welcome-avatar-fallback'; d.innerHTML='<i class=fa fa-stars></i>'; this.parentNode.insertBefore(d,this);">
+                            <h2>Hello! I'm Celeste</h2>
+                            <p>Your AI-powered assistant for managing VSU stores. I can help you navigate, record data, generate reports, and much more.</p>
+                            <div class="celeste-welcome-suggestions">
+                                <button onclick="celestePageQuickAction('Show me today\\'s sales')">
+                                    <i class="fas fa-chart-line"></i> Today's Sales
+                                </button>
+                                <button onclick="celestePageQuickAction('Record an expense')">
+                                    <i class="fas fa-receipt"></i> Record Expense
+                                </button>
+                                <button onclick="celestePageQuickAction('Report a suspicious person')">
+                                    <i class="fas fa-user-secret"></i> Report Suspicious
+                                </button>
+                                <button onclick="celestePageQuickAction('Create an announcement')">
+                                    <i class="fas fa-bullhorn"></i> New Announcement
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="celeste-chat-input-container">
+                        <div class="celeste-chat-input-wrapper">
+                            <button class="celeste-voice-toggle" id="celeste-page-voice-btn" onclick="toggleCelestePageVoice()">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <input type="text"
+                                id="celeste-page-input"
+                                class="celeste-chat-input"
+                                placeholder="Ask Celeste anything..."
+                                onkeypress="if(event.key==='Enter') sendCelestePageMessage()">
+                            <button class="celeste-send-toggle" onclick="sendCelestePageMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <p class="celeste-input-hint">Press Enter to send or click the microphone to speak</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Section - Quick Actions & Commands -->
+            <div class="celeste-bottom-section">
+                <!-- Quick Actions -->
+                <div class="celeste-panel-card">
+                    <div class="celeste-panel-header">
+                        <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
+                    </div>
+                    <div class="celeste-quick-grid-wide">
+                        <button onclick="celestePageQuickAction('Go to dashboard')" class="celeste-quick-tile">
+                            <i class="fas fa-th-large"></i>
+                            <span>Dashboard</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('Show analytics')" class="celeste-quick-tile">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Analytics</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('Clock in')" class="celeste-quick-tile">
+                            <i class="fas fa-clock"></i>
+                            <span>Clock In</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('Record expense')" class="celeste-quick-tile">
+                            <i class="fas fa-money-bill"></i>
+                            <span>Expense</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('Report thief')" class="celeste-quick-tile">
+                            <i class="fas fa-user-secret"></i>
+                            <span>Suspicious</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('New announcement')" class="celeste-quick-tile">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announce</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('Request restock')" class="celeste-quick-tile">
+                            <i class="fas fa-boxes"></i>
+                            <span>Restock</span>
+                        </button>
+                        <button onclick="celestePageQuickAction('Report an issue')" class="celeste-quick-tile">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Report Issue</span>
                         </button>
                     </div>
-                    <div class="celeste-conversations-list" id="celeste-conversations-list">
-                        <!-- Conversations loaded here -->
-                    </div>
                 </div>
 
-                <!-- Center - Main Chat -->
-                <div class="celeste-main-chat">
-                    <div class="celeste-chat-container">
-                        <div class="celeste-chat-messages" id="celeste-page-messages">
-                            <div class="celeste-welcome-message">
-                                <img src="img/celeste-ai.svg" alt="Celeste" class="celeste-welcome-avatar" onerror="this.style.display='none'; var d=document.createElement('div'); d.className='celeste-welcome-avatar-fallback'; d.innerHTML='<i class=fa fa-stars></i>'; this.parentNode.insertBefore(d,this);">
-                                <h2>Hello! I'm Celeste</h2>
-                                <p>Your AI-powered assistant for managing VSU stores. I can help you navigate, record data, generate reports, and much more.</p>
-                                <div class="celeste-welcome-suggestions">
-                                    <button onclick="celestePageQuickAction('Show me today\\'s sales')">
-                                        <i class="fas fa-chart-line"></i> Today's Sales
-                                    </button>
-                                    <button onclick="celestePageQuickAction('Record an expense')">
-                                        <i class="fas fa-receipt"></i> Record Expense
-                                    </button>
-                                    <button onclick="celestePageQuickAction('Report a suspicious person')">
-                                        <i class="fas fa-user-secret"></i> Report Suspicious
-                                    </button>
-                                    <button onclick="celestePageQuickAction('Create an announcement')">
-                                        <i class="fas fa-bullhorn"></i> New Announcement
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="celeste-chat-input-container">
-                            <div class="celeste-chat-input-wrapper">
-                                <button class="celeste-voice-toggle" id="celeste-page-voice-btn" onclick="toggleCelestePageVoice()">
-                                    <i class="fas fa-microphone"></i>
-                                </button>
-                                <input type="text"
-                                    id="celeste-page-input"
-                                    class="celeste-chat-input"
-                                    placeholder="Ask Celeste anything..."
-                                    onkeypress="if(event.key==='Enter') sendCelestePageMessage()">
-                                <button class="celeste-send-toggle" onclick="sendCelestePageMessage()">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                            <p class="celeste-input-hint">Press Enter to send or click the microphone to speak</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Sidebar - Quick Actions & Info -->
-                <div class="celeste-info-panel">
-                    <!-- Quick Actions -->
-                    <div class="celeste-panel-section">
-                        <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
-                        <div class="celeste-quick-grid">
-                            <button onclick="celestePageQuickAction('Go to dashboard')" class="celeste-quick-tile">
-                                <i class="fas fa-th-large"></i>
-                                <span>Dashboard</span>
-                            </button>
-                            <button onclick="celestePageQuickAction('Show analytics')" class="celeste-quick-tile">
-                                <i class="fas fa-chart-bar"></i>
-                                <span>Analytics</span>
-                            </button>
-                            <button onclick="celestePageQuickAction('Clock in')" class="celeste-quick-tile">
-                                <i class="fas fa-clock"></i>
-                                <span>Clock In</span>
-                            </button>
-                            <button onclick="celestePageQuickAction('Record expense')" class="celeste-quick-tile">
-                                <i class="fas fa-money-bill"></i>
-                                <span>Expense</span>
-                            </button>
-                            <button onclick="celestePageQuickAction('Report thief')" class="celeste-quick-tile">
-                                <i class="fas fa-user-secret"></i>
-                                <span>Suspicious</span>
-                            </button>
-                            <button onclick="celestePageQuickAction('New announcement')" class="celeste-quick-tile">
-                                <i class="fas fa-bullhorn"></i>
-                                <span>Announce</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Available Commands -->
-                    <div class="celeste-panel-section">
+                <!-- Available Commands -->
+                <div class="celeste-panel-card">
+                    <div class="celeste-panel-header">
                         <h4><i class="fas fa-terminal"></i> Available Commands</h4>
-                        <div class="celeste-commands-list">
-                            <div class="celeste-command-item">
-                                <span class="celeste-command-name">Navigation</span>
-                                <span class="celeste-command-example">"Go to [module]", "Open sales"</span>
-                            </div>
-                            <div class="celeste-command-item">
-                                <span class="celeste-command-name">Expenses</span>
-                                <span class="celeste-command-example">"Record expense $50"</span>
-                            </div>
-                            <div class="celeste-command-item">
-                                <span class="celeste-command-name">Security</span>
-                                <span class="celeste-command-example">"Report suspicious person"</span>
-                            </div>
-                            <div class="celeste-command-item">
-                                <span class="celeste-command-name">Announcements</span>
-                                <span class="celeste-command-example">"Create announcement"</span>
-                            </div>
-                            <div class="celeste-command-item">
-                                <span class="celeste-command-name">Inventory</span>
-                                <span class="celeste-command-example">"Request restock"</span>
-                            </div>
-                            <div class="celeste-command-item">
-                                <span class="celeste-command-name">Issues</span>
-                                <span class="celeste-command-example">"Report an issue"</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Connection Status -->
-                    <div class="celeste-panel-section celeste-status-section">
                         <div class="celeste-connection-status" id="celeste-connection-status">
                             <i class="fas fa-circle"></i>
-                            <span>Checking connection...</span>
+                            <span>Checking...</span>
                         </div>
+                    </div>
+                    <div class="celeste-commands-grid">
+                        <div class="celeste-command-item">
+                            <span class="celeste-command-name">Navigation</span>
+                            <span class="celeste-command-example">"Go to [module]", "Open sales"</span>
+                        </div>
+                        <div class="celeste-command-item">
+                            <span class="celeste-command-name">Expenses</span>
+                            <span class="celeste-command-example">"Record expense $50"</span>
+                        </div>
+                        <div class="celeste-command-item">
+                            <span class="celeste-command-name">Security</span>
+                            <span class="celeste-command-example">"Report suspicious person"</span>
+                        </div>
+                        <div class="celeste-command-item">
+                            <span class="celeste-command-name">Announcements</span>
+                            <span class="celeste-command-example">"Create announcement"</span>
+                        </div>
+                        <div class="celeste-command-item">
+                            <span class="celeste-command-name">Inventory</span>
+                            <span class="celeste-command-example">"Request restock"</span>
+                        </div>
+                        <div class="celeste-command-item">
+                            <span class="celeste-command-name">Issues</span>
+                            <span class="celeste-command-example">"Report an issue"</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversations Panel -->
+                <div class="celeste-panel-card">
+                    <div class="celeste-panel-header">
+                        <h4><i class="fas fa-comments"></i> Conversations</h4>
+                        <button class="celeste-new-chat-btn" onclick="startNewCelesteConversation()">
+                            <i class="fas fa-plus"></i> New Chat
+                        </button>
+                    </div>
+                    <div class="celeste-conversations-grid" id="celeste-conversations-list">
+                        <!-- Conversations loaded here -->
                     </div>
                 </div>
             </div>
@@ -2037,43 +2042,28 @@ window.renderCelesteAIPage = function() {
                 color: #a855f7;
             }
 
-            /* Main Grid */
-            .celeste-page-grid {
-                display: grid;
-                grid-template-columns: 280px 1fr 300px;
-                gap: 24px;
-                min-height: calc(100vh - 350px);
-            }
-
-            /* Left Sidebar */
-            .celeste-sidebar {
+            /* Main Chat - Full Width */
+            .celeste-main-chat {
                 background: var(--bg-secondary);
                 border: 1px solid var(--border-color);
                 border-radius: 16px;
-                overflow: hidden;
                 display: flex;
                 flex-direction: column;
+                overflow: hidden;
+                min-height: 450px;
+                margin-bottom: 24px;
             }
 
-            .celeste-sidebar-header {
-                padding: 16px;
-                border-bottom: 1px solid var(--border-color);
+            .celeste-chat-container {
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
+                flex-direction: column;
+                height: 100%;
+
             }
 
-            .celeste-sidebar-header h3 {
-                margin: 0;
-                font-size: 14px;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
+            /* New Chat Button */
             .celeste-new-chat-btn {
-                padding: 6px 12px;
+                padding: 8px 16px;
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 border: none;
                 border-radius: 8px;
@@ -2092,29 +2082,33 @@ window.renderCelesteAIPage = function() {
                 box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
             }
 
-            .celeste-conversations-list {
-                flex: 1;
+            /* Conversations Grid - Horizontal Layout */
+            .celeste-conversations-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 12px;
+                max-height: 200px;
                 overflow-y: auto;
-                padding: 12px;
+                padding: 4px;
             }
 
             .celeste-conversation-item {
-                padding: 12px;
+                padding: 12px 14px;
+                background: var(--bg-primary);
                 border-radius: 10px;
                 cursor: pointer;
                 transition: all 0.2s;
-                margin-bottom: 8px;
-                border: 1px solid transparent;
+                border: 1px solid var(--border-color);
             }
 
             .celeste-conversation-item:hover {
-                background: var(--bg-primary);
-                border-color: var(--border-color);
+                border-color: #a855f7;
+                transform: translateY(-2px);
             }
 
             .celeste-conversation-item.active {
                 background: rgba(168, 85, 247, 0.1);
-                border-color: rgba(168, 85, 247, 0.3);
+                border-color: rgba(168, 85, 247, 0.5);
             }
 
             .celeste-conversation-title {
@@ -2129,22 +2123,6 @@ window.renderCelesteAIPage = function() {
             .celeste-conversation-date {
                 font-size: 11px;
                 color: var(--text-muted);
-            }
-
-            /* Main Chat */
-            .celeste-main-chat {
-                background: var(--bg-secondary);
-                border: 1px solid var(--border-color);
-                border-radius: 16px;
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
-            }
-
-            .celeste-chat-container {
-                display: flex;
-                flex-direction: column;
-                height: 100%;
             }
 
             .celeste-chat-messages {
@@ -2377,23 +2355,30 @@ window.renderCelesteAIPage = function() {
                 margin: 10px 0 0;
             }
 
-            /* Right Panel */
-            .celeste-info-panel {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
+            /* Bottom Section - Panels Below Chat */
+            .celeste-bottom-section {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
             }
 
-            .celeste-panel-section {
+            .celeste-panel-card {
                 background: var(--bg-secondary);
                 border: 1px solid var(--border-color);
                 border-radius: 16px;
-                padding: 16px;
+                padding: 20px;
             }
 
-            .celeste-panel-section h4 {
-                margin: 0 0 14px;
-                font-size: 13px;
+            .celeste-panel-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+            }
+
+            .celeste-panel-header h4 {
+                margin: 0;
+                font-size: 14px;
                 font-weight: 600;
                 display: flex;
                 align-items: center;
@@ -2401,19 +2386,19 @@ window.renderCelesteAIPage = function() {
                 color: var(--text-primary);
             }
 
-            .celeste-panel-section h4 i {
+            .celeste-panel-header h4 i {
                 color: #a855f7;
             }
 
-            /* Quick Actions Grid */
-            .celeste-quick-grid {
+            /* Quick Actions Grid - Wide Version */
+            .celeste-quick-grid-wide {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
             }
 
             .celeste-quick-tile {
-                padding: 14px 10px;
+                padding: 16px 12px;
                 background: var(--bg-primary);
                 border: 1px solid var(--border-color);
                 border-radius: 12px;
@@ -2432,27 +2417,27 @@ window.renderCelesteAIPage = function() {
             }
 
             .celeste-quick-tile i {
-                font-size: 18px;
+                font-size: 20px;
                 color: #a855f7;
             }
 
             .celeste-quick-tile span {
-                font-size: 11px;
+                font-size: 12px;
                 font-weight: 500;
                 color: var(--text-secondary);
             }
 
-            /* Commands List */
-            .celeste-commands-list {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
+            /* Commands Grid - Wide Version */
+            .celeste-commands-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
             }
 
             .celeste-command-item {
-                padding: 10px 12px;
+                padding: 12px 14px;
                 background: var(--bg-primary);
-                border-radius: 8px;
+                border-radius: 10px;
                 display: flex;
                 flex-direction: column;
                 gap: 4px;
@@ -2471,16 +2456,15 @@ window.renderCelesteAIPage = function() {
             }
 
             /* Connection Status */
-            .celeste-status-section {
-                margin-top: auto;
-            }
-
             .celeste-connection-status {
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 font-size: 12px;
                 color: var(--text-muted);
+                padding: 6px 12px;
+                background: var(--bg-primary);
+                border-radius: 20px;
             }
 
             .celeste-connection-status i {
@@ -2522,17 +2506,20 @@ window.renderCelesteAIPage = function() {
 
             /* Responsive */
             @media (max-width: 1200px) {
-                .celeste-page-grid {
+                .celeste-bottom-section {
                     grid-template-columns: 1fr;
                 }
 
-                .celeste-sidebar,
-                .celeste-info-panel {
-                    display: none;
+                .celeste-quick-grid-wide {
+                    grid-template-columns: repeat(4, 1fr);
                 }
 
-                .celeste-main-chat {
-                    min-height: 500px;
+                .celeste-commands-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .celeste-conversations-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
                 }
             }
 
@@ -2552,6 +2539,23 @@ window.renderCelesteAIPage = function() {
 
                 .celeste-hero-badges {
                     justify-content: center;
+                }
+
+                .celeste-main-chat {
+                    min-height: 350px;
+                }
+
+                .celeste-quick-grid-wide {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .celeste-commands-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .celeste-conversations-grid {
+                    grid-template-columns: 1fr;
+                    max-height: 150px;
                 }
             }
         </style>
