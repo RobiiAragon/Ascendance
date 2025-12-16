@@ -23,7 +23,8 @@
             dailysales: null,
             cashout: null,
             change: null,
-            projectanalytics: null
+            projectanalytics: null,
+            hrapplications: null
         };
 
         // Current state
@@ -1318,6 +1319,14 @@
                         initializeTransfersModule();
                     } else {
                         console.error('Transfers module not loaded');
+                        render404(page);
+                    }
+                    break;
+                case 'hrapplications':
+                    if (typeof initializeHRApplications === 'function') {
+                        initializeHRApplications();
+                    } else {
+                        console.error('HR Applications module not loaded');
                         render404(page);
                     }
                     break;

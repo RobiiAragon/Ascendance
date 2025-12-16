@@ -89,7 +89,8 @@ window.FIREBASE_COLLECTIONS = {
     gconomics: 'gconomics',     // Firestore collection for personal expense tracking
     licenses: 'licenses',       // Firestore collection for licenses and documents
     passwords: 'passwords',     // Firestore collection for password manager
-    settings: 'settings'        // Firestore collection for app settings (store locations, geofence config, etc.)
+    settings: 'settings',       // Firestore collection for app settings (store locations, geofence config, etc.)
+    jobApplications: 'job_applications' // Firestore collection for HR job applications
 };
 
 // Store Locations for Geofencing (Clock In/Out)
@@ -200,7 +201,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'labels']
+        pages: ['celesteai', 'dashboard', 'employees', 'training', 'licenses', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications']
     },
     'manager': {
         // Action Permissions
@@ -214,7 +215,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels']
+        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'gifts', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications']
     },
     'employee': {
         // Action Permissions

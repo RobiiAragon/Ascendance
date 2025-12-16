@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Our Team | VSU Careers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .bg-animation::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+            animation: float 15s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, 30px) scale(1.1); }
+        }
+
+        /* Header */
+        .header {
+            background: rgba(15, 15, 25, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text span {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Main Content */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .hero h2 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Benefits */
+        .benefits {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .benefit-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .benefit-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .benefit-card i {
+            font-size: 28px;
+            color: #a855f7;
+            margin-bottom: 12px;
+        }
+
+        .benefit-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Application Form */
+        .form-container {
+            background: rgba(20, 20, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .form-header h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .form-header p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-group label .required {
+            color: #ef4444;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 15px;
+            color: white;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6,9 12,15 18,9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 18px;
+            padding-right: 44px;
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* File Upload */
+        .file-upload {
+            position: relative;
+        }
+
+        .file-upload-area {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .file-upload-area.has-file {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .file-upload-area i {
+            font-size: 36px;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+
+        .file-upload-area h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .file-upload-area p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-name {
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-name.show {
+            display: flex;
+        }
+
+        .file-name i {
+            color: #10b981;
+        }
+
+        .file-name span {
+            flex: 1;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-name button {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+            cursor: pointer;
+            margin-top: 2px;
+        }
+
+        .checkbox-group label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+        }
+
+        .checkbox-group label a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 18px 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .submit-btn.loading .spinner {
+            display: block;
+        }
+
+        .submit-btn.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .success-message .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
+        }
+
+        .success-message h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .success-message p {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 24px;
+        }
+
+        .success-message .ref-number {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 24px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .hero h2 {
+                font-size: 28px;
+            }
+
+            .form-container {
+                padding: 24px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+
+            .benefits {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>VSU</h1>
+                    <span>Vape Smoke Universe</span>
+                </div>
+            </div>
+            <div style="font-size: 14px; color: rgba(255,255,255,0.6);">
+                <i class="fas fa-map-marker-alt" style="color: #a855f7;"></i>
+                San Diego, CA
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero -->
+        <section class="hero">
+            <h2>Join Our Team</h2>
+            <p>We're looking for passionate people to help us deliver the best smoke shop experience in San Diego.</p>
+        </section>
+
+        <!-- Benefits -->
+        <section class="benefits">
+            <div class="benefit-card">
+                <i class="fas fa-dollar-sign"></i>
+                <h4>Competitive Pay</h4>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-calendar-alt"></i>
+                <h4>Flexible Schedule</h4>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-percent"></i>
+                <h4>Employee Discount</h4>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-chart-line"></i>
+                <h4>Growth Opportunities</h4>
+            </div>
+        </section>
+
+        <!-- Application Form -->
+        <div class="form-container">
+            <form id="application-form">
+                <div class="form-header">
+                    <h3><i class="fas fa-file-alt" style="color: #667eea; margin-right: 10px;"></i>Application Form</h3>
+                    <p>Fill out the form below and we'll be in touch!</p>
+                </div>
+
+                <div class="form-grid">
+                    <!-- Personal Info -->
+                    <div class="form-group">
+                        <label>First Name <span class="required">*</span></label>
+                        <input type="text" id="firstName" name="firstName" placeholder="John" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Last Name <span class="required">*</span></label>
+                        <input type="text" id="lastName" name="lastName" placeholder="Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email Address <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" placeholder="john@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" placeholder="(619) 555-0123" required>
+                    </div>
+
+                    <!-- Position -->
+                    <div class="form-group">
+                        <label>Position Applying For <span class="required">*</span></label>
+                        <select id="position" name="position" required>
+                            <option value="">Select a position...</option>
+                            <option value="Sales Associate">Sales Associate</option>
+                            <option value="Shift Lead">Shift Lead</option>
+                            <option value="Assistant Manager">Assistant Manager</option>
+                            <option value="Store Manager">Store Manager</option>
+                            <option value="Inventory Specialist">Inventory Specialist</option>
+                        </select>
+                    </div>
+
+                    <!-- Preferred Store -->
+                    <div class="form-group">
+                        <label>Preferred Location <span class="required">*</span></label>
+                        <select id="preferredStore" name="preferredStore" required>
+                            <option value="">Select a location...</option>
+                            <option value="Any Location">Any Location</option>
+                            <option value="Miramar">VSU Miramar</option>
+                            <option value="Morena">VSU Morena</option>
+                            <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                            <option value="Chula Vista">VSU Chula Vista</option>
+                            <option value="Hillcrest">VSU Hillcrest</option>
+                        </select>
+                    </div>
+
+                    <!-- Availability -->
+                    <div class="form-group full-width">
+                        <label>Availability <span class="required">*</span></label>
+                        <select id="availability" name="availability" required>
+                            <option value="">Select your availability...</option>
+                            <option value="Full-time">Full-time (35+ hours/week)</option>
+                            <option value="Part-time">Part-time (15-34 hours/week)</option>
+                            <option value="Weekends Only">Weekends Only</option>
+                            <option value="Flexible">Flexible / Open Availability</option>
+                        </select>
+                    </div>
+
+                    <!-- Experience -->
+                    <div class="form-group full-width">
+                        <label>Relevant Experience</label>
+                        <textarea id="experience" name="experience" placeholder="Tell us about your previous work experience, especially in retail, customer service, or smoke shop industry..."></textarea>
+                    </div>
+
+                    <!-- Why Join -->
+                    <div class="form-group full-width">
+                        <label>Why do you want to join VSU?</label>
+                        <textarea id="whyJoin" name="whyJoin" placeholder="What interests you about working with us?"></textarea>
+                    </div>
+
+                    <!-- Resume Upload -->
+                    <div class="form-group full-width">
+                        <label>Resume / CV <span class="required">*</span></label>
+                        <div class="file-upload">
+                            <div class="file-upload-area" id="dropZone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h4>Drop your resume here</h4>
+                                <p>or click to browse (PDF, DOC, DOCX - Max 5MB)</p>
+                            </div>
+                            <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx" required>
+                            <div class="file-name" id="fileName">
+                                <i class="fas fa-file-pdf"></i>
+                                <span id="selectedFileName"></span>
+                                <button type="button" onclick="clearFile()"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Age Verification -->
+                    <div class="form-group full-width">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="ageVerify" name="ageVerify" required>
+                            <label for="ageVerify">I confirm that I am at least 21 years of age <span class="required">*</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Legal Authorization -->
+                    <div class="form-group full-width">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="workAuth" name="workAuth" required>
+                            <label for="workAuth">I am legally authorized to work in the United States <span class="required">*</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="btn-text"><i class="fas fa-paper-plane"></i> Submit Application</span>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+
+            <!-- Success Message -->
+            <div class="success-message" id="successMessage">
+                <div class="success-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3>Application Submitted!</h3>
+                <p>Thank you for your interest in joining VSU. We've received your application and will review it shortly. If your qualifications match our needs, we'll contact you within 5-7 business days.</p>
+                <div class="ref-number">
+                    Reference: <span id="refNumber">VSU-000000</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Vape Smoke Universe. All rights reserved.</p>
+        <p style="margin-top: 8px;">Questions? Email us at <a href="mailto:careers@vsu.com">careers@vsu.com</a></p>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <!-- Environment Config -->
+    <script src="config/env.js"></script>
+
+    <script>
+        // Initialize Firebase (public - no auth required)
+        const firebaseConfig = {
+            apiKey: window.ENV_FIREBASE_API_KEY,
+            authDomain: window.ENV_FIREBASE_AUTH_DOMAIN,
+            projectId: window.ENV_FIREBASE_PROJECT_ID,
+            storageBucket: window.ENV_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: window.ENV_FIREBASE_MESSAGING_SENDER_ID,
+            appId: window.ENV_FIREBASE_APP_ID
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // File handling
+        const fileInput = document.getElementById('resume');
+        const dropZone = document.getElementById('dropZone');
+        const fileNameDiv = document.getElementById('fileName');
+        const selectedFileName = document.getElementById('selectedFileName');
+        let selectedFile = null;
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+
+            if (!validTypes.includes(file.type)) {
+                alert('Please upload a PDF, DOC, or DOCX file.');
+                return;
+            }
+
+            if (file.size > maxSize) {
+                alert('File size must be less than 5MB.');
+                return;
+            }
+
+            selectedFile = file;
+            selectedFileName.textContent = file.name;
+            fileNameDiv.classList.add('show');
+            dropZone.classList.add('has-file');
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileNameDiv.classList.remove('show');
+            dropZone.classList.remove('has-file');
+        }
+
+        // Phone formatting
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 10) {
+                value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6,10)}`;
+            } else if (value.length >= 6) {
+                value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6)}`;
+            } else if (value.length >= 3) {
+                value = `(${value.slice(0,3)}) ${value.slice(3)}`;
+            }
+            e.target.value = value;
+        });
+
+        // Form submission
+        document.getElementById('application-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+
+            try {
+                // Generate reference number
+                const refNumber = 'VSU-' + Date.now().toString(36).toUpperCase();
+
+                // Upload resume to Firebase Storage
+                let resumeUrl = '';
+                if (selectedFile) {
+                    const fileExt = selectedFile.name.split('.').pop();
+                    const fileName = `resumes/${refNumber}.${fileExt}`;
+                    const storageRef = storage.ref(fileName);
+                    await storageRef.put(selectedFile);
+                    resumeUrl = await storageRef.getDownloadURL();
+                }
+
+                // Prepare application data
+                const applicationData = {
+                    refNumber: refNumber,
+                    firstName: document.getElementById('firstName').value.trim(),
+                    lastName: document.getElementById('lastName').value.trim(),
+                    email: document.getElementById('email').value.trim().toLowerCase(),
+                    phone: document.getElementById('phone').value.trim(),
+                    position: document.getElementById('position').value,
+                    preferredStore: document.getElementById('preferredStore').value,
+                    availability: document.getElementById('availability').value,
+                    experience: document.getElementById('experience').value.trim(),
+                    whyJoin: document.getElementById('whyJoin').value.trim(),
+                    resumeUrl: resumeUrl,
+                    resumeFileName: selectedFile ? selectedFile.name : '',
+                    ageVerified: true,
+                    workAuthorized: true,
+                    status: 'new',
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    submittedAtLocal: new Date().toISOString(),
+                    reviewed: false,
+                    reviewedBy: null,
+                    reviewedAt: null,
+                    notes: '',
+                    rating: 0
+                };
+
+                // Save to Firestore
+                await db.collection('job_applications').add(applicationData);
+
+                // Show success message
+                document.getElementById('application-form').style.display = 'none';
+                document.getElementById('refNumber').textContent = refNumber;
+                document.getElementById('successMessage').classList.add('show');
+
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Error submitting application:', error);
+                alert('There was an error submitting your application. Please try again.');
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
