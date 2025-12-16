@@ -329,8 +329,9 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             }
         }
 
-        // Use the new frontend Shopify API with selected store and location
-        const salesData = await fetchSalesAnalytics(selectedStore, selectedLocation, period, (progress, text) => {
+        // Use GraphQL Bulk Operations API for unlimited order fetching (no 2500 cap)
+        console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
+        const salesData = await fetchSalesAnalyticsBulk(selectedStore, selectedLocation, period, (progress, text) => {
             // Check if this request is still valid before updating progress
             if (thisRequestId !== analyticsRequestId) return;
 

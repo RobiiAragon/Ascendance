@@ -4,11 +4,20 @@
  * Handles all module actions through natural language
  */
 
+// CORS Proxy for OpenAI API calls (OpenAI doesn't allow direct browser access)
+const CELESTE_CORS_PROXY = 'https://corsproxy.io/?';
+
+// Default OpenAI API Key (can be overridden via Firebase or localStorage)
+const DEFAULT_OPENAI_API_KEY = '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';
+
 // ═══════════════════════════════════════════════════════════════
 // AI PROVIDER CONFIGURATION - Easy Switch Between OpenAI & Anthropic
 // ═══════════════════════════════════════════════════════════════
 // Change 'provider' to switch: 'openai' or 'anthropic'
 const AI_PROVIDER = 'openai'; // <-- CHANGE THIS TO SWITCH PROVIDERS
+
+// Celeste settings loaded from Firebase (will be populated on init)
+let celesteFirebaseSettings = null;
 
 // Provider-specific configurations
 const AI_PROVIDERS = {
@@ -17,14 +26,14 @@ const AI_PROVIDERS = {
         apiEndpoint: 'https://api.openai.com/v1/chat/completions',
         model: 'gpt-4o',
         maxTokens: 1024,
-        getApiKey: () => window.OPENAI_API_KEY || localStorage.getItem('openai_api_key') || ''
+        getApiKey: () => celesteFirebaseSettings?.openai_api_key || window.OPENAI_API_KEY || localStorage.getItem('openai_api_key') || DEFAULT_OPENAI_API_KEY
     },
     anthropic: {
         name: 'Anthropic Claude',
         apiEndpoint: 'https://api.anthropic.com/v1/messages',
         model: 'claude-3-5-sonnet-20241022',
         maxTokens: 1024,
-        getApiKey: () => window.ANTHROPIC_API_KEY || localStorage.getItem('anthropic_api_key') || ''
+        getApiKey: () => celesteFirebaseSettings?.anthropic_api_key || window.ANTHROPIC_API_KEY || localStorage.getItem('anthropic_api_key') || ''
     }
 };
 
@@ -179,7 +188,10 @@ const MODULE_NAMES = {
 /**
  * Initialize Celeste AI
  */
-function initializeCelesteAI() {
+async function initializeCelesteAI() {
+    // Load settings from Firebase first
+    await loadCelesteSettingsFromFirebase();
+
     // Create floating button
     createCelesteFloatingButton();
 
@@ -190,6 +202,69 @@ function initializeCelesteAI() {
     initializeSpeechRecognition();
 
     console.log('🌟 Celeste AI initialized');
+}
+
+/**
+ * Load Celeste AI settings from Firebase
+ */
+async function loadCelesteSettingsFromFirebase() {
+    try {
+        const db = window.db || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
+        if (!db) {
+            console.log('[Celeste] Firebase not available, using default settings');
+            return;
+        }
+
+        const doc = await db.collection('settings').doc('celeste_ai').get();
+        if (doc.exists) {
+            celesteFirebaseSettings = doc.data();
+            console.log('[Celeste] Settings loaded from Firebase');
+        } else {
+            // Initialize settings in Firebase with default API key
+            await saveCelesteSettingsToFirebase({
+                openai_api_key: DEFAULT_OPENAI_API_KEY,
+                anthropic_api_key: '',
+                provider: AI_PROVIDER,
+                created_at: new Date().toISOString()
+            });
+            console.log('[Celeste] Default settings saved to Firebase');
+        }
+    } catch (error) {
+        console.error('[Celeste] Error loading settings from Firebase:', error);
+    }
+}
+
+/**
+ * Save Celeste AI settings to Firebase
+ */
+async function saveCelesteSettingsToFirebase(settings) {
+    try {
+        const db = window.db || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
+        if (!db) {
+            console.warn('[Celeste] Firebase not available, cannot save settings');
+            return false;
+        }
+
+        await db.collection('settings').doc('celeste_ai').set({
+            ...settings,
+            updated_at: new Date().toISOString()
+        }, { merge: true });
+
+        celesteFirebaseSettings = { ...celesteFirebaseSettings, ...settings };
+        console.log('[Celeste] Settings saved to Firebase');
+        return true;
+    } catch (error) {
+        console.error('[Celeste] Error saving settings to Firebase:', error);
+        return false;
+    }
+}
+
+/**
+ * Update Celeste API key (can be called from settings page)
+ */
+async function updateCelesteApiKey(provider, apiKey) {
+    const keyField = provider === 'openai' ? 'openai_api_key' : 'anthropic_api_key';
+    return await saveCelesteSettingsToFirebase({ [keyField]: apiKey });
 }
 
 /**
@@ -898,9 +973,10 @@ async function processCelesteMessage(userMessage) {
 
         if (CELESTE_CONFIG.provider === 'openai') {
             // ═══════════════════════════════════════════════════════════
-            // OpenAI GPT-4 API Call
+            // OpenAI GPT-4 API Call (via CORS proxy - OpenAI doesn't allow direct browser access)
             // ═══════════════════════════════════════════════════════════
-            response = await fetch(CELESTE_CONFIG.apiEndpoint, {
+            const openaiUrl = CELESTE_CORS_PROXY + encodeURIComponent(CELESTE_CONFIG.apiEndpoint);
+            response = await fetch(openaiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

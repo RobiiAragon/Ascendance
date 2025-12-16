@@ -2291,43 +2291,390 @@
         let analyticsDateRange = {
             startDate: null,
             endDate: null,
-            period: 'month', // 'today', 'week', 'month', 'year', 'custom'
+            period: 'month', // 'today', 'week', 'month', 'quarter', 'year', 'custom'
             calendarMonth1: new Date(),
             calendarMonth2: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
             isSelecting: false,
             tempStartDate: null
         };
 
-        function renderAnalytics() {
+        // Analytics data cache (populated by bulk operations)
+        let analyticsData = {
+            isLoading: false,
+            lastLoaded: null,
+            storeKey: 'vsu', // Default store
+            data: null,      // Holds the analytics result from fetchSalesAnalyticsBulk
+            error: null
+        };
+
+        /**
+         * Load analytics data using GraphQL Bulk Operations
+         * This fetches real order data from Shopify without the 250/page limit
+         */
+        async function loadAnalyticsData() {
+            // Don't reload if already loading
+            if (analyticsData.isLoading) {
+                console.log('[Analytics] Already loading, skipping...');
+                return;
+            }
+
+            analyticsData.isLoading = true;
+            analyticsData.error = null;
+
+            // Show loading state in UI
+            updateAnalyticsLoadingState(true, 'Starting bulk export...');
+
+            try {
+                // Build custom range if period is 'custom'
+                let customRange = null;
+                if (analyticsDateRange.period === 'custom' && analyticsDateRange.startDate && analyticsDateRange.endDate) {
+                    customRange = {
+                        startDate: analyticsDateRange.startDate,
+                        endDate: analyticsDateRange.endDate
+                    };
+                }
+
+                // Progress callback to update UI
+                const onProgress = (percent, message) => {
+                    updateAnalyticsLoadingState(true, message, percent);
+                };
+
+                // Fetch data using bulk operations from shopify-analytics.js
+                const data = await fetchSalesAnalyticsBulk(
+                    analyticsData.storeKey,
+                    null, // locationId - not supported in bulk
+                    analyticsDateRange.period,
+                    onProgress,
+                    customRange
+                );
+
+                analyticsData.data = data;
+                analyticsData.lastLoaded = new Date();
+                analyticsData.error = null;
+
+                console.log(`[Analytics] Loaded ${data.summary.totalOrders} orders via bulk operation`);
+
+                // Re-render with real data
+                renderAnalyticsWithData();
+
+            } catch (error) {
+                console.error('[Analytics] Failed to load data:', error);
+                analyticsData.error = error.message;
+                updateAnalyticsLoadingState(false, null);
+                showAnalyticsError(error.message);
+            } finally {
+                analyticsData.isLoading = false;
+            }
+        }
+
+        /**
+         * Update the loading state UI in analytics page
+         */
+        function updateAnalyticsLoadingState(isLoading, message = '', percent = 0) {
+            const loadingOverlay = document.getElementById('analytics-loading-overlay');
+            if (!loadingOverlay) return;
+
+            if (isLoading) {
+                loadingOverlay.style.display = 'flex';
+                const progressBar = loadingOverlay.querySelector('.analytics-progress-bar');
+                const progressText = loadingOverlay.querySelector('.analytics-progress-text');
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (progressText) progressText.textContent = message;
+            } else {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        /**
+         * Show error message in analytics page
+         */
+        function showAnalyticsError(message) {
+            const errorContainer = document.getElementById('analytics-error');
+            if (errorContainer) {
+                errorContainer.style.display = 'block';
+                errorContainer.textContent = `Error: ${message}`;
+            }
+        }
+
+        /**
+         * Render analytics page with real Shopify data
+         */
+        function renderAnalyticsWithData() {
+            if (!analyticsData.data) {
+                renderAnalytics(); // Fall back to placeholder
+                return;
+            }
+
+            const data = analyticsData.data;
+            const summary = data.summary;
             const dashboard = document.querySelector('.dashboard');
 
             // Calculate real totals from Cash Out records
             const totalCashOut = cashOutRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
 
-            // Monthly data for Income vs Expenses chart (sample data - would come from Shopify/POS in production)
-            const monthlyData = [
-                { month: 'Jan', income: 42500, expenses: 8200 },
-                { month: 'Feb', income: 38900, expenses: 7500 },
-                { month: 'Mar', income: 45200, expenses: 9100 },
-                { month: 'Apr', income: 41800, expenses: 8400 },
-                { month: 'May', income: 48600, expenses: 9800 },
-                { month: 'Jun', income: 52100, expenses: 10200 },
-                { month: 'Jul', income: 49800, expenses: 9600 },
-                { month: 'Aug', income: 54300, expenses: 10800 },
-                { month: 'Sep', income: 51200, expenses: 10100 },
-                { month: 'Oct', income: 56800, expenses: 11200 },
-                { month: 'Nov', income: 62400, expenses: 12100 },
-                { month: 'Dec', income: 68500, expenses: 13500 }
-            ];
+            // Use real data from bulk operation
+            const totalIncome = parseFloat(summary.totalSales);
+            const totalTax = parseFloat(summary.totalTax);
+            const netSales = parseFloat(summary.netSales);
+            const totalOrders = summary.totalOrders;
+            const avgOrderValue = parseFloat(summary.avgOrderValue);
+            const totalCecetTax = parseFloat(summary.totalCecetTax);
+            const totalSalesTax = parseFloat(summary.totalSalesTax);
 
-            // Calculate totals
-            const totalIncome = monthlyData.reduce((sum, m) => sum + m.income, 0);
-            const totalExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0);
-            const netProfit = totalIncome - totalExpenses;
-            const profitMargin = ((netProfit / totalIncome) * 100).toFixed(1);
+            // Build monthly data from real data
+            const monthlyData = Object.entries(data.monthly).map(([month, stats]) => ({
+                month: month,
+                income: stats.sales,
+                expenses: stats.tax, // Using tax as a proxy for now
+                orders: stats.orders,
+                cecetTax: stats.cecetTax,
+                salesTax: stats.salesTax
+            })).sort((a, b) => new Date(a.month) - new Date(b.month));
 
-            // Find max values for chart scaling
-            const maxIncome = Math.max(...monthlyData.map(m => m.income));
+            // Find max for scaling
+            const maxIncome = Math.max(...monthlyData.map(m => m.income), 1);
+
+            // Format current date range display
+            const formatDateDisplay = (date) => {
+                if (!date) return '';
+                return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+            };
+
+            const dateRangeText = analyticsDateRange.startDate && analyticsDateRange.endDate
+                ? `${formatDateDisplay(analyticsDateRange.startDate)} → ${formatDateDisplay(analyticsDateRange.endDate)}`
+                : data.dateRange ? `${formatDateDisplay(new Date(data.dateRange.since))} → ${formatDateDisplay(new Date(data.dateRange.until))}` : 'Select date range';
+
+            dashboard.innerHTML = `
+                <!-- Loading Overlay -->
+                <div id="analytics-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                    <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; text-align: center; min-width: 300px;">
+                        <div class="analytics-progress-text" style="margin-bottom: 15px; color: var(--text-primary);">Loading...</div>
+                        <div style="background: var(--bg-secondary); border-radius: 8px; height: 8px; overflow: hidden;">
+                            <div class="analytics-progress-bar" style="background: var(--accent-primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Container -->
+                <div id="analytics-error" style="display: none; background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+
+                <div class="page-header" style="flex-wrap: wrap;">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Sales Analytics</h2>
+                        <p class="section-subtitle">Performance insights and sales data - ${dateRangeText}</p>
+                    </div>
+                    <div class="page-header-right" style="position: relative; z-index: 100;">
+                        <div class="analytics-date-controls" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <div class="analytics-period-btns" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'today' ? 'active' : ''}" onclick="setAnalyticsPeriod('today')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Today</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'week' ? 'active' : ''}" onclick="setAnalyticsPeriod('week')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Week</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'month' ? 'active' : ''}" onclick="setAnalyticsPeriod('month')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Month</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'quarter' ? 'active' : ''}" onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Last 3 Months</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'year' ? 'active' : ''}" onclick="setAnalyticsPeriod('year')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Year</button>
+                                <button class="analytics-period-btn custom ${analyticsDateRange.period === 'custom' ? 'active' : ''}" onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fas fa-calendar-alt"></i> Custom
+                                </button>
+                            </div>
+                            <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none;">
+                                <div class="analytics-calendar-popup">
+                                    <div class="calendar-header-display">
+                                        <span id="selected-range-display">${dateRangeText}</span>
+                                    </div>
+                                    <div class="calendar-dual-view">
+                                        <div class="calendar-month-panel" id="calendar-month-1"></div>
+                                        <div class="calendar-month-panel" id="calendar-month-2"></div>
+                                    </div>
+                                    <div class="calendar-actions">
+                                        <button class="btn-secondary" onclick="clearAnalyticsDateRange()">Clear</button>
+                                        <button class="btn-primary" onclick="applyAnalyticsDateRange()">Apply</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real Data Summary Cards -->
+                <div class="analytics-grid">
+                    <div class="analytics-card revenue">
+                        <div class="analytics-card-header">
+                            <h3>Total Sales</h3>
+                            <span class="trend up"><i class="fas fa-shopping-cart"></i></span>
+                        </div>
+                        <div class="analytics-value">$${totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="analytics-comparison">
+                            <span>${totalOrders} orders</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        <div class="analytics-card-header">
+                            <h3 style="color: white;">Total Tax</h3>
+                            <span class="trend" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-receipt"></i></span>
+                        </div>
+                        <div class="analytics-value" style="color: white;">$${totalTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="analytics-comparison" style="color: rgba(255,255,255,0.8);">
+                            <span>CECET: $${totalCecetTax.toFixed(2)} | Sales: $${totalSalesTax.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <div class="analytics-card-header">
+                            <h3 style="color: white;">Net Sales</h3>
+                            <span class="trend" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-dollar-sign"></i></span>
+                        </div>
+                        <div class="analytics-value" style="color: white;">$${netSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="analytics-comparison" style="color: rgba(255,255,255,0.8);">
+                            <span>After tax deductions</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card orders">
+                        <div class="analytics-card-header">
+                            <h3>Avg Order Value</h3>
+                            <span class="trend up"><i class="fas fa-chart-line"></i></span>
+                        </div>
+                        <div class="analytics-value">$${avgOrderValue.toFixed(2)}</div>
+                        <div class="analytics-breakdown">
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Total Orders</span>
+                                <span class="breakdown-value">${totalOrders}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                ${monthlyData.length > 0 ? `
+                <!-- Sales by Period Chart -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-chart-bar"></i> Sales by ${monthlyData.length > 7 ? 'Month' : 'Day'}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 4px;"></div>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Sales</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 4px;"></div>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Tax</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: flex-end; gap: 8px; height: 250px; padding: 20px 0; border-bottom: 2px solid var(--border-color); overflow-x: auto;">
+                            ${monthlyData.slice(-12).map(m => {
+                                const incomeHeight = (m.income / maxIncome) * 100;
+                                const taxHeight = (m.expenses / maxIncome) * 100;
+                                return `
+                                    <div style="flex: 1; min-width: 50px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                        <div style="font-size: 10px; color: var(--text-muted); max-width: 60px; overflow: hidden; text-overflow: ellipsis;">$${(m.income/1000).toFixed(1)}k</div>
+                                        <div style="display: flex; gap: 2px; align-items: flex-end; height: 180px;">
+                                            <div style="width: 18px; height: ${incomeHeight}%; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 4px 4px 0 0; transition: height 0.3s;" title="Sales: $${m.income.toLocaleString()}"></div>
+                                            <div style="width: 18px; height: ${Math.max(taxHeight, 2)}%; background: linear-gradient(180deg, #f59e0b, #d97706); border-radius: 4px 4px 0 0; transition: height 0.3s;" title="Tax: $${m.expenses.toLocaleString()}"></div>
+                                        </div>
+                                        <div style="font-size: 10px; color: var(--text-muted); font-weight: 500; white-space: nowrap;">${m.month.split(' ')[0].substring(0,3)}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <!-- Summary Table -->
+                        <div style="margin-top: 20px; overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="background: var(--bg-secondary);">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color);">Period</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Sales</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Orders</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Tax</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">CECET</th>
+                                        <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Sales Tax</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${monthlyData.slice(-12).map(m => `
+                                        <tr>
+                                            <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-weight: 500;">${m.month}</td>
+                                            <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; color: var(--accent-primary);">$${m.income.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                            <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right;">${m.orders}</td>
+                                            <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; color: #f59e0b;">$${m.expenses.toFixed(2)}</td>
+                                            <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right;">$${m.cecetTax.toFixed(2)}</td>
+                                            <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right;">$${m.salesTax.toFixed(2)}</td>
+                                        </tr>
+                                    `).join('')}
+                                    <tr style="background: var(--bg-secondary); font-weight: 700;">
+                                        <td style="padding: 12px;">TOTAL</td>
+                                        <td style="padding: 12px; text-align: right; color: var(--accent-primary);">$${totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                        <td style="padding: 12px; text-align: right;">${totalOrders}</td>
+                                        <td style="padding: 12px; text-align: right; color: #f59e0b;">$${totalTax.toFixed(2)}</td>
+                                        <td style="padding: 12px; text-align: right;">$${totalCecetTax.toFixed(2)}</td>
+                                        <td style="padding: 12px; text-align: right;">$${totalSalesTax.toFixed(2)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                ` : `
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-body" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-chart-bar" style="font-size: 48px; color: var(--text-muted); margin-bottom: 15px;"></i>
+                        <p style="color: var(--text-secondary);">No data available for the selected period</p>
+                    </div>
+                </div>
+                `}
+
+                <!-- Recent Orders -->
+                ${data.recentOrders && data.recentOrders.length > 0 ? `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-list"></i> Recent Orders (${Math.min(data.recentOrders.length, 20)} of ${data.recentOrders.length})</h3>
+                    </div>
+                    <div class="card-body" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="background: var(--bg-secondary);">
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color);">Order</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color);">Date</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color);">Customer</th>
+                                    <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Total</th>
+                                    <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);">Tax</th>
+                                    <th style="padding: 12px; text-align: center; border-bottom: 1px solid var(--border-color);">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.recentOrders.slice(0, 20).map(order => `
+                                    <tr>
+                                        <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-weight: 500;">${order.name}</td>
+                                        <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color);">${new Date(order.createdAt).toLocaleDateString()}</td>
+                                        <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color);">${order.customer}</td>
+                                        <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; font-weight: 500;">$${order.total.toFixed(2)}</td>
+                                        <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: right; color: #f59e0b;">$${(order.cecetTax + order.salesTax).toFixed(2)}</td>
+                                        <td style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: center;">
+                                            <span style="padding: 4px 8px; background: ${order.status === 'PAID' ? '#10b98120' : '#f59e0b20'}; color: ${order.status === 'PAID' ? '#10b981' : '#f59e0b'}; border-radius: 12px; font-size: 11px; font-weight: 600;">${order.status}</span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+
+            // Hide loading overlay if visible
+            updateAnalyticsLoadingState(false);
+        }
+
+        function renderAnalytics() {
+            // If we already have data, render with data instead
+            if (analyticsData.data) {
+                renderAnalyticsWithData();
+                return;
+            }
+
+            const dashboard = document.querySelector('.dashboard');
 
             // Format current date range display
             const formatDateDisplay = (date) => {
@@ -2340,6 +2687,19 @@
                 : 'Select date range';
 
             dashboard.innerHTML = `
+                <!-- Loading Overlay -->
+                <div id="analytics-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                    <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; text-align: center; min-width: 300px;">
+                        <div class="analytics-progress-text" style="margin-bottom: 15px; color: var(--text-primary);">Loading...</div>
+                        <div style="background: var(--bg-secondary); border-radius: 8px; height: 8px; overflow: hidden;">
+                            <div class="analytics-progress-bar" style="background: var(--accent-primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Container -->
+                <div id="analytics-error" style="display: none; background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+
                 <div class="page-header" style="flex-wrap: wrap;">
                     <div class="page-header-left">
                         <h2 class="section-title">Sales Analytics</h2>
@@ -2351,6 +2711,7 @@
                                 <button class="analytics-period-btn ${analyticsDateRange.period === 'today' ? 'active' : ''}" onclick="setAnalyticsPeriod('today')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Today</button>
                                 <button class="analytics-period-btn ${analyticsDateRange.period === 'week' ? 'active' : ''}" onclick="setAnalyticsPeriod('week')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Week</button>
                                 <button class="analytics-period-btn ${analyticsDateRange.period === 'month' ? 'active' : ''}" onclick="setAnalyticsPeriod('month')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Month</button>
+                                <button class="analytics-period-btn ${analyticsDateRange.period === 'quarter' ? 'active' : ''}" onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Last 3 Months</button>
                                 <button class="analytics-period-btn ${analyticsDateRange.period === 'year' ? 'active' : ''}" onclick="setAnalyticsPeriod('year')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Year</button>
                                 <button class="analytics-period-btn custom ${analyticsDateRange.period === 'custom' ? 'active' : ''}" onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
                                     <i class="fas fa-calendar-alt"></i> Custom
@@ -2560,12 +2921,19 @@
                 <div class="shopify-connect">
                     <div class="shopify-icon"><i class="fab fa-shopify"></i></div>
                     <div class="shopify-text">
-                        <h4>Connect to Shopify</h4>
-                        <p>Sync real-time sales data from your stores</p>
+                        <h4>Load Shopify Data</h4>
+                        <p>Fetch real sales data using GraphQL Bulk Operations (no order limit)</p>
                     </div>
-                    <button class="btn-primary">Connect Store</button>
+                    <button class="btn-primary" onclick="loadAnalyticsData()">
+                        <i class="fas fa-sync-alt"></i> Load Data
+                    </button>
                 </div>
             `;
+
+            // Automatically load data when page renders (if not already loading)
+            if (!analyticsData.isLoading && !analyticsData.data) {
+                setTimeout(() => loadAnalyticsData(), 500);
+            }
         }
 
         // Analytics Calendar Functions
@@ -2593,11 +2961,9 @@
             const container = document.getElementById('analytics-calendar-container');
             if (container) container.style.display = 'none';
 
-            // Re-render analytics with new period
+            // Re-render analytics with new period and load data
             renderAnalytics();
-
-            // TODO: Trigger data reload with new period
-            console.log(`[Analytics] Period changed to: ${period}`);
+            loadAnalyticsData();
         };
 
         function renderAnalyticsCalendars() {
@@ -2762,11 +3128,9 @@
             const container = document.getElementById('analytics-calendar-container');
             if (container) container.style.display = 'none';
 
-            // Re-render analytics
+            // Re-render analytics and load data
             renderAnalytics();
-
-            // TODO: Trigger data reload with custom date range
-            console.log(`[Analytics] Custom date range applied: ${analyticsDateRange.startDate.toISOString()} to ${analyticsDateRange.endDate.toISOString()}`);
+            loadAnalyticsData();
         };
 
         // Close calendar when clicking outside
@@ -21242,7 +21606,7 @@ Return ONLY the JSON object, no additional text.`
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Brand</label>
-                                    <select class="form-input" id="new-restock-brand">
+                                    <select class="form-input" id="new-restock-brand" onchange="toggleCustomBrandInput()">
                                         <option value="">Select brand...</option>
                                         <option value="Elf Bar">Elf Bar</option>
                                         <option value="Lost Mary">Lost Mary</option>
@@ -21258,6 +21622,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Orion">Orion</option>
                                         <option value="Other">Other</option>
                                     </select>
+                                    <input type="text" class="form-input" id="new-restock-custom-brand" placeholder="Enter custom brand name..." style="display: none; margin-top: 8px;">
                                 </div>
                                 <div class="form-group">
                                     <label>Flavor/Variant</label>
@@ -25360,10 +25725,26 @@ Return ONLY the JSON object, no additional text.`,
             }, 100);
         }
 
+        function toggleCustomBrandInput() {
+            const brandSelect = document.getElementById('new-restock-brand');
+            const customBrandInput = document.getElementById('new-restock-custom-brand');
+            if (brandSelect && customBrandInput) {
+                if (brandSelect.value === 'Other') {
+                    customBrandInput.style.display = 'block';
+                    customBrandInput.focus();
+                } else {
+                    customBrandInput.style.display = 'none';
+                    customBrandInput.value = '';
+                }
+            }
+        }
+
         function submitNewRestockRequest() {
             const itemType = document.getElementById('new-restock-item-type').value;
             const product = document.getElementById('new-restock-product').value;
-            const brand = document.getElementById('new-restock-brand').value;
+            const brandSelect = document.getElementById('new-restock-brand').value;
+            const customBrand = document.getElementById('new-restock-custom-brand').value;
+            const brand = brandSelect === 'Other' ? customBrand : brandSelect;
             const flavor = document.getElementById('new-restock-flavor').value;
             const quantity = document.getElementById('new-restock-quantity').value;
             const priority = document.getElementById('new-restock-priority').value;

@@ -103,6 +103,32 @@
             transform: none;
         }
 
+        .custom-date-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-date-container input[type="date"] {
+            padding: 12px 15px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .custom-date-container input[type="date"]:focus {
+            outline: none;
+            border-color: #5568d3;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .custom-date-container span {
+            color: #667eea;
+            font-weight: bold;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -271,18 +297,26 @@
             <p class="subtitle">Análisis de ventas de tu tienda</p>
         </div>
 
-        <div class="warning">
-            <strong>ℹ️ Usando API REST de Shopify</strong>
-            <p>Tu tienda no tiene acceso a ShopifyQL (requiere Shopify Plus). Usando método alternativo con REST API.</p>
+        <div class="warning" style="background: #d4edda; border-color: #28a745; color: #155724;">
+            <strong>✅ Using GraphQL Bulk Operations</strong>
+            <p>Unlimited order fetching enabled. No 250/page or 2,500 order cap - fetch months or years of data.</p>
         </div>
 
         <div class="controls">
-            <select id="periodSelect">
-                <option value="month">Este mes</option>
-                <option value="week">Esta semana</option>
-                <option value="today">Hoy</option>
+            <select id="periodSelect" onchange="handlePeriodChange()">
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month" selected>This Month</option>
+                <option value="quarter">Last 3 Months</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
             </select>
-            <button id="loadBtn" onclick="loadData()">Cargar datos</button>
+            <div id="customDateContainer" class="custom-date-container" style="display: none;">
+                <input type="date" id="startDate" placeholder="Start Date">
+                <span>to</span>
+                <input type="date" id="endDate" placeholder="End Date">
+            </div>
+            <button id="loadBtn" onclick="loadData()">Load Data</button>
         </div>
 
         <div id="statsContainer" class="stats-grid" style="display:none;">
@@ -304,8 +338,9 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="color: #333; margin: 0;">Ventas</h2>
                 <select id="chartTypeSelect" onchange="updateChartView()" style="padding: 8px 15px; border: 2px solid #667eea; border-radius: 5px; font-size: 14px; cursor: pointer;">
-                    <option value="daily">Por día</option>
-                    <option value="hourly">Por hora</option>
+                    <option value="daily">By Day</option>
+                    <option value="hourly">By Hour</option>
+                    <option value="monthly">By Month</option>
                 </select>
             </div>
             <canvas id="salesChart"></canvas>
@@ -346,122 +381,95 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Include shopify-analytics.js for bulk operations -->
+    <script src="js/shopify-analytics.js"></script>
     <script>
-        const CONFIG = {
-            storeUrl: 'k1xm3v-v0.myshopify.com',
-            accessToken: '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',
-            apiVersion: '2024-01'
-        };
+        // =============================================================================
+        // SALES ANALYTICS PAGE - Using GraphQL Bulk Operations
+        // =============================================================================
+        //
+        // This page uses GraphQL Bulk Operations to fetch orders without limits.
+        // See shopify-analytics.js for the implementation details.
+        //
+        // Date Filter Options:
+        // - today: Current day from midnight
+        // - week: Current week starting Sunday
+        // - month: Current calendar month
+        // - quarter: Last 3 months
+        // - year: Current calendar year
+        // - custom: User-defined date range via calendar inputs
+        // =============================================================================
 
         let salesChart = null;
         let allOrdersData = [];
         let currentPage = 1;
         const ordersPerPage = 50;
-        let chartData = { daily: {}, hourly: {} };
+        let chartData = { daily: {}, hourly: {}, monthly: {} };
+        let currentAnalytics = null;
 
-        function getDateRange(period) {
-            const now = new Date();
-            let since, until;
+        /**
+         * Handle period dropdown change - show/hide custom date inputs
+         */
+        function handlePeriodChange() {
+            const period = document.getElementById('periodSelect').value;
+            const customContainer = document.getElementById('customDateContainer');
 
-            switch(period) {
-                case 'month':
-                    since = new Date(now.getFullYear(), now.getMonth(), 1);
-                    until = new Date();
-                    break;
-                case 'week':
-                    since = new Date(now);
-                    since.setDate(now.getDate() - now.getDay());
-                    since.setHours(0, 0, 0, 0);
-                    until = new Date();
-                    break;
-                case 'today':
-                    since = new Date(now);
-                    since.setHours(0, 0, 0, 0);
-                    until = new Date();
-                    break;
+            if (period === 'custom') {
+                customContainer.style.display = 'flex';
+                // Set default dates if empty
+                const startInput = document.getElementById('startDate');
+                const endInput = document.getElementById('endDate');
+                if (!startInput.value) {
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    startInput.value = lastMonth.toISOString().split('T')[0];
+                }
+                if (!endInput.value) {
+                    endInput.value = new Date().toISOString().split('T')[0];
+                }
+            } else {
+                customContainer.style.display = 'none';
             }
-
-            return {
-                since: since.toISOString(),
-                until: until.toISOString()
-            };
         }
 
+        /**
+         * Update progress bar UI
+         */
         function updateProgress(percent, text) {
             document.getElementById('progressBar').style.width = percent + '%';
             document.getElementById('progressBar').textContent = percent + '%';
             document.getElementById('loadingText').textContent = text;
         }
 
-        async function fetchAllOrders(createdAtMin, createdAtMax) {
-            const allOrders = [];
-            const proxyUrl = 'https://corsproxy.io/?';
-            
-            const start = new Date(createdAtMin);
-            const end = new Date(createdAtMax);
-            const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-            
-            let daysPerBlock;
-            if (totalDays <= 1) {
-                daysPerBlock = 1;
-            } else if (totalDays <= 7) {
-                daysPerBlock = Math.ceil(totalDays / 3);
-            } else {
-                daysPerBlock = Math.ceil(totalDays / 10);
-            }
-            
-            let currentStart = new Date(start);
-            let blockNumber = 0;
-            const totalBlocks = Math.ceil(totalDays / daysPerBlock);
-            
-            while (currentStart < end) {
-                blockNumber++;
-                
-                let currentEnd = new Date(currentStart);
-                currentEnd.setDate(currentEnd.getDate() + daysPerBlock);
-                
-                if (currentEnd > end) {
-                    currentEnd = new Date(end);
-                }
-                
-                const blockStart = currentStart.toISOString();
-                const blockEnd = currentEnd.toISOString();
-                
-                const progress = Math.round((blockNumber / totalBlocks) * 90);
-                updateProgress(progress, `Cargando bloque ${blockNumber} de ${totalBlocks}...`);
-                
-                const url = `https://${CONFIG.storeUrl}/admin/api/${CONFIG.apiVersion}/orders.json?status=any&created_at_min=${blockStart}&created_at_max=${blockEnd}&limit=250`;
-                
-                try {
-                    const response = await fetch(proxyUrl + encodeURIComponent(url), {
-                        headers: {
-                            'X-Shopify-Access-Token': CONFIG.accessToken
-                        }
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Error HTTP: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    allOrders.push(...data.orders);
-                    
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    
-                } catch (error) {
-                    console.error(`Error en bloque ${blockNumber}:`, error);
-                }
-                
-                currentStart = new Date(currentEnd);
-            }
-
-            return allOrders;
-        }
-
+        /**
+         * Load analytics data using GraphQL Bulk Operations
+         */
         async function loadData() {
             const period = document.getElementById('periodSelect').value;
-            const dateRange = getDateRange(period);
-            
+
+            // Build custom range if needed
+            let customRange = null;
+            if (period === 'custom') {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates for custom range');
+                    return;
+                }
+
+                if (new Date(startDate) > new Date(endDate)) {
+                    alert('Start date must be before end date');
+                    return;
+                }
+
+                customRange = {
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                };
+            }
+
+            // Show loading UI
             document.getElementById('loadingContainer').style.display = 'block';
             document.getElementById('errorContainer').style.display = 'none';
             document.getElementById('statsContainer').style.display = 'none';
@@ -469,75 +477,74 @@
             document.getElementById('tableContainer').style.display = 'none';
             document.getElementById('loadBtn').disabled = true;
 
-            updateProgress(10, 'Conectando con Shopify...');
+            updateProgress(5, 'Starting bulk export...');
 
             try {
-                const orders = await fetchAllOrders(dateRange.since, dateRange.until);
-                
-                updateProgress(100, 'Procesando datos...');
-                
-                if (orders.length === 0) {
-                    throw new Error('No se encontraron órdenes en el período seleccionado');
-                }
+                // Use the bulk operations function from shopify-analytics.js
+                // Using 'loyalvaper' store as configured in this page
+                const analytics = await fetchSalesAnalyticsBulk(
+                    'loyalvaper',  // Store key
+                    null,          // Location ID (not supported in bulk)
+                    period,        // Period
+                    updateProgress, // Progress callback
+                    customRange    // Custom range if applicable
+                );
 
-                processOrders(orders);
+                currentAnalytics = analytics;
+
+                // Transform recentOrders to match table display format
+                allOrdersData = analytics.recentOrders.map(order => ({
+                    order_number: order.name.replace('#', ''),
+                    created_at: order.createdAt,
+                    customer: {
+                        first_name: order.customer.split(' ')[0] || '',
+                        last_name: order.customer.split(' ').slice(1).join(' ') || ''
+                    },
+                    total_price: order.total,
+                    financial_status: order.status
+                }));
+
+                // Set chart data
+                chartData.daily = analytics.daily;
+                chartData.hourly = analytics.hourly;
+                chartData.monthly = analytics.monthly;
+
+                // Display results
+                displayStats(
+                    parseFloat(analytics.summary.totalSales),
+                    analytics.summary.totalOrders
+                );
+                displayChart('daily');
+                currentPage = 1;
+                displayTable();
+
+                console.log(`✅ Loaded ${analytics.summary.totalOrders} orders via bulk operation`);
 
             } catch (error) {
                 document.getElementById('errorContainer').textContent = `Error: ${error.message}`;
                 document.getElementById('errorContainer').style.display = 'block';
-                console.error('Error completo:', error);
+                console.error('Error loading data:', error);
             } finally {
                 document.getElementById('loadingContainer').style.display = 'none';
                 document.getElementById('loadBtn').disabled = false;
             }
         }
 
-        function processOrders(orders) {
-            allOrdersData = orders;
-            let totalSales = 0;
-            let totalOrders = orders.length;
-            const dailyData = {};
-            const hourlyData = {};
-
-            orders.forEach(order => {
-                const orderDate = new Date(order.created_at);
-                const day = orderDate.toISOString().split('T')[0];
-                const hour = orderDate.getHours();
-                const amount = parseFloat(order.total_price);
-
-                totalSales += amount;
-
-                if (!dailyData[day]) {
-                    dailyData[day] = { sales: 0, orders: 0 };
-                }
-                dailyData[day].sales += amount;
-                dailyData[day].orders += 1;
-
-                if (!hourlyData[hour]) {
-                    hourlyData[hour] = { sales: 0, orders: 0 };
-                }
-                hourlyData[hour].sales += amount;
-                hourlyData[hour].orders += 1;
-            });
-
-            chartData.daily = dailyData;
-            chartData.hourly = hourlyData;
-
-            displayStats(totalSales, totalOrders);
-            displayChart('daily');
-            currentPage = 1;
-            displayTable();
-        }
-
+        /**
+         * Display summary statistics
+         */
         function displayStats(totalSales, totalOrders) {
             document.getElementById('totalSales').textContent = `$${totalSales.toFixed(2)}`;
             document.getElementById('totalOrders').textContent = totalOrders;
-            document.getElementById('avgOrder').textContent = totalOrders > 0 
-                ? `$${(totalSales / totalOrders).toFixed(2)}` 
+            document.getElementById('avgOrder').textContent = totalOrders > 0
+                ? `$${(totalSales / totalOrders).toFixed(2)}`
                 : '$0';
             document.getElementById('statsContainer').style.display = 'grid';
         }
 
+        /**
+         * Display sales chart (daily, hourly, or monthly view)
+         */
         function displayChart(type) {
             let labels, data, labelText;
 
@@ -548,20 +555,27 @@
                     const displayHour = hour % 12 || 12;
                     return `${displayHour} ${ampm}`;
                 });
-                
+
                 data = Array.from({length: 24}, (_, i) => {
                     return chartData.hourly[i] ? chartData.hourly[i].sales : 0;
                 });
-                
-                labelText = 'Ventas por hora ($)';
+
+                labelText = 'Sales by Hour ($)';
+            } else if (type === 'monthly') {
+                labels = Object.keys(chartData.monthly).sort((a, b) => {
+                    return new Date(a) - new Date(b);
+                });
+                data = labels.map(month => chartData.monthly[month].sales);
+                labelText = 'Sales by Month ($)';
             } else {
+                // Daily view
                 labels = Object.keys(chartData.daily).sort();
                 data = labels.map(day => chartData.daily[day].sales);
-                labelText = 'Ventas por día ($)';
+                labelText = 'Sales by Day ($)';
             }
 
             const ctx = document.getElementById('salesChart').getContext('2d');
-            
+
             if (salesChart) {
                 salesChart.destroy();
             }
@@ -617,11 +631,17 @@
             document.getElementById('chartContainer').style.display = 'block';
         }
 
+        /**
+         * Handle chart type dropdown change
+         */
         function updateChartView() {
             const chartType = document.getElementById('chartTypeSelect').value;
             displayChart(chartType);
         }
 
+        /**
+         * Display orders table with pagination
+         */
         function displayTable() {
             const start = (currentPage - 1) * ordersPerPage;
             const end = start + ordersPerPage;
@@ -633,15 +653,15 @@
 
             ordersToShow.forEach(order => {
                 const date = new Date(order.created_at).toLocaleDateString();
-                const customer = order.customer ? 
-                    `${order.customer.first_name} ${order.customer.last_name}` : 
-                    'Invitado';
-                
+                const customer = order.customer ?
+                    `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() :
+                    'Guest';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>#${order.order_number}</td>
                     <td>${date}</td>
-                    <td>${customer}</td>
+                    <td>${customer || 'Guest'}</td>
                     <td>$${parseFloat(order.total_price).toFixed(2)}</td>
                     <td>${order.financial_status}</td>
                 `;
@@ -649,12 +669,15 @@
             });
 
             document.getElementById('totalOrdersTable').textContent = allOrdersData.length;
-            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages || 1}`;
             document.getElementById('prevBtn').disabled = currentPage === 1;
             document.getElementById('nextBtn').disabled = currentPage >= totalPages;
             document.getElementById('tableContainer').style.display = 'block';
         }
 
+        /**
+         * Navigate to next page of orders
+         */
         function nextPage() {
             const totalPages = Math.ceil(allOrdersData.length / ordersPerPage);
             if (currentPage < totalPages) {
@@ -663,6 +686,9 @@
             }
         }
 
+        /**
+         * Navigate to previous page of orders
+         */
         function previousPage() {
             if (currentPage > 1) {
                 currentPage--;
@@ -670,6 +696,7 @@
             }
         }
 
+        // Load data on page load
         window.addEventListener('load', () => {
             loadData();
         });
