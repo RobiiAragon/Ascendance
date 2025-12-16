@@ -89,6 +89,7 @@ function buildBulkOrdersQuery(startDate, endDate) {
                         displayFinancialStatus
                         displayFulfillmentStatus
                         currencyCode
+                        paymentGatewayNames
 
                         customer {
                             firstName
@@ -522,10 +523,33 @@ function transformBulkDataToAnalytics(bulkOrders) {
     let totalTax = 0;
     let totalCecetTax = 0;
     let totalSalesTax = 0;
+    let totalCashSales = 0;
+    let totalCardSales = 0;
+    let totalCashOrders = 0;
+    let totalCardOrders = 0;
     const totalOrders = bulkOrders.length;
     const dailyData = {};
     const hourlyData = {};
     const monthlyData = {};
+
+    /**
+     * Determine if payment gateways indicate a cash payment
+     * @param {Array<string>} gateways - Array of payment gateway names
+     * @returns {boolean} True if payment was cash
+     */
+    function isCashPayment(gateways) {
+        if (!gateways || !Array.isArray(gateways) || gateways.length === 0) {
+            return false;
+        }
+        // Check if any gateway name indicates cash payment
+        return gateways.some(name => {
+            const lower = (name || '').toLowerCase();
+            return lower.includes('cash') ||
+                   lower.includes('cod') ||
+                   lower.includes('manual') ||
+                   lower.includes('efectivo'); // Spanish for cash
+        });
+    }
 
     const recentOrders = bulkOrders.map(order => {
         const orderDate = new Date(order.createdAt);
@@ -542,40 +566,68 @@ function transformBulkDataToAnalytics(bulkOrders) {
         const cecetTax = taxBreakdown.cecetTax;
         const salesTax = taxBreakdown.salesTax;
 
+        // Determine payment method from paymentGatewayNames
+        const paymentGateways = order.paymentGatewayNames || [];
+        const isCash = isCashPayment(paymentGateways);
+
         // Accumulate totals
         totalSales += amount;
         totalTax += tax;
         totalCecetTax += cecetTax;
         totalSalesTax += salesTax;
 
+        // Track cash vs card
+        if (isCash) {
+            totalCashSales += amount;
+            totalCashOrders += 1;
+        } else {
+            totalCardSales += amount;
+            totalCardOrders += 1;
+        }
+
         // Daily aggregation
         if (!dailyData[day]) {
-            dailyData[day] = { sales: 0, orders: 0, tax: 0, cecetTax: 0, salesTax: 0 };
+            dailyData[day] = { sales: 0, orders: 0, tax: 0, cecetTax: 0, salesTax: 0, cashSales: 0, cardSales: 0 };
         }
         dailyData[day].sales += amount;
         dailyData[day].orders += 1;
         dailyData[day].tax += tax;
         dailyData[day].cecetTax += cecetTax;
         dailyData[day].salesTax += salesTax;
+        if (isCash) {
+            dailyData[day].cashSales += amount;
+        } else {
+            dailyData[day].cardSales += amount;
+        }
 
         // Hourly aggregation
         if (!hourlyData[hour]) {
-            hourlyData[hour] = { sales: 0, orders: 0, cecetTax: 0, salesTax: 0 };
+            hourlyData[hour] = { sales: 0, orders: 0, cecetTax: 0, salesTax: 0, cashSales: 0, cardSales: 0 };
         }
         hourlyData[hour].sales += amount;
         hourlyData[hour].orders += 1;
         hourlyData[hour].cecetTax += cecetTax;
         hourlyData[hour].salesTax += salesTax;
+        if (isCash) {
+            hourlyData[hour].cashSales += amount;
+        } else {
+            hourlyData[hour].cardSales += amount;
+        }
 
         // Monthly aggregation
         if (!monthlyData[month]) {
-            monthlyData[month] = { sales: 0, orders: 0, tax: 0, cecetTax: 0, salesTax: 0 };
+            monthlyData[month] = { sales: 0, orders: 0, tax: 0, cecetTax: 0, salesTax: 0, cashSales: 0, cardSales: 0 };
         }
         monthlyData[month].sales += amount;
         monthlyData[month].orders += 1;
         monthlyData[month].tax += tax;
         monthlyData[month].cecetTax += cecetTax;
         monthlyData[month].salesTax += salesTax;
+        if (isCash) {
+            monthlyData[month].cashSales += amount;
+        } else {
+            monthlyData[month].cardSales += amount;
+        }
 
         // Transform line items from bulk format
         // Bulk operation returns line items either in _lineItems (associated by us)
@@ -614,7 +666,11 @@ function transformBulkDataToAnalytics(bulkOrders) {
             customer: customer || 'Guest',
             cecetTax: cecetTax,
             salesTax: salesTax,
-            lineItems: lineItems
+            lineItems: lineItems,
+            // Payment method from Shopify paymentGatewayNames
+            paymentGateway: isCash ? 'cash' : (paymentGateways.length > 0 ? paymentGateways[0] : 'card'),
+            paymentGatewayNames: paymentGateways,
+            isCashPayment: isCash
         };
     });
 
@@ -630,7 +686,12 @@ function transformBulkDataToAnalytics(bulkOrders) {
             totalSalesTax: totalSalesTax.toFixed(2),
             totalOrders,
             avgOrderValue: totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : '0.00',
-            currency: bulkOrders.length > 0 ? (bulkOrders[0].currencyCode || 'USD') : 'USD'
+            currency: bulkOrders.length > 0 ? (bulkOrders[0].currencyCode || 'USD') : 'USD',
+            // Cash vs Card breakdown
+            totalCashSales: totalCashSales.toFixed(2),
+            totalCardSales: totalCardSales.toFixed(2),
+            totalCashOrders,
+            totalCardOrders
         },
         daily: dailyData,
         hourly: hourlyData,

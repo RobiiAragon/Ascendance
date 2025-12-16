@@ -665,20 +665,11 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             ? `${formatDateDisplay(window.analyticsCustomRange.startDate)} → ${formatDateDisplay(window.analyticsCustomRange.endDate)}`
             : 'Select date range';
 
-        // Calculate cash and card totals from orders
-        let cashTotal = 0;
-        let cardTotal = 0;
-        if (salesData.recentOrders && salesData.recentOrders.length > 0) {
-            salesData.recentOrders.forEach(order => {
-                // Check payment gateway - common cash gateways
-                const gateway = (order.paymentGateway || '').toLowerCase();
-                if (gateway.includes('cash') || gateway.includes('manual') || gateway === 'cod') {
-                    cashTotal += parseFloat(order.total) || 0;
-                } else {
-                    cardTotal += parseFloat(order.total) || 0;
-                }
-            });
-        }
+        // Get cash and card totals from API response (pre-computed from paymentGatewayNames)
+        const cashTotal = parseFloat(salesData.summary.totalCashSales || 0);
+        const cardTotal = parseFloat(salesData.summary.totalCardSales || 0);
+        const cashOrders = salesData.summary.totalCashOrders || 0;
+        const cardOrders = salesData.summary.totalCardOrders || 0;
         const totalPayments = cashTotal + cardTotal;
         const cashPercent = totalPayments > 0 ? ((cashTotal / totalPayments) * 100).toFixed(1) : '0';
         const cardPercent = totalPayments > 0 ? ((cardTotal / totalPayments) * 100).toFixed(1) : '0';
@@ -806,13 +797,13 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                     </div>
                     <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
                         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Cash</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">${formatCurrency(cashTotal)}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${cashPercent}% of total</div>
+                        <div style="font-size: 1.5rem; font-weight: 600; color: #86efac;">${formatCurrency(cashTotal)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${cashOrders} orders (${cashPercent}%)</div>
                     </div>
                     <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
                         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Card</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">${formatCurrency(cardTotal)}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${cardPercent}% of total</div>
+                        <div style="font-size: 1.5rem; font-weight: 600; color: #93c5fd;">${formatCurrency(cardTotal)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${cardOrders} orders (${cardPercent}%)</div>
                     </div>
                 </div>
 
@@ -1305,9 +1296,8 @@ function renderSalesTransactionsTable(orders) {
             const orderTotalTax = orderCecetTax + orderSalesTax;
             const orderNetSales = orderTotal - orderTotalTax;
 
-            // Determine payment method badge
-            const gateway = (order.paymentGateway || '').toLowerCase();
-            const isCash = gateway.includes('cash') || gateway.includes('manual') || gateway === 'cod';
+            // Use isCashPayment from API (based on paymentGatewayNames)
+            const isCash = order.isCashPayment === true;
             const paymentBadge = isCash
                 ? '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: #1e3a1e; color: #86efac;"><i class="fas fa-money-bill-wave"></i> Cash</span>'
                 : '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: #1e2a4a; color: #93c5fd;"><i class="fas fa-credit-card"></i> Card</span>';
