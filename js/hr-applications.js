@@ -357,11 +357,8 @@ function openApplicationDetail(appId) {
 
             <!-- Actions -->
             <div style="display: flex; gap: 12px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                <a href="mailto:${app.email}?subject=Your Application at VSU - ${app.refNumber}" style="flex: 1; min-width: 150px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; text-decoration: none; color: var(--text-primary); text-align: center; font-size: 14px;">
+                <a href="mailto:${app.email}?subject=Your Application at VSU - ${app.refNumber}" style="flex: 1; min-width: 150px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; text-decoration: none; color: white; text-align: center; font-size: 14px;">
                     <i class="fas fa-envelope" style="margin-right: 6px;"></i>Send Email
-                </a>
-                <a href="tel:${app.phone}" style="flex: 1; min-width: 150px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; text-decoration: none; color: var(--text-primary); text-align: center; font-size: 14px;">
-                    <i class="fas fa-phone" style="margin-right: 6px;"></i>Call
                 </a>
                 <button onclick="deleteApplication('${app.id}')" style="flex: 1; min-width: 150px; padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; cursor: pointer; color: #ef4444; font-size: 14px;">
                     <i class="fas fa-trash" style="margin-right: 6px;"></i>Delete
