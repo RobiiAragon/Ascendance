@@ -58,7 +58,7 @@ async function loadHRApplications() {
  * Render HR Applications page
  */
 function renderHRApplications() {
-    const container = document.getElementById('main-content');
+    const container = document.querySelector('.dashboard');
     if (!container) return;
 
     const stats = getApplicationStats();
