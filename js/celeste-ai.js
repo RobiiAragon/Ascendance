@@ -322,9 +322,10 @@ function addCelesteStyles() {
             position: fixed;
             bottom: 100px;
             right: 24px;
-            width: 400px;
+            width: 420px;
             max-width: calc(100vw - 48px);
-            max-height: 600px;
+            height: 75vh;
+            max-height: 700px;
             background: var(--bg-primary);
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
@@ -429,8 +430,7 @@ function addCelesteStyles() {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            min-height: 300px;
-            max-height: 400px;
+            min-height: 350px;
         }
 
         .celeste-message {
@@ -579,20 +579,31 @@ function addCelesteStyles() {
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
-        /* Quick Actions */
+        /* Quick Actions - Moved to bottom */
         .celeste-quick-actions {
             padding: 12px 16px;
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
             border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            order: 10;
+        }
+
+        .celeste-quick-actions-label {
+            width: 100%;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .celeste-quick-btn {
             padding: 6px 12px;
             border-radius: 16px;
             border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             color: var(--text-secondary);
             font-size: 12px;
             cursor: pointer;
@@ -604,6 +615,11 @@ function addCelesteStyles() {
             background: var(--bg-tertiary);
             border-color: #667eea;
             color: #667eea;
+        }
+
+        .celeste-quick-btn i {
+            margin-right: 4px;
+            opacity: 0.7;
         }
 
         /* Mobile responsive */
@@ -671,18 +687,26 @@ function createCelesteChatModal() {
 
         <div class="celeste-messages" id="celeste-messages">
             <div class="celeste-message assistant">
-                Hi! I'm Celeste, your Ascendance Hub assistant. 🌟<br><br>
-                I can help you:<br>
-                • Record expenses<br>
-                • Report suspicious people<br>
-                • Create announcements<br>
-                • Navigate to any module<br>
-                • And much more!<br><br>
+                Hi! I'm Celeste, your Ascendance Hub assistant.<br><br>
+                I can help you with expenses, announcements, reports, navigation and much more.<br><br>
                 How can I help you today?
             </div>
         </div>
 
+        <div class="celeste-input-area">
+            <button class="celeste-voice-btn" id="celeste-voice-btn" onclick="toggleCelesteVoice()" title="Speak">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" class="celeste-input" id="celeste-input"
+                placeholder="Type or speak to Celeste..."
+                onkeypress="if(event.key==='Enter') sendCelesteMessage()">
+            <button class="celeste-send-btn" onclick="sendCelesteMessage()" title="Send">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+
         <div class="celeste-quick-actions">
+            <span class="celeste-quick-actions-label">Quick actions</span>
             <button class="celeste-quick-btn" onclick="celesteQuickAction('Record an expense')">
                 <i class="fas fa-money-bill"></i> Expense
             </button>
@@ -695,17 +719,11 @@ function createCelesteChatModal() {
             <button class="celeste-quick-btn" onclick="celesteQuickAction('Show sales')">
                 <i class="fas fa-chart-line"></i> Sales
             </button>
-        </div>
-
-        <div class="celeste-input-area">
-            <button class="celeste-voice-btn" id="celeste-voice-btn" onclick="toggleCelesteVoice()" title="Speak">
-                <i class="fas fa-microphone"></i>
+            <button class="celeste-quick-btn" onclick="celesteQuickAction('Create restock request')">
+                <i class="fas fa-boxes"></i> Restock
             </button>
-            <input type="text" class="celeste-input" id="celeste-input"
-                placeholder="Type or speak to Celeste..."
-                onkeypress="if(event.key==='Enter') sendCelesteMessage()">
-            <button class="celeste-send-btn" onclick="sendCelesteMessage()" title="Send">
-                <i class="fas fa-paper-plane"></i>
+            <button class="celeste-quick-btn" onclick="celesteQuickAction('Report an issue')">
+                <i class="fas fa-exclamation-triangle"></i> Issue
             </button>
         </div>
     `;
