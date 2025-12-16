@@ -14,7 +14,8 @@
       "Bash(find:*)",
       "Bash(start http://127.0.0.1:5500/index.html)",
       "Bash(node -e:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
