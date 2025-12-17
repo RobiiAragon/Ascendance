@@ -131,7 +131,7 @@
         .main-content {
             position: relative;
             z-index: 1;
-            max-width: 720px;
+            max-width: 1100px;
             margin: 0 auto;
             padding: 48px 24px 80px;
         }
@@ -170,7 +170,7 @@
         .hero p {
             font-size: 17px;
             color: var(--text-secondary);
-            max-width: 500px;
+            max-width: 700px;
             margin: 0 auto;
             line-height: 1.7;
         }
@@ -179,8 +179,11 @@
         .benefits {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: 16px;
             margin-bottom: 40px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .benefit-card {
@@ -219,8 +222,10 @@
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 20px;
-            padding: 36px;
+            padding: 40px 48px;
             box-shadow: var(--shadow-lg);
+            max-width: 1000px;
+            margin: 0 auto;
         }
 
         .form-header {
@@ -246,7 +251,8 @@
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            gap: 24px;
+            column-gap: 32px;
         }
 
         .form-group {
@@ -630,7 +636,8 @@
         .product-quiz-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 14px;
+            column-gap: 20px;
         }
 
         .product-item {
@@ -937,6 +944,21 @@
         }
 
         /* Responsive */
+        @media (max-width: 968px) {
+            .main-content {
+                max-width: 750px;
+            }
+
+            .form-container {
+                padding: 32px 36px;
+            }
+
+            .benefits {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 14px;
+            }
+        }
+
         @media (max-width: 640px) {
             .main-content {
                 padding: 32px 16px 60px;
