@@ -20510,14 +20510,8 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Job Position/Role *</label>
-                                    <select class="form-input" id="edit-emp-role">
-                                        <option value="">Select role...</option>
-                                        <option value="Store Manager" ${data.role === 'Store Manager' ? 'selected' : ''}>Store Manager</option>
-                                        <option value="Shift Lead" ${data.role === 'Shift Lead' ? 'selected' : ''}>Shift Lead</option>
-                                        <option value="Sales Associate" ${data.role === 'Sales Associate' ? 'selected' : ''}>Sales Associate</option>
-                                        <option value="Inventory Specialist" ${data.role === 'Inventory Specialist' ? 'selected' : ''}>Inventory Specialist</option>
-                                    </select>
+                                    <label>Job Title *</label>
+                                    <input type="text" class="form-input" id="edit-emp-role" value="${data.role || ''}" placeholder="e.g., Store Manager, Sales Associate...">
                                 </div>
                                 <div class="form-group">
                                     <label>Permission Level *</label>
@@ -20901,14 +20895,8 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Job Position/Role *</label>
-                                    <select class="form-input" id="emp-role">
-                                        <option value="">Select role...</option>
-                                        <option value="Store Manager">Store Manager</option>
-                                        <option value="Shift Lead">Shift Lead</option>
-                                        <option value="Sales Associate">Sales Associate</option>
-                                        <option value="Inventory Specialist">Inventory Specialist</option>
-                                    </select>
+                                    <label>Job Title *</label>
+                                    <input type="text" class="form-input" id="emp-role" placeholder="e.g., Store Manager, Sales Associate...">
                                 </div>
                                 <div class="form-group">
                                     <label>Permission Level * <i class="fas fa-info-circle" style="color: var(--accent-primary); font-size: 12px; cursor: help;" title="Admin: Full access | Manager: Can manage employees | Employee: Limited access"></i></label>
