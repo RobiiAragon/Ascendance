@@ -1197,6 +1197,56 @@
         // Expose navigateTo globally
         window.navigateTo = navigateTo;
 
+        // Toggle nav category (collapsible menu sections)
+        window.toggleNavCategory = function(categoryName) {
+            const category = document.querySelector(`.nav-category[data-category="${categoryName}"]`);
+            if (category) {
+                category.classList.toggle('open');
+                // Save state to localStorage
+                const defaultOpen = '["team","inventory","finance","operations","security","system"]';
+                const stored = localStorage.getItem('openNavCategories');
+                const openCategories = (stored && stored !== '[]') ? JSON.parse(stored) : JSON.parse(defaultOpen);
+                if (category.classList.contains('open')) {
+                    if (!openCategories.includes(categoryName)) {
+                        openCategories.push(categoryName);
+                    }
+                } else {
+                    const index = openCategories.indexOf(categoryName);
+                    if (index > -1) {
+                        openCategories.splice(index, 1);
+                    }
+                }
+                localStorage.setItem('openNavCategories', JSON.stringify(openCategories));
+            }
+        };
+
+        // Restore nav category states from localStorage
+        function restoreNavCategoryStates() {
+            // Clear old localStorage value to fix initial state
+            const stored = localStorage.getItem('openNavCategories');
+            if (stored === '["team"]' || stored === '[]') {
+                localStorage.removeItem('openNavCategories');
+            }
+
+            // All categories open by default - only close if user explicitly closed them
+            const allCategories = ['team', 'inventory', 'finance', 'operations', 'security', 'system'];
+            const openCategories = localStorage.getItem('openNavCategories')
+                ? JSON.parse(localStorage.getItem('openNavCategories'))
+                : allCategories;
+
+            document.querySelectorAll('.nav-category').forEach(cat => {
+                const categoryName = cat.dataset.category;
+                if (openCategories.includes(categoryName)) {
+                    cat.classList.add('open');
+                } else {
+                    cat.classList.remove('open');
+                }
+            });
+        }
+
+        // Call on load
+        setTimeout(restoreNavCategoryStates, 50);
+
         // Handle browser back/forward buttons
         window.addEventListener('popstate', function(event) {
             if (event.state && event.state.page) {
@@ -32031,11 +32081,6 @@ window.renderProjectAnalytics = function() {
                     Project Analytics
                 </h2>
                 <p class="section-subtitle">Ascendance Hub - Enterprise Management System Statistics</p>
-            </div>
-            <div class="page-header-right" style="display: flex; align-items: center; gap: 12px;">
-                <button onclick="openAPISettings()" style="width: 36px; height: 36px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.6;" onmouseover="this.style.opacity='1'; this.style.borderColor='var(--accent-primary)';" onmouseout="this.style.opacity='0.6'; this.style.borderColor='var(--border-color)';" title="API Settings">
-                    <i class="fas fa-key" style="color: var(--text-muted); font-size: 14px;"></i>
-                </button>
             </div>
         </div>
 
