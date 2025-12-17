@@ -122,6 +122,20 @@ function buildBulkOrdersQuery(startDate, endDate) {
                             }
                         }
 
+                        fulfillmentOrders(first: 5) {
+                            edges {
+                                node {
+                                    id
+                                    assignedLocation {
+                                        location {
+                                            id
+                                            name
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         lineItems(first: 50) {
                             edges {
                                 node {
@@ -462,23 +476,26 @@ async function downloadAndParseBulkData(url, onProgress = null) {
         }
 
         // Parse NDJSON - each line is a JSON object
-        // Shopify bulk returns orders and their line items as separate objects
-        // Orders have no __parentId, line items have __parentId = order gid
+        // Shopify bulk returns orders and their nested objects as separate lines:
+        // - Orders have no __parentId (or __parentId = null)
+        // - Line items have __parentId = order gid
+        // - Fulfillment orders have __parentId = order gid
         const ordersMap = new Map();
-        const lineItemsBuffer = [];
+        const childObjectsBuffer = [];
 
         for (const line of lines) {
             try {
                 const obj = JSON.parse(line);
 
                 if (obj.__parentId) {
-                    // This is a line item - buffer it for later association
-                    lineItemsBuffer.push(obj);
-                } else if (obj.id && obj.id.includes('Order')) {
-                    // This is an order
+                    // This is a child object (line item, fulfillment order, etc.) - buffer it
+                    childObjectsBuffer.push(obj);
+                } else if (obj.id && obj.id.includes('Order') && !obj.id.includes('FulfillmentOrder')) {
+                    // This is the main order object
                     ordersMap.set(obj.id, {
                         ...obj,
-                        _lineItems: []
+                        _lineItems: [],
+                        _fulfillmentOrders: []
                     });
                 }
             } catch (parseError) {
@@ -486,16 +503,39 @@ async function downloadAndParseBulkData(url, onProgress = null) {
             }
         }
 
-        // Associate line items with their parent orders
-        for (const lineItem of lineItemsBuffer) {
-            const parentOrder = ordersMap.get(lineItem.__parentId);
+        // Associate child objects with their parent orders
+        for (const childObj of childObjectsBuffer) {
+            const parentOrder = ordersMap.get(childObj.__parentId);
             if (parentOrder) {
-                parentOrder._lineItems.push(lineItem);
+                // Determine type of child object
+                if (childObj.id && childObj.id.includes('FulfillmentOrder')) {
+                    // This is a fulfillment order
+                    parentOrder._fulfillmentOrders.push(childObj);
+                } else if (childObj.id && childObj.id.includes('LineItem')) {
+                    // This is a line item
+                    parentOrder._lineItems.push(childObj);
+                } else if (childObj.name || childObj.sku || childObj.quantity !== undefined) {
+                    // Fallback: looks like a line item based on properties
+                    parentOrder._lineItems.push(childObj);
+                } else if (childObj.assignedLocation) {
+                    // Fallback: looks like a fulfillment order based on properties
+                    parentOrder._fulfillmentOrders.push(childObj);
+                }
             }
         }
 
         const orders = Array.from(ordersMap.values());
         console.log(`📦 Parsed ${orders.length} orders from bulk data`);
+
+        // Log sample for debugging location data
+        if (orders.length > 0) {
+            const sampleOrder = orders[0];
+            console.log(`📍 Sample order fulfillment data:`, {
+                orderName: sampleOrder.name,
+                fulfillmentOrders: sampleOrder._fulfillmentOrders?.length || 0,
+                hasInlineData: !!sampleOrder.fulfillmentOrders?.nodes
+            });
+        }
 
         return orders;
 
@@ -509,6 +549,7 @@ async function downloadAndParseBulkData(url, onProgress = null) {
  * Transform bulk GraphQL order data to match existing analytics format
  *
  * @param {Array} bulkOrders - Orders from bulk operation
+ * @param {string|null} locationId - Optional location ID to filter by (e.g., "gid://shopify/Location/12345")
  * @returns {Object} Analytics data in existing format
  *
  * This ensures backward compatibility with the existing UI that expects:
@@ -518,7 +559,7 @@ async function downloadAndParseBulkData(url, onProgress = null) {
  * - monthly: { [month]: { sales, orders, tax, cecetTax, salesTax } }
  * - recentOrders: Array of order objects with detailed info
  */
-function transformBulkDataToAnalytics(bulkOrders) {
+function transformBulkDataToAnalytics(bulkOrders, locationId = null) {
     let totalSales = 0;
     let totalTax = 0;
     let totalCecetTax = 0;
@@ -527,7 +568,6 @@ function transformBulkDataToAnalytics(bulkOrders) {
     let totalCardSales = 0;
     let totalCashOrders = 0;
     let totalCardOrders = 0;
-    const totalOrders = bulkOrders.length;
     const dailyData = {};
     const hourlyData = {};
     const monthlyData = {};
@@ -551,7 +591,62 @@ function transformBulkDataToAnalytics(bulkOrders) {
         });
     }
 
-    const recentOrders = bulkOrders.map(order => {
+    /**
+     * Check if an order is fulfilled from the specified location
+     * @param {Object} order - Order object with fulfillmentOrders
+     * @param {string} targetLocationId - Location ID to match (can be numeric or full gid)
+     * @returns {boolean} True if order is from the specified location
+     */
+    function isOrderFromLocation(order, targetLocationId) {
+        if (!targetLocationId) return true; // No filter = include all
+
+        // Get fulfillment orders from various possible sources:
+        // 1. _fulfillmentOrders - parsed from NDJSON child objects
+        // 2. fulfillmentOrders.edges - inline GraphQL response (edges > node format)
+        // 3. fulfillmentOrders.nodes - inline GraphQL response (nodes format, legacy)
+        let fulfillmentOrders = [];
+
+        if (order._fulfillmentOrders && order._fulfillmentOrders.length > 0) {
+            fulfillmentOrders = order._fulfillmentOrders;
+        } else if (order.fulfillmentOrders?.edges) {
+            // Extract nodes from edges format
+            fulfillmentOrders = order.fulfillmentOrders.edges.map(edge => edge.node);
+        } else if (order.fulfillmentOrders?.nodes) {
+            fulfillmentOrders = order.fulfillmentOrders.nodes;
+        }
+
+        if (fulfillmentOrders.length === 0) {
+            // No fulfillment orders - this order won't match any location filter
+            return false;
+        }
+
+        // Normalize the target location ID for comparison
+        // User might pass "12345" or "gid://shopify/Location/12345"
+        const normalizedTarget = targetLocationId.includes('gid://')
+            ? targetLocationId
+            : `gid://shopify/Location/${targetLocationId}`;
+        const numericTarget = targetLocationId.replace(/\D/g, ''); // Extract just numbers
+
+        // Check if any fulfillment order is assigned to the target location
+        return fulfillmentOrders.some(fo => {
+            const locationGid = fo.assignedLocation?.location?.id;
+            if (!locationGid) return false;
+
+            // Match by full gid or numeric ID
+            const numericLocation = locationGid.replace(/\D/g, '');
+            return locationGid === normalizedTarget || numericLocation === numericTarget;
+        });
+    }
+
+    // Filter orders by location if specified
+    let filteredOrders = bulkOrders;
+    if (locationId) {
+        const originalCount = bulkOrders.length;
+        filteredOrders = bulkOrders.filter(order => isOrderFromLocation(order, locationId));
+        console.log(`📍 [LOCATION FILTER] Filtered ${originalCount} orders → ${filteredOrders.length} orders for location ${locationId}`);
+    }
+
+    const recentOrders = filteredOrders.map(order => {
         const orderDate = new Date(order.createdAt);
         const day = orderDate.toISOString().split('T')[0];
         const hour = orderDate.getHours();
@@ -677,6 +772,9 @@ function transformBulkDataToAnalytics(bulkOrders) {
     // Sort recent orders by date descending
     recentOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+    // Calculate total orders from filtered results
+    const totalOrders = recentOrders.length;
+
     return {
         summary: {
             totalSales: totalSales.toFixed(2),
@@ -686,7 +784,7 @@ function transformBulkDataToAnalytics(bulkOrders) {
             totalSalesTax: totalSalesTax.toFixed(2),
             totalOrders,
             avgOrderValue: totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : '0.00',
-            currency: bulkOrders.length > 0 ? (bulkOrders[0].currencyCode || 'USD') : 'USD',
+            currency: filteredOrders.length > 0 ? (filteredOrders[0].currencyCode || 'USD') : 'USD',
             // Cash vs Card breakdown
             totalCashSales: totalCashSales.toFixed(2),
             totalCardSales: totalCardSales.toFixed(2),
@@ -725,10 +823,9 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
 
     console.log('✅ [BULK] Store config found:', storeConfig.name);
 
-    // Note: Bulk operations don't support location filtering
-    // If location filtering is critical, fall back to REST API
+    // Location filtering is now supported - we fetch all orders and filter by fulfillment location
     if (locationId) {
-        console.warn('⚠️ [BULK] Bulk operations do not support location filtering. Fetching all locations.');
+        console.log('📍 [BULK] Location filter active:', locationId);
     }
 
     const dateRange = getDateRange(period, customRange);
@@ -792,13 +889,17 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
         onProgress(90, 'Processing analytics...');
     }
 
-    // Step 4: Transform to analytics format
+    // Step 4: Transform to analytics format (with location filtering if specified)
     console.log('🔄 [BULK] Step 4: Transforming data to analytics format...');
-    const analytics = transformBulkDataToAnalytics(bulkOrders);
+    if (locationId) {
+        console.log(`📍 [BULK] Filtering orders by location ID: ${locationId}`);
+    }
+    const analytics = transformBulkDataToAnalytics(bulkOrders, locationId);
     console.log('✅ [BULK] Analytics complete:', {
         totalOrders: analytics.summary.totalOrders,
         totalSales: analytics.summary.totalSales,
-        totalTax: analytics.summary.totalTax
+        totalTax: analytics.summary.totalTax,
+        locationFiltered: !!locationId
     });
 
     // Add store and date info
@@ -806,7 +907,7 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
         key: storeKey,
         name: storeConfig.name,
         shortName: storeConfig.shortName,
-        locationId: null // Bulk doesn't support location filtering
+        locationId: locationId || null
     };
 
     analytics.dateRange = {

@@ -182,6 +182,92 @@ function renderTransfersPage() {
                 ${renderTransfersTable()}
             </div>
         </div>
+
+        <!-- New Transfer Modal -->
+        <div class="modal" id="transferModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>New Transfer</h3>
+                    <button class="close-modal" onclick="closeTransferModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="transferMessage" class="alert" style="display: none;"></div>
+                    <form id="transferForm" onsubmit="event.preventDefault(); submitTransfer();">
+                        <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Origin Store</label>
+                                <select id="transferStoreOrigin" class="form-control" onchange="handleOriginStoreChange()" required>
+                                    <option value="">Select Store</option>
+                                    <option value="1">VSU 1</option>
+                                    <option value="2">VSU 2</option>
+                                    <option value="3">VSU 3</option>
+                                    <option value="4">VSU 4</option>
+                                    <option value="5">VSU 5</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Destination Store</label>
+                                <select id="transferStoreDestination" class="form-control" required>
+                                    <option value="">Select Store</option>
+                                    <option value="1">VSU 1</option>
+                                    <option value="2">VSU 2</option>
+                                    <option value="3">VSU 3</option>
+                                    <option value="4">VSU 4</option>
+                                    <option value="5">VSU 5</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label">Product</label>
+                            <div class="product-search-container" style="position: relative;">
+                                <input type="text" id="transferProductSearch" class="form-control" placeholder="Search product..." autocomplete="off">
+                                <div id="productSearchResults" class="product-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #ddd); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                            </div>
+                            <div id="selectedProductDisplay" class="selected-product-display" style="display: none; background: var(--bg-secondary, #f5f5f5); padding: 10px; border-radius: 8px; align-items: center; justify-content: space-between;"></div>
+                            <input type="hidden" id="transferProductId">
+                        </div>
+
+                        <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" id="transferQuantity" class="form-control" min="1" value="1" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Ship Date</label>
+                                <input type="date" id="transferShipDate" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label">Sent By</label>
+                            <input type="text" id="transferSentBy" class="form-control" required>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="form-label">Notes</label>
+                            <textarea id="transferNotes" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn-secondary" onclick="closeTransferModal()">Cancel</button>
+                            <button type="submit" id="submitTransferBtn" class="btn-primary">Create Transfer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Details Modal -->
+        <div class="modal" id="transferDetailsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="transferDetailsTitle">Transfer Details</h3>
+                    <button class="close-modal" onclick="closeTransferDetailsModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="transferDetailsBody"></div>
+            </div>
+        </div>
     `;
 }
 

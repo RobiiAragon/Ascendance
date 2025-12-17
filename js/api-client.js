@@ -9,6 +9,375 @@ const API_CONFIG = {
     internalKey: 'abundance1189'
 };
 
+/**
+ * Inject Analytics page styles into document head (called once)
+ * This ensures styles persist across re-renders
+ */
+function injectAnalyticsStyles() {
+    // Check if styles already injected
+    if (document.getElementById('analytics-page-styles')) {
+        return;
+    }
+
+    const styleElement = document.createElement('style');
+    styleElement.id = 'analytics-page-styles';
+    styleElement.textContent = `
+        /* Analytics Filters Responsive Styles */
+        .analytics-filters-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 24px;
+            align-items: end;
+        }
+
+        .filter-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .analytics-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .analytics-presets .preset-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .analytics-presets .preset-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .analytics-presets .preset-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .store-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .store-chip {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .store-chip:hover {
+            background: var(--bg-hover);
+        }
+
+        .store-chip.selected {
+            background: #1e3a5f;
+            border-color: var(--accent-primary);
+            color: #60a5fa;
+        }
+
+        .store-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .location-select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+        }
+
+        .date-range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .analytics-date-input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .date-separator {
+            color: var(--text-muted);
+        }
+
+        .apply-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 10px 24px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Summary Cards Responsive */
+        .summary-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* Tablet Responsive (max-width: 1024px) */
+        @media (max-width: 1024px) {
+            .analytics-filters-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .date-range-inputs {
+                flex-wrap: wrap;
+            }
+
+            .analytics-date-input {
+                flex: 1;
+                min-width: 130px;
+            }
+
+            .apply-btn {
+                width: 100%;
+                margin-top: 8px;
+            }
+        }
+
+        /* Mobile Responsive (max-width: 768px) */
+        @media (max-width: 768px) {
+            .analytics-filters-card {
+                padding: 16px;
+                margin: 12px 0;
+            }
+
+            .analytics-presets {
+                gap: 6px;
+            }
+
+            .analytics-presets .preset-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .store-chip {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .summary-cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .summary-card {
+                padding: 16px !important;
+            }
+
+            .summary-card .value,
+            .summary-card > div:nth-child(2) {
+                font-size: 1.25rem !important;
+            }
+
+            .date-range-inputs {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .date-separator {
+                display: none;
+            }
+
+            .analytics-date-input {
+                width: 100%;
+            }
+        }
+
+        /* Small Mobile (max-width: 480px) */
+        @media (max-width: 480px) {
+            .summary-cards-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .analytics-presets .preset-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+        }
+
+        /* Sales Chart Header Styles */
+        .sales-chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .chart-header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-label {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .chart-type-select {
+            padding: 8px 16px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .chart-type-select:hover {
+            border-color: var(--accent-primary);
+        }
+
+        /* Transactions Table Responsive */
+        .transactions-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .transactions-table {
+            min-width: 600px;
+        }
+
+        @media (max-width: 768px) {
+            .sales-chart-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .chart-header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .chart-type-label {
+                font-size: 12px;
+            }
+
+            .chart-type-select {
+                flex: 1;
+                max-width: 150px;
+            }
+
+            /* Transactions table mobile adjustments */
+            .transactions-table th,
+            .transactions-table td {
+                padding: 10px 8px !important;
+                font-size: 12px !important;
+            }
+
+            .transactions-table .order-number {
+                font-size: 11px !important;
+            }
+
+            /* Hide less important columns on mobile */
+            .transactions-table .hide-mobile {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chart-header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .chart-type-label {
+                margin-bottom: 4px;
+            }
+
+            .chart-type-select {
+                max-width: none;
+                width: 100%;
+            }
+        }
+
+        /* Page Header Responsive */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 16px;
+            }
+
+            .page-header-left .section-title {
+                font-size: 1.5rem;
+            }
+
+            .page-header-left .section-subtitle {
+                font-size: 13px;
+            }
+        }
+
+        /* Shopify Connect Banner Responsive */
+        @media (max-width: 768px) {
+            .shopify-connect {
+                flex-direction: column;
+                text-align: center;
+                gap: 16px;
+                padding: 20px !important;
+            }
+
+            .shopify-connect .btn-primary {
+                width: 100%;
+            }
+        }
+    `;
+
+    document.head.appendChild(styleElement);
+    console.log('[Analytics] Styles injected into document head');
+}
+
 // API Helper Function for GET requests
 async function fetchAPI(endpoint) {
     try {
@@ -265,6 +634,9 @@ function updateStoreSelectorState() {
 async function renderAnalyticsPage(period = 'month') {
     console.log('[Analytics] Rendering page - waiting for user to click "Apply"');
 
+    // Inject styles into document head (persists across re-renders)
+    injectAnalyticsStyles();
+
     // Initialize VSU locations if needed
     await initializeVSULocations();
 
@@ -325,40 +697,40 @@ async function renderAnalyticsPage(period = 'month') {
             </div>
         </div>
 
-        <!-- Filters Section - Inspired by sales-report.html -->
+        <!-- Filters Section - Responsive Layout -->
         <div class="analytics-filters-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid var(--border-color);">
-            <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: end;">
+            <div class="analytics-filters-grid">
                 <!-- Quick Select Presets -->
                 <div class="filter-group">
-                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Quick Select</label>
-                    <div class="analytics-presets" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="preset-btn ${period === 'today' ? 'active' : ''}" onclick="setAnalyticsPreset('today')" style="background: ${period === 'today' ? 'var(--accent-primary)' : 'var(--bg-tertiary)'}; border: 1px solid ${period === 'today' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${period === 'today' ? 'white' : 'var(--text-primary)'}; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">Today</button>
-                        <button class="preset-btn ${period === 'yesterday' ? 'active' : ''}" onclick="setAnalyticsPreset('yesterday')" style="background: ${period === 'yesterday' ? 'var(--accent-primary)' : 'var(--bg-tertiary)'}; border: 1px solid ${period === 'yesterday' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${period === 'yesterday' ? 'white' : 'var(--text-primary)'}; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">Yesterday</button>
-                        <button class="preset-btn ${period === 'week' ? 'active' : ''}" onclick="setAnalyticsPreset('week')" style="background: ${period === 'week' ? 'var(--accent-primary)' : 'var(--bg-tertiary)'}; border: 1px solid ${period === 'week' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${period === 'week' ? 'white' : 'var(--text-primary)'}; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">This Week</button>
-                        <button class="preset-btn ${period === 'month' ? 'active' : ''}" onclick="setAnalyticsPreset('month')" style="background: ${period === 'month' ? 'var(--accent-primary)' : 'var(--bg-tertiary)'}; border: 1px solid ${period === 'month' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${period === 'month' ? 'white' : 'var(--text-primary)'}; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">This Month</button>
-                        <button class="preset-btn ${period === 'year' ? 'active' : ''}" onclick="setAnalyticsPreset('year')" style="background: ${period === 'year' ? 'var(--accent-primary)' : 'var(--bg-tertiary)'}; border: 1px solid ${period === 'year' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${period === 'year' ? 'white' : 'var(--text-primary)'}; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">This Year</button>
-                        <button class="preset-btn ${period === 'custom' ? 'active' : ''}" onclick="setAnalyticsPreset('custom')" style="background: ${period === 'custom' ? 'var(--accent-primary)' : 'var(--bg-tertiary)'}; border: 1px solid ${period === 'custom' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${period === 'custom' ? 'white' : 'var(--text-primary)'}; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">Custom</button>
+                    <label class="filter-label">Quick Select</label>
+                    <div class="analytics-presets">
+                        <button class="preset-btn ${period === 'today' ? 'active' : ''}" onclick="setAnalyticsPreset('today')">Today</button>
+                        <button class="preset-btn ${period === 'yesterday' ? 'active' : ''}" onclick="setAnalyticsPreset('yesterday')">Yesterday</button>
+                        <button class="preset-btn ${period === 'week' ? 'active' : ''}" onclick="setAnalyticsPreset('week')">This Week</button>
+                        <button class="preset-btn ${period === 'month' ? 'active' : ''}" onclick="setAnalyticsPreset('month')">This Month</button>
+                        <button class="preset-btn ${period === 'year' ? 'active' : ''}" onclick="setAnalyticsPreset('year')">This Year</button>
+                        <button class="preset-btn ${period === 'custom' ? 'active' : ''}" onclick="setAnalyticsPreset('custom')">Custom</button>
                     </div>
                 </div>
 
                 <!-- Store Selection -->
                 <div class="filter-group">
-                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Store</label>
-                    <div class="store-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <div class="store-chip ${selectedStore === 'vsu' ? 'selected' : ''}" onclick="handleStoreChipClick('vsu')" style="background: ${selectedStore === 'vsu' ? '#1e3a5f' : 'var(--bg-tertiary)'}; border: 1px solid ${selectedStore === 'vsu' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${selectedStore === 'vsu' ? '#60a5fa' : 'var(--text-primary)'}; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6;"></span>
+                    <label class="filter-label">Store</label>
+                    <div class="store-chips">
+                        <div class="store-chip ${selectedStore === 'vsu' ? 'selected' : ''}" onclick="handleStoreChipClick('vsu')">
+                            <span class="store-dot" style="background: #8b5cf6;"></span>
                             VSU
                         </div>
-                        <div class="store-chip ${selectedStore === 'loyalvaper' ? 'selected' : ''}" onclick="handleStoreChipClick('loyalvaper')" style="background: ${selectedStore === 'loyalvaper' ? '#1e3a5f' : 'var(--bg-tertiary)'}; border: 1px solid ${selectedStore === 'loyalvaper' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${selectedStore === 'loyalvaper' ? '#60a5fa' : 'var(--text-primary)'}; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                        <div class="store-chip ${selectedStore === 'loyalvaper' ? 'selected' : ''}" onclick="handleStoreChipClick('loyalvaper')">
+                            <span class="store-dot" style="background: #10b981;"></span>
                             Loyal Vaper
                         </div>
-                        <div class="store-chip ${selectedStore === 'miramarwine' ? 'selected' : ''}" onclick="handleStoreChipClick('miramarwine')" style="background: ${selectedStore === 'miramarwine' ? '#1e3a5f' : 'var(--bg-tertiary)'}; border: 1px solid ${selectedStore === 'miramarwine' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${selectedStore === 'miramarwine' ? '#60a5fa' : 'var(--text-primary)'}; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
+                        <div class="store-chip ${selectedStore === 'miramarwine' ? 'selected' : ''}" onclick="handleStoreChipClick('miramarwine')">
+                            <span class="store-dot" style="background: #f59e0b;"></span>
                             Miramar Wine
                         </div>
                         ${selectedStore === 'vsu' && vsuLocations.length > 0 ? `
-                        <select id="location-select" onchange="handleLocationChange(this.value)" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: 20px; font-size: 13px; font-family: 'Outfit', sans-serif; cursor: pointer;">
+                        <select id="location-select" onchange="handleLocationChange(this.value)" class="location-select">
                             <option value="">All Locations</option>
                             ${vsuLocations.map(loc => `<option value="${loc.id}" ${selectedLocation == loc.id ? 'selected' : ''}>${loc.name}</option>`).join('')}
                         </select>
@@ -368,12 +740,12 @@ async function renderAnalyticsPage(period = 'month') {
 
                 <!-- Date Range & Apply -->
                 <div class="filter-group">
-                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Date Range</label>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 14px; border-radius: 8px; font-size: 13px; font-family: 'Outfit', sans-serif;">
-                        <span style="color: var(--text-muted);">→</span>
-                        <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 14px; border-radius: 8px; font-size: 13px; font-family: 'Outfit', sans-serif;">
-                        <button onclick="applyAnalyticsFilters()" class="btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 10px 24px; font-size: 14px;">
+                    <label class="filter-label">Date Range</label>
+                    <div class="date-range-inputs">
+                        <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input">
+                        <span class="date-separator">→</span>
+                        <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input">
+                        <button onclick="applyAnalyticsFilters()" class="btn-primary apply-btn">
                             <i class="fas fa-play"></i> Apply
                         </button>
                     </div>
@@ -502,6 +874,9 @@ function applyAnalyticsFilters() {
 
 // Render Analytics Page with Real Data
 async function renderAnalyticsWithData(period = 'month', storeKey = null, locationId = null) {
+    // Ensure styles are injected (idempotent - won't duplicate)
+    injectAnalyticsStyles();
+
     // Cancel any previous pending request and get a new request ID
     cancelAnalyticsRequest();
     const thisRequestId = analyticsRequestId;
@@ -711,40 +1086,40 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                 </div>
             </div>
 
-            <!-- Filters Section -->
+            <!-- Filters Section - Responsive Layout -->
             <div class="analytics-filters-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid var(--border-color);">
-                <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: end;">
+                <div class="analytics-filters-grid">
                     <!-- Quick Select Presets -->
                     <div class="filter-group">
-                        <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Quick Select</label>
-                        <div class="analytics-presets" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button class="preset-btn" onclick="setAnalyticsPreset('today')" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">Today</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('yesterday')" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">Yesterday</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('week')" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">This Week</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('month')" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">This Month</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('year')" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">This Year</button>
-                            <button class="preset-btn active" style="background: var(--accent-primary); border: 1px solid var(--accent-primary); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">Custom</button>
+                        <label class="filter-label">Quick Select</label>
+                        <div class="analytics-presets">
+                            <button class="preset-btn" onclick="setAnalyticsPreset('today')">Today</button>
+                            <button class="preset-btn" onclick="setAnalyticsPreset('yesterday')">Yesterday</button>
+                            <button class="preset-btn" onclick="setAnalyticsPreset('week')">This Week</button>
+                            <button class="preset-btn" onclick="setAnalyticsPreset('month')">This Month</button>
+                            <button class="preset-btn" onclick="setAnalyticsPreset('year')">This Year</button>
+                            <button class="preset-btn active">Custom</button>
                         </div>
                     </div>
 
                     <!-- Store Selection -->
                     <div class="filter-group">
-                        <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Store</label>
-                        <div class="store-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <div class="store-chip ${selectedStore === 'vsu' ? 'selected' : ''}" onclick="handleStoreChipClick('vsu')" style="background: ${selectedStore === 'vsu' ? '#1e3a5f' : 'var(--bg-tertiary)'}; border: 1px solid ${selectedStore === 'vsu' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${selectedStore === 'vsu' ? '#60a5fa' : 'var(--text-primary)'}; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">
-                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6;"></span>
+                        <label class="filter-label">Store</label>
+                        <div class="store-chips">
+                            <div class="store-chip ${selectedStore === 'vsu' ? 'selected' : ''}" onclick="handleStoreChipClick('vsu')">
+                                <span class="store-dot" style="background: #8b5cf6;"></span>
                                 VSU
                             </div>
-                            <div class="store-chip ${selectedStore === 'loyalvaper' ? 'selected' : ''}" onclick="handleStoreChipClick('loyalvaper')" style="background: ${selectedStore === 'loyalvaper' ? '#1e3a5f' : 'var(--bg-tertiary)'}; border: 1px solid ${selectedStore === 'loyalvaper' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${selectedStore === 'loyalvaper' ? '#60a5fa' : 'var(--text-primary)'}; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">
-                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                            <div class="store-chip ${selectedStore === 'loyalvaper' ? 'selected' : ''}" onclick="handleStoreChipClick('loyalvaper')">
+                                <span class="store-dot" style="background: #10b981;"></span>
                                 Loyal Vaper
                             </div>
-                            <div class="store-chip ${selectedStore === 'miramarwine' ? 'selected' : ''}" onclick="handleStoreChipClick('miramarwine')" style="background: ${selectedStore === 'miramarwine' ? '#1e3a5f' : 'var(--bg-tertiary)'}; border: 1px solid ${selectedStore === 'miramarwine' ? 'var(--accent-primary)' : 'var(--border-color)'}; color: ${selectedStore === 'miramarwine' ? '#60a5fa' : 'var(--text-primary)'}; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">
-                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
+                            <div class="store-chip ${selectedStore === 'miramarwine' ? 'selected' : ''}" onclick="handleStoreChipClick('miramarwine')">
+                                <span class="store-dot" style="background: #f59e0b;"></span>
                                 Miramar Wine
                             </div>
                             ${selectedStore === 'vsu' && vsuLocations.length > 0 ? `
-                            <select id="location-select" onchange="handleLocationChange(this.value)" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: 20px; font-size: 13px; font-family: 'Outfit', sans-serif; cursor: pointer;">
+                            <select id="location-select" onchange="handleLocationChange(this.value)" class="location-select">
                                 <option value="">All Locations</option>
                                 ${vsuLocations.map(loc => `<option value="${loc.id}" ${selectedLocation == loc.id ? 'selected' : ''}>${loc.name}</option>`).join('')}
                             </select>
@@ -754,12 +1129,12 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
                     <!-- Date Range & Apply -->
                     <div class="filter-group">
-                        <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Date Range</label>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 14px; border-radius: 8px; font-size: 13px; font-family: 'Outfit', sans-serif;">
-                            <span style="color: var(--text-muted);">→</span>
-                            <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 14px; border-radius: 8px; font-size: 13px; font-family: 'Outfit', sans-serif;">
-                            <button onclick="applyAnalyticsFilters()" class="btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 10px 24px; font-size: 14px;">
+                        <label class="filter-label">Date Range</label>
+                        <div class="date-range-inputs">
+                            <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input">
+                            <span class="date-separator">→</span>
+                            <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input">
+                            <button onclick="applyAnalyticsFilters()" class="btn-primary apply-btn">
                                 <i class="fas fa-play"></i> Apply
                             </button>
                         </div>
@@ -809,12 +1184,17 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
                 <!-- Sales Chart -->
                 <div class="card" style="margin-top: 24px;">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 class="card-title"><i class="fas fa-chart-line"></i> Sales Chart</h3>
-                        <select id="chartTypeSelect" onchange="updateChartView()" class="btn-secondary" style="padding: 8px 16px; font-family: 'Outfit', sans-serif; font-weight: 500;">
-                            <option value="daily">By Day</option>
-                            <option value="hourly">By Hour</option>
-                        </select>
+                    <div class="card-header sales-chart-header">
+                        <div class="chart-header-left">
+                            <h3 class="card-title"><i class="fas fa-chart-line"></i> Sales Chart</h3>
+                        </div>
+                        <div class="chart-header-right">
+                            <span class="chart-type-label">View sales aggregated:</span>
+                            <select id="chartTypeSelect" onchange="updateChartView()" class="chart-type-select">
+                                <option value="daily">By Day</option>
+                                <option value="hourly">By Hour</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div style="height: 300px; position: relative;">
@@ -1246,19 +1626,20 @@ function renderSalesTransactionsTable(orders) {
     });
 
     let tableHTML = `
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <div class="transactions-table-wrapper">
+        <table class="transactions-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
             <thead>
                 <tr style="background: var(--bg-tertiary); position: sticky; top: 0; z-index: 10;">
                     <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; width: 30px;"></th>
                     <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Time</th>
                     <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Order #</th>
-                    <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Customer</th>
+                    <th class="hide-mobile" style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Customer</th>
                     <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Payment</th>
                     <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Gross</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CECET 12.5%</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CA Tax 7.5%</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Total Tax</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Net Sales</th>
+                    <th class="hide-mobile" style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CECET 12.5%</th>
+                    <th class="hide-mobile" style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CA Tax 7.5%</th>
+                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Tax</th>
+                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Net</th>
                 </tr>
             </thead>
             <tbody>
@@ -1309,15 +1690,15 @@ function renderSalesTransactionsTable(orders) {
                         <i class="fas fa-chevron-right txn-chevron" id="chevron-txn-${order.id}" style="color: var(--text-muted); transition: transform 0.2s; font-size: 11px;"></i>
                     </td>
                     <td style="padding: 14px 16px;">${orderTime}</td>
-                    <td style="padding: 14px 16px;">
+                    <td class="order-number" style="padding: 14px 16px;">
                         <strong>${order.name || 'N/A'}</strong>
                         ${hasLineItems ? `<span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">(${itemCount} item${itemCount !== 1 ? 's' : ''})</span>` : ''}
                     </td>
-                    <td style="padding: 14px 16px; color: var(--text-secondary);">${order.customer || 'Guest'}</td>
+                    <td class="hide-mobile" style="padding: 14px 16px; color: var(--text-secondary);">${order.customer || 'Guest'}</td>
                     <td style="padding: 14px 16px;">${paymentBadge}</td>
                     <td style="padding: 14px 16px; text-align: right;">${formatCurrency(orderTotal)}</td>
-                    <td style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${orderCecetTax > 0 ? formatCurrency(orderCecetTax) : '-'}</td>
-                    <td style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${orderSalesTax > 0 ? formatCurrency(orderSalesTax) : '-'}</td>
+                    <td class="hide-mobile" style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${orderCecetTax > 0 ? formatCurrency(orderCecetTax) : '-'}</td>
+                    <td class="hide-mobile" style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${orderSalesTax > 0 ? formatCurrency(orderSalesTax) : '-'}</td>
                     <td style="padding: 14px 16px; text-align: right; color: #ef4444;">${formatCurrency(orderTotalTax)}</td>
                     <td style="padding: 14px 16px; text-align: right; font-weight: 600; color: #10b981;">${formatCurrency(orderNetSales)}</td>
                 </tr>
@@ -1374,15 +1755,15 @@ function renderSalesTransactionsTable(orders) {
             `;
         });
 
-        // Date subtotal row
+        // Date subtotal row (responsive - hide CECET and CA Tax on mobile)
         tableHTML += `
             <tr style="background: var(--bg-hover);">
-                <td colspan="5" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color);">
+                <td colspan="5" class="subtotal-label" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color);">
                     Subtotal (${dateOrders.length} orders)
                 </td>
                 <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color);">${formatCurrency(dateTotals.gross)}</td>
-                <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">${dateTotals.cecetTax > 0 ? formatCurrency(dateTotals.cecetTax) : '-'}</td>
-                <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">${dateTotals.salesTax > 0 ? formatCurrency(dateTotals.salesTax) : '-'}</td>
+                <td class="hide-mobile" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">${dateTotals.cecetTax > 0 ? formatCurrency(dateTotals.cecetTax) : '-'}</td>
+                <td class="hide-mobile" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">${dateTotals.salesTax > 0 ? formatCurrency(dateTotals.salesTax) : '-'}</td>
                 <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: #ef4444;">${formatCurrency(dateTotals.totalTax)}</td>
                 <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: #10b981;">${formatCurrency(dateTotals.netSales)}</td>
             </tr>
@@ -1392,6 +1773,7 @@ function renderSalesTransactionsTable(orders) {
     tableHTML += `
             </tbody>
         </table>
+        </div>
     `;
 
     return tableHTML;
