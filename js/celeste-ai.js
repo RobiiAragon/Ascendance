@@ -205,7 +205,7 @@ const CELESTE_ACTIONS = {
     // Gifts
     gift: {
         keywords: ['regalo', 'gift', 'regalé', 'gave away', 'cortesía', 'gratis'],
-        module: 'gifts',
+        module: 'customercare',
         action: 'recordGift',
         description: 'Registrar un regalo'
     },
@@ -258,7 +258,7 @@ const MODULE_NAMES = {
     'change': ['cambio', 'change', 'feria'],
     'restock': ['restock', 'pedidos', 'inventario'],
     'issues': ['problemas', 'issues', 'quejas'],
-    'gifts': ['regalos', 'gifts', 'cortesías'],
+    'customercare': ['regalos', 'gifts', 'cortesías', 'customer care'],
     'risknotes': ['riesgos', 'risk', 'alertas'],
     'labels': ['etiquetas', 'labels', 'códigos'],
     'supplies': ['suministros', 'supplies', 'materiales'],

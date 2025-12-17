@@ -1178,7 +1178,7 @@
                 abundancecloud: 'Abundance Cloud Engine',
                 newstuff: 'New Stuff',
                 change: 'Change',
-                gifts: 'Gift Tracking',
+                customercare: 'Customer Care',
                 risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
                 projectanalytics: 'Project Analytics',
@@ -1343,7 +1343,7 @@
                 case 'change':
                     renderChange();
                     break;
-                case 'gifts':
+                case 'customercare':
                     renderGifts();
                     break;
                 case 'gforce':
@@ -25997,7 +25997,7 @@ Return ONLY the JSON object, no additional text.`,
                 'money-bill-wave': 'cashout',
                 'vault': 'treasury',
                 'coins': 'change',
-                'gift': 'gifts',
+                'gift': 'customercare',
                 'shield-halved': 'risknotes',
                 'key': 'passwords',
                 'bolt': 'gforce',
@@ -26832,7 +26832,7 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Expenses Control', page: 'cashout', icon: 'fa-money-bill-wave' },
                 { name: 'Heady Pieces', page: 'treasury', icon: 'fa-vault' },
                 { name: 'Change Records', page: 'change', icon: 'fa-coins' },
-                { name: 'Gift Tracking', page: 'gifts', icon: 'fa-gift' },
+                { name: 'Customer Care', page: 'customercare', icon: 'fa-heart' },
                 { name: 'Risk Notes', page: 'risknotes', icon: 'fa-shield-halved' },
                 { name: 'Password Manager', page: 'passwords', icon: 'fa-key' },
                 { name: 'G Force', page: 'gforce', icon: 'fa-bolt' },
@@ -32039,7 +32039,7 @@ window.renderProjectAnalytics = function() {
         { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', page: 'cashout', description: 'Cash out tracking', fullDescription: 'Daily expense tracking and cash out management with receipt documentation.', features: ['Receipt upload', 'Category tracking', 'Daily totals', 'Approval workflow'], version: '2.0', linesOfCode: 980 },
         { name: 'Heady Pieces', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Art collection', fullDescription: 'Heady glass and art piece collection management with photos and valuations.', features: ['Photo gallery', 'Artist tracking', 'Valuation records', 'Location tracking'], version: '1.8', linesOfCode: 720 },
         { name: 'Change Records', icon: 'fa-coins', status: 'active', page: 'change', description: 'Cash flow between stores', fullDescription: 'Track change and cash transfers between store locations with photo verification.', features: ['Photo verification', 'Transfer tracking', 'Store-to-store', 'Balance history'], version: '1.6', linesOfCode: 580 },
-        { name: 'Gift Tracking', icon: 'fa-gift', status: 'active', page: 'gifts', description: 'Gift tracking', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.5', linesOfCode: 540 },
+        { name: 'Customer Care', icon: 'fa-heart', status: 'active', page: 'customercare', description: 'Customer care', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.5', linesOfCode: 540 },
         { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', page: 'risknotes', description: 'Security alerts', fullDescription: 'Security risk documentation and alert system for potential threats.', features: ['Risk assessment', 'Alert system', 'Action tracking', 'Priority levels'], version: '1.3', linesOfCode: 480 },
         { name: 'Password Manager', icon: 'fa-key', status: 'active', page: 'passwords', description: 'Credentials vault', fullDescription: 'Secure password and credential storage with encrypted access.', features: ['Secure storage', 'Category organization', 'Quick copy', 'Access logging'], version: '1.8', linesOfCode: 620 },
         { name: 'G Force', icon: 'fa-bolt', status: 'active', page: 'gforce', description: 'Daily motivation', fullDescription: 'Daily motivational quotes, affirmations, and philosophy for team inspiration.', features: ['Daily quotes', 'Affirmations', 'Philosophy tips', 'Random generation'], version: '1.5', linesOfCode: 440 },
