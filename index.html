@@ -433,7 +433,8 @@
         </div>
 
         <nav class="nav-section">
-            <!-- Principal -->
+            <!-- PRINCIPAL -->
+            <div class="nav-label">Principal</div>
             <a href="#" class="nav-item" data-page="celesteai" onclick="window.navigateTo && window.navigateTo('celesteai'); return false;" style="background: linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15)); border: 1px solid rgba(102,126,234,0.3);">
                 <span class="nav-icon"><img src="img/celeste-ai.svg" alt="Celeste" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;" onerror="this.outerHTML='<i class=\'fas fa-stars\' style=\'color: #a855f7;\'></i>'"></span> Celeste AI
             </a>
@@ -445,153 +446,105 @@
                 <span class="nav-badge" id="announcements-badge">0</span>
             </a>
 
-            <!-- Team Category -->
-            <div class="nav-category open" data-category="team">
-                <div class="nav-category-header" onclick="toggleNavCategory('team')">
-                    <span class="category-icon"><i class="fas fa-users"></i></span>
-                    <span>Team</span>
-                    <i class="fas fa-chevron-down category-arrow"></i>
-                </div>
-                <div class="nav-category-items">
-                    <a href="#" class="nav-item" data-page="employees" onclick="window.navigateTo && window.navigateTo('employees'); return false;">
-                        <span class="nav-icon"><i class="fas fa-id-badge"></i></span> Employees
-                        <span class="nav-badge" id="employees-count-badge">0</span>
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('schedule'); return false;">
-                        <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Schedule
-                    </a>
-                    <a href="#" class="nav-item" data-page="clockin" onclick="window.navigateTo && window.navigateTo('clockin'); return false;">
-                        <span class="nav-icon"><i class="fas fa-clock"></i></span> Clock In/Out
-                    </a>
-                    <a href="#" class="nav-item" data-page="training" onclick="window.navigateTo && window.navigateTo('training'); return false;">
-                        <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span> Training Center
-                    </a>
-                    <a href="#" class="nav-item" data-page="hrapplications" onclick="window.navigateTo && window.navigateTo('hrapplications'); return false;">
-                        <span class="nav-icon"><i class="fas fa-user-plus"></i></span> Job Applications
-                    </a>
-                </div>
-            </div>
+            <!-- EQUIPO -->
+            <div class="nav-label">Team</div>
+            <a href="#" class="nav-item" data-page="employees" onclick="window.navigateTo && window.navigateTo('employees'); return false;">
+                <span class="nav-icon"><i class="fas fa-users"></i></span> Employees
+                <span class="nav-badge" id="employees-count-badge">0</span>
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('schedule'); return false;">
+                <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Schedule
+            </a>
+            <a href="#" class="nav-item" data-page="clockin" onclick="window.navigateTo && window.navigateTo('clockin'); return false;">
+                <span class="nav-icon"><i class="fas fa-clock"></i></span> Clock In/Out
+            </a>
+            <a href="#" class="nav-item" data-page="training" onclick="window.navigateTo && window.navigateTo('training'); return false;">
+                <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span> Training Center
+            </a>
+            <a href="#" class="nav-item" data-page="hrapplications" onclick="window.navigateTo && window.navigateTo('hrapplications'); return false;">
+                <span class="nav-icon"><i class="fas fa-user-plus"></i></span> Job Applications
+            </a>
+            <a href="#" class="nav-item" data-page="dailychecklist" onclick="window.navigateTo && window.navigateTo('dailychecklist'); return false;">
+                <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span> Daily Checklist
+            </a>
 
-            <!-- Inventory Category -->
-            <div class="nav-category open" data-category="inventory">
-                <div class="nav-category-header" onclick="toggleNavCategory('inventory')">
-                    <span class="category-icon"><i class="fas fa-boxes-stacked"></i></span>
-                    <span>Inventory</span>
-                    <i class="fas fa-chevron-down category-arrow"></i>
-                </div>
-                <div class="nav-category-items">
-                    <a href="#" class="nav-item">
-                        <span class="nav-icon"><i class="fas fa-box"></i></span> New Stuff
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('restock'); return false;">
-                        <span class="nav-icon"><i class="fas fa-boxes"></i></span> Restock Requests
-                    </a>
-                    <a href="#" class="nav-item" data-page="labels" onclick="window.navigateTo && window.navigateTo('labels'); return false;">
-                        <span class="nav-icon"><i class="fas fa-barcode"></i></span> Barcode Labels
-                    </a>
-                    <a href="#" class="nav-item" data-page="supplies" onclick="window.navigateTo && window.navigateTo('supplies'); return false;">
-                        <span class="nav-icon"><i class="fas fa-shopping-basket"></i></span> Supplies
-                    </a>
-                    <a href="#" class="nav-item" data-page="transfers" onclick="window.navigateTo && window.navigateTo('transfers'); return false;">
-                        <span class="nav-icon"><i class="fas fa-exchange-alt"></i></span> Transfers
-                    </a>
-                </div>
-            </div>
+            <!-- INVENTARIO -->
+            <div class="nav-label">Inventory</div>
+            <a href="#" class="nav-item">
+                <span class="nav-icon"><i class="fas fa-box"></i></span> New Stuff
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('restock'); return false;">
+                <span class="nav-icon"><i class="fas fa-boxes"></i></span> Restock Requests
+            </a>
+            <a href="#" class="nav-item" data-page="supplies" onclick="window.navigateTo && window.navigateTo('supplies'); return false;">
+                <span class="nav-icon"><i class="fas fa-shopping-basket"></i></span> Supplies
+            </a>
+            <a href="#" class="nav-item" data-page="transfers" onclick="window.navigateTo && window.navigateTo('transfers'); return false;">
+                <span class="nav-icon"><i class="fas fa-exchange-alt"></i></span> Transfers
+            </a>
+            <a href="#" class="nav-item" data-page="labels" onclick="window.navigateTo && window.navigateTo('labels'); return false;">
+                <span class="nav-icon"><i class="fas fa-barcode"></i></span> Barcode Labels
+            </a>
 
-            <!-- Finance Category -->
-            <div class="nav-category open" data-category="finance">
-                <div class="nav-category-header" onclick="toggleNavCategory('finance')">
-                    <span class="category-icon"><i class="fas fa-dollar-sign"></i></span>
-                    <span>Finance</span>
-                    <i class="fas fa-chevron-down category-arrow"></i>
-                </div>
-                <div class="nav-category-items">
-                    <a href="#" class="nav-item" data-page="analytics" onclick="window.navigateTo && window.navigateTo('analytics'); return false;">
-                        <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Sales & Analytics
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('gconomics'); return false;">
-                        <span class="nav-icon"><i class="fas fa-wallet"></i></span> G-conomics
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('invoices'); return false;">
-                        <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span> Invoices & Payments
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('cashout'); return false;">
-                        <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span> Expenses Control
-                    </a>
-                    <a href="#" class="nav-item" data-page="change" onclick="window.navigateTo && window.navigateTo('change'); return false;">
-                        <span class="nav-icon"><i class="fas fa-coins"></i></span> Change Records
-                    </a>
-                </div>
-            </div>
+            <!-- FINANZAS -->
+            <div class="nav-label">Finance</div>
+            <a href="#" class="nav-item" data-page="analytics" onclick="window.navigateTo && window.navigateTo('analytics'); return false;">
+                <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Sales & Analytics
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('gconomics'); return false;">
+                <span class="nav-icon"><i class="fas fa-wallet"></i></span> G-conomics
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('invoices'); return false;">
+                <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span> Invoices & Payments
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('cashout'); return false;">
+                <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span> Expenses Control
+            </a>
+            <a href="#" class="nav-item" data-page="change" onclick="window.navigateTo && window.navigateTo('change'); return false;">
+                <span class="nav-icon"><i class="fas fa-coins"></i></span> Change Records
+            </a>
 
-            <!-- Operations Category -->
-            <div class="nav-category open" data-category="operations">
-                <div class="nav-category-header" onclick="toggleNavCategory('operations')">
-                    <span class="category-icon"><i class="fas fa-cogs"></i></span>
-                    <span>Operations</span>
-                    <i class="fas fa-chevron-down category-arrow"></i>
-                </div>
-                <div class="nav-category-items">
-                    <a href="#" class="nav-item" data-page="dailychecklist" onclick="window.navigateTo && window.navigateTo('dailychecklist'); return false;">
-                        <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span> Daily Checklist
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('vendors'); return false;">
-                        <span class="nav-icon"><i class="fas fa-truck"></i></span> Vendors & Suppliers
-                    </a>
-                    <a href="#" class="nav-item" data-page="licenses" onclick="window.navigateTo && window.navigateTo('licenses'); return false;">
-                        <span class="nav-icon"><i class="fas fa-folder-open"></i></span> Licenses & Docs
-                    </a>
-                    <a href="#" class="nav-item" data-page="abundancecloud" onclick="window.navigateTo && window.navigateTo('abundancecloud'); return false;">
-                        <span class="nav-icon"><i class="fas fa-cloud"></i></span> Abundance Cloud
-                    </a>
-                    <a href="#" class="nav-item" data-page="gifts" onclick="window.navigateTo && window.navigateTo('gifts'); return false;">
-                        <span class="nav-icon"><i class="fas fa-gift"></i></span> Gift Tracking
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('treasury'); return false;">
-                        <span class="nav-icon"><i class="fas fa-vault"></i></span> Heady Pieces
-                    </a>
-                </div>
-            </div>
+            <!-- OPERACIONES -->
+            <div class="nav-label">Operations</div>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('vendors'); return false;">
+                <span class="nav-icon"><i class="fas fa-truck"></i></span> Vendors & Suppliers
+            </a>
+            <a href="#" class="nav-item" data-page="licenses" onclick="window.navigateTo && window.navigateTo('licenses'); return false;">
+                <span class="nav-icon"><i class="fas fa-folder-open"></i></span> Licenses & Docs
+            </a>
+            <a href="#" class="nav-item" data-page="abundancecloud" onclick="window.navigateTo && window.navigateTo('abundancecloud'); return false;">
+                <span class="nav-icon"><i class="fas fa-cloud"></i></span> Abundance Cloud
+            </a>
+            <a href="#" class="nav-item" data-page="gifts" onclick="window.navigateTo && window.navigateTo('gifts'); return false;">
+                <span class="nav-icon"><i class="fas fa-gift"></i></span> Gift Tracking
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('treasury'); return false;">
+                <span class="nav-icon"><i class="fas fa-vault"></i></span> Heady Pieces
+            </a>
 
-            <!-- Security Category -->
-            <div class="nav-category open" data-category="security">
-                <div class="nav-category-header" onclick="toggleNavCategory('security')">
-                    <span class="category-icon"><i class="fas fa-shield-halved"></i></span>
-                    <span>Security</span>
-                    <i class="fas fa-chevron-down category-arrow"></i>
-                </div>
-                <div class="nav-category-items">
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('thieves'); return false;">
-                        <span class="nav-icon"><i class="fas fa-user-secret"></i></span> Thieves Database
-                    </a>
-                    <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('issues'); return false;">
-                        <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span> Issues Registry
-                    </a>
-                    <a href="#" class="nav-item" data-page="risknotes" onclick="window.navigateTo && window.navigateTo('risknotes'); return false;">
-                        <span class="nav-icon"><i class="fas fa-flag"></i></span> Risk Notes
-                    </a>
-                    <a href="#" class="nav-item" data-page="passwords" onclick="window.navigateTo && window.navigateTo('passwords'); return false;">
-                        <span class="nav-icon"><i class="fas fa-key"></i></span> Password Manager
-                    </a>
-                </div>
-            </div>
+            <!-- SEGURIDAD -->
+            <div class="nav-label">Security</div>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('thieves'); return false;">
+                <span class="nav-icon"><i class="fas fa-user-secret"></i></span> Thieves Database
+            </a>
+            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('issues'); return false;">
+                <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span> Issues Registry
+            </a>
+            <a href="#" class="nav-item" data-page="risknotes" onclick="window.navigateTo && window.navigateTo('risknotes'); return false;">
+                <span class="nav-icon"><i class="fas fa-shield-halved"></i></span> Risk Notes
+            </a>
+            <a href="#" class="nav-item" data-page="passwords" onclick="window.navigateTo && window.navigateTo('passwords'); return false;">
+                <span class="nav-icon"><i class="fas fa-key"></i></span> Password Manager
+            </a>
 
-            <!-- System Category -->
-            <div class="nav-category open" data-category="system">
-                <div class="nav-category-header" onclick="toggleNavCategory('system')">
-                    <span class="category-icon"><i class="fas fa-sliders"></i></span>
-                    <span>System</span>
-                    <i class="fas fa-chevron-down category-arrow"></i>
-                </div>
-                <div class="nav-category-items">
-                    <a href="#" class="nav-item" data-page="gforce" onclick="window.navigateTo && window.navigateTo('gforce'); return false;">
-                        <span class="nav-icon"><i class="fas fa-bolt"></i></span> G-Force
-                    </a>
-                    <a href="#" class="nav-item" data-page="projectanalytics" onclick="window.navigateTo && window.navigateTo('projectanalytics'); return false;">
-                        <span class="nav-icon"><i class="fas fa-code"></i></span> Project Analytics
-                    </a>
-                </div>
-            </div>
+            <!-- SISTEMA -->
+            <div class="nav-label">System</div>
+            <a href="#" class="nav-item" data-page="gforce" onclick="window.navigateTo && window.navigateTo('gforce'); return false;">
+                <span class="nav-icon"><i class="fas fa-bolt"></i></span> G-Force
+            </a>
+            <a href="#" class="nav-item" data-page="projectanalytics" onclick="window.navigateTo && window.navigateTo('projectanalytics'); return false;">
+                <span class="nav-icon"><i class="fas fa-code"></i></span> Project Analytics
+            </a>
         </nav>
 
         <div class="sidebar-footer">
