@@ -7479,17 +7479,25 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Filter Buttons -->
-                <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button onclick="filterRestockByType('all')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'all' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                        <i class="fas fa-layer-group" style="margin-right: 6px;"></i>All Requests
-                    </button>
-                    <button onclick="filterRestockByType('product')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'product' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                        <i class="fas fa-box" style="margin-right: 6px;"></i>Products
-                    </button>
-                    <button onclick="filterRestockByType('supply')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'supply' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                        <i class="fas fa-tools" style="margin-right: 6px;"></i>Supplies
+                <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button onclick="filterRestockByType('all')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'all' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-layer-group" style="margin-right: 6px;"></i>All Requests
+                        </button>
+                        <button onclick="filterRestockByType('product')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'product' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-box" style="margin-right: 6px;"></i>Products
+                        </button>
+                        <button onclick="filterRestockByType('supply')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'supply' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-tools" style="margin-right: 6px;"></i>Supplies
+                        </button>
+                    </div>
+                    <button onclick="askRestockAIRequests()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 10px 18px; border-radius: 25px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <i class="fas fa-robot"></i> Ask AI
                     </button>
                 </div>
+
+                <!-- AI Response Area -->
+                <div id="restock-requests-ai-response" style="display: none; margin-bottom: 20px;"></div>
             `;
 
             if (filteredRequests.length === 0) {
@@ -7961,6 +7969,94 @@ window.viewChecklistHistory = async function() {
             }
 
             throw new Error('All AI providers failed');
+        }
+
+        // AI Assistant for Requests Tab - helps prioritize and analyze pending requests
+        async function askRestockAIRequests() {
+            const responseDiv = document.getElementById('restock-requests-ai-response');
+            if (!responseDiv) return;
+
+            // Show loading state
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = `
+                <div style="background: linear-gradient(135deg, #8b5cf620 0%, #7c3aed20 100%); border-radius: 16px; padding: 20px; border: 1px solid #8b5cf640;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">AI Analyzing Requests...</div>
+                            <div style="font-size: 13px; color: var(--text-muted);">Evaluating priorities and recommendations</div>
+                        </div>
+                        <i class="fas fa-spinner fa-spin" style="margin-left: auto; color: #8b5cf6; font-size: 20px;"></i>
+                    </div>
+                </div>
+            `;
+
+            try {
+                // Gather data for AI analysis
+                const pendingRequests = restockRequests.filter(r => r.status === 'pending');
+                const approvedRequests = restockRequests.filter(r => r.status === 'approved');
+                const highPriorityPending = pendingRequests.filter(r => r.priority === 'high');
+
+                const dataContext = `
+                    Pending Restock Requests (${pendingRequests.length}):
+                    ${pendingRequests.map(r => `- ${r.productName}: ${r.quantity} units for ${r.store} (${r.priority} priority) - Requested by ${r.requestedBy} on ${r.requestDate}`).join('\n')}
+
+                    High Priority Pending (${highPriorityPending.length}):
+                    ${highPriorityPending.map(r => `- ${r.productName}: ${r.quantity} units for ${r.store}`).join('\n')}
+
+                    Already Approved (${approvedRequests.length}):
+                    ${approvedRequests.slice(0, 5).map(r => `- ${r.productName}: ${r.quantity} units`).join('\n')}
+                `;
+
+                const prompt = `You are a helpful inventory manager assistant. Analyze these pending restock requests and help the manager decide which ones to prioritize. Be concise and practical.
+
+                ${dataContext}
+
+                Provide:
+                1. A quick assessment (1-2 sentences)
+                2. Which requests should be approved first and why (top 3 if applicable)
+                3. Any patterns or concerns you notice`;
+
+                // Try to call the AI
+                const response = await callRestockAI(prompt);
+
+                responseDiv.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #8b5cf620 0%, #7c3aed20 100%); border-radius: 16px; padding: 20px; border: 1px solid #8b5cf640;">
+                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">AI Recommendations</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Priority analysis for pending requests</div>
+                            </div>
+                            <button onclick="document.getElementById('restock-requests-ai-response').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap;">${response}</div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('AI Error:', error);
+                responseDiv.innerHTML = `
+                    <div style="background: #ef444420; border-radius: 16px; padding: 20px; border: 1px solid #ef444440;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 20px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: #ef4444;">AI Unavailable</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Could not connect to AI service. Check API settings in Project Analytics.</div>
+                            </div>
+                            <button onclick="document.getElementById('restock-requests-ai-response').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; margin-left: auto;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         async function switchRestockTab(tab) {
