@@ -674,8 +674,23 @@ async function exportLabelsPDF() {
 function renderLabelsPage() {
     return `
         <div class="labels-page">
+            <!-- In Development Banner -->
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px 24px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px;">
+                <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-hard-hat" style="font-size: 24px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 600;">
+                        <i class="fas fa-wrench" style="margin-right: 8px;"></i>Module In Development
+                    </h3>
+                    <p style="margin: 0; opacity: 0.9; font-size: 14px;">
+                        This feature is currently being built. Barcode generation and printing will be available soon.
+                    </p>
+                </div>
+            </div>
+
             <!-- Header Actions -->
-            <div class="card" style="margin-bottom: 20px;">
+            <div class="card" style="margin-bottom: 20px; opacity: 0.6; pointer-events: none;">
                 <div class="card-body" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
                     <div class="form-group" style="margin: 0; flex: 1; min-width: 200px;">
                         <div style="position: relative;">
@@ -699,7 +714,7 @@ function renderLabelsPage() {
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 400px; gap: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 400px; gap: 20px; opacity: 0.6; pointer-events: none;">
                 <!-- Products List -->
                 <div class="card">
                     <div class="card-header">
@@ -764,7 +779,7 @@ function renderLabelsPage() {
             </div>
 
             <!-- Manual Entry Section -->
-            <div class="card" style="margin-top: 20px;">
+            <div class="card" style="margin-top: 20px; opacity: 0.6; pointer-events: none;">
                 <div class="card-header">
                     <h3 class="card-title">
                         <i class="fas fa-edit"></i> Manual Label Entry
