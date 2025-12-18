@@ -229,7 +229,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['celesteai', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics', 'labels']
+        pages: ['celesteai', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics', 'labels', 'treasury']
     }
 };
 

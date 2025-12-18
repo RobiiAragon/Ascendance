@@ -104,6 +104,9 @@ function renderTransfersPage() {
                 <button class="btn-secondary" onclick="loadTransfers(); renderTransfersPage();">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
+                <button onclick="openAITransferModal()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-robot"></i> AI Transfer
+                </button>
                 <button class="btn-primary" onclick="openTransferModal()">
                     <i class="fas fa-plus"></i> New Transfer
                 </button>
@@ -972,3 +975,388 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if we should show transfers page
     setTimeout(checkTransfersPage, 100);
 });
+
+// ========================================
+// AI TRANSFER ASSISTANT
+// ========================================
+
+// State for AI transfer
+let aiTransferState = {
+    parsedItems: [],
+    isProcessing: false
+};
+
+// Open AI Transfer Modal
+function openAITransferModal() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('aiTransferModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'aiTransferModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                    <h3 style="color: white; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-robot"></i> AI Transfer Assistant
+                    </h3>
+                    <button class="close-modal" onclick="closeAITransferModal()" style="color: white;">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 24px;">
+                    <div style="margin-bottom: 20px;">
+                        <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                            Describe your transfer naturally. Example:<br>
+                            <em style="color: var(--accent-primary);">"5 Lost Mary Watermelon, 10 Elf Bar Blueberry, 3 Geek Bar from VSU 2 to VSU 4"</em>
+                        </p>
+
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From</label>
+                                <select id="aiTransferOrigin" class="form-control" style="width: 100%;">
+                                    <option value="">Select Origin</option>
+                                    <option value="1">VSU 1</option>
+                                    <option value="2">VSU 2</option>
+                                    <option value="3">VSU 3</option>
+                                    <option value="4">VSU 4</option>
+                                    <option value="5">VSU 5</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">To</label>
+                                <select id="aiTransferDestination" class="form-control" style="width: 100%;">
+                                    <option value="">Select Destination</option>
+                                    <option value="1">VSU 1</option>
+                                    <option value="2">VSU 2</option>
+                                    <option value="3">VSU 3</option>
+                                    <option value="4">VSU 4</option>
+                                    <option value="5">VSU 5</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Products (one per line or comma separated)</label>
+                        <textarea id="aiTransferInput" class="form-control" rows="4" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry&#10;3 Geek Bar Grape..." style="font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button onclick="parseAITransferInput()" style="flex: 1; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-magic"></i> Parse Items
+                        </button>
+                        <button onclick="startVoiceInput()" style="width: 48px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Voice Input">
+                            <i class="fas fa-microphone" style="color: var(--accent-primary);"></i>
+                        </button>
+                    </div>
+
+                    <div id="aiTransferResults" style="display: none;">
+                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-clipboard-list" style="color: #10b981;"></i> Parsed Items
+                        </h4>
+                        <div id="aiTransferItemsList" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;"></div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="closeAITransferModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+                            <button onclick="createAITransfers()" class="btn-primary" style="flex: 1; background: #10b981;">
+                                <i class="fas fa-check"></i> Create Transfers
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="aiTransferLoading" style="display: none; text-align: center; padding: 20px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #8b5cf6;"></i>
+                        <p style="margin-top: 10px; color: var(--text-muted);">Processing with AI...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // Reset state
+    aiTransferState.parsedItems = [];
+    document.getElementById('aiTransferInput').value = '';
+    document.getElementById('aiTransferResults').style.display = 'none';
+    document.getElementById('aiTransferLoading').style.display = 'none';
+
+    modal.classList.add('active');
+}
+
+// Close AI Transfer Modal
+function closeAITransferModal() {
+    const modal = document.getElementById('aiTransferModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Parse AI Transfer Input
+async function parseAITransferInput() {
+    const input = document.getElementById('aiTransferInput').value.trim();
+    const origin = document.getElementById('aiTransferOrigin').value;
+    const destination = document.getElementById('aiTransferDestination').value;
+
+    if (!input) {
+        alert('Please enter the products to transfer');
+        return;
+    }
+
+    if (!origin || !destination) {
+        alert('Please select origin and destination stores');
+        return;
+    }
+
+    if (origin === destination) {
+        alert('Origin and destination cannot be the same');
+        return;
+    }
+
+    // Show loading
+    document.getElementById('aiTransferLoading').style.display = 'block';
+    document.getElementById('aiTransferResults').style.display = 'none';
+
+    try {
+        // Try to use AI to parse, or fallback to simple parsing
+        const items = await parseTransferWithAI(input);
+
+        if (items.length === 0) {
+            alert('Could not parse any items. Please check the format.');
+            document.getElementById('aiTransferLoading').style.display = 'none';
+            return;
+        }
+
+        aiTransferState.parsedItems = items;
+        renderParsedItems();
+
+    } catch (error) {
+        console.error('Error parsing input:', error);
+        // Fallback to simple parsing
+        const items = simpleParseTransferInput(input);
+        if (items.length > 0) {
+            aiTransferState.parsedItems = items;
+            renderParsedItems();
+        } else {
+            alert('Error parsing items. Please try again.');
+        }
+    }
+
+    document.getElementById('aiTransferLoading').style.display = 'none';
+}
+
+// Simple parsing without AI (fallback)
+function simpleParseTransferInput(input) {
+    const lines = input.split(/[\n,]+/).map(l => l.trim()).filter(l => l);
+    const items = [];
+
+    for (const line of lines) {
+        // Try to extract quantity and product name
+        // Format: "5 Lost Mary Watermelon" or "Lost Mary x5" or "Lost Mary (5)"
+        let quantity = 1;
+        let productName = line;
+
+        // Match "5 Product Name" format
+        const match1 = line.match(/^(\d+)\s+(.+)$/);
+        if (match1) {
+            quantity = parseInt(match1[1]);
+            productName = match1[2];
+        }
+
+        // Match "Product Name x5" format
+        const match2 = line.match(/^(.+)\s*[xX]\s*(\d+)$/);
+        if (match2) {
+            productName = match2[1].trim();
+            quantity = parseInt(match2[2]);
+        }
+
+        // Match "Product Name (5)" format
+        const match3 = line.match(/^(.+)\s*\((\d+)\)$/);
+        if (match3) {
+            productName = match3[1].trim();
+            quantity = parseInt(match3[2]);
+        }
+
+        if (productName && quantity > 0) {
+            items.push({
+                productName: productName.trim(),
+                quantity: quantity,
+                matched: false,
+                matchedProduct: null
+            });
+        }
+    }
+
+    return items;
+}
+
+// Parse with AI
+async function parseTransferWithAI(input) {
+    // First try simple parsing
+    const simpleItems = simpleParseTransferInput(input);
+
+    // Try to match with actual products from Shopify
+    if (transfersState.productsCache.length === 0) {
+        try {
+            if (typeof fetchStoreInventory === 'function') {
+                transfersState.productsCache = await fetchStoreInventory('vsu', 250);
+            }
+        } catch (e) {
+            console.warn('Could not load products:', e);
+        }
+    }
+
+    // Match items with products
+    for (const item of simpleItems) {
+        const searchTerm = item.productName.toLowerCase();
+        const matchedProduct = transfersState.productsCache.find(p => {
+            const productStr = `${p.productName} ${p.flavor || ''} ${p.brand || ''}`.toLowerCase();
+            return productStr.includes(searchTerm) || searchTerm.includes(p.productName.toLowerCase());
+        });
+
+        if (matchedProduct) {
+            item.matched = true;
+            item.matchedProduct = matchedProduct;
+        }
+    }
+
+    return simpleItems;
+}
+
+// Render parsed items
+function renderParsedItems() {
+    const listEl = document.getElementById('aiTransferItemsList');
+    const resultsEl = document.getElementById('aiTransferResults');
+
+    if (!listEl || !resultsEl) return;
+
+    listEl.innerHTML = aiTransferState.parsedItems.map((item, index) => `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 8px; border-left: 4px solid ${item.matched ? '#10b981' : '#f59e0b'};">
+            <div style="width: 40px; height: 40px; background: ${item.matched ? '#10b98120' : '#f59e0b20'}; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: ${item.matched ? '#10b981' : '#f59e0b'};">
+                ${item.quantity}
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary);">${item.productName}</div>
+                ${item.matched ? `
+                    <div style="font-size: 12px; color: #10b981;"><i class="fas fa-check-circle"></i> Matched: ${item.matchedProduct.productName}</div>
+                ` : `
+                    <div style="font-size: 12px; color: #f59e0b;"><i class="fas fa-exclamation-triangle"></i> No exact match - will create as entered</div>
+                `}
+            </div>
+            <button onclick="removeAIParsedItem(${index})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+
+    resultsEl.style.display = 'block';
+}
+
+// Remove parsed item
+function removeAIParsedItem(index) {
+    aiTransferState.parsedItems.splice(index, 1);
+    if (aiTransferState.parsedItems.length === 0) {
+        document.getElementById('aiTransferResults').style.display = 'none';
+    } else {
+        renderParsedItems();
+    }
+}
+
+// Create transfers from parsed items
+async function createAITransfers() {
+    const origin = document.getElementById('aiTransferOrigin').value;
+    const destination = document.getElementById('aiTransferDestination').value;
+
+    if (aiTransferState.parsedItems.length === 0) {
+        alert('No items to transfer');
+        return;
+    }
+
+    // Get current user
+    let sentBy = 'Staff';
+    try {
+        const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+        sentBy = user.name || user.email || 'Staff';
+    } catch (e) {
+        console.warn('Could not get current user');
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    let createdCount = 0;
+
+    for (const item of aiTransferState.parsedItems) {
+        const transfer = {
+            id: Date.now().toString() + '_' + createdCount,
+            folio: generateTransferFolio(),
+            storeOrigin: origin,
+            storeDestination: destination,
+            productId: item.matchedProduct?.id || null,
+            productName: item.matchedProduct?.productName || item.productName,
+            productSku: item.matchedProduct?.sku || '',
+            quantity: item.quantity,
+            shipDate: today,
+            sentBy: sentBy,
+            notes: 'Created via AI Transfer',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            receivedAt: null,
+            receivedBy: null
+        };
+
+        transfersState.transfers.push(transfer);
+        createdCount++;
+
+        // Small delay to ensure unique IDs
+        await new Promise(r => setTimeout(r, 10));
+    }
+
+    // Save to localStorage
+    saveTransfers();
+
+    // Close modal and refresh
+    closeAITransferModal();
+    renderTransfersPage();
+
+    // Show success message
+    alert(`${createdCount} transfer(s) created successfully!`);
+}
+
+// Voice input for AI transfer
+function startVoiceInput() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Voice recognition is not supported in this browser. Try Chrome.');
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = function() {
+        const btn = document.querySelector('#aiTransferModal .fa-microphone').parentElement;
+        btn.style.background = '#ef4444';
+        btn.innerHTML = '<i class="fas fa-stop" style="color: white;"></i>';
+    };
+
+    recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const input = document.getElementById('aiTransferInput');
+        if (input) {
+            input.value = (input.value ? input.value + '\n' : '') + transcript;
+        }
+    };
+
+    recognition.onend = function() {
+        const btn = document.querySelector('#aiTransferModal .fa-microphone, #aiTransferModal .fa-stop')?.parentElement;
+        if (btn) {
+            btn.style.background = 'var(--bg-secondary)';
+            btn.innerHTML = '<i class="fas fa-microphone" style="color: var(--accent-primary);"></i>';
+        }
+    };
+
+    recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        alert('Voice recognition error: ' + event.error);
+    };
+
+    recognition.start();
+}
