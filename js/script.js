@@ -18820,7 +18820,7 @@ Return ONLY the JSON object, no additional text.`
         let currentIssueStatusFilter = 'all';
         let currentIssueStoreFilter = 'all';
         let issuesFirebaseInitialized = false;
-        let issuesViewMode = 'table'; // 'table' or 'gallery'
+        let issuesViewMode = 'gallery'; // 'gallery' or 'table'
 
         async function renderIssues() {
             // Initialize Firebase for issues on first render
@@ -18952,11 +18952,11 @@ Return ONLY the JSON object, no additional text.`
                             <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
                         </div>
                         <div class="view-toggle" style="display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;">
-                            <button class="view-toggle-btn ${issuesViewMode === 'table' ? 'active' : ''}" onclick="toggleIssuesView('table')" title="Table View">
-                                <i class="fas fa-table"></i>
-                            </button>
                             <button class="view-toggle-btn ${issuesViewMode === 'gallery' ? 'active' : ''}" onclick="toggleIssuesView('gallery')" title="Gallery View">
                                 <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-toggle-btn ${issuesViewMode === 'table' ? 'active' : ''}" onclick="toggleIssuesView('table')" title="Table View">
+                                <i class="fas fa-table"></i>
                             </button>
                         </div>
                     </div>
@@ -18986,7 +18986,7 @@ Return ONLY the JSON object, no additional text.`
                                         const status = issue.status || 'open';
                                         const statusConfig = issueStatusConfig[status] || issueStatusConfig['open'];
                                         return `
-                                        <tr>
+                                        <tr onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
                                             <td data-label="Status">
                                                 <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: ${statusConfig.bg}; color: ${statusConfig.color}; border-radius: 20px; font-size: 12px; font-weight: 600;">
                                                     <i class="fas ${statusConfig.icon}"></i>
@@ -19016,27 +19016,27 @@ Return ONLY the JSON object, no additional text.`
                                             <td data-label="Perception" style="text-align: center; font-size: 24px;">
                                                 ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
                                             </td>
-                                            <td data-label="Actions">
+                                            <td data-label="Actions" onclick="event.stopPropagation()">
                                                 <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                                                     ${status !== 'follow-up' ? `
-                                                        <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'follow-up')" title="Mark as Need Follow Up" style="background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b50;">
+                                                        <button class="btn-icon" onclick="event.stopPropagation(); updateIssueStatus('${issue.firestoreId || issue.id}', 'follow-up')" title="Mark as Need Follow Up" style="background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b50;">
                                                             <i class="fas fa-clock"></i>
                                                         </button>
                                                     ` : ''}
                                                     ${status !== 'resolved' ? `
-                                                        <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'resolved')" title="Mark as Resolved" style="background: #10b98120; color: #10b981; border: 1px solid #10b98150;">
+                                                        <button class="btn-icon" onclick="event.stopPropagation(); updateIssueStatus('${issue.firestoreId || issue.id}', 'resolved')" title="Mark as Resolved" style="background: #10b98120; color: #10b981; border: 1px solid #10b98150;">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     ` : ''}
                                                     ${status !== 'open' ? `
-                                                        <button class="btn-icon" onclick="updateIssueStatus('${issue.firestoreId || issue.id}', 'open')" title="Reopen Issue" style="background: #ef444420; color: #ef4444; border: 1px solid #ef444450;">
+                                                        <button class="btn-icon" onclick="event.stopPropagation(); updateIssueStatus('${issue.firestoreId || issue.id}', 'open')" title="Reopen Issue" style="background: #ef444420; color: #ef4444; border: 1px solid #ef444450;">
                                                             <i class="fas fa-rotate-left"></i>
                                                         </button>
                                                     ` : ''}
-                                                    <button class="btn-icon" onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" title="View Details">
+                                                    <button class="btn-icon" onclick="event.stopPropagation(); viewIssueDetails('${issue.firestoreId || issue.id}')" title="View Details">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <button class="btn-icon danger" onclick="deleteIssue('${issue.firestoreId || issue.id}')" title="Delete">
+                                                    <button class="btn-icon danger" onclick="event.stopPropagation(); deleteIssue('${issue.firestoreId || issue.id}')" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
