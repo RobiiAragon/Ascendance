@@ -1969,7 +1969,17 @@ window.renderCelesteAIPage = function() {
 
     dashboard.innerHTML = `
         <div class="celeste-page">
-            <!-- Page Header 
+            <!-- Under Construction Banner -->
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 16px; margin-bottom: 24px; text-align: center;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
+                    <i class="fas fa-hard-hat" style="font-size: 32px;"></i>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">Under Construction</h2>
+                    <i class="fas fa-tools" style="font-size: 32px;"></i>
+                </div>
+                <p style="margin: 0; font-size: 15px; opacity: 0.95;">Celeste AI is currently being improved. This feature will be available soon with enhanced capabilities.</p>
+            </div>
+
+            <!-- Page Header
             <div class="celeste-page-header">
                 <div class="celeste-page-hero">
                     <div class="celeste-hero-avatar">
@@ -1991,8 +2001,9 @@ window.renderCelesteAIPage = function() {
                 </div>
             </div>
             -->
-            
-            <!-- Main Chat - Full Width -->
+
+            <!-- Main Chat - Full Width (Disabled) -->
+            <div style="opacity: 0.5; pointer-events: none;">
             <div class="celeste-main-chat">
                 <div class="celeste-chat-container">
                     <div class="celeste-chat-messages" id="celeste-page-messages">
@@ -2129,6 +2140,7 @@ window.renderCelesteAIPage = function() {
                     </div>
                 </div>
             </div>
+            </div><!-- End disabled wrapper -->
         </div>
 
         <style>
