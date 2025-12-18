@@ -1852,58 +1852,73 @@
         }
 
         /**
-         * Load store performance data from Shopify (weekly sales by location)
+         * Load store performance data from Shopify (weekly sales by store)
          */
         async function loadStorePerformance() {
             const container = document.getElementById('store-performance-container');
             if (!container) return;
 
             try {
-                if (typeof fetchSalesAnalyticsBulk !== 'function') {
-                    console.warn('[Dashboard] fetchSalesAnalyticsBulk not available');
+                // Check if fetchSalesAnalytics is available
+                const fetchFn = typeof fetchSalesAnalyticsBulk === 'function'
+                    ? fetchSalesAnalyticsBulk
+                    : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null);
+
+                if (!fetchFn) {
+                    console.warn('[Dashboard] No sales analytics function available');
                     container.innerHTML = renderStorePerformanceFallback();
                     return;
                 }
 
                 console.log('[Dashboard] Loading weekly store performance...');
 
-                // Fetch weekly sales data for all VSU stores
-                const salesData = await fetchSalesAnalyticsBulk('vsu', null, 'week');
+                // Fetch weekly sales data for each store in parallel
+                const storeKeys = ['vsu', 'miramarwine', 'loyalvaper'];
+                const storeNames = {
+                    'vsu': 'VSU (All Locations)',
+                    'miramarwine': 'Miramar Wine & Liquor',
+                    'loyalvaper': 'Loyal Vaper'
+                };
 
-                if (salesData && salesData.locationBreakdown) {
-                    // Get location data and sort by sales
-                    const locations = Object.entries(salesData.locationBreakdown)
-                        .map(([name, data]) => ({
-                            name: name,
-                            sales: parseFloat(data.totalSales || 0),
-                            orders: parseInt(data.orderCount || 0)
-                        }))
-                        .filter(loc => loc.name !== 'Unknown' && loc.name !== 'Other')
-                        .sort((a, b) => b.sales - a.sales);
+                const results = await Promise.allSettled(
+                    storeKeys.map(key => fetchFn(key, null, 'week'))
+                );
 
-                    if (locations.length > 0) {
-                        container.innerHTML = locations.map((loc, index) => {
-                            const rankClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : 'fourth';
-                            const formattedSales = loc.sales >= 1000
-                                ? '$' + (loc.sales / 1000).toFixed(1) + 'K'
-                                : '$' + loc.sales.toFixed(0);
-                            return `
-                                <div class="store-item">
-                                    <div class="store-rank ${rankClass}">${index + 1}</div>
-                                    <div class="store-details">
-                                        <div class="store-name">VSU ${loc.name}</div>
-                                        <div class="store-sales">${loc.orders} orders this week</div>
-                                    </div>
-                                    <div class="store-amount">${formattedSales}</div>
-                                </div>
-                            `;
-                        }).join('');
-                        return;
+                // Process results
+                const storeData = [];
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value?.summary) {
+                        storeData.push({
+                            name: storeNames[storeKeys[index]],
+                            sales: parseFloat(result.value.summary.totalSales || 0),
+                            orders: parseInt(result.value.summary.totalOrders || 0)
+                        });
                     }
-                }
+                });
 
-                // Fallback if no location breakdown
-                container.innerHTML = renderStorePerformanceFallback();
+                // Sort by sales descending
+                storeData.sort((a, b) => b.sales - a.sales);
+
+                if (storeData.length > 0) {
+                    container.innerHTML = storeData.map((store, index) => {
+                        const rankClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : 'fourth';
+                        const formattedSales = store.sales >= 1000
+                            ? '$' + (store.sales / 1000).toFixed(1) + 'K'
+                            : '$' + store.sales.toFixed(0);
+                        return `
+                            <div class="store-item">
+                                <div class="store-rank ${rankClass}">${index + 1}</div>
+                                <div class="store-details">
+                                    <div class="store-name">${store.name}</div>
+                                    <div class="store-sales">${store.orders} orders this week</div>
+                                </div>
+                                <div class="store-amount">${formattedSales}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = renderStorePerformanceFallback();
+                }
 
             } catch (error) {
                 console.error('[Dashboard] Error loading store performance:', error);
