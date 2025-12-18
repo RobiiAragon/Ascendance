@@ -1740,38 +1740,10 @@
                             <button class="card-action" onclick="navigateTo('analytics')">Details</button>
                         </div>
                         <div class="card-body">
-                            <div class="store-performance">
-                                <div class="store-item">
-                                    <div class="store-rank first">1</div>
-                                    <div class="store-details">
-                                        <div class="store-name">VSU Miramar</div>
-                                        <div class="store-sales">142 orders this week</div>
-                                    </div>
-                                    <div class="store-amount">$15,420</div>
-                                </div>
-                                <div class="store-item">
-                                    <div class="store-rank second">2</div>
-                                    <div class="store-details">
-                                        <div class="store-name">VSU Kearny Mesa</div>
-                                        <div class="store-sales">118 orders this week</div>
-                                    </div>
-                                    <div class="store-amount">$12,890</div>
-                                </div>
-                                <div class="store-item">
-                                    <div class="store-rank third">3</div>
-                                    <div class="store-details">
-                                        <div class="store-name">VSU Chula Vista</div>
-                                        <div class="store-sales">96 orders this week</div>
-                                    </div>
-                                    <div class="store-amount">$10,340</div>
-                                </div>
-                                <div class="store-item">
-                                    <div class="store-rank fourth">4</div>
-                                    <div class="store-details">
-                                        <div class="store-name">VSU Morena</div>
-                                        <div class="store-sales">87 orders this week</div>
-                                    </div>
-                                    <div class="store-amount">$9,550</div>
+                            <div class="store-performance" id="store-performance-container">
+                                <div style="text-align: center; padding: 40px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 12px; font-size: 13px;">Loading store data...</p>
                                 </div>
                             </div>
                         </div>
@@ -1821,6 +1793,9 @@
 
             // Load monthly revenue from Shopify API (async, updates the card when ready)
             loadMonthlyRevenueFromShopify();
+
+            // Load store performance from Shopify API (async)
+            loadStorePerformance();
         }
 
         /**
@@ -1874,6 +1849,81 @@
                 revenueTrend.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error`;
                 revenueTrend.className = 'stat-trend down';
             }
+        }
+
+        /**
+         * Load store performance data from Shopify (weekly sales by location)
+         */
+        async function loadStorePerformance() {
+            const container = document.getElementById('store-performance-container');
+            if (!container) return;
+
+            try {
+                if (typeof fetchSalesAnalyticsBulk !== 'function') {
+                    console.warn('[Dashboard] fetchSalesAnalyticsBulk not available');
+                    container.innerHTML = renderStorePerformanceFallback();
+                    return;
+                }
+
+                console.log('[Dashboard] Loading weekly store performance...');
+
+                // Fetch weekly sales data for all VSU stores
+                const salesData = await fetchSalesAnalyticsBulk('vsu', null, 'week');
+
+                if (salesData && salesData.locationBreakdown) {
+                    // Get location data and sort by sales
+                    const locations = Object.entries(salesData.locationBreakdown)
+                        .map(([name, data]) => ({
+                            name: name,
+                            sales: parseFloat(data.totalSales || 0),
+                            orders: parseInt(data.orderCount || 0)
+                        }))
+                        .filter(loc => loc.name !== 'Unknown' && loc.name !== 'Other')
+                        .sort((a, b) => b.sales - a.sales);
+
+                    if (locations.length > 0) {
+                        container.innerHTML = locations.map((loc, index) => {
+                            const rankClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : 'fourth';
+                            const formattedSales = loc.sales >= 1000
+                                ? '$' + (loc.sales / 1000).toFixed(1) + 'K'
+                                : '$' + loc.sales.toFixed(0);
+                            return `
+                                <div class="store-item">
+                                    <div class="store-rank ${rankClass}">${index + 1}</div>
+                                    <div class="store-details">
+                                        <div class="store-name">VSU ${loc.name}</div>
+                                        <div class="store-sales">${loc.orders} orders this week</div>
+                                    </div>
+                                    <div class="store-amount">${formattedSales}</div>
+                                </div>
+                            `;
+                        }).join('');
+                        return;
+                    }
+                }
+
+                // Fallback if no location breakdown
+                container.innerHTML = renderStorePerformanceFallback();
+
+            } catch (error) {
+                console.error('[Dashboard] Error loading store performance:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: #ef4444; margin-bottom: 8px;"></i>
+                        <p style="font-size: 13px;">Could not load store data</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderStorePerformanceFallback() {
+            return `
+                <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
+                    <i class="fas fa-store" style="font-size: 24px; margin-bottom: 8px;"></i>
+                    <p style="font-size: 13px;">No sales data available</p>
+                    <p style="font-size: 12px;">Check Analytics for details</p>
+                </div>
+            `;
         }
 
         async function renderEmployees() {
