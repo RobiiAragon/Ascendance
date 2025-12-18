@@ -2698,7 +2698,6 @@
                                     <div class="training-card-type">${(t.type || 'document').toUpperCase()}</div>
                                     <h3 class="training-card-title">${t.title}</h3>
                                     <div class="training-card-meta">
-                                        <span><i class="fas fa-clock"></i> ${t.duration || '30 min'}</span>
                                         <span class="${t.required ? 'required' : ''}"><i class="fas fa-${t.required ? 'exclamation-circle' : 'check'}"></i> ${t.required ? 'Required' : 'Optional'}</span>
                                     </div>
                                     ${t.fileName ? `
@@ -2750,10 +2749,6 @@
                                             <span style="display: flex; align-items: center; gap: 4px;">
                                                 <i class="fas fa-${typeIcon}" style="color: ${typeColor};"></i>
                                                 ${(t.type || 'document').charAt(0).toUpperCase() + (t.type || 'document').slice(1)}
-                                            </span>
-                                            <span style="display: flex; align-items: center; gap: 4px;">
-                                                <i class="fas fa-clock"></i>
-                                                ${t.duration || '30 min'}
                                             </span>
                                             ${t.fileName ? `
                                                 <span style="display: flex; align-items: center; gap: 4px;">
@@ -5701,6 +5696,7 @@
         let suppliesData = [];
         let suppliesCurrentStore = 'all';
         let suppliesCurrentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+        let suppliesViewMode = 'gallery'; // 'gallery' or 'list'
 
         async function initializeSupplies() {
             if (!firebaseStorageHelper.isInitialized) {
@@ -5817,17 +5813,27 @@
                 </div>
 
                 <!-- Filters -->
-                <div class="filters-bar" style="margin-bottom: 20px;">
-                    <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
-                        <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
-                        ${vsuStores.map(store => `
-                            <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
-                        `).join('')}
-                        ${otherStores.map(store => `
-                            <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
-                        `).join('')}
-                    </select>
-                    <input type="month" class="form-input" id="supplies-month-filter" value="${suppliesCurrentMonth}" onchange="filterSuppliesByMonth(this.value)" style="width: auto;">
+                <div class="filters-bar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
+                            <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
+                            ${vsuStores.map(store => `
+                                <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
+                            `).join('')}
+                            ${otherStores.map(store => `
+                                <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
+                            `).join('')}
+                        </select>
+                        <input type="month" class="form-input" id="supplies-month-filter" value="${suppliesCurrentMonth}" onchange="filterSuppliesByMonth(this.value)" style="width: auto;">
+                    </div>
+                    <div style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 8px;">
+                        <button onclick="setSuppliesViewMode('gallery')" style="padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; background: ${suppliesViewMode === 'gallery' ? 'var(--accent-primary)' : 'transparent'}; color: ${suppliesViewMode === 'gallery' ? 'white' : 'var(--text-secondary)'}; transition: all 0.2s;">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button onclick="setSuppliesViewMode('list')" style="padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; background: ${suppliesViewMode === 'list' ? 'var(--accent-primary)' : 'transparent'}; color: ${suppliesViewMode === 'list' ? 'white' : 'var(--text-secondary)'}; transition: all 0.2s;">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Stats Cards -->
@@ -5855,10 +5861,45 @@
                 <!-- Pending Items -->
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Pending Items</h3>
+                        <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Pending Items (${pendingSupplies.length})</h3>
                     </div>
                     <div class="card-body">
-                        ${pendingSupplies.length > 0 ? `
+                        ${pendingSupplies.length > 0 ? (suppliesViewMode === 'gallery' ? `
+                            <!-- Gallery View -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                                ${pendingSupplies.map(item => `
+                                    <div class="supply-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                        <div style="height: 100px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; position: relative;">
+                                            <i class="fas fa-box-open" style="font-size: 40px; color: white; opacity: 0.9;"></i>
+                                            <div style="position: absolute; top: 12px; right: 12px; background: #f59e0b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                                                <i class="fas fa-clock"></i> Pending
+                                            </div>
+                                            <div style="position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">
+                                                Qty: ${item.quantity}
+                                            </div>
+                                        </div>
+                                        <div style="padding: 16px;">
+                                            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${item.name}</h3>
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
+                                                    <i class="fas fa-store"></i> ${item.store}
+                                                </span>
+                                            </div>
+                                            ${item.addedBy ? `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;"><i class="fas fa-user"></i> ${item.addedBy}</div>` : ''}
+                                            <div style="display: flex; gap: 8px;">
+                                                <button onclick="markSupplyPurchased('${item.id}')" style="flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                                    <i class="fas fa-check"></i> Purchased
+                                                </button>
+                                                <button onclick="deleteSupply('${item.id}')" style="padding: 10px 14px; background: var(--bg-tertiary); color: #ef4444; border: none; border-radius: 8px; cursor: pointer;">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <!-- List View -->
                             <div class="supplies-list">
                                 ${pendingSupplies.map(item => `
                                     <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
@@ -5885,7 +5926,7 @@
                                     </div>
                                 `).join('')}
                             </div>
-                        ` : `
+                        `) : `
                             <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 <i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
                                 <p>No pending items. All caught up!</p>
@@ -5954,6 +5995,11 @@
 
         window.filterSuppliesByMonth = function(month) {
             suppliesCurrentMonth = month;
+            renderSupplies();
+        }
+
+        window.setSuppliesViewMode = function(mode) {
+            suppliesViewMode = mode;
             renderSupplies();
         }
 

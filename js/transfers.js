@@ -219,11 +219,11 @@ function renderTransfersPage() {
                                     <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">From</div>
                                     <select id="transferStoreOrigin" onchange="handleOriginStoreChange()" required style="width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border-color)'">
                                         <option value="">Select Origin</option>
-                                        <option value="1">VSU 1</option>
-                                        <option value="2">VSU 2</option>
-                                        <option value="3">VSU 3</option>
-                                        <option value="4">VSU 4</option>
-                                        <option value="5">VSU 5</option>
+                                        <option value="1">Miramar</option>
+                                        <option value="2">Morena</option>
+                                        <option value="3">Kearny Mesa</option>
+                                        <option value="4">Chula Vista</option>
+                                        <option value="5">North Park</option>
                                     </select>
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
@@ -233,11 +233,11 @@ function renderTransfersPage() {
                                     <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">To</div>
                                     <select id="transferStoreDestination" required style="width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
                                         <option value="">Select Destination</option>
-                                        <option value="1">VSU 1</option>
-                                        <option value="2">VSU 2</option>
-                                        <option value="3">VSU 3</option>
-                                        <option value="4">VSU 4</option>
-                                        <option value="5">VSU 5</option>
+                                        <option value="1">Miramar</option>
+                                        <option value="2">Morena</option>
+                                        <option value="3">Kearny Mesa</option>
+                                        <option value="4">Chula Vista</option>
+                                        <option value="5">North Park</option>
                                     </select>
                                 </div>
                             </div>
@@ -1135,7 +1135,7 @@ function openAITransferModal() {
                     <div style="margin-bottom: 20px;">
                         <p style="color: var(--text-secondary); margin-bottom: 16px;">
                             Describe your transfer naturally. Example:<br>
-                            <em style="color: var(--accent-primary);">"5 Lost Mary Watermelon, 10 Elf Bar Blueberry, 3 Geek Bar from VSU 2 to VSU 4"</em>
+                            <em style="color: var(--accent-primary);">"5 Lost Mary Watermelon, 10 Elf Bar Blueberry, 3 Geek Bar from Morena to Chula Vista"</em>
                         </p>
 
                         <div style="display: flex; gap: 12px; margin-bottom: 16px;">
@@ -1143,22 +1143,22 @@ function openAITransferModal() {
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From</label>
                                 <select id="aiTransferOrigin" class="form-control" style="width: 100%;">
                                     <option value="">Select Origin</option>
-                                    <option value="1">VSU 1</option>
-                                    <option value="2">VSU 2</option>
-                                    <option value="3">VSU 3</option>
-                                    <option value="4">VSU 4</option>
-                                    <option value="5">VSU 5</option>
+                                    <option value="1">Miramar</option>
+                                    <option value="2">Morena</option>
+                                    <option value="3">Kearny Mesa</option>
+                                    <option value="4">Chula Vista</option>
+                                    <option value="5">North Park</option>
                                 </select>
                             </div>
                             <div style="flex: 1;">
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">To</label>
                                 <select id="aiTransferDestination" class="form-control" style="width: 100%;">
                                     <option value="">Select Destination</option>
-                                    <option value="1">VSU 1</option>
-                                    <option value="2">VSU 2</option>
-                                    <option value="3">VSU 3</option>
-                                    <option value="4">VSU 4</option>
-                                    <option value="5">VSU 5</option>
+                                    <option value="1">Miramar</option>
+                                    <option value="2">Morena</option>
+                                    <option value="3">Kearny Mesa</option>
+                                    <option value="4">Chula Vista</option>
+                                    <option value="5">North Park</option>
                                 </select>
                             </div>
                         </div>
