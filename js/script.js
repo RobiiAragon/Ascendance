@@ -2194,10 +2194,12 @@
                     </div>
                 ` : `
                     <div class="training-grid">
-                        ${trainings.map(t => `
+                        ${trainings.map(t => {
+                            const thumbnail = t.type === 'video' && t.url ? getVideoThumbnail(t.url) : null;
+                            return `
                             <div class="training-card" onclick="${t.type === 'video' ? `playTrainingVideo('${t.id}')` : `viewTraining('${t.id}')`}" style="cursor: pointer;">
-                                <div class="training-card-thumbnail ${t.type}">
-                                    <i class="fas fa-${t.type === 'video' ? 'play-circle' : 'file-pdf'}"></i>
+                                <div class="training-card-thumbnail ${t.type}" ${thumbnail ? `style="background-image: url('${thumbnail}'); background-size: cover; background-position: center;"` : ''}>
+                                    ${thumbnail ? `<div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-play-circle" style="font-size: 48px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5);"></i></div>` : `<i class="fas fa-${t.type === 'video' ? 'play-circle' : 'file-pdf'}"></i>`}
                                 </div>
                                 <div class="training-card-body">
                                     <div class="training-card-type">${(t.type || 'document').toUpperCase()}</div>
@@ -2218,7 +2220,7 @@
                                     <button class="btn-icon danger" onclick="event.stopPropagation(); deleteTraining('${t.id}')"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
-                        `).join('')}
+                        `;}).join('')}
                     </div>
                 `}
             `;
@@ -26055,6 +26057,7 @@ Return ONLY the JSON object, no additional text.`,
             if (youtubeMatch) {
                 return {
                     type: 'youtube',
+                    videoId: youtubeMatch[1],
                     embedUrl: `https://www.youtube.com/embed/${youtubeMatch[1]}?autoplay=1`
                 };
             }
@@ -26066,8 +26069,28 @@ Return ONLY the JSON object, no additional text.`,
             if (vimeoMatch) {
                 return {
                     type: 'vimeo',
+                    videoId: vimeoMatch[1],
                     embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`
                 };
+            }
+
+            return null;
+        }
+
+        // Get video thumbnail URL
+        function getVideoThumbnail(url) {
+            const videoInfo = getVideoEmbedUrl(url);
+            if (!videoInfo) return null;
+
+            if (videoInfo.type === 'youtube') {
+                // YouTube thumbnail - maxresdefault is highest quality, falls back to hqdefault
+                return `https://img.youtube.com/vi/${videoInfo.videoId}/maxresdefault.jpg`;
+            }
+
+            if (videoInfo.type === 'vimeo') {
+                // Vimeo thumbnails require API call, use placeholder with video ID
+                // Will be loaded async if needed
+                return null;
             }
 
             return null;
