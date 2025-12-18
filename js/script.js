@@ -3066,53 +3066,36 @@
                 <!-- Error Container -->
                 <div id="analytics-error" style="display: none; background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
 
-                <!-- Redesigned Header -->
-                <div style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
-                        <div>
-                            <h2 class="section-title" style="margin: 0 0 8px 0;">Sales Analytics</h2>
-                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                <span style="color: var(--text-secondary); font-size: 14px;">Performance insights</span>
-                                <span style="background: var(--accent-primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                                    <i class="fas fa-calendar-check" style="margin-right: 6px;"></i>${dateRangeText}
-                                </span>
-                            </div>
-                        </div>
-                        <button onclick="loadAnalyticsData()" style="padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; color: var(--text-primary);">
+                <!-- Clean Header -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Sales Analytics</h2>
+                        <p class="section-subtitle">${dateRangeText}</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="analytics-period-select" onchange="setAnalyticsPeriodFromSelect(this.value)" class="form-input" style="min-width: 140px;">
+                            <option value="today" ${analyticsDateRange.period === 'today' ? 'selected' : ''}>Today</option>
+                            <option value="week" ${analyticsDateRange.period === 'week' ? 'selected' : ''}>This Week</option>
+                            <option value="month" ${analyticsDateRange.period === 'month' ? 'selected' : ''}>This Month</option>
+                            <option value="quarter" ${analyticsDateRange.period === 'quarter' ? 'selected' : ''}>Last 3 Months</option>
+                            <option value="year" ${analyticsDateRange.period === 'year' ? 'selected' : ''}>This Year</option>
+                            <option value="custom" ${analyticsDateRange.period === 'custom' ? 'selected' : ''}>Custom Range</option>
+                        </select>
+                        <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 16px;">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
                     </div>
+                </div>
 
-                    <!-- Period Selection - Cleaner Layout -->
-                    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; position: relative;">
-                        <div style="display: inline-flex; background: var(--bg-secondary); border-radius: 10px; padding: 4px; gap: 4px;">
-                            <button onclick="setAnalyticsPeriod('today')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'today' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'today' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Today</button>
-                            <button onclick="setAnalyticsPeriod('week')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'week' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'week' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Week</button>
-                            <button onclick="setAnalyticsPeriod('month')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'month' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'month' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Month</button>
-                            <button onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'quarter' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'quarter' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Quarter</button>
-                            <button onclick="setAnalyticsPeriod('year')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'year' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'year' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Year</button>
-                        </div>
-                        <button onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--bg-card)'}; color: ${analyticsDateRange.period === 'custom' ? 'white' : 'var(--text-primary)'}; border: 1px solid ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
-                            <i class="fas fa-calendar-alt"></i> Custom Range
-                        </button>
-
-                        <!-- Calendar Popup -->
-                        <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; z-index: 100;">
-                            <div class="analytics-calendar-popup" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 16px;">
-                                <div class="calendar-header-display" style="text-align: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px; font-weight: 500; color: var(--text-primary);">
-                                    <span id="selected-range-display">${dateRangeText}</span>
-                                </div>
-                                <div class="calendar-dual-view" style="display: flex; gap: 16px;">
-                                    <div class="calendar-month-panel" id="calendar-month-1"></div>
-                                    <div class="calendar-month-panel" id="calendar-month-2"></div>
-                                </div>
-                                <div class="calendar-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                                    <button class="btn-secondary" onclick="clearAnalyticsDateRange()" style="padding: 8px 16px; border-radius: 8px; cursor: pointer;">Clear</button>
-                                    <button class="btn-primary" onclick="applyAnalyticsDateRange()" style="padding: 8px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Apply</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Custom Date Range (only shown when custom is selected) -->
+                <div id="analytics-custom-range" style="display: ${analyticsDateRange.period === 'custom' ? 'flex' : 'none'}; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">From:</span>
+                    <input type="date" id="analytics-start-date" class="form-input" style="width: auto;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
+                    <span style="color: var(--text-secondary); font-size: 13px;">To:</span>
+                    <input type="date" id="analytics-end-date" class="form-input" style="width: auto;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
+                    <button onclick="loadAnalyticsData()" class="btn-secondary" style="padding: 8px 16px;">
+                        <i class="fas fa-check"></i> Apply
+                    </button>
                 </div>
 
                 <!-- Real Data Summary Cards -->
@@ -3321,53 +3304,36 @@
                 <!-- Error Container -->
                 <div id="analytics-error" style="display: none; background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
 
-                <!-- Redesigned Header -->
-                <div style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
-                        <div>
-                            <h2 class="section-title" style="margin: 0 0 8px 0;">Sales Analytics</h2>
-                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                <span style="color: var(--text-secondary); font-size: 14px;">Performance insights</span>
-                                <span style="background: var(--accent-primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                                    <i class="fas fa-calendar-check" style="margin-right: 6px;"></i>${dateRangeText}
-                                </span>
-                            </div>
-                        </div>
-                        <button onclick="loadAnalyticsData()" style="padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; color: var(--text-primary);">
-                            <i class="fas fa-sync-alt"></i> Refresh
+                <!-- Clean Header -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Sales Analytics</h2>
+                        <p class="section-subtitle">${dateRangeText}</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="analytics-period-select" onchange="setAnalyticsPeriodFromSelect(this.value)" class="form-input" style="min-width: 140px;">
+                            <option value="today" ${analyticsDateRange.period === 'today' ? 'selected' : ''}>Today</option>
+                            <option value="week" ${analyticsDateRange.period === 'week' ? 'selected' : ''}>This Week</option>
+                            <option value="month" ${analyticsDateRange.period === 'month' ? 'selected' : ''}>This Month</option>
+                            <option value="quarter" ${analyticsDateRange.period === 'quarter' ? 'selected' : ''}>Last 3 Months</option>
+                            <option value="year" ${analyticsDateRange.period === 'year' ? 'selected' : ''}>This Year</option>
+                            <option value="custom" ${analyticsDateRange.period === 'custom' ? 'selected' : ''}>Custom Range</option>
+                        </select>
+                        <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 16px;">
+                            <i class="fas fa-sync-alt"></i> Load Data
                         </button>
                     </div>
+                </div>
 
-                    <!-- Period Selection - Cleaner Layout -->
-                    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; position: relative;">
-                        <div style="display: inline-flex; background: var(--bg-secondary); border-radius: 10px; padding: 4px; gap: 4px;">
-                            <button onclick="setAnalyticsPeriod('today')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'today' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'today' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Today</button>
-                            <button onclick="setAnalyticsPeriod('week')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'week' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'week' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Week</button>
-                            <button onclick="setAnalyticsPeriod('month')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'month' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'month' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Month</button>
-                            <button onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'quarter' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'quarter' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Quarter</button>
-                            <button onclick="setAnalyticsPeriod('year')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'year' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'year' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Year</button>
-                        </div>
-                        <button onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--bg-card)'}; color: ${analyticsDateRange.period === 'custom' ? 'white' : 'var(--text-primary)'}; border: 1px solid ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
-                            <i class="fas fa-calendar-alt"></i> Custom Range
-                        </button>
-
-                        <!-- Calendar Popup -->
-                        <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; z-index: 100;">
-                            <div class="analytics-calendar-popup" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 16px;">
-                                <div class="calendar-header-display" style="text-align: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px; font-weight: 500; color: var(--text-primary);">
-                                    <span id="selected-range-display">${dateRangeText}</span>
-                                </div>
-                                <div class="calendar-dual-view" style="display: flex; gap: 16px;">
-                                    <div class="calendar-month-panel" id="calendar-month-1"></div>
-                                    <div class="calendar-month-panel" id="calendar-month-2"></div>
-                                </div>
-                                <div class="calendar-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                                    <button class="btn-secondary" onclick="clearAnalyticsDateRange()" style="padding: 8px 16px; border-radius: 8px; cursor: pointer;">Clear</button>
-                                    <button class="btn-primary" onclick="applyAnalyticsDateRange()" style="padding: 8px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Apply</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Custom Date Range (only shown when custom is selected) -->
+                <div id="analytics-custom-range" style="display: ${analyticsDateRange.period === 'custom' ? 'flex' : 'none'}; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">From:</span>
+                    <input type="date" id="analytics-start-date" class="form-input" style="width: auto;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
+                    <span style="color: var(--text-secondary); font-size: 13px;">To:</span>
+                    <input type="date" id="analytics-end-date" class="form-input" style="width: auto;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
+                    <button onclick="loadAnalyticsData()" class="btn-secondary" style="padding: 8px 16px;">
+                        <i class="fas fa-check"></i> Apply
+                    </button>
                 </div>
 
                 <!-- Annual Totals -->
@@ -3634,6 +3600,79 @@
             // Re-render analytics with new period and load data
             renderAnalytics();
             loadAnalyticsData();
+        };
+
+        // Handle period selection from dropdown
+        window.setAnalyticsPeriodFromSelect = function(period) {
+            analyticsDateRange.period = period;
+
+            // Show/hide custom date range section
+            const customRangeEl = document.getElementById('analytics-custom-range');
+            if (customRangeEl) {
+                customRangeEl.style.display = period === 'custom' ? 'flex' : 'none';
+            }
+
+            // If not custom, calculate dates and load data
+            if (period !== 'custom') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                switch(period) {
+                    case 'today':
+                        analyticsDateRange.startDate = new Date(today);
+                        analyticsDateRange.endDate = new Date(today);
+                        break;
+                    case 'week':
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - today.getDay());
+                        analyticsDateRange.startDate = startOfWeek;
+                        analyticsDateRange.endDate = new Date(today);
+                        break;
+                    case 'month':
+                        analyticsDateRange.startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                        analyticsDateRange.endDate = new Date(today);
+                        break;
+                    case 'quarter':
+                        const threeMonthsAgo = new Date(today);
+                        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                        analyticsDateRange.startDate = threeMonthsAgo;
+                        analyticsDateRange.endDate = new Date(today);
+                        break;
+                    case 'year':
+                        analyticsDateRange.startDate = new Date(today.getFullYear(), 0, 1);
+                        analyticsDateRange.endDate = new Date(today);
+                        break;
+                }
+
+                // Update subtitle with new date range
+                const subtitleEl = document.querySelector('.page-header .section-subtitle');
+                if (subtitleEl && analyticsDateRange.startDate && analyticsDateRange.endDate) {
+                    const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    subtitleEl.textContent = `${formatDate(analyticsDateRange.startDate)} - ${formatDate(analyticsDateRange.endDate)}`;
+                }
+
+                loadAnalyticsData();
+            }
+        };
+
+        // Handle custom date range changes
+        window.updateCustomDateRange = function() {
+            const startInput = document.getElementById('analytics-start-date');
+            const endInput = document.getElementById('analytics-end-date');
+
+            if (startInput && startInput.value) {
+                analyticsDateRange.startDate = new Date(startInput.value + 'T00:00:00');
+            }
+            if (endInput && endInput.value) {
+                analyticsDateRange.endDate = new Date(endInput.value + 'T00:00:00');
+            }
+
+            // Update subtitle
+            const subtitleEl = document.querySelector('.page-header .section-subtitle');
+            if (subtitleEl && analyticsDateRange.startDate && analyticsDateRange.endDate) {
+                const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                subtitleEl.textContent = `${formatDate(analyticsDateRange.startDate)} - ${formatDate(analyticsDateRange.endDate)}`;
+            }
         };
 
         function renderAnalyticsCalendars() {
