@@ -6138,8 +6138,18 @@ async function loadChecklistTasks() {
         const snapshot = await db.collection('checklistTasks').get();
         const customTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Filter custom tasks: include permanent tasks and one-time tasks from today
+        // Get default task IDs to avoid duplicates
+        const defaultTaskIds = defaultTasks.map(t => t.id);
+
+        // Filter custom tasks:
+        // - Only include tasks marked as custom (isCustom: true)
+        // - Exclude any that match default task IDs
+        // - For one-time tasks, only include if created today
         const validCustomTasks = customTasks.filter(task => {
+            // Skip if it's a default task ID or not marked as custom
+            if (defaultTaskIds.includes(task.id) || !task.isCustom) {
+                return false;
+            }
             if (task.duration === 'one-time') {
                 return task.createdDate === today;
             }
@@ -12867,23 +12877,39 @@ window.viewChecklistHistory = async function() {
             });
         }
 
-        // Render invoice category select with add button
+        // Render invoice category select with "Add Other" option
         function renderInvoiceCategorySelect(selectedValue = '', selectId = 'invoice-category') {
             const allCategories = getAllInvoiceCategories();
             return `
-                <div style="display: flex; gap: 8px;">
-                    <select class="form-input" id="${selectId}" style="flex: 1;">
-                        <option value="">Select category...</option>
-                        ${allCategories.map(c => `
-                            <option value="${c.id}" ${selectedValue === c.id ? 'selected' : ''}>${c.name}</option>
-                        `).join('')}
-                    </select>
-                    <button type="button" onclick="showAddInvoiceCategoryModal()" class="btn btn-secondary" style="padding: 8px 12px;" title="Add new category">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
+                <select class="form-input" id="${selectId}" onchange="handleCategoryChange(this)">
+                    <option value="">Select category...</option>
+                    ${allCategories.map(c => `
+                        <option value="${c.id}" ${selectedValue === c.id ? 'selected' : ''}>${c.name}</option>
+                    `).join('')}
+                    <option value="__add_new__">+ Add Other...</option>
+                </select>
             `;
         }
+
+        // Handle category select change
+        window.handleCategoryChange = function(select) {
+            if (select.value === '__add_new__') {
+                const newCategory = prompt('Enter new category name:');
+                if (newCategory && newCategory.trim()) {
+                    addInvoiceCategory(newCategory.trim()).then(category => {
+                        if (category) {
+                            // Update the select with the new category
+                            select.innerHTML = renderInvoiceCategorySelect(category.id, select.id).match(/<select[^>]*>([\s\S]*)<\/select>/)[1];
+                            select.value = category.id;
+                        } else {
+                            select.value = '';
+                        }
+                    });
+                } else {
+                    select.value = '';
+                }
+            }
+        };
 
         // Chart instances (for cleanup)
         let invoiceCharts = {
