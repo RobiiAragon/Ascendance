@@ -1927,8 +1927,8 @@
                         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Choose your preferred display mode for better readability</p>
                         <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                             <label class="theme-option" style="flex: 1; min-width: 200px; cursor: pointer;">
-                                <input type="radio" name="displayTheme" value="dark" checked style="display: none;">
-                                <div class="theme-preview dark-theme" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a25 100%); transition: all 0.3s;">
+                                <input type="radio" name="displayTheme" value="dark" style="display: none;">
+                                <div class="theme-preview dark-theme" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a25 100%); transition: all 0.3s;">
                                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                                         <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-moon" style="color: white; font-size: 14px;"></i>
@@ -1946,8 +1946,8 @@
                                 </div>
                             </label>
                             <label class="theme-option" style="flex: 1; min-width: 200px; cursor: pointer;">
-                                <input type="radio" name="displayTheme" value="light" style="display: none;">
-                                <div class="theme-preview light-theme" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); transition: all 0.3s;">
+                                <input type="radio" name="displayTheme" value="light" checked style="display: none;">
+                                <div class="theme-preview light-theme" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); transition: all 0.3s;">
                                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                                         <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #333, #555); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-sun" style="color: white; font-size: 14px;"></i>
@@ -2451,7 +2451,7 @@
                     signatureName: document.getElementById('signatureName')?.value?.trim() || '',
                     signatureDate: document.getElementById('signatureDate')?.value || '',
                     // Display Preferences
-                    displayTheme: document.querySelector('input[name="displayTheme"]:checked')?.value || 'dark',
+                    displayTheme: document.querySelector('input[name="displayTheme"]:checked')?.value || 'light',
                     // Certifications
                     ageVerified: true,
                     infoAccurate: true,

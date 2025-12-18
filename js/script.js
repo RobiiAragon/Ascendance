@@ -6062,27 +6062,65 @@ function getTodayDateString() {
     return new Date().toISOString().split('T')[0];
 }
 
-// Load checklist tasks - use hardcoded defaults (same for all stores)
+// Load checklist tasks - default tasks + custom tasks from Firebase
 async function loadChecklistTasks() {
-    // Use hardcoded default tasks - same tasks for all stores
-    checklistData.tasks = [
-        { id: 'open-1', task: 'Unlock store and disarm alarm', order: 1, shift: 'opening', store: 'all' },
-        { id: 'open-2', task: 'Turn on all lights and signage', order: 2, shift: 'opening', store: 'all' },
-        { id: 'open-3', task: 'Count opening cash drawer', order: 3, shift: 'opening', store: 'all' },
-        { id: 'open-4', task: 'Check and restock displays', order: 4, shift: 'opening', store: 'all' },
-        { id: 'open-5', task: 'Clean front entrance and windows', order: 5, shift: 'opening', store: 'all' },
-        { id: 'open-6', task: 'Turn on POS systems', order: 6, shift: 'opening', store: 'all' },
-        { id: 'open-7', task: 'Review daily promotions/announcements', order: 7, shift: 'opening', store: 'all' },
-        { id: 'open-8', task: 'Check restroom supplies', order: 8, shift: 'opening', store: 'all' },
-        { id: 'close-1', task: 'Count and close cash drawer', order: 1, shift: 'closing', store: 'all' },
-        { id: 'close-2', task: 'Complete daily sales report', order: 2, shift: 'closing', store: 'all' },
-        { id: 'close-3', task: 'Clean and organize store', order: 3, shift: 'closing', store: 'all' },
-        { id: 'close-4', task: 'Take out trash', order: 4, shift: 'closing', store: 'all' },
-        { id: 'close-5', task: 'Restock shelves for next day', order: 5, shift: 'closing', store: 'all' },
-        { id: 'close-6', task: 'Turn off POS systems', order: 6, shift: 'closing', store: 'all' },
-        { id: 'close-7', task: 'Turn off lights and signage', order: 7, shift: 'closing', store: 'all' },
-        { id: 'close-8', task: 'Set alarm and lock store', order: 8, shift: 'closing', store: 'all' }
+    const today = getTodayDateString();
+
+    // Start with hardcoded default tasks
+    const defaultTasks = [
+        { id: 'open-1', task: 'Unlock store and disarm alarm', order: 1, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-2', task: 'Turn on all lights and signage', order: 2, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-3', task: 'Count opening cash drawer', order: 3, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-4', task: 'Check and restock displays', order: 4, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-5', task: 'Clean front entrance and windows', order: 5, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-6', task: 'Turn on POS systems', order: 6, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-7', task: 'Review daily promotions/announcements', order: 7, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-8', task: 'Check restroom supplies', order: 8, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'close-1', task: 'Count and close cash drawer', order: 1, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-2', task: 'Complete daily sales report', order: 2, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-3', task: 'Clean and organize store', order: 3, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-4', task: 'Take out trash', order: 4, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-5', task: 'Restock shelves for next day', order: 5, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-6', task: 'Turn off POS systems', order: 6, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-7', task: 'Turn off lights and signage', order: 7, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-8', task: 'Set alarm and lock store', order: 8, shift: 'closing', store: 'all', duration: 'permanent' }
     ];
+
+    // Load custom tasks from Firebase
+    try {
+        const db = firebase.firestore();
+        const snapshot = await db.collection('checklistTasks').get();
+        const customTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Filter custom tasks: include permanent tasks and one-time tasks from today
+        const validCustomTasks = customTasks.filter(task => {
+            if (task.duration === 'one-time') {
+                return task.createdDate === today;
+            }
+            return true; // Include permanent tasks
+        });
+
+        // Clean up expired one-time tasks (older than today)
+        const expiredTasks = customTasks.filter(task =>
+            task.duration === 'one-time' && task.createdDate && task.createdDate < today
+        );
+        for (const task of expiredTasks) {
+            try {
+                await db.collection('checklistTasks').doc(task.id).delete();
+                console.log(`[Checklist] Cleaned up expired one-time task: ${task.task}`);
+            } catch (e) {
+                console.error('Error cleaning up task:', e);
+            }
+        }
+
+        // Combine default + custom tasks
+        checklistData.tasks = [...defaultTasks, ...validCustomTasks];
+        console.log(`[Checklist] Loaded ${defaultTasks.length} default + ${validCustomTasks.length} custom tasks`);
+
+    } catch (error) {
+        console.error('Error loading custom tasks:', error);
+        checklistData.tasks = defaultTasks;
+    }
 }
 
 // Load today's completions from Firebase
@@ -6178,15 +6216,19 @@ async function removeChecklistCompletion(completionId) {
 }
 
 // Add new task to Firebase
-async function addChecklistTask(task, shift, store = 'all') {
+async function addChecklistTask(task, shift, store = 'all', duration = 'permanent') {
     try {
         const db = firebase.firestore();
+        const today = getTodayDateString();
         const newTask = {
             task,
             shift,
             store,
+            duration, // 'permanent' or 'one-time'
             order: checklistData.tasks.filter(t => t.shift === shift).length + 1,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdDate: today, // For one-time tasks, used to filter by date
+            isCustom: true // Mark as user-added task
         };
 
         const docRef = await db.collection('checklistTasks').add(newTask);
@@ -6280,17 +6322,23 @@ window.renderDailyChecklist = async function() {
         return tasks.map(task => {
             const completion = isTaskCompleted(task.id, targetStore, shift);
             const isCompleted = !!completion;
+            const isOneTime = task.duration === 'one-time';
+            const isCustom = task.isCustom === true;
 
             return `
                 <div class="checklist-item" onclick="toggleChecklistTask('${task.id}', '${targetStore}', '${shift}', ${isCompleted ? `'${completion?.id}'` : 'null'})"
-                    style="display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid ${isCompleted ? '#10b981' : 'var(--accent-primary)'}; transition: all 0.2s; cursor: pointer; user-select: none;"
+                    style="display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid ${isCompleted ? '#10b981' : isOneTime ? '#f59e0b' : 'var(--accent-primary)'}; transition: all 0.2s; cursor: pointer; user-select: none;"
                     onmouseover="this.style.background='var(--bg-tertiary)'; this.style.transform='translateX(4px)';"
                     onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='none';">
                     <div style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid ${isCompleted ? '#10b981' : 'var(--border-color)'}; background: ${isCompleted ? '#10b981' : 'transparent'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;">
                         ${isCompleted ? '<i class="fas fa-check" style="color: white; font-size: 14px;"></i>' : '<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--border-color); opacity: 0.3;"></span>'}
                     </div>
                     <div style="flex: 1;">
-                        <div style="font-weight: 600; font-size: 15px; ${isCompleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.task}</div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-weight: 600; font-size: 15px; ${isCompleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.task}</span>
+                            ${isOneTime ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">TODAY ONLY</span>' : ''}
+                            ${isCustom && !isOneTime ? '<span style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">CUSTOM</span>' : ''}
+                        </div>
                         ${isCompleted ? `
                             <div style="font-size: 12px; color: #10b981; margin-top: 4px; font-weight: 500;">
                                 <i class="fas fa-check-circle"></i>
@@ -6299,7 +6347,7 @@ window.renderDailyChecklist = async function() {
                         ` : `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Click to complete</div>`}
                     </div>
                     ${isCompleted ? '<i class="fas fa-check-double" style="color: #10b981; font-size: 18px;"></i>' : '<i class="fas fa-circle" style="color: var(--text-muted); font-size: 8px; opacity: 0.3;"></i>'}
-                    ${canManageTasks ? `
+                    ${isCustom ? `
                         <button onclick="event.stopPropagation(); deleteChecklistTaskUI('${task.id}')"
                             style="width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s;"
                             onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0.5';" title="Delete task">
@@ -6673,19 +6721,19 @@ window.openAddTaskModal = function(shift) {
 
 // Add task from modal
 window.addChecklistTaskFromModal = async function() {
-    const task = document.getElementById('checklist-task-name').value.trim();
-    const shift = document.getElementById('checklist-task-shift').value;
-    const store = document.getElementById('checklist-task-store').value;
+    const task = document.getElementById('checklist-task-description')?.value?.trim();
+    const shift = document.getElementById('checklist-task-shift')?.value;
+    const duration = document.querySelector('input[name="checklist-task-duration"]:checked')?.value || 'permanent';
 
     if (!task) {
         alert('Please enter a task description');
         return;
     }
 
-    const result = await addChecklistTask(task, shift, store);
+    const result = await addChecklistTask(task, shift, 'all', duration);
     if (result) {
         closeModal();
-        showNotification('Task added successfully!', 'success');
+        showNotification(duration === 'one-time' ? 'Task added for today!' : 'Task added permanently!', 'success');
         renderDailyChecklist();
     } else {
         alert('Error adding task. Please try again.');
@@ -22259,9 +22307,28 @@ Return ONLY the JSON object, no additional text.`
                                 <input type="text" class="form-input" id="checklist-task-description" placeholder="e.g., Check inventory levels...">
                             </div>
                             <input type="hidden" id="checklist-task-shift" value="${shiftForTask}">
-                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 1rem;">
-                                <i class="fas fa-info-circle"></i> This task will be added to the ${shiftForTask} checklist for all stores.
-                            </p>
+
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label>Task Duration *</label>
+                                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                                    <label style="flex: 1; cursor: pointer;">
+                                        <input type="radio" name="checklist-task-duration" value="permanent" checked style="display: none;">
+                                        <div class="duration-option" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
+                                            <i class="fas fa-infinity" style="font-size: 24px; color: var(--accent-primary); margin-bottom: 8px; display: block;"></i>
+                                            <div style="font-weight: 600; margin-bottom: 4px;">Permanent</div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">Shows every day</div>
+                                        </div>
+                                    </label>
+                                    <label style="flex: 1; cursor: pointer;">
+                                        <input type="radio" name="checklist-task-duration" value="one-time" style="display: none;">
+                                        <div class="duration-option" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
+                                            <i class="fas fa-calendar-day" style="font-size: 24px; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                            <div style="font-weight: 600; margin-bottom: 4px;">Just Today</div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">One time only</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -22270,6 +22337,21 @@ Return ONLY the JSON object, no additional text.`
                             </button>
                         </div>
                     `;
+
+                    // Add event listeners after modal renders
+                    setTimeout(() => {
+                        document.querySelectorAll('input[name="checklist-task-duration"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.querySelectorAll('.duration-option').forEach(opt => {
+                                    opt.style.borderColor = 'var(--border-color)';
+                                    opt.querySelector('i').style.color = 'var(--text-muted)';
+                                });
+                                const selected = this.closest('label').querySelector('.duration-option');
+                                selected.style.borderColor = 'var(--accent-primary)';
+                                selected.querySelector('i').style.color = 'var(--accent-primary)';
+                            });
+                        });
+                    }, 100);
                     break;
                 case 'add-training':
                     content = `
