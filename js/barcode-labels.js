@@ -128,7 +128,15 @@ function drawEAN13(canvas, code, options = {}) {
     ctx.fillRect(0, 0, width, height);
 
     const binary = encodeEAN13(code);
-    if (!binary) return;
+    if (!binary) {
+        console.error('[Barcode] Failed to encode:', code);
+        // Draw error placeholder
+        ctx.fillStyle = '#FF0000';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Invalid Code', width / 2, height / 2);
+        return false;
+    }
 
     const barcodeWidth = binary.length * barWidth;
     const startX = (width - barcodeWidth) / 2;
@@ -145,7 +153,7 @@ function drawEAN13(canvas, code, options = {}) {
 
     // Draw text
     if (showText) {
-        ctx.font = `${textSize}px "Space Mono", monospace`;
+        ctx.font = `bold ${textSize}px Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillStyle = '#000000';
 
@@ -153,6 +161,8 @@ function drawEAN13(canvas, code, options = {}) {
         const formattedCode = code[0] + ' ' + code.substring(1, 7) + ' ' + code.substring(7);
         ctx.fillText(formattedCode, width / 2, height - 2);
     }
+
+    return true;
 }
 
 /**
@@ -415,41 +425,45 @@ async function printLabels() {
         const storeCode = getStoreCode(labelSelectedStore);
         const barcode = generateEAN13(product.id, storeCode);
 
-        // Create barcode canvas
+        console.log('[Labels] Generating barcode for:', product.title, 'Code:', barcode);
+
+        // Create barcode canvas with larger size for better quality
         const canvas = document.createElement('canvas');
-        drawEAN13(canvas, barcode, {
-            width: 140,
-            height: 45,
-            barWidth: 1.3,
+        const success = drawEAN13(canvas, barcode, {
+            width: 200,
+            height: 60,
+            barWidth: 2,
             showText: true,
-            textSize: 9
+            textSize: 11
         });
 
-        const barcodeDataUrl = canvas.toDataURL();
+        const barcodeDataUrl = canvas.toDataURL('image/png');
+        console.log('[Labels] Barcode generated:', success, 'Data URL length:', barcodeDataUrl.length);
 
         // Generate label HTML for each quantity
         for (let i = 0; i < item.quantity; i++) {
             labelsHtml += `
                 <div class="label" style="
-                    width: 1in;
-                    height: 0.5in;
-                    padding: 2px 4px;
+                    width: 2in;
+                    height: 1in;
+                    padding: 6px 8px;
                     box-sizing: border-box;
                     display: flex;
                     flex-direction: column;
-                    justify-content: center;
+                    justify-content: space-between;
                     align-items: center;
                     page-break-inside: avoid;
                     border: 1px dashed #ccc;
-                    margin: 2px;
+                    margin: 4px;
+                    background: white;
                 ">
-                    <div style="font-size: 6pt; font-weight: bold; text-align: center; line-height: 1.1; max-height: 12px; overflow: hidden; width: 100%;">
-                        ${product.title.substring(0, 25)}
+                    <div style="font-size: 9pt; font-weight: bold; text-align: center; line-height: 1.2; max-height: 24px; overflow: hidden; width: 100%; color: #000;">
+                        ${product.title.substring(0, 35)}${product.title.length > 35 ? '...' : ''}
                     </div>
-                    <div style="font-size: 8pt; font-weight: bold; margin: 1px 0;">
+                    <div style="font-size: 14pt; font-weight: bold; color: #000;">
                         $${parseFloat(price).toFixed(2)}
                     </div>
-                    <img src="${barcodeDataUrl}" style="width: 90%; height: auto; max-height: 20px;">
+                    <img src="${barcodeDataUrl}" style="width: 85%; height: 40px; object-fit: contain;">
                 </div>
             `;
         }
@@ -462,17 +476,22 @@ async function printLabels() {
             <title>Print Labels</title>
             <style>
                 @page {
-                    size: 1in 0.5in;
+                    size: 2in 1in;
                     margin: 0;
                 }
                 @media print {
                     body {
                         margin: 0;
                         padding: 0;
+                        background: white;
                     }
                     .label {
                         border: none !important;
                         margin: 0 !important;
+                        page-break-after: always;
+                    }
+                    .label:last-child {
+                        page-break-after: auto;
                     }
                     .no-print {
                         display: none !important;
@@ -481,47 +500,64 @@ async function printLabels() {
                 body {
                     font-family: Arial, sans-serif;
                     margin: 0;
-                    padding: 10px;
+                    padding: 20px;
                     background: #f5f5f5;
                 }
                 .labels-container {
                     display: flex;
                     flex-wrap: wrap;
-                    gap: 4px;
+                    gap: 8px;
                     justify-content: flex-start;
                 }
                 .print-controls {
                     margin-bottom: 20px;
-                    padding: 15px;
+                    padding: 20px;
                     background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    border-radius: 12px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+                .print-controls h3 {
+                    margin: 0 0 8px 0;
+                    color: #333;
+                }
+                .print-controls p {
+                    margin: 0 0 16px 0;
+                    color: #666;
                 }
                 .print-controls button {
-                    padding: 10px 20px;
+                    padding: 12px 24px;
                     font-size: 14px;
+                    font-weight: 600;
                     cursor: pointer;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 8px;
                     margin-right: 10px;
+                    transition: all 0.2s;
                 }
                 .print-btn {
                     background: #10b981;
                     color: white;
                 }
+                .print-btn:hover {
+                    background: #059669;
+                }
                 .close-btn {
                     background: #6b7280;
                     color: white;
+                }
+                .close-btn:hover {
+                    background: #4b5563;
+                }
+                .label {
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                 }
             </style>
         </head>
         <body>
             <div class="print-controls no-print">
-                <h3 style="margin: 0 0 10px 0;">Label Preview</h3>
-                <p style="margin: 0 0 15px 0; color: #666;">Total labels: ${labelQueue.reduce((sum, item) => sum + item.quantity, 0)}</p>
-                <button class="print-btn" onclick="window.print()">
-                    <i class="fas fa-print"></i> Print Labels
-                </button>
+                <h3>Label Preview</h3>
+                <p>Total labels: ${labelQueue.reduce((sum, item) => sum + item.quantity, 0)}</p>
+                <button class="print-btn" onclick="window.print()">Print Labels</button>
                 <button class="close-btn" onclick="window.close()">Close</button>
             </div>
             <div class="labels-container">
