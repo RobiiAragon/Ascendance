@@ -1789,6 +1789,91 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- New Dashboard Modules -->
+                <div class="bottom-grid" style="margin-top: 24px;">
+                    <!-- Employees Working Now -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-user-clock"></i> Working Now</h3>
+                            <button class="card-action" onclick="navigateTo('clockin')">View All</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="working-now-container">
+                                <div style="text-align: center; padding: 30px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Tasks -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-tasks"></i> Pending Tasks</h3>
+                            <button class="card-action" onclick="navigateTo('tasks')">View All</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="pending-tasks-container">
+                                <div style="text-align: center; padding: 30px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Goal -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-bullseye"></i> Weekly Sales Goal</h3>
+                            <button class="card-action" onclick="navigateTo('analytics')">Details</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="sales-goal-container">
+                                <div style="text-align: center; padding: 30px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Third Row -->
+                <div class="bottom-grid" style="margin-top: 24px;">
+                    <!-- Low Stock Alerts -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h3>
+                            <button class="card-action" onclick="navigateTo('restock')">Restock</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="low-stock-container">
+                                <div style="text-align: center; padding: 30px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card" style="grid-column: span 2;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-bell"></i> Recent Activity</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-activity-container">
+                                <div style="text-align: center; padding: 30px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `;
 
             // Load monthly revenue from Shopify API (async, updates the card when ready)
@@ -1796,6 +1881,13 @@
 
             // Load store performance from Shopify API (async)
             loadStorePerformance();
+
+            // Load new dashboard modules
+            loadWorkingNow();
+            loadPendingTasks();
+            loadSalesGoal();
+            loadLowStockAlerts();
+            loadRecentActivity();
         }
 
         /**
@@ -1939,6 +2031,324 @@
                     <p style="font-size: 12px;">Check Analytics for details</p>
                 </div>
             `;
+        }
+
+        /**
+         * Load employees currently working (clocked in without clock out)
+         */
+        async function loadWorkingNow() {
+            const container = document.getElementById('working-now-container');
+            if (!container) return;
+
+            try {
+                // Get today's date
+                const today = new Date().toISOString().split('T')[0];
+
+                // Initialize firebase manager if needed
+                if (typeof firebaseClockInManager !== 'undefined') {
+                    if (!firebaseClockInManager.isInitialized) {
+                        await firebaseClockInManager.initialize();
+                    }
+
+                    const records = await firebaseClockInManager.loadClockRecordsByDate(today);
+
+                    // Filter employees who are clocked in but not clocked out
+                    const workingNow = records.filter(r => r.clockIn && !r.clockOut);
+
+                    if (workingNow.length > 0) {
+                        container.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                                <span style="font-size: 13px; color: var(--text-muted);">${workingNow.length} employee${workingNow.length !== 1 ? 's' : ''} working</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                ${workingNow.slice(0, 4).map(record => {
+                                    const emp = employees.find(e => e.id === record.employeeId || e.firestoreId === record.employeeId);
+                                    const initials = emp?.initials || record.employeeName?.split(' ').map(n => n[0]).join('').toUpperCase() || '??';
+                                    const name = emp?.name || record.employeeName || 'Unknown';
+                                    const store = record.store || emp?.store || '';
+                                    return `
+                                        <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-primary); border-radius: 8px;">
+                                            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600;">${initials}</div>
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div style="font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
+                                                <div style="font-size: 11px; color: var(--text-muted);">${store} - Since ${record.clockIn}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                                ${workingNow.length > 4 ? `<div style="text-align: center; font-size: 12px; color: var(--text-muted);">+${workingNow.length - 4} more</div>` : ''}
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                                <i class="fas fa-moon" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                <p style="font-size: 13px;">No one clocked in</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            <i class="fas fa-user-clock" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                            <p style="font-size: 13px;">Clock-in not available</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('[Dashboard] Error loading working now:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-exclamation-circle" style="font-size: 20px; color: #ef4444;"></i>
+                        <p style="font-size: 12px; margin-top: 8px;">Error loading data</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Load pending tasks summary
+         */
+        async function loadPendingTasks() {
+            const container = document.getElementById('pending-tasks-container');
+            if (!container) return;
+
+            try {
+                // Try to get tasks from Firebase or local
+                let allTasks = [];
+
+                if (typeof firebaseTaskManager !== 'undefined' && firebaseTaskManager.isInitialized) {
+                    allTasks = await firebaseTaskManager.loadTasks();
+                } else if (typeof tasks !== 'undefined') {
+                    allTasks = tasks;
+                }
+
+                const pendingTasks = allTasks.filter(t => t.status === 'pending' || t.status === 'in-progress');
+
+                if (pendingTasks.length > 0) {
+                    const highPriority = pendingTasks.filter(t => t.priority === 'high').length;
+
+                    container.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${pendingTasks.length}</span>
+                            ${highPriority > 0 ? `<span style="background: #ef444420; color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${highPriority} High Priority</span>` : ''}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            ${pendingTasks.slice(0, 3).map(task => `
+                                <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-primary); border-radius: 6px;">
+                                    <i class="fas fa-circle" style="font-size: 6px; color: ${task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#10b981'};"></i>
+                                    <span style="font-size: 12px; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${task.title || task.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            <i class="fas fa-check-circle" style="font-size: 24px; color: #10b981; margin-bottom: 8px;"></i>
+                            <p style="font-size: 13px;">All tasks completed!</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('[Dashboard] Error loading tasks:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-tasks" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">No tasks found</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Load weekly sales goal progress
+         */
+        async function loadSalesGoal() {
+            const container = document.getElementById('sales-goal-container');
+            if (!container) return;
+
+            try {
+                // Weekly goal (configurable)
+                const weeklyGoal = 50000; // $50,000 weekly goal
+
+                if (typeof fetchSalesAnalyticsBulk === 'function' || typeof fetchSalesAnalytics === 'function') {
+                    const fetchFn = typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk : fetchSalesAnalytics;
+                    const salesData = await fetchFn('vsu', null, 'week');
+
+                    if (salesData?.summary) {
+                        const currentSales = parseFloat(salesData.summary.totalSales || 0);
+                        const percentage = Math.min(Math.round((currentSales / weeklyGoal) * 100), 100);
+                        const remaining = Math.max(weeklyGoal - currentSales, 0);
+
+                        container.innerHTML = `
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 32px; font-weight: 700; color: ${percentage >= 100 ? '#10b981' : 'var(--text-primary)'};">${percentage}%</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">of weekly goal</div>
+                            </div>
+                            <div style="background: var(--bg-primary); border-radius: 8px; height: 12px; overflow: hidden; margin-bottom: 12px;">
+                                <div style="height: 100%; width: ${percentage}%; background: linear-gradient(90deg, var(--accent-primary), ${percentage >= 100 ? '#10b981' : 'var(--accent-secondary)'}); border-radius: 8px; transition: width 0.5s;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                <span style="color: var(--text-muted);">$${(currentSales/1000).toFixed(1)}K earned</span>
+                                <span style="color: var(--text-muted);">$${(remaining/1000).toFixed(1)}K to go</span>
+                            </div>
+                        `;
+                        return;
+                    }
+                }
+
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-bullseye" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">Sales data unavailable</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('[Dashboard] Error loading sales goal:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-bullseye" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">Could not load goal</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Load low stock alerts from inventory
+         */
+        async function loadLowStockAlerts() {
+            const container = document.getElementById('low-stock-container');
+            if (!container) return;
+
+            try {
+                // Try to fetch inventory from Shopify
+                if (typeof fetchStoreInventory === 'function') {
+                    const inventory = await fetchStoreInventory('vsu', 50);
+
+                    if (inventory && inventory.length > 0) {
+                        // Filter low stock items (less than 5 units)
+                        const lowStock = inventory.filter(item => {
+                            const qty = item.inventoryQuantity || item.quantity || 0;
+                            return qty > 0 && qty < 5;
+                        }).slice(0, 4);
+
+                        if (lowStock.length > 0) {
+                            container.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                    <span style="background: #ef444420; color: #ef4444; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">${lowStock.length} items low</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    ${lowStock.map(item => `
+                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--bg-primary); border-radius: 6px;">
+                                            <span style="font-size: 12px; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || item.name}</span>
+                                            <span style="font-size: 11px; font-weight: 600; color: #ef4444; margin-left: 8px;">${item.inventoryQuantity || item.quantity} left</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                            return;
+                        }
+                    }
+                }
+
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-check-circle" style="font-size: 24px; color: #10b981; margin-bottom: 8px;"></i>
+                        <p style="font-size: 13px;">Stock levels OK</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('[Dashboard] Error loading low stock:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-box" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">Inventory unavailable</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Load recent activity/notifications
+         */
+        async function loadRecentActivity() {
+            const container = document.getElementById('recent-activity-container');
+            if (!container) return;
+
+            try {
+                const activities = [];
+
+                // Get recent announcements
+                if (announcements && announcements.length > 0) {
+                    announcements.slice(0, 2).forEach(ann => {
+                        activities.push({
+                            type: 'announcement',
+                            icon: 'bullhorn',
+                            color: '#8b5cf6',
+                            title: ann.title || 'Announcement',
+                            description: (ann.content || '').substring(0, 50) + (ann.content && ann.content.length > 50 ? '...' : ''),
+                            time: ann.date || ''
+                        });
+                    });
+                }
+
+                // Get recent clock ins
+                const today = new Date().toISOString().split('T')[0];
+                if (typeof firebaseClockInManager !== 'undefined' && firebaseClockInManager.isInitialized) {
+                    const clockRecords = await firebaseClockInManager.loadClockRecordsByDate(today);
+                    clockRecords.slice(0, 2).forEach(record => {
+                        const action = record.clockOut ? 'clocked out' : 'clocked in';
+                        activities.push({
+                            type: 'clockin',
+                            icon: 'user-clock',
+                            color: '#10b981',
+                            title: record.employeeName || 'Employee',
+                            description: `${action} at ${record.store || 'store'}`,
+                            time: record.clockOut || record.clockIn
+                        });
+                    });
+                }
+
+                // Sort by time (most recent first)
+                activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+                if (activities.length > 0) {
+                    container.innerHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${activities.slice(0, 5).map(activity => `
+                                <div style="display: flex; align-items: flex-start; gap: 12px; padding: 10px; background: var(--bg-primary); border-radius: 8px;">
+                                    <div style="width: 36px; height: 36px; background: ${activity.color}20; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <i class="fas fa-${activity.icon}" style="color: ${activity.color}; font-size: 14px;"></i>
+                                    </div>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-size: 13px; font-weight: 500; color: var(--text-primary);">${activity.title}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${activity.description}</div>
+                                    </div>
+                                    <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap;">${activity.time}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
+                            <i class="fas fa-bell-slash" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                            <p style="font-size: 13px;">No recent activity</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('[Dashboard] Error loading recent activity:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
+                        <i class="fas fa-bell" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">Activity unavailable</p>
+                    </div>
+                `;
+            }
         }
 
         async function renderEmployees() {
