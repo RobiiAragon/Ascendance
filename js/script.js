@@ -31120,6 +31120,14 @@ function renderPasswordsList() {
                         </div>
                     </div>
 
+                    <!-- Store Badge -->
+                    ${pwd.store ? `
+                    <div style="background: var(--bg-primary); color: var(--text-secondary); padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-store" style="font-size: 10px;"></i>
+                        ${pwd.store}
+                    </div>
+                    ` : ''}
+
                     <!-- Category Badge -->
                     <div style="background: ${catInfo.color}15; color: ${catInfo.color}; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                         ${catInfo.label}
@@ -31261,8 +31269,16 @@ function renderPasswordsGridView() {
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pwd.name || 'Unnamed'}</span>
                                 ${pwd.url ? `<a href="${pwd.url}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary); font-size: 12px; flex-shrink: 0;"><i class="fas fa-external-link-alt"></i></a>` : ''}
                             </div>
-                            <div style="background: ${catInfo.color}15; color: ${catInfo.color}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
-                                ${catInfo.label}
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                                <div style="background: ${catInfo.color}15; color: ${catInfo.color}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+                                    ${catInfo.label}
+                                </div>
+                                ${pwd.store ? `
+                                <div style="background: var(--bg-primary); color: var(--text-secondary); padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-store" style="font-size: 9px;"></i>
+                                    ${pwd.store}
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -31432,6 +31448,7 @@ function generateInlinePassword() {
 async function saveInlinePassword() {
     const name = document.getElementById('inline-pwd-name').value.trim();
     const category = document.getElementById('inline-pwd-category').value;
+    const store = document.getElementById('inline-pwd-store').value;
     const username = document.getElementById('inline-pwd-username').value.trim();
     const email = document.getElementById('inline-pwd-email').value.trim();
     const password = document.getElementById('inline-pwd-password').value;
@@ -31462,6 +31479,7 @@ async function saveInlinePassword() {
         const newPassword = {
             name,
             category: category || 'other',
+            store: store || 'All Stores',
             username,
             email,
             password,
@@ -31490,6 +31508,10 @@ function startEditPasswordInline(firestoreId) {
         .map(([value, cat]) => `<option value="${value}" ${pwd.category === value ? 'selected' : ''}>${cat.label}</option>`)
         .join('');
 
+    const storeOptions = ['All Stores', 'Miramar', 'Morena', 'Kearny Mesa', 'Chula Vista', 'North Park', 'Miramar Wine & Liquor']
+        .map(store => `<option value="${store}" ${pwd.store === store ? 'selected' : ''}>${store === 'All Stores' ? 'All Stores' : 'VSU ' + store}</option>`)
+        .join('');
+
     const expandDiv = document.getElementById(`expand-${firestoreId}`);
     expandDiv.innerHTML = `
         <div style="padding-top: 20px;">
@@ -31502,6 +31524,12 @@ function startEditPasswordInline(firestoreId) {
                     <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Category</label>
                     <select id="edit-inline-category-${firestoreId}" class="form-input">
                         ${categoryOptions}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Store</label>
+                    <select id="edit-inline-store-${firestoreId}" class="form-input">
+                        ${storeOptions}
                     </select>
                 </div>
                 <div>
@@ -31546,6 +31574,7 @@ function startEditPasswordInline(firestoreId) {
 async function saveEditPasswordInline(firestoreId) {
     const name = document.getElementById(`edit-inline-name-${firestoreId}`).value.trim();
     const category = document.getElementById(`edit-inline-category-${firestoreId}`).value;
+    const store = document.getElementById(`edit-inline-store-${firestoreId}`).value;
     const username = document.getElementById(`edit-inline-username-${firestoreId}`).value.trim();
     const email = document.getElementById(`edit-inline-email-${firestoreId}`).value.trim();
     const password = document.getElementById(`edit-inline-password-${firestoreId}`).value;
@@ -31571,6 +31600,7 @@ async function saveEditPasswordInline(firestoreId) {
         const updatedData = {
             name,
             category: category || 'other',
+            store: store || 'All Stores',
             username,
             email,
             password,
