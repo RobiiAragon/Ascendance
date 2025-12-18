@@ -7625,33 +7625,59 @@ window.viewChecklistHistory = async function() {
             `;
         }
 
-        // Render Approved Tab - List of all approved restock requests
-        function renderApprovedTab() {
-            const approvedRequests = restockRequests.filter(r => r.status === 'approved');
+        // State for approved tab month navigation
+        let approvedMonthOffset = 0; // 0 = current month, -1 = last month, etc.
 
-            // Header with AI Assistant button
+        // Render Approved Tab - List of all approved restock requests with month navigation
+        function renderApprovedTab() {
+            const allApprovedRequests = restockRequests.filter(r => r.status === 'approved');
+
+            // Calculate the target month based on offset
+            const now = new Date();
+            const targetDate = new Date(now.getFullYear(), now.getMonth() + approvedMonthOffset, 1);
+            const targetMonth = targetDate.getMonth();
+            const targetYear = targetDate.getFullYear();
+
+            // Filter by selected month
+            const approvedRequests = allApprovedRequests.filter(req => {
+                const reqDate = new Date(req.requestDate || req.approvedDate || Date.now());
+                return reqDate.getMonth() === targetMonth && reqDate.getFullYear() === targetYear;
+            });
+
+            // Month names
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            const currentMonthName = monthNames[targetMonth];
+
+            // Header with month navigation
             const headerSection = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
                     <div>
                         <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: var(--text-primary);">
                             <i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i>Approved Requests
                         </h3>
                         <p style="margin: 4px 0 0; font-size: 13px; color: var(--text-muted);">
-                            ${approvedRequests.length} items ready for ordering
+                            ${approvedRequests.length} items in ${currentMonthName} ${targetYear}
                         </p>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="askRestockAI()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            <i class="fas fa-robot"></i> Ask AI
-                        </button>
-                        <button onclick="exportApprovedRequests()" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
-                            <i class="fas fa-download"></i> Export List
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <!-- Month Navigation -->
+                        <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); border-radius: 12px; padding: 6px; border: 1px solid var(--border-color);">
+                            <button onclick="navigateApprovedMonth(-1)" style="width: 36px; height: 36px; border-radius: 8px; border: none; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='var(--accent-primary)'; this.style.color='white'" onmouseout="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div style="min-width: 140px; text-align: center; font-weight: 600; color: var(--text-primary); font-size: 14px;">
+                                ${currentMonthName} ${targetYear}
+                            </div>
+                            <button onclick="navigateApprovedMonth(1)" ${approvedMonthOffset >= 0 ? 'disabled' : ''} style="width: 36px; height: 36px; border-radius: 8px; border: none; background: ${approvedMonthOffset >= 0 ? 'var(--bg-secondary)' : 'var(--bg-tertiary)'}; color: ${approvedMonthOffset >= 0 ? 'var(--text-muted)' : 'var(--text-primary)'}; cursor: ${approvedMonthOffset >= 0 ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" ${approvedMonthOffset < 0 ? `onmouseover="this.style.background='var(--accent-primary)'; this.style.color='white'" onmouseout="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'"` : ''}>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <button onclick="exportApprovedRequests()" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                            <i class="fas fa-download"></i> Export
                         </button>
                     </div>
                 </div>
-
-                <!-- AI Response Area -->
-                <div id="restock-ai-response" style="display: none; margin-bottom: 24px;"></div>
             `;
 
             if (approvedRequests.length === 0) {
@@ -7659,13 +7685,13 @@ window.viewChecklistHistory = async function() {
                     ${headerSection}
                     <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: var(--bg-secondary); border-radius: 16px;">
                         <i class="fas fa-clipboard-check" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                        <p style="font-size: 16px; margin: 0;">No approved requests yet</p>
-                        <p style="font-size: 13px; margin-top: 8px;">Approve requests from the Requests tab to see them here</p>
+                        <p style="font-size: 16px; margin: 0;">No approved requests in ${currentMonthName} ${targetYear}</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Use the arrows to navigate to other months</p>
                     </div>
                 `;
             }
 
-            // Group approved items by store for better organization
+            // Group approved items by store for summary
             const groupedByStore = {};
             approvedRequests.forEach(req => {
                 const store = req.store || 'Unknown';
@@ -7675,8 +7701,33 @@ window.viewChecklistHistory = async function() {
                 groupedByStore[store].push(req);
             });
 
+            // Sort by date (newest first)
+            const sortedRequests = [...approvedRequests].sort((a, b) => {
+                return new Date(b.requestDate) - new Date(a.requestDate);
+            });
+
             return `
                 ${headerSection}
+
+                <!-- Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${approvedRequests.length}</div>
+                        <div style="font-size: 12px; opacity: 0.9;"><i class="fas fa-check-circle" style="margin-right: 4px;"></i>Total Approved</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${approvedRequests.reduce((sum, r) => sum + parseInt(r.quantity || 0), 0)}</div>
+                        <div style="font-size: 12px; opacity: 0.9;"><i class="fas fa-boxes" style="margin-right: 4px;"></i>Total Units</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${Object.keys(groupedByStore).length}</div>
+                        <div style="font-size: 12px; opacity: 0.9;"><i class="fas fa-store" style="margin-right: 4px;"></i>Stores</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${approvedRequests.filter(r => r.priority === 'high').length}</div>
+                        <div style="font-size: 12px; opacity: 0.9;"><i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i>High Priority</div>
+                    </div>
+                </div>
 
                 <!-- Approved Items Table -->
                 <div style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
@@ -7688,12 +7739,11 @@ window.viewChecklistHistory = async function() {
                                 <th style="padding: 14px 16px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
                                 <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Store</th>
                                 <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Priority</th>
-                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Requested</th>
-                                <th style="padding: 14px 16px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Actions</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Approved Date</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${approvedRequests.map((req, index) => {
+                            ${sortedRequests.map((req, index) => {
                                 const itemType = req.itemType || 'product';
                                 const typeColor = itemType === 'supply' ? '#8b5cf6' : '#10b981';
                                 const typeIcon = itemType === 'supply' ? 'fa-tools' : 'fa-box';
@@ -7726,16 +7776,6 @@ window.viewChecklistHistory = async function() {
                                             <div style="font-size: 13px; color: var(--text-secondary);">${formatDate(req.requestDate)}</div>
                                             <div style="font-size: 11px; color: var(--text-muted);">by ${req.requestedBy}</div>
                                         </td>
-                                        <td style="padding: 14px 16px; text-align: center;">
-                                            <div style="display: flex; justify-content: center; gap: 6px;">
-                                                <button onclick="markAsOrdered('${req.firestoreId || req.id}')" title="Mark as Ordered" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #10b98120; color: #10b981; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='white'" onmouseout="this.style.background='#10b98120'; this.style.color='#10b981'">
-                                                    <i class="fas fa-shipping-fast"></i>
-                                                </button>
-                                                <button onclick="deleteRestockRequest('${req.firestoreId || req.id}')" title="Delete" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #ef444420; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white'" onmouseout="this.style.background='#ef444420'; this.style.color='#ef4444'">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -7761,6 +7801,20 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
             `;
+        }
+
+        // Navigate approved month
+        function navigateApprovedMonth(direction) {
+            // direction: -1 for previous month, +1 for next month
+            const newOffset = approvedMonthOffset + direction;
+            // Don't allow going into the future
+            if (newOffset <= 0) {
+                approvedMonthOffset = newOffset;
+                const tabContent = document.getElementById('restock-tab-content');
+                if (tabContent && currentRestockTab === 'approved') {
+                    tabContent.innerHTML = renderApprovedTab();
+                }
+            }
         }
 
         // Export approved requests to CSV
@@ -7793,125 +7847,6 @@ window.viewChecklistHistory = async function() {
             link.click();
 
             showToast('Exported approved requests to CSV', 'success');
-        }
-
-        // Mark request as ordered (removes from the list)
-        function markAsOrdered(requestId) {
-            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
-            if (request) {
-                if (confirm(`Mark "${request.productName}" as ordered? This will remove it from the approved list.`)) {
-                    // Update status to 'ordered'
-                    request.status = 'ordered';
-
-                    if (firebaseRestockRequestsManager.isInitialized) {
-                        firebaseRestockRequestsManager.updateRestockRequest(request.firestoreId || requestId, {
-                            status: 'ordered',
-                            orderedDate: new Date().toISOString()
-                        }).then(success => {
-                            if (success) {
-                                // Remove from local array after marking as ordered
-                                restockRequests = restockRequests.filter(r => r.firestoreId !== requestId && r.id !== requestId);
-                                renderRestockRequests();
-                                showToast(`"${request.productName}" marked as ordered`, 'success');
-                            }
-                        }).catch(error => {
-                            console.error('Error marking request as ordered:', error);
-                            renderRestockRequests();
-                        });
-                    } else {
-                        restockRequests = restockRequests.filter(r => r.id !== requestId);
-                        renderRestockRequests();
-                        showToast(`"${request.productName}" marked as ordered`, 'success');
-                    }
-                }
-            }
-        }
-
-        // AI Assistant for Restock Analysis
-        async function askRestockAI() {
-            const responseDiv = document.getElementById('restock-ai-response');
-            if (!responseDiv) return;
-
-            // Show loading state
-            responseDiv.style.display = 'block';
-            responseDiv.innerHTML = `
-                <div style="background: linear-gradient(135deg, #8b5cf620 0%, #7c3aed20 100%); border-radius: 16px; padding: 20px; border: 1px solid #8b5cf640;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight: 600; color: var(--text-primary);">AI Analyzing...</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">Processing your restock data</div>
-                        </div>
-                        <i class="fas fa-spinner fa-spin" style="margin-left: auto; color: #8b5cf6; font-size: 20px;"></i>
-                    </div>
-                </div>
-            `;
-
-            try {
-                // Gather data for AI analysis
-                const approvedRequests = restockRequests.filter(r => r.status === 'approved');
-                const pendingRequests = restockRequests.filter(r => r.status === 'pending');
-                const lowStockItems = shopifyInventory.filter(item => parseInt(item.stock) <= 5).slice(0, 10);
-
-                const dataContext = `
-                    Approved Restock Requests (${approvedRequests.length}):
-                    ${approvedRequests.map(r => `- ${r.productName}: ${r.quantity} units for ${r.store} (${r.priority} priority)`).join('\n')}
-
-                    Pending Requests (${pendingRequests.length}):
-                    ${pendingRequests.slice(0, 5).map(r => `- ${r.productName}: ${r.quantity} units for ${r.store}`).join('\n')}
-
-                    Low Stock Items (${lowStockItems.length}):
-                    ${lowStockItems.map(i => `- ${i.productName || i.brand}: ${i.stock} units at ${i.store}`).join('\n')}
-                `;
-
-                const prompt = `You are a helpful inventory assistant. Based on this restock data, provide a brief analysis and 3 actionable recommendations. Be concise and use bullet points.
-
-                ${dataContext}
-
-                Format your response with:
-                1. A quick summary (1-2 sentences)
-                2. 3 specific recommendations`;
-
-                // Try to call the AI
-                const response = await callRestockAI(prompt);
-
-                responseDiv.innerHTML = `
-                    <div style="background: linear-gradient(135deg, #8b5cf620 0%, #7c3aed20 100%); border-radius: 16px; padding: 20px; border: 1px solid #8b5cf640;">
-                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">AI Analysis</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Based on your current inventory data</div>
-                            </div>
-                            <button onclick="document.getElementById('restock-ai-response').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap;">${response}</div>
-                    </div>
-                `;
-
-            } catch (error) {
-                console.error('AI Error:', error);
-                responseDiv.innerHTML = `
-                    <div style="background: #ef444420; border-radius: 16px; padding: 20px; border: 1px solid #ef444440;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 20px;"></i>
-                            <div>
-                                <div style="font-weight: 600; color: #ef4444;">AI Unavailable</div>
-                                <div style="font-size: 13px; color: var(--text-muted);">Could not connect to AI service. Check API settings in Project Analytics.</div>
-                            </div>
-                            <button onclick="document.getElementById('restock-ai-response').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; margin-left: auto;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
         }
 
         // Call AI for restock analysis (uses same API as Celeste)
