@@ -186,75 +186,132 @@ function renderTransfersPage() {
             </div>
         </div>
 
-        <!-- New Transfer Modal -->
+        <!-- New Transfer Modal - Redesigned -->
         <div class="modal" id="transferModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>New Transfer</h3>
-                    <button class="close-modal" onclick="closeTransferModal()">&times;</button>
+            <div class="modal-content" style="max-width: 550px; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+                <!-- Header with gradient -->
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); padding: 24px; position: relative;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-exchange-alt" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 700;">New Transfer</h3>
+                            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.8); font-size: 13px;">Move inventory between stores</p>
+                        </div>
+                    </div>
+                    <button onclick="closeTransferModal()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.2); border: none; width: 32px; height: 32px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                        <i class="fas fa-times" style="color: white;"></i>
+                    </button>
                 </div>
-                <div class="modal-body">
-                    <div id="transferMessage" class="alert" style="display: none;"></div>
+
+                <div style="padding: 24px; background: var(--bg-primary);">
+                    <div id="transferMessage" style="display: none; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 13px;"></div>
+
                     <form id="transferForm" onsubmit="event.preventDefault(); submitTransfer();">
-                        <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">Origin Store</label>
-                                <select id="transferStoreOrigin" class="form-control" onchange="handleOriginStoreChange()" required>
-                                    <option value="">Select Store</option>
-                                    <option value="1">VSU 1</option>
-                                    <option value="2">VSU 2</option>
-                                    <option value="3">VSU 3</option>
-                                    <option value="4">VSU 4</option>
-                                    <option value="5">VSU 5</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">Destination Store</label>
-                                <select id="transferStoreDestination" class="form-control" required>
-                                    <option value="">Select Store</option>
-                                    <option value="1">VSU 1</option>
-                                    <option value="2">VSU 2</option>
-                                    <option value="3">VSU 3</option>
-                                    <option value="4">VSU 4</option>
-                                    <option value="5">VSU 5</option>
-                                </select>
+                        <!-- Store Selection with Visual Route -->
+                        <div style="margin-bottom: 24px;">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+                                <i class="fas fa-route" style="margin-right: 6px;"></i>Transfer Route
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); padding: 16px; border-radius: 14px; border: 2px solid var(--border-color);">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">From</div>
+                                    <select id="transferStoreOrigin" onchange="handleOriginStoreChange()" required style="width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border-color)'">
+                                        <option value="">Select Origin</option>
+                                        <option value="1">VSU 1</option>
+                                        <option value="2">VSU 2</option>
+                                        <option value="3">VSU 3</option>
+                                        <option value="4">VSU 4</option>
+                                        <option value="5">VSU 5</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                    <i class="fas fa-arrow-right" style="color: #8b5cf6; font-size: 18px;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">To</div>
+                                    <select id="transferStoreDestination" required style="width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
+                                        <option value="">Select Destination</option>
+                                        <option value="1">VSU 1</option>
+                                        <option value="2">VSU 2</option>
+                                        <option value="3">VSU 3</option>
+                                        <option value="4">VSU 4</option>
+                                        <option value="5">VSU 5</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label class="form-label">Product</label>
-                            <div class="product-search-container" style="position: relative;">
-                                <input type="text" id="transferProductSearch" class="form-control" placeholder="Search product..." autocomplete="off">
-                                <div id="productSearchResults" class="product-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #ddd); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                        <!-- Product Search -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                                <i class="fas fa-box" style="margin-right: 6px;"></i>Product
+                            </label>
+                            <div style="position: relative;">
+                                <div style="position: relative;">
+                                    <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                    <input type="text" id="transferProductSearch" placeholder="Search by name, SKU, or brand..." autocomplete="off" style="width: 100%; padding: 14px 14px 14px 42px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; transition: all 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#8b5cf6'; this.style.background='var(--bg-primary)'" onblur="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)'">
+                                    <div id="productSearchLoading" style="display: none; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);">
+                                        <i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i>
+                                    </div>
+                                </div>
+                                <div id="productSearchResults" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; max-height: 240px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.15);"></div>
                             </div>
-                            <div id="selectedProductDisplay" class="selected-product-display" style="display: none; background: var(--bg-secondary, #f5f5f5); padding: 10px; border-radius: 8px; align-items: center; justify-content: space-between;"></div>
+                            <div id="selectedProductDisplay" style="display: none; margin-top: 10px;"></div>
                             <input type="hidden" id="transferProductId">
                         </div>
 
-                        <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">Quantity</label>
-                                <input type="number" id="transferQuantity" class="form-control" min="1" value="1" required>
+                        <!-- Quantity and Date Row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                                    <i class="fas fa-hashtag" style="margin-right: 6px;"></i>Quantity
+                                </label>
+                                <div style="display: flex; align-items: center; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 12px; overflow: hidden;">
+                                    <button type="button" onclick="adjustQuantity(-1)" style="width: 44px; height: 48px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 18px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='#ef4444'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" id="transferQuantity" min="1" value="1" required style="flex: 1; text-align: center; border: none; background: none; font-size: 18px; font-weight: 700; color: var(--text-primary); padding: 10px 0; -moz-appearance: textfield;" oninput="this.value = Math.max(1, parseInt(this.value) || 1)">
+                                    <button type="button" onclick="adjustQuantity(1)" style="width: 44px; height: 48px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 18px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='#10b981'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">Ship Date</label>
-                                <input type="date" id="transferShipDate" class="form-control" required>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                                    <i class="fas fa-calendar" style="margin-right: 6px;"></i>Ship Date
+                                </label>
+                                <input type="date" id="transferShipDate" required style="width: 100%; padding: 12px 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; box-sizing: border-box; cursor: pointer;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
                             </div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label class="form-label">Sent By</label>
-                            <input type="text" id="transferSentBy" class="form-control" required>
+                        <!-- Sent By -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                                <i class="fas fa-user" style="margin-right: 6px;"></i>Sent By
+                            </label>
+                            <input type="text" id="transferSentBy" required placeholder="Your name" style="width: 100%; padding: 12px 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; box-sizing: border-box;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label class="form-label">Notes</label>
-                            <textarea id="transferNotes" class="form-control" rows="2"></textarea>
+                        <!-- Notes (Collapsible) -->
+                        <div style="margin-bottom: 24px;">
+                            <button type="button" onclick="toggleTransferNotes()" style="display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 0;">
+                                <i class="fas fa-plus-circle" id="notesToggleIcon"></i> Add Notes (Optional)
+                            </button>
+                            <div id="transferNotesContainer" style="display: none; margin-top: 10px;">
+                                <textarea id="transferNotes" rows="2" placeholder="Additional notes..." style="width: 100%; padding: 12px 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; resize: vertical; box-sizing: border-box;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'"></textarea>
+                            </div>
                         </div>
 
-                        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-                            <button type="button" class="btn-secondary" onclick="closeTransferModal()">Cancel</button>
-                            <button type="submit" id="submitTransferBtn" class="btn-primary">Create Transfer</button>
+                        <!-- Action Buttons -->
+                        <div style="display: flex; gap: 12px;">
+                            <button type="button" onclick="closeTransferModal()" style="flex: 1; padding: 14px 20px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                                Cancel
+                            </button>
+                            <button type="submit" id="submitTransferBtn" style="flex: 2; padding: 14px 20px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(99, 102, 241, 0.4)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.3)'">
+                                <i class="fas fa-paper-plane"></i> Create Transfer
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -511,14 +568,18 @@ function setupProductSearch() {
 // Search products from Shopify
 async function searchProducts(query) {
     const resultsContainer = document.getElementById('productSearchResults');
+    const loadingIndicator = document.getElementById('productSearchLoading');
 
     if (!resultsContainer) return;
 
-    // Show loading
+    // Show loading indicator
+    if (loadingIndicator) loadingIndicator.style.display = 'block';
+
+    // Show loading in results
     resultsContainer.innerHTML = `
-        <div class="product-search-loading">
-            <i class="fas fa-spinner fa-spin"></i>
-            Searching products...
+        <div style="padding: 20px; text-align: center; color: var(--text-muted);">
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #8b5cf6; margin-bottom: 10px; display: block;"></i>
+            <span style="font-size: 13px;">Searching products...</span>
         </div>
     `;
     resultsContainer.style.display = 'block';
@@ -528,7 +589,9 @@ async function searchProducts(query) {
         if (transfersState.productsCache.length === 0) {
             // Fetch products from Shopify using the existing function
             if (typeof fetchStoreInventory === 'function') {
+                console.log('🔄 Fetching products from Shopify...');
                 transfersState.productsCache = await fetchStoreInventory('vsu', 250);
+                console.log('✅ Loaded', transfersState.productsCache.length, 'products');
             } else {
                 throw new Error('fetchStoreInventory function not available');
             }
@@ -538,34 +601,51 @@ async function searchProducts(query) {
         const queryLower = query.toLowerCase();
         const filteredProducts = transfersState.productsCache.filter(product => {
             return (
-                product.productName.toLowerCase().includes(queryLower) ||
+                (product.productName && product.productName.toLowerCase().includes(queryLower)) ||
                 (product.sku && product.sku.toLowerCase().includes(queryLower)) ||
                 (product.brand && product.brand.toLowerCase().includes(queryLower)) ||
                 (product.flavor && product.flavor.toLowerCase().includes(queryLower))
             );
-        }).slice(0, 20); // Limit to 20 results
+        }).slice(0, 15); // Limit to 15 results
+
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
 
         if (filteredProducts.length === 0) {
             resultsContainer.innerHTML = `
-                <div class="product-search-no-results">
-                    <i class="fas fa-search"></i>
-                    No products found for "${query}"
+                <div style="padding: 24px; text-align: center; color: var(--text-muted);">
+                    <i class="fas fa-box-open" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                    <div style="font-size: 14px; font-weight: 500;">No products found</div>
+                    <div style="font-size: 12px; margin-top: 4px;">Try a different search term</div>
                 </div>
             `;
             return;
         }
 
-        // Render results
-        resultsContainer.innerHTML = filteredProducts.map(product => `
-            <div class="product-search-item" onclick='selectProduct(${JSON.stringify(product).replace(/'/g, "\\'")})'>
-                <div class="product-name">${product.productName}${product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''}</div>
-                <div class="product-details">
-                    ${product.sku ? `<span class="product-sku">SKU: ${product.sku}</span>` : ''}
-                    <span>Stock: ${product.stock}</span>
-                    ${product.brand ? `<span>${product.brand}</span>` : ''}
+        // Render results with improved styling
+        resultsContainer.innerHTML = filteredProducts.map(product => {
+            const productData = encodeURIComponent(JSON.stringify(product));
+            const stockColor = parseInt(product.stock) <= 5 ? '#ef4444' : parseInt(product.stock) <= 20 ? '#f59e0b' : '#10b981';
+
+            return `
+                <div onclick="selectProductFromSearch('${productData}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${product.productName}${product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''}
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
+                                ${product.sku ? `<span style="font-size: 11px; color: var(--text-muted); background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">SKU: ${product.sku}</span>` : ''}
+                                ${product.brand ? `<span style="font-size: 11px; color: #8b5cf6; background: rgba(139,92,246,0.1); padding: 2px 6px; border-radius: 4px;">${product.brand}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="text-align: right; flex-shrink: 0;">
+                            <div style="font-size: 14px; font-weight: 700; color: ${stockColor};">${product.stock}</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">in stock</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
     } catch (error) {
         console.error('Error searching products:', error);

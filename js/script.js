@@ -4713,48 +4713,10 @@
             const store = employee.store || 'VSU Miramar';
 
             // ==========================================
-            // GEOFENCE VERIFICATION
+            // GEOFENCE VERIFICATION (DISABLED)
             // ==========================================
+            // Geofencing has been disabled for simplicity
             let locationData = null;
-
-            // Show loading indicator
-            showNotification('Verifying location...', 'info');
-
-            try {
-                const locationResult = await verifyClockLocation(store);
-
-                if (!locationResult.allowed) {
-                    // Strict mode: block clock action if outside geofence
-                    showNotification(locationResult.message, 'error');
-                    return;
-                }
-
-                if (locationResult.warning) {
-                    // Non-strict mode: warn but allow
-                    showNotification(locationResult.message, 'warning');
-                }
-
-                // Store location data for the record
-                if (locationResult.location || locationResult.geofenceResult) {
-                    locationData = {
-                        latitude: locationResult.location?.latitude || null,
-                        longitude: locationResult.location?.longitude || null,
-                        accuracy: locationResult.location?.accuracy || null,
-                        isWithinGeofence: locationResult.geofenceResult?.isWithinGeofence ?? null,
-                        distance: locationResult.geofenceResult?.distance || null,
-                        timestamp: new Date().toISOString()
-                    };
-                    console.log('📍 Location recorded:', locationData);
-                }
-            } catch (locationError) {
-                console.warn('Location verification error:', locationError);
-                // Continue without location data if geofencing is not in strict mode
-                const geofenceConfig = window.GEOFENCE_CONFIG || { enabled: false };
-                if (geofenceConfig.strictMode) {
-                    showNotification('Location verification failed. Cannot clock in.', 'error');
-                    return;
-                }
-            }
 
             // Format date as YYYY-MM-DD for consistency (use local date, not UTC)
             const today = new Date();
@@ -33336,15 +33298,6 @@ window.renderProjectAnalytics = function() {
                         <div style="text-align: left;">
                             <div style="font-weight: 600; color: var(--text-primary);">Recent Activity</div>
                             <div style="font-size: 12px; color: var(--text-muted);">View system logs</div>
-                        </div>
-                    </button>
-                    <button onclick="openStoreLocationsModal()" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#ec4899'; this.style.background='rgba(236,72,153,0.1)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)';">
-                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ec4899, #db2777); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-map-marker-alt" style="color: white;"></i>
-                        </div>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: var(--text-primary);">Store Locations</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Configure geofencing</div>
                         </div>
                     </button>
                 </div>
