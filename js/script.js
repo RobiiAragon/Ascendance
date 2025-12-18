@@ -44,6 +44,9 @@
             { id: 4, title: 'POS System Training', type: 'video', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', duration: '60 min', completion: 64, required: true }
         ];
 
+        // Training view mode state
+        let trainingViewMode = 'grid'; // 'grid' or 'list'
+
         let licenses = [
             { id: 1, name: 'Business License', store: 'Miramar', expires: '2025-12-31', status: 'valid', file: 'business_license_miramar.pdf' },
             { id: 2, name: 'Tobacco License', store: 'Morena', expires: '2026-01-15', status: 'expiring', file: 'tobacco_license_morena.pdf' },
@@ -2153,14 +2156,25 @@
 
             // Render the trainings grid
             dashboard.innerHTML = `
-                <div class="page-header">
+                <div class="page-header" style="margin-bottom: 24px;">
                     <div class="page-header-left">
                         <h2 class="section-title">Training Center</h2>
                         <p class="section-subtitle">Videos, documents, and courses for your team</p>
                     </div>
-                    <button class="btn-primary floating-add-btn no-float-mobile" onclick="openModal('add-training')">
-                        <i class="fas fa-plus"></i> Add Training
-                    </button>
+                    <div class="page-header-right" style="display: flex; gap: 12px; align-items: center;">
+                        <!-- View Toggle -->
+                        <div style="display: flex; background: var(--bg-secondary); border-radius: 10px; padding: 4px; border: 1px solid var(--border-color);">
+                            <button onclick="setTrainingViewMode('grid')" id="training-view-grid-btn" style="width: 38px; height: 38px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${trainingViewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="Grid View">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button onclick="setTrainingViewMode('list')" id="training-view-list-btn" style="width: 38px; height: 38px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${trainingViewMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                        <button class="btn-primary" onclick="openModal('add-training')">
+                            <i class="fas fa-plus"></i> Add Training
+                        </button>
+                    </div>
                 </div>
 
                 ${mandatoryTrainings.length > 0 ? `
@@ -2192,13 +2206,17 @@
                         <div style="font-size: 16px;">No training materials yet</div>
                         <div style="font-size: 14px; margin-top: 8px;">Click "Add Training" to create your first training material</div>
                     </div>
-                ` : `
+                ` : trainingViewMode === 'grid' ? `
                     <div class="training-grid">
                         ${trainings.map(t => {
                             const thumbnail = t.type === 'video' && t.url ? getVideoThumbnail(t.url) : null;
+                            const isVimeo = thumbnail && thumbnail.startsWith('vimeo:');
+                            const vimeoId = isVimeo ? thumbnail.replace('vimeo:', '') : null;
+                            const thumbStyle = thumbnail && !isVimeo ? `style="background-image: url('${thumbnail}'); background-size: cover; background-position: center;"` : '';
+                            const vimeoAttr = isVimeo ? `data-vimeo-id="${vimeoId}"` : '';
                             return `
                             <div class="training-card" onclick="${t.type === 'video' ? `playTrainingVideo('${t.id}')` : `viewTraining('${t.id}')`}" style="cursor: pointer;">
-                                <div class="training-card-thumbnail ${t.type}" ${thumbnail ? `style="background-image: url('${thumbnail}'); background-size: cover; background-position: center;"` : ''}>
+                                <div class="training-card-thumbnail ${t.type}" ${thumbStyle} ${vimeoAttr}>
                                     ${thumbnail ? `<div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-play-circle" style="font-size: 48px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5);"></i></div>` : `<i class="fas fa-${t.type === 'video' ? 'play-circle' : 'file-pdf'}"></i>`}
                                 </div>
                                 <div class="training-card-body">
@@ -2222,8 +2240,76 @@
                             </div>
                         `;}).join('')}
                     </div>
+                ` : `
+                    <!-- List View -->
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${trainings.map(t => {
+                            const thumbnail = t.type === 'video' && t.url ? getVideoThumbnail(t.url) : null;
+                            const isVimeo = thumbnail && thumbnail.startsWith('vimeo:');
+                            const vimeoId = isVimeo ? thumbnail.replace('vimeo:', '') : null;
+                            const thumbUrl = thumbnail && !isVimeo ? thumbnail : null;
+                            const vimeoAttr = isVimeo ? `data-vimeo-id="${vimeoId}"` : '';
+                            const typeColor = t.type === 'video' ? '#ef4444' : '#3b82f6';
+                            const typeIcon = t.type === 'video' ? 'play-circle' : 'file-pdf';
+                            return `
+                            <div class="training-list-item" onclick="${t.type === 'video' ? `playTrainingVideo('${t.id}')` : `viewTraining('${t.id}')`}" style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+                                <div style="display: flex; align-items: center; padding: 16px; gap: 16px;">
+                                    <!-- Thumbnail -->
+                                    <div style="width: 120px; height: 68px; border-radius: 8px; flex-shrink: 0; position: relative; overflow: hidden; background: linear-gradient(135deg, ${typeColor} 0%, ${typeColor}dd 100%); display: flex; align-items: center; justify-content: center;" ${thumbUrl ? `style="background-image: url('${thumbUrl}'); background-size: cover; background-position: center;"` : ''} ${vimeoAttr}>
+                                        ${thumbUrl ? `
+                                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-play-circle" style="font-size: 28px; color: white;"></i>
+                                            </div>
+                                        ` : `
+                                            <i class="fas fa-${typeIcon}" style="font-size: 24px; color: white;"></i>
+                                        `}
+                                    </div>
+
+                                    <!-- Info -->
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                                            <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.title}</h3>
+                                            ${t.required ? `<span style="background: #ef444420; color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;">Required</span>` : ''}
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--text-muted);">
+                                            <span style="display: flex; align-items: center; gap: 4px;">
+                                                <i class="fas fa-${typeIcon}" style="color: ${typeColor};"></i>
+                                                ${(t.type || 'document').charAt(0).toUpperCase() + (t.type || 'document').slice(1)}
+                                            </span>
+                                            <span style="display: flex; align-items: center; gap: 4px;">
+                                                <i class="fas fa-clock"></i>
+                                                ${t.duration || '30 min'}
+                                            </span>
+                                            ${t.fileName ? `
+                                                <span style="display: flex; align-items: center; gap: 4px;">
+                                                    <i class="fas fa-file"></i>
+                                                    ${t.fileName}
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div style="display: flex; gap: 8px;" onclick="event.stopPropagation()">
+                                        <button class="btn-secondary" onclick="viewTraining('${t.id}')" style="padding: 8px 16px; font-size: 13px;">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <button class="btn-icon" onclick="editTraining('${t.id}')" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon danger" onclick="deleteTraining('${t.id}')" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;}).join('')}
+                    </div>
                 `}
             `;
+
+            // Load Vimeo thumbnails after render
+            setTimeout(() => loadVimeoThumbnails(), 100);
         }
 
         function renderLicenses() {
@@ -26077,23 +26163,49 @@ Return ONLY the JSON object, no additional text.`,
             return null;
         }
 
+        // Set training view mode (grid or list)
+        function setTrainingViewMode(mode) {
+            trainingViewMode = mode;
+            renderTraining();
+        }
+
         // Get video thumbnail URL
         function getVideoThumbnail(url) {
             const videoInfo = getVideoEmbedUrl(url);
             if (!videoInfo) return null;
 
             if (videoInfo.type === 'youtube') {
-                // YouTube thumbnail - maxresdefault is highest quality, falls back to hqdefault
-                return `https://img.youtube.com/vi/${videoInfo.videoId}/maxresdefault.jpg`;
+                // YouTube thumbnail - hqdefault is more reliable
+                return `https://img.youtube.com/vi/${videoInfo.videoId}/hqdefault.jpg`;
             }
 
             if (videoInfo.type === 'vimeo') {
-                // Vimeo thumbnails require API call, use placeholder with video ID
-                // Will be loaded async if needed
-                return null;
+                // Return vimeo ID to load async
+                return `vimeo:${videoInfo.videoId}`;
             }
 
             return null;
+        }
+
+        // Load Vimeo thumbnails async after page renders
+        async function loadVimeoThumbnails() {
+            const vimeoElements = document.querySelectorAll('[data-vimeo-id]');
+            for (const el of vimeoElements) {
+                const vimeoId = el.dataset.vimeoId;
+                try {
+                    const response = await fetch(`https://vimeo.com/api/v2/video/${vimeoId}.json`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data[0] && data[0].thumbnail_large) {
+                            el.style.backgroundImage = `url('${data[0].thumbnail_large}')`;
+                            el.style.backgroundSize = 'cover';
+                            el.style.backgroundPosition = 'center';
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not load Vimeo thumbnail:', vimeoId);
+                }
+            }
         }
 
         function playTrainingVideo(trainingId) {
