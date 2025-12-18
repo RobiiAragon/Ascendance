@@ -819,6 +819,21 @@
             line-height: 1.6;
         }
 
+        /* Theme Selection */
+        .theme-option {
+            display: block;
+        }
+
+        .theme-option:hover .theme-preview {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-option input:checked + .theme-preview {
+            border-color: var(--accent-primary) !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
         /* Submit Button */
         .submit-btn {
             width: 100%;
@@ -1901,6 +1916,58 @@
                     </div>
 
                     <!-- ═══════════════════════════════════════════════════════════ -->
+                    <!-- SECTION: Display Preferences -->
+                    <!-- ═══════════════════════════════════════════════════════════ -->
+                    <div class="form-section-title full-width">
+                        <i class="fas fa-palette"></i> Display Preferences
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>How would you like to view the application info? <span class="required">*</span></label>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Choose your preferred display mode for better readability</p>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <label class="theme-option" style="flex: 1; min-width: 200px; cursor: pointer;">
+                                <input type="radio" name="displayTheme" value="dark" checked style="display: none;">
+                                <div class="theme-preview dark-theme" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a25 100%); transition: all 0.3s;">
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                        <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-moon" style="color: white; font-size: 14px;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; color: #fff;">Dark Mode</div>
+                                            <div style="font-size: 11px; color: #a0a0b0;">Modern & sleek</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="width: 20px; height: 10px; background: #667eea; border-radius: 3px;"></span>
+                                        <span style="width: 30px; height: 10px; background: #2a2a3a; border-radius: 3px;"></span>
+                                        <span style="width: 25px; height: 10px; background: #1a1a25; border-radius: 3px;"></span>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="theme-option" style="flex: 1; min-width: 200px; cursor: pointer;">
+                                <input type="radio" name="displayTheme" value="light" style="display: none;">
+                                <div class="theme-preview light-theme" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); transition: all 0.3s;">
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                        <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #333, #555); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-sun" style="color: white; font-size: 14px;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; color: #1a1a1a;">Light Mode</div>
+                                            <div style="font-size: 11px; color: #666;">Black & white classic</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="width: 20px; height: 10px; background: #333; border-radius: 3px;"></span>
+                                        <span style="width: 30px; height: 10px; background: #ddd; border-radius: 3px;"></span>
+                                        <span style="width: 25px; height: 10px; background: #f0f0f0; border-radius: 3px;"></span>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════════════ -->
                     <!-- SECTION: Disclaimer & Signature -->
                     <!-- ═══════════════════════════════════════════════════════════ -->
                     <div class="form-section-title full-width">
@@ -2105,6 +2172,17 @@
             const explanationGroup = document.getElementById('dischargeExplanationGroup');
             const nonHonorableTypes = ['Other Than Honorable', 'Bad Conduct', 'Dishonorable'];
             explanationGroup.style.display = nonHonorableTypes.includes(this.value) ? 'flex' : 'none';
+        });
+
+        // Theme selection handler
+        document.querySelectorAll('input[name="displayTheme"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Update visual selection
+                document.querySelectorAll('.theme-preview').forEach(preview => {
+                    preview.style.borderColor = 'var(--border-color)';
+                });
+                this.closest('.theme-option').querySelector('.theme-preview').style.borderColor = 'var(--accent-primary)';
+            });
         });
 
         // Set today's date for signature date
@@ -2372,6 +2450,8 @@
                     // Signature
                     signatureName: document.getElementById('signatureName')?.value?.trim() || '',
                     signatureDate: document.getElementById('signatureDate')?.value || '',
+                    // Display Preferences
+                    displayTheme: document.querySelector('input[name="displayTheme"]:checked')?.value || 'dark',
                     // Certifications
                     ageVerified: true,
                     infoAccurate: true,

@@ -3071,36 +3071,49 @@
                 <!-- Error Container -->
                 <div id="analytics-error" style="display: none; background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
 
-                <div class="page-header" style="flex-wrap: wrap;">
-                    <div class="page-header-left">
-                        <h2 class="section-title">Sales Analytics</h2>
-                        <p class="section-subtitle">Performance insights and sales data - ${dateRangeText}</p>
-                    </div>
-                    <div class="page-header-right" style="position: relative; z-index: 100;">
-                        <div class="analytics-date-controls" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                            <div class="analytics-period-btns" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'today' ? 'active' : ''}" onclick="setAnalyticsPeriod('today')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Today</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'week' ? 'active' : ''}" onclick="setAnalyticsPeriod('week')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Week</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'month' ? 'active' : ''}" onclick="setAnalyticsPeriod('month')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Month</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'quarter' ? 'active' : ''}" onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Last 3 Months</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'year' ? 'active' : ''}" onclick="setAnalyticsPeriod('year')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Year</button>
-                                <button class="analytics-period-btn custom ${analyticsDateRange.period === 'custom' ? 'active' : ''}" onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-calendar-alt"></i> Custom
-                                </button>
+                <!-- Redesigned Header -->
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+                        <div>
+                            <h2 class="section-title" style="margin: 0 0 8px 0;">Sales Analytics</h2>
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="color: var(--text-secondary); font-size: 14px;">Performance insights</span>
+                                <span style="background: var(--accent-primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                    <i class="fas fa-calendar-check" style="margin-right: 6px;"></i>${dateRangeText}
+                                </span>
                             </div>
-                            <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none;">
-                                <div class="analytics-calendar-popup">
-                                    <div class="calendar-header-display">
-                                        <span id="selected-range-display">${dateRangeText}</span>
-                                    </div>
-                                    <div class="calendar-dual-view">
-                                        <div class="calendar-month-panel" id="calendar-month-1"></div>
-                                        <div class="calendar-month-panel" id="calendar-month-2"></div>
-                                    </div>
-                                    <div class="calendar-actions">
-                                        <button class="btn-secondary" onclick="clearAnalyticsDateRange()">Clear</button>
-                                        <button class="btn-primary" onclick="applyAnalyticsDateRange()">Apply</button>
-                                    </div>
+                        </div>
+                        <button onclick="loadAnalyticsData()" style="padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; color: var(--text-primary);">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <!-- Period Selection - Cleaner Layout -->
+                    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; position: relative;">
+                        <div style="display: inline-flex; background: var(--bg-secondary); border-radius: 10px; padding: 4px; gap: 4px;">
+                            <button onclick="setAnalyticsPeriod('today')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'today' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'today' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Today</button>
+                            <button onclick="setAnalyticsPeriod('week')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'week' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'week' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Week</button>
+                            <button onclick="setAnalyticsPeriod('month')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'month' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'month' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Month</button>
+                            <button onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'quarter' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'quarter' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Quarter</button>
+                            <button onclick="setAnalyticsPeriod('year')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'year' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'year' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Year</button>
+                        </div>
+                        <button onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--bg-card)'}; color: ${analyticsDateRange.period === 'custom' ? 'white' : 'var(--text-primary)'}; border: 1px solid ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+                            <i class="fas fa-calendar-alt"></i> Custom Range
+                        </button>
+
+                        <!-- Calendar Popup -->
+                        <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; z-index: 100;">
+                            <div class="analytics-calendar-popup" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 16px;">
+                                <div class="calendar-header-display" style="text-align: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px; font-weight: 500; color: var(--text-primary);">
+                                    <span id="selected-range-display">${dateRangeText}</span>
+                                </div>
+                                <div class="calendar-dual-view" style="display: flex; gap: 16px;">
+                                    <div class="calendar-month-panel" id="calendar-month-1"></div>
+                                    <div class="calendar-month-panel" id="calendar-month-2"></div>
+                                </div>
+                                <div class="calendar-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                    <button class="btn-secondary" onclick="clearAnalyticsDateRange()" style="padding: 8px 16px; border-radius: 8px; cursor: pointer;">Clear</button>
+                                    <button class="btn-primary" onclick="applyAnalyticsDateRange()" style="padding: 8px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Apply</button>
                                 </div>
                             </div>
                         </div>
@@ -3313,36 +3326,49 @@
                 <!-- Error Container -->
                 <div id="analytics-error" style="display: none; background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
 
-                <div class="page-header" style="flex-wrap: wrap;">
-                    <div class="page-header-left">
-                        <h2 class="section-title">Sales Analytics</h2>
-                        <p class="section-subtitle">Performance insights and sales data</p>
-                    </div>
-                    <div class="page-header-right" style="position: relative; z-index: 100;">
-                        <div class="analytics-date-controls" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                            <div class="analytics-period-btns" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'today' ? 'active' : ''}" onclick="setAnalyticsPeriod('today')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Today</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'week' ? 'active' : ''}" onclick="setAnalyticsPeriod('week')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Week</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'month' ? 'active' : ''}" onclick="setAnalyticsPeriod('month')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Month</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'quarter' ? 'active' : ''}" onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">Last 3 Months</button>
-                                <button class="analytics-period-btn ${analyticsDateRange.period === 'year' ? 'active' : ''}" onclick="setAnalyticsPeriod('year')" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px;">This Year</button>
-                                <button class="analytics-period-btn custom ${analyticsDateRange.period === 'custom' ? 'active' : ''}" onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-calendar-alt"></i> Custom
-                                </button>
+                <!-- Redesigned Header -->
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+                        <div>
+                            <h2 class="section-title" style="margin: 0 0 8px 0;">Sales Analytics</h2>
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="color: var(--text-secondary); font-size: 14px;">Performance insights</span>
+                                <span style="background: var(--accent-primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                    <i class="fas fa-calendar-check" style="margin-right: 6px;"></i>${dateRangeText}
+                                </span>
                             </div>
-                            <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none;">
-                                <div class="analytics-calendar-popup">
-                                    <div class="calendar-header-display">
-                                        <span id="selected-range-display">${dateRangeText}</span>
-                                    </div>
-                                    <div class="calendar-dual-view">
-                                        <div class="calendar-month-panel" id="calendar-month-1"></div>
-                                        <div class="calendar-month-panel" id="calendar-month-2"></div>
-                                    </div>
-                                    <div class="calendar-actions">
-                                        <button class="btn-secondary" onclick="clearAnalyticsDateRange()">Clear</button>
-                                        <button class="btn-primary" onclick="applyAnalyticsDateRange()">Apply</button>
-                                    </div>
+                        </div>
+                        <button onclick="loadAnalyticsData()" style="padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; color: var(--text-primary);">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <!-- Period Selection - Cleaner Layout -->
+                    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; position: relative;">
+                        <div style="display: inline-flex; background: var(--bg-secondary); border-radius: 10px; padding: 4px; gap: 4px;">
+                            <button onclick="setAnalyticsPeriod('today')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'today' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'today' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Today</button>
+                            <button onclick="setAnalyticsPeriod('week')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'week' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'week' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Week</button>
+                            <button onclick="setAnalyticsPeriod('month')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'month' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'month' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Month</button>
+                            <button onclick="setAnalyticsPeriod('quarter')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'quarter' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'quarter' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Quarter</button>
+                            <button onclick="setAnalyticsPeriod('year')" style="padding: 8px 14px; background: ${analyticsDateRange.period === 'year' ? 'var(--accent-primary)' : 'transparent'}; color: ${analyticsDateRange.period === 'year' ? 'white' : 'var(--text-primary)'}; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">Year</button>
+                        </div>
+                        <button onclick="toggleAnalyticsCalendar()" style="padding: 8px 16px; background: ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--bg-card)'}; color: ${analyticsDateRange.period === 'custom' ? 'white' : 'var(--text-primary)'}; border: 1px solid ${analyticsDateRange.period === 'custom' ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+                            <i class="fas fa-calendar-alt"></i> Custom Range
+                        </button>
+
+                        <!-- Calendar Popup -->
+                        <div class="analytics-calendar-container" id="analytics-calendar-container" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; z-index: 100;">
+                            <div class="analytics-calendar-popup" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 16px;">
+                                <div class="calendar-header-display" style="text-align: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px; font-weight: 500; color: var(--text-primary);">
+                                    <span id="selected-range-display">${dateRangeText}</span>
+                                </div>
+                                <div class="calendar-dual-view" style="display: flex; gap: 16px;">
+                                    <div class="calendar-month-panel" id="calendar-month-1"></div>
+                                    <div class="calendar-month-panel" id="calendar-month-2"></div>
+                                </div>
+                                <div class="calendar-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                    <button class="btn-secondary" onclick="clearAnalyticsDateRange()" style="padding: 8px 16px; border-radius: 8px; cursor: pointer;">Clear</button>
+                                    <button class="btn-primary" onclick="applyAnalyticsDateRange()" style="padding: 8px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Apply</button>
                                 </div>
                             </div>
                         </div>
@@ -3567,8 +3593,44 @@
 
         window.setAnalyticsPeriod = function(period) {
             analyticsDateRange.period = period;
-            analyticsDateRange.startDate = null;
-            analyticsDateRange.endDate = null;
+
+            // Calculate actual dates for the period
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            switch(period) {
+                case 'today':
+                    analyticsDateRange.startDate = new Date(today);
+                    analyticsDateRange.endDate = new Date(today);
+                    break;
+                case 'week':
+                    // Start of week (Sunday)
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay());
+                    analyticsDateRange.startDate = startOfWeek;
+                    analyticsDateRange.endDate = new Date(today);
+                    break;
+                case 'month':
+                    // Start of current month
+                    analyticsDateRange.startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    analyticsDateRange.endDate = new Date(today);
+                    break;
+                case 'quarter':
+                    // Last 3 months
+                    const threeMonthsAgo = new Date(today);
+                    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                    analyticsDateRange.startDate = threeMonthsAgo;
+                    analyticsDateRange.endDate = new Date(today);
+                    break;
+                case 'year':
+                    // Start of current year
+                    analyticsDateRange.startDate = new Date(today.getFullYear(), 0, 1);
+                    analyticsDateRange.endDate = new Date(today);
+                    break;
+                default:
+                    analyticsDateRange.startDate = null;
+                    analyticsDateRange.endDate = null;
+            }
 
             // Close calendar if open
             const container = document.getElementById('analytics-calendar-container');
@@ -12514,6 +12576,221 @@ window.viewChecklistHistory = async function() {
             activeTab: 'current' // 'current' or 'recurring'
         };
 
+        // Default invoice categories
+        const DEFAULT_INVOICE_CATEGORIES = [
+            { id: 'utilities', name: 'Utilities', icon: 'fa-bolt' },
+            { id: 'rent', name: 'Rent', icon: 'fa-home' },
+            { id: 'supplies', name: 'Supplies', icon: 'fa-box' },
+            { id: 'inventory', name: 'Inventory', icon: 'fa-boxes' },
+            { id: 'services', name: 'Services', icon: 'fa-concierge-bell' },
+            { id: 'equipment', name: 'Equipment', icon: 'fa-tools' },
+            { id: 'other', name: 'Other', icon: 'fa-ellipsis-h' }
+        ];
+
+        // Custom invoice categories (loaded from Firebase)
+        let customInvoiceCategories = [];
+
+        // Load custom invoice categories from Firebase
+        async function loadInvoiceCategories() {
+            try {
+                const snapshot = await db.collection('invoiceCategories').orderBy('name').get();
+                customInvoiceCategories = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                console.log(`[Invoices] Loaded ${customInvoiceCategories.length} custom categories`);
+            } catch (error) {
+                console.error('[Invoices] Error loading categories:', error);
+                customInvoiceCategories = [];
+            }
+        }
+
+        // Get all invoice categories (default + custom)
+        function getAllInvoiceCategories() {
+            return [...DEFAULT_INVOICE_CATEGORIES, ...customInvoiceCategories];
+        }
+
+        // Add new custom category
+        async function addInvoiceCategory(name) {
+            if (!name || name.trim() === '') return null;
+
+            const trimmedName = name.trim();
+            const categoryId = trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+            // Check if already exists
+            const allCategories = getAllInvoiceCategories();
+            if (allCategories.some(c => c.id === categoryId || c.name.toLowerCase() === trimmedName.toLowerCase())) {
+                showToast('Category already exists', 'warning');
+                return null;
+            }
+
+            try {
+                const docRef = await db.collection('invoiceCategories').add({
+                    name: trimmedName,
+                    icon: 'fa-tag',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const newCategory = { id: docRef.id, name: trimmedName, icon: 'fa-tag' };
+                customInvoiceCategories.push(newCategory);
+
+                showToast(`Category "${trimmedName}" added`, 'success');
+                return newCategory;
+            } catch (error) {
+                console.error('[Invoices] Error adding category:', error);
+                showToast('Error adding category', 'error');
+                return null;
+            }
+        }
+
+        // Delete custom category
+        async function deleteInvoiceCategory(categoryId) {
+            // Prevent deleting default categories
+            if (DEFAULT_INVOICE_CATEGORIES.some(c => c.id === categoryId)) {
+                showToast('Cannot delete default categories', 'warning');
+                return false;
+            }
+
+            try {
+                await db.collection('invoiceCategories').doc(categoryId).delete();
+                customInvoiceCategories = customInvoiceCategories.filter(c => c.id !== categoryId);
+                showToast('Category deleted', 'success');
+                return true;
+            } catch (error) {
+                console.error('[Invoices] Error deleting category:', error);
+                showToast('Error deleting category', 'error');
+                return false;
+            }
+        }
+
+        // Show add category modal
+        window.showAddInvoiceCategoryModal = function() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'add-category-modal';
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-plus-circle"></i> Add New Category</h3>
+                        <button class="modal-close" onclick="closeAddCategoryModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Category Name</label>
+                            <input type="text" class="form-input" id="new-category-name" placeholder="e.g., Marketing, Insurance, Taxes..." autofocus>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                                <i class="fas fa-info-circle"></i> Custom categories you add will be available for all invoices.
+                            </p>
+                            ${customInvoiceCategories.length > 0 ? `
+                                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
+                                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Your custom categories:</p>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                        ${customInvoiceCategories.map(c => `
+                                            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-card); border-radius: 16px; font-size: 12px;">
+                                                ${c.name}
+                                                <button onclick="confirmDeleteCategory('${c.id}', '${c.name}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; font-size: 14px;" title="Delete">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeAddCategoryModal()">Cancel</button>
+                        <button class="btn btn-primary" onclick="saveNewInvoiceCategory()">
+                            <i class="fas fa-plus"></i> Add Category
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Focus input and add enter key handler
+            setTimeout(() => {
+                const input = document.getElementById('new-category-name');
+                if (input) {
+                    input.focus();
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') saveNewInvoiceCategory();
+                    });
+                }
+            }, 100);
+        };
+
+        window.closeAddCategoryModal = function() {
+            const modal = document.getElementById('add-category-modal');
+            if (modal) modal.remove();
+        };
+
+        window.confirmDeleteCategory = function(categoryId, categoryName) {
+            if (confirm(`Delete category "${categoryName}"? Invoices using this category will keep their current category.`)) {
+                deleteInvoiceCategory(categoryId).then(success => {
+                    if (success) {
+                        closeAddCategoryModal();
+                        showAddInvoiceCategoryModal(); // Refresh the modal
+                    }
+                });
+            }
+        };
+
+        window.saveNewInvoiceCategory = async function() {
+            const input = document.getElementById('new-category-name');
+            if (!input) return;
+
+            const name = input.value.trim();
+            if (!name) {
+                showToast('Please enter a category name', 'warning');
+                input.focus();
+                return;
+            }
+
+            const newCategory = await addInvoiceCategory(name);
+            if (newCategory) {
+                closeAddCategoryModal();
+                // Refresh the invoice form if open
+                updateInvoiceCategorySelects();
+            }
+        };
+
+        // Update all category selects in the page
+        function updateInvoiceCategorySelects() {
+            const allCategories = getAllInvoiceCategories();
+            const selects = document.querySelectorAll('#invoice-category, #edit-invoice-category');
+
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = `
+                    <option value="">Select category...</option>
+                    ${allCategories.map(c => `
+                        <option value="${c.id}" ${currentValue === c.id ? 'selected' : ''}>${c.name}</option>
+                    `).join('')}
+                `;
+            });
+        }
+
+        // Render invoice category select with add button
+        function renderInvoiceCategorySelect(selectedValue = '', selectId = 'invoice-category') {
+            const allCategories = getAllInvoiceCategories();
+            return `
+                <div style="display: flex; gap: 8px;">
+                    <select class="form-input" id="${selectId}" style="flex: 1;">
+                        <option value="">Select category...</option>
+                        ${allCategories.map(c => `
+                            <option value="${c.id}" ${selectedValue === c.id ? 'selected' : ''}>${c.name}</option>
+                        `).join('')}
+                    </select>
+                    <button type="button" onclick="showAddInvoiceCategoryModal()" class="btn btn-secondary" style="padding: 8px 12px;" title="Add new category">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            `;
+        }
+
         // Chart instances (for cleanup)
         let invoiceCharts = {
             statusChart: null,
@@ -13054,8 +13331,11 @@ window.viewChecklistHistory = async function() {
         async function renderInvoices() {
             const dashboard = document.querySelector('.dashboard');
 
-            // Load invoices from Firebase if available
-            await loadInvoicesFromFirebase();
+            // Load invoices and categories from Firebase
+            await Promise.all([
+                loadInvoicesFromFirebase(),
+                loadInvoiceCategories()
+            ]);
 
             // Get filtered invoices
             const filteredInvoices = getFilteredInvoices();
@@ -13069,7 +13349,7 @@ window.viewChecklistHistory = async function() {
             // Get unique values for filters
             const stores = ['All Stores', ...new Set(invoices.filter(i => i.store).map(i => i.store))];
             const vendors = [...new Set(invoices.map(i => i.vendor))].sort();
-            const categories = ['utilities', 'rent', 'supplies', 'inventory', 'services', 'equipment', 'other'];
+            const categories = getAllInvoiceCategories();
 
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -13154,7 +13434,7 @@ window.viewChecklistHistory = async function() {
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Category</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('category', this.value)">
                                     <option value="all">All Categories</option>
-                                    ${categories.map(c => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('')}
+                                    ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
@@ -14081,15 +14361,7 @@ Return ONLY the JSON object, no additional text.`
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">Category</label>
-                                <select class="form-input" id="edit-invoice-category">
-                                    <option value="utilities" ${invoice.category === 'utilities' ? 'selected' : ''}>Utilities</option>
-                                    <option value="rent" ${invoice.category === 'rent' ? 'selected' : ''}>Rent</option>
-                                    <option value="supplies" ${invoice.category === 'supplies' ? 'selected' : ''}>Supplies</option>
-                                    <option value="inventory" ${invoice.category === 'inventory' ? 'selected' : ''}>Inventory</option>
-                                    <option value="services" ${invoice.category === 'services' ? 'selected' : ''}>Services</option>
-                                    <option value="equipment" ${invoice.category === 'equipment' ? 'selected' : ''}>Equipment</option>
-                                    <option value="other" ${invoice.category === 'other' ? 'selected' : ''}>Other</option>
-                                </select>
+                                ${renderInvoiceCategorySelect(invoice.category || '', 'edit-invoice-category')}
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Store</label>
@@ -22529,16 +22801,7 @@ Return ONLY the JSON object, no additional text.`
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Category</label>
-                                    <select class="form-input" id="invoice-category">
-                                        <option value="">Select category...</option>
-                                        <option value="utilities">Utilities</option>
-                                        <option value="rent">Rent</option>
-                                        <option value="supplies">Supplies</option>
-                                        <option value="inventory">Inventory</option>
-                                        <option value="services">Services</option>
-                                        <option value="equipment">Equipment</option>
-                                        <option value="other">Other</option>
-                                    </select>
+                                    ${renderInvoiceCategorySelect('', 'invoice-category')}
                                 </div>
                                 <div class="form-group">
                                     <label>Store</label>

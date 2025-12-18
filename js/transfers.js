@@ -649,12 +649,26 @@ async function searchProducts(query) {
 
     } catch (error) {
         console.error('Error searching products:', error);
+        const loadingIndicator = document.getElementById('productSearchLoading');
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
+
         resultsContainer.innerHTML = `
-            <div class="product-search-no-results">
-                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                Error searching products. Please try again.
+            <div style="padding: 24px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 12px; display: block; color: #ef4444;"></i>
+                <div style="font-size: 14px; font-weight: 500; color: #ef4444;">Error loading products</div>
+                <div style="font-size: 12px; margin-top: 4px;">Check your connection and try again</div>
             </div>
         `;
+    }
+}
+
+// Select product from encoded search data
+function selectProductFromSearch(encodedProduct) {
+    try {
+        const product = JSON.parse(decodeURIComponent(encodedProduct));
+        selectProduct(product);
+    } catch (e) {
+        console.error('Error parsing product:', e);
     }
 }
 
@@ -675,23 +689,32 @@ function selectProduct(product) {
         productIdInput.value = product.id;
     }
 
-    // Show selected product display
+    // Show selected product display with improved styling
     const selectedDisplay = document.getElementById('selectedProductDisplay');
     if (selectedDisplay) {
+        const stockColor = parseInt(product.stock) <= 5 ? '#ef4444' : parseInt(product.stock) <= 20 ? '#f59e0b' : '#10b981';
+
         selectedDisplay.innerHTML = `
-            <div class="product-info">
-                <div class="product-name">${product.productName}${product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''}</div>
-                <div class="product-meta">
-                    ${product.sku ? `SKU: ${product.sku} • ` : ''}
-                    Stock: ${product.stock}
-                    ${product.brand ? ` • ${product.brand}` : ''}
+            <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border: 2px solid rgba(139,92,246,0.3); border-radius: 12px;">
+                <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-box" style="color: white; font-size: 18px;"></i>
                 </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${product.productName}${product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''}
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 4px; align-items: center; flex-wrap: wrap;">
+                        ${product.sku ? `<span style="font-size: 11px; color: var(--text-muted);">SKU: ${product.sku}</span>` : ''}
+                        ${product.brand ? `<span style="font-size: 11px; color: #8b5cf6;">• ${product.brand}</span>` : ''}
+                        <span style="font-size: 11px; color: ${stockColor}; font-weight: 600;">• Stock: ${product.stock}</span>
+                    </div>
+                </div>
+                <button type="button" onclick="clearSelectedProduct()" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: rgba(239,68,68,0.1); color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='#ef4444'; this.style.color='white'" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444'">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <button type="button" class="remove-product" onclick="clearSelectedProduct()">
-                <i class="fas fa-times"></i>
-            </button>
         `;
-        selectedDisplay.style.display = 'flex';
+        selectedDisplay.style.display = 'block';
     }
 }
 
@@ -706,12 +729,38 @@ function clearSelectedProduct() {
     if (searchInput) {
         searchInput.style.display = 'block';
         searchInput.value = '';
+        searchInput.focus();
     }
     if (selectedDisplay) {
         selectedDisplay.style.display = 'none';
     }
     if (productIdInput) {
         productIdInput.value = '';
+    }
+}
+
+// Adjust quantity with +/- buttons
+function adjustQuantity(delta) {
+    const input = document.getElementById('transferQuantity');
+    if (input) {
+        const newValue = Math.max(1, (parseInt(input.value) || 1) + delta);
+        input.value = newValue;
+    }
+}
+
+// Toggle notes section
+function toggleTransferNotes() {
+    const container = document.getElementById('transferNotesContainer');
+    const icon = document.getElementById('notesToggleIcon');
+
+    if (container && icon) {
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            icon.className = 'fas fa-minus-circle';
+        } else {
+            container.style.display = 'none';
+            icon.className = 'fas fa-plus-circle';
+        }
     }
 }
 
