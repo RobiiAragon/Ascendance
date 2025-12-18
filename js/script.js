@@ -1168,7 +1168,7 @@
                 schedule: 'Schedule',
                 settings: 'Settings',
                 help: 'Help Center',
-                thieves: 'Thieves Database',
+                thieves: 'Thief Database',
                 invoices: 'Invoices',
                 issues: 'Issues Registry',
                 vendors: 'Vendors & Suppliers',
@@ -12037,7 +12037,7 @@ window.viewChecklistHistory = async function() {
             dashboard.innerHTML = `
                 <div class="page-header thieves-page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Thieves Database</h2>
+                        <h2 class="section-title">Thief Database</h2>
                         <p class="section-subtitle">Track and manage theft incidents</p>
                         <select class="form-input thieves-filter-select" id="thieves-filter" onchange="filterThieves(this.value)">
                             <option value="all">All Stores</option>
@@ -27756,7 +27756,7 @@ Return ONLY the JSON object, no additional text.`,
 
             if (thiefResults.length > 0) {
                 results.push({
-                    category: 'Thieves Database',
+                    category: 'Thief Database',
                     icon: 'fa-user-secret',
                     page: 'thieves',
                     items: thiefResults.map(thief => ({
@@ -27869,7 +27869,7 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Daily Checklist', page: 'dailychecklist', icon: 'fa-clipboard-check' },
                 { name: 'Abundance Cloud', page: 'abundancecloud', icon: 'fa-cloud' },
                 { name: 'Announcements', page: 'announcements', icon: 'fa-bullhorn' },
-                { name: 'Thieves Database', page: 'thieves', icon: 'fa-user-secret' },
+                { name: 'Thief Database', page: 'thieves', icon: 'fa-user-secret' },
                 { name: 'Invoices & Payments', page: 'invoices', icon: 'fa-file-invoice-dollar' },
                 { name: 'Issues Registry', page: 'issues', icon: 'fa-exclamation-triangle' },
                 { name: 'Gconomics', page: 'gconomics', icon: 'fa-wallet' },
@@ -33132,7 +33132,7 @@ window.renderProjectAnalytics = function() {
         { name: 'Abundance Cloud', icon: 'fa-cloud', status: 'active', page: 'abundancecloud', description: 'Order management engine', fullDescription: 'Powerful order processing engine for shipping, pickup, and delivery management.', features: ['Order tracking', 'Shipping labels', 'Pickup scheduling', 'Delivery status'], version: '3.5', linesOfCode: 2400 },
         { name: 'Transfers', icon: 'fa-exchange-alt', status: 'active', page: 'transfers', description: 'Inter-store transfers', fullDescription: 'Manage product and inventory transfers between store locations with tracking.', features: ['Transfer requests', 'Status tracking', 'Approval workflow', 'History log'], version: '1.0', linesOfCode: 420 },
         { name: 'Announcements', icon: 'fa-bullhorn', status: 'active', page: 'announcements', description: 'Internal communications', fullDescription: 'Company-wide announcement system with targeting by store, role, and priority levels.', features: ['Rich text editor', 'File attachments', 'Read receipts', 'Priority levels'], version: '2.0', linesOfCode: 580 },
-        { name: 'Thieves Database', icon: 'fa-user-secret', status: 'active', page: 'thieves', description: 'Incident tracking', fullDescription: 'Security incident tracking with photo evidence, descriptions, and cross-store alerts.', features: ['Photo evidence', 'Incident reports', 'Cross-store alerts', 'Search database'], version: '1.5', linesOfCode: 660 },
+        { name: 'Thief Database', icon: 'fa-user-secret', status: 'active', page: 'thieves', description: 'Incident tracking', fullDescription: 'Security incident tracking with photo evidence, descriptions, and cross-store alerts.', features: ['Photo evidence', 'Incident reports', 'Cross-store alerts', 'Search database'], version: '1.5', linesOfCode: 660 },
         { name: 'Invoices', icon: 'fa-file-invoice-dollar', status: 'active', page: 'invoices', description: 'Payment management', fullDescription: 'Invoice and payment tracking with vendor integration and payment status management.', features: ['Payment tracking', 'Due date alerts', 'Vendor linking', 'PDF generation'], version: '1.6', linesOfCode: 780 },
         { name: 'Issues Registry', icon: 'fa-exclamation-triangle', status: 'active', page: 'issues', description: 'Customer complaints', fullDescription: 'Customer complaint and issue tracking system with resolution workflow.', features: ['Ticket system', 'Resolution tracking', 'Priority queue', 'Customer follow-up'], version: '1.5', linesOfCode: 620 },
         { name: 'Gconomics', icon: 'fa-wallet', status: 'active', page: 'gconomics', description: 'Financial tracking', fullDescription: 'Personal finance tracking for expense planning and budget management.', features: ['Expense categories', 'Budget planning', 'Monthly reports', 'Spending insights'], version: '1.8', linesOfCode: 850 },
