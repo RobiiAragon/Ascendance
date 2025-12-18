@@ -30987,6 +30987,19 @@ window.renderPasswordManager = async function renderPasswordManager() {
                             </select>
                         </div>
                         <div>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Store</label>
+                            <select id="inline-pwd-store" class="form-input">
+                                <option value="">Select store...</option>
+                                <option value="All Stores">All Stores</option>
+                                <option value="Miramar">VSU Miramar</option>
+                                <option value="Morena">VSU Morena</option>
+                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                <option value="Chula Vista">VSU Chula Vista</option>
+                                <option value="North Park">VSU North Park</option>
+                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                            </select>
+                        </div>
+                        <div>
                             <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Username</label>
                             <input type="text" id="inline-pwd-username" class="form-input" placeholder="Username or ID">
                         </div>
@@ -31031,12 +31044,22 @@ window.renderPasswordManager = async function renderPasswordManager() {
 
         <!-- Search Bar -->
         <div style="margin-bottom: 20px;">
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <div style="flex: 1; position: relative;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <div style="flex: 1; position: relative; min-width: 200px;">
                     <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
                     <input type="text" id="password-search" class="form-input" placeholder="Search passwords..."
                         style="padding-left: 46px; height: 48px; font-size: 15px; border-radius: 12px;" oninput="filterPasswords()">
                 </div>
+                <select id="password-store-filter" class="form-input" onchange="filterPasswords()" style="width: 180px; height: 48px; border-radius: 12px;">
+                    <option value="">All Stores</option>
+                    <option value="All Stores">All Stores (Shared)</option>
+                    <option value="Miramar">VSU Miramar</option>
+                    <option value="Morena">VSU Morena</option>
+                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                    <option value="Chula Vista">VSU Chula Vista</option>
+                    <option value="North Park">VSU North Park</option>
+                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                </select>
                 <select id="password-category-filter" class="form-input" onchange="filterPasswords()" style="width: 180px; height: 48px; border-radius: 12px;">
                     <option value="">All Categories</option>
                     ${categoryOptions}
@@ -31586,6 +31609,7 @@ function togglePasswordDisplay(id, password) {
 function filterPasswords() {
     const searchTerm = document.getElementById('password-search')?.value.toLowerCase() || '';
     const categoryFilter = document.getElementById('password-category-filter')?.value || '';
+    const storeFilter = document.getElementById('password-store-filter')?.value || '';
 
     // Get items based on current view mode
     const itemSelector = passwordViewMode === 'grid' ? '.password-grid-card' : '.password-list-item';
@@ -31600,11 +31624,13 @@ function filterPasswords() {
             pwd.username?.toLowerCase().includes(searchTerm) ||
             pwd.email?.toLowerCase().includes(searchTerm) ||
             pwd.url?.toLowerCase().includes(searchTerm) ||
-            pwd.notes?.toLowerCase().includes(searchTerm);
+            pwd.notes?.toLowerCase().includes(searchTerm) ||
+            pwd.store?.toLowerCase().includes(searchTerm);
 
         const matchesCategory = !categoryFilter || pwd.category === categoryFilter;
+        const matchesStore = !storeFilter || pwd.store === storeFilter || (!pwd.store && storeFilter === 'All Stores');
 
-        if (matchesSearch && matchesCategory) {
+        if (matchesSearch && matchesCategory && matchesStore) {
             item.style.display = passwordViewMode === 'grid' ? 'flex' : 'block';
         } else {
             item.style.display = 'none';
