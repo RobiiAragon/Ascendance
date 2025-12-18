@@ -6846,12 +6846,15 @@ window.viewChecklistHistory = async function() {
                         <i class="fas fa-boxes"></i> Inventory
                     </button>
                     <button onclick="switchRestockTab('requests')" class="tab-btn ${currentRestockTab === 'requests' ? 'active' : ''}" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid ${currentRestockTab === 'requests' ? 'var(--accent-primary)' : 'transparent'}; color: ${currentRestockTab === 'requests' ? 'var(--accent-primary)' : 'var(--text-secondary)'}; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: -2px; transition: all 0.2s;">
-                        <i class="fas fa-list"></i> Requests <span style="background: var(--accent-gradient); color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${restockRequests.length}</span>
+                        <i class="fas fa-list"></i> Requests <span style="background: var(--accent-gradient); color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${restockRequests.filter(r => r.status === 'pending').length}</span>
+                    </button>
+                    <button onclick="switchRestockTab('approved')" class="tab-btn ${currentRestockTab === 'approved' ? 'active' : ''}" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid ${currentRestockTab === 'approved' ? '#10b981' : 'transparent'}; color: ${currentRestockTab === 'approved' ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: -2px; transition: all 0.2s;">
+                        <i class="fas fa-check-circle"></i> Approved <span style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${restockRequests.filter(r => r.status === 'approved').length}</span>
                     </button>
                 </div>
 
                 <div id="restock-tab-content">
-                    ${currentRestockTab === 'inventory' ? '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading inventory from Shopify...</p></div>' : renderRequestsTab()}
+                    ${currentRestockTab === 'inventory' ? '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading inventory from Shopify...</p></div>' : currentRestockTab === 'approved' ? renderApprovedTab() : renderRequestsTab()}
                 </div>
             `;
 
@@ -7440,16 +7443,50 @@ window.viewChecklistHistory = async function() {
                 ? restockRequests
                 : restockRequests.filter(r => (r.itemType || 'product') === selectedRestockTypeFilter);
 
-            // Type filter buttons
-            const typeFilterButtons = `
-                <div class="restock-type-filters" style="display: flex; gap: 8px; margin-bottom: 20px;">
-                    <button onclick="filterRestockByType('all')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'transparent'}; color: ${selectedRestockTypeFilter === 'all' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                        <i class="fas fa-layer-group" style="margin-right: 6px;"></i>All
+            // Group by status for summary
+            const pendingCount = restockRequests.filter(r => r.status === 'pending').length;
+            const approvedCount = restockRequests.filter(r => r.status === 'approved').length;
+            const rejectedCount = restockRequests.filter(r => r.status === 'rejected').length;
+
+            // Summary cards and filters
+            const headerSection = `
+                <!-- Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${pendingCount}</div>
+                        <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-clock"></i> Pending
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${approvedCount}</div>
+                        <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-check-circle"></i> Approved
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${rejectedCount}</div>
+                        <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-times-circle"></i> Rejected
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); border-radius: 12px; padding: 16px; color: white;">
+                        <div style="font-size: 28px; font-weight: 700;">${restockRequests.length}</div>
+                        <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-list"></i> Total
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button onclick="filterRestockByType('all')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'all' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-layer-group" style="margin-right: 6px;"></i>All Requests
                     </button>
-                    <button onclick="filterRestockByType('product')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'transparent'}; color: ${selectedRestockTypeFilter === 'product' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                    <button onclick="filterRestockByType('product')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'product' ? '#10b981' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'product' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
                         <i class="fas fa-box" style="margin-right: 6px;"></i>Products
                     </button>
-                    <button onclick="filterRestockByType('supply')" style="padding: 8px 16px; border-radius: 20px; border: 2px solid ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'transparent'}; color: ${selectedRestockTypeFilter === 'supply' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                    <button onclick="filterRestockByType('supply')" style="padding: 10px 20px; border-radius: 25px; border: 2px solid ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--border-color)'}; background: ${selectedRestockTypeFilter === 'supply' ? '#8b5cf6' : 'var(--bg-secondary)'}; color: ${selectedRestockTypeFilter === 'supply' ? 'white' : 'var(--text-secondary)'}; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
                         <i class="fas fa-tools" style="margin-right: 6px;"></i>Supplies
                     </button>
                 </div>
@@ -7457,94 +7494,473 @@ window.viewChecklistHistory = async function() {
 
             if (filteredRequests.length === 0) {
                 return `
-                    ${typeFilterButtons}
-                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                    ${headerSection}
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: var(--bg-secondary); border-radius: 16px;">
                         <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                        <p style="font-size: 16px;">No ${selectedRestockTypeFilter === 'all' ? '' : selectedRestockTypeFilter + ' '}requests found</p>
+                        <p style="font-size: 16px; margin: 0;">No ${selectedRestockTypeFilter === 'all' ? '' : selectedRestockTypeFilter + ' '}requests found</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Click "Create Restock Request" to add one</p>
                     </div>
                 `;
             }
 
+            // Sort: pending first, then by date
+            const sortedRequests = [...filteredRequests].sort((a, b) => {
+                if (a.status === 'pending' && b.status !== 'pending') return -1;
+                if (a.status !== 'pending' && b.status === 'pending') return 1;
+                return new Date(b.requestDate) - new Date(a.requestDate);
+            });
+
             return `
-                ${typeFilterButtons}
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                    ${filteredRequests.map(request => {
+                ${headerSection}
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${sortedRequests.map(request => {
                         const itemType = request.itemType || 'product';
-                        const typeLabel = itemType === 'supply' ? 'Supply' : 'Product';
                         const typeColor = itemType === 'supply' ? '#8b5cf6' : '#10b981';
                         const typeIcon = itemType === 'supply' ? 'fa-tools' : 'fa-box';
+                        const priorityColor = request.priority === 'high' ? '#ef4444' : request.priority === 'medium' ? '#f59e0b' : '#10b981';
+                        const priorityBg = request.priority === 'high' ? '#ef444415' : request.priority === 'medium' ? '#f59e0b15' : '#10b98115';
+
+                        // Status styling
+                        let statusBg, statusColor, statusIcon, statusText, borderColor;
+                        if (request.status === 'approved') {
+                            statusBg = '#10b98120'; statusColor = '#10b981'; statusIcon = 'fa-check-circle'; statusText = 'Approved'; borderColor = '#10b981';
+                        } else if (request.status === 'rejected') {
+                            statusBg = '#ef444420'; statusColor = '#ef4444'; statusIcon = 'fa-times-circle'; statusText = 'Rejected'; borderColor = '#ef4444';
+                        } else {
+                            statusBg = '#f59e0b20'; statusColor = '#f59e0b'; statusIcon = 'fa-clock'; statusText = 'Pending Review'; borderColor = '#f59e0b';
+                        }
+
                         return `
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="restock-request-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
-                                    <div>
-                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
-                                            <div style="font-weight: 700; font-size: 16px;">${request.productName}</div>
-                                            <span style="background: ${typeColor}; color: white; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
-                                                <i class="fas ${typeIcon}" style="font-size: 9px;"></i>${typeLabel}
+                        <div style="background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color); border-left: 4px solid ${borderColor}; overflow: hidden; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                            <div style="padding: 20px;">
+                                <!-- Top Row: Product Name, Type Badge, Status -->
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                            <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text-primary);">${request.productName}</h3>
+                                            <span style="background: ${typeColor}; color: white; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="fas ${typeIcon}" style="font-size: 9px;"></i>
+                                                ${itemType === 'supply' ? 'Supply' : 'Product'}
+                                            </span>
+                                            <span style="background: ${priorityBg}; color: ${priorityColor}; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;">
+                                                ${request.priority} Priority
                                             </span>
                                         </div>
-                                        <div style="font-size: 13px; color: var(--text-muted);">
-                                            Requested by ${request.requestedBy} on ${formatDate(request.requestDate)}
-                                        </div>
+                                        <p style="margin: 6px 0 0 0; font-size: 13px; color: var(--text-muted);">
+                                            <i class="fas fa-user" style="margin-right: 4px;"></i>${request.requestedBy}
+                                            <span style="margin: 0 8px;">•</span>
+                                            <i class="fas fa-calendar" style="margin-right: 4px;"></i>${formatDate(request.requestDate)}
+                                            <span style="margin: 0 8px;">•</span>
+                                            <i class="fas fa-store" style="margin-right: 4px;"></i>${request.store}
+                                        </p>
                                     </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        ${request.status === 'approved' ? `
-                                            <span class="status-badge valid" style="background: var(--success); color: white;">
-                                                <i class="fas fa-check-circle" style="margin-right: 4px;"></i>Approved
-                                            </span>
-                                        ` : request.status === 'rejected' ? `
-                                            <span class="status-badge expired" style="background: var(--danger); color: white;">
-                                                <i class="fas fa-times-circle" style="margin-right: 4px;"></i>Rejected
-                                            </span>
-                                        ` : `
-                                            <span class="status-badge expiring">
-                                                Pending
-                                            </span>
-                                        `}
+                                    <div style="background: ${statusBg}; color: ${statusColor}; padding: 8px 16px; border-radius: 25px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                                        <i class="fas ${statusIcon}"></i>
+                                        ${statusText}
                                     </div>
                                 </div>
-                                <div class="restock-request-details" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
-                                    <div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Quantity</div>
-                                        <div style="font-weight: 600; font-size: 14px; color: var(--accent-primary);">${request.quantity} units</div>
+
+                                <!-- Info Grid -->
+                                <div style="display: flex; gap: 24px; padding: 16px 20px; background: var(--bg-primary); border-radius: 12px; margin-bottom: 16px;">
+                                    <div style="text-align: center; flex: 1;">
+                                        <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">${request.quantity}</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Units Needed</div>
                                     </div>
-                                    <div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Store</div>
-                                        <div style="font-weight: 600; font-size: 14px;">${request.store}</div>
+                                    <div style="width: 1px; background: var(--border-color);"></div>
+                                    <div style="text-align: center; flex: 1;">
+                                        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${request.store.replace('VSU ', '')}</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Store</div>
                                     </div>
-                                    <div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Priority</div>
-                                        <div style="font-weight: 600; font-size: 14px; text-transform: capitalize; color: ${request.priority === 'high' ? 'var(--danger)' : request.priority === 'medium' ? 'var(--warning)' : 'var(--success)'};">${request.priority}</div>
-                                    </div>
-                                    <div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Request ID</div>
-                                        <div style="font-weight: 600; font-size: 14px; font-family: 'Space Mono', monospace;">#${String(request.id).padStart(4, '0')}</div>
+                                    <div style="width: 1px; background: var(--border-color);"></div>
+                                    <div style="text-align: center; flex: 1;">
+                                        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: 'Space Mono', monospace;">#${String(request.id).padStart(4, '0')}</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Request ID</div>
                                     </div>
                                 </div>
+
                                 ${request.notes ? `
-                                    <div style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Notes:</div>
+                                    <div style="padding: 12px 16px; background: var(--bg-primary); border-radius: 10px; margin-bottom: 16px; border-left: 3px solid var(--accent-primary);">
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Notes</div>
                                         <div style="font-size: 13px; color: var(--text-secondary);">${request.notes}</div>
                                     </div>
                                 ` : ''}
-                                <div class="restock-request-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                                    ${request.status === 'pending' ? `
-                                        <button class="btn-secondary" style="font-size: 13px;" onclick="approveRestockRequest('${request.firestoreId || request.id}')">
-                                            <i class="fas fa-check"></i> Approve
+
+                                <!-- Actions -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                    <div style="display: flex; gap: 8px;">
+                                        ${request.status === 'pending' ? `
+                                            <button onclick="approveRestockRequest('${request.firestoreId || request.id}')" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                            <button onclick="rejectRestockRequest('${request.firestoreId || request.id}')" style="background: transparent; color: #ef4444; border: 2px solid #ef4444; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#ef4444'">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        ` : `
+                                            <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">
+                                                ${request.status === 'approved' ? 'This request has been approved' : 'This request was rejected'}
+                                            </span>
+                                        `}
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="btn-icon" onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')" title="Edit Request" style="width: 38px; height: 38px; border-radius: 10px;">
+                                            <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn-secondary" style="font-size: 13px;" onclick="rejectRestockRequest('${request.firestoreId || request.id}')">
-                                            <i class="fas fa-times"></i> Reject
+                                        <button class="btn-icon danger" onclick="deleteRestockRequest('${request.firestoreId || request.id}')" title="Delete Request" style="width: 38px; height: 38px; border-radius: 10px;">
+                                            <i class="fas fa-trash"></i>
                                         </button>
-                                    ` : ''}
-                                    <button class="btn-icon" onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')"><i class="fas fa-edit"></i></button>
-                                    <button class="btn-icon danger" onclick="deleteRestockRequest('${request.firestoreId || request.id}')"><i class="fas fa-trash"></i></button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;}).join('')}
                 </div>
             `;
+        }
+
+        // Render Approved Tab - List of all approved restock requests
+        function renderApprovedTab() {
+            const approvedRequests = restockRequests.filter(r => r.status === 'approved');
+
+            // Header with AI Assistant button
+            const headerSection = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: var(--text-primary);">
+                            <i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i>Approved Requests
+                        </h3>
+                        <p style="margin: 4px 0 0; font-size: 13px; color: var(--text-muted);">
+                            ${approvedRequests.length} items ready for ordering
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="askRestockAI()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fas fa-robot"></i> Ask AI
+                        </button>
+                        <button onclick="exportApprovedRequests()" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                            <i class="fas fa-download"></i> Export List
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Response Area -->
+                <div id="restock-ai-response" style="display: none; margin-bottom: 24px;"></div>
+            `;
+
+            if (approvedRequests.length === 0) {
+                return `
+                    ${headerSection}
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: var(--bg-secondary); border-radius: 16px;">
+                        <i class="fas fa-clipboard-check" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p style="font-size: 16px; margin: 0;">No approved requests yet</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Approve requests from the Requests tab to see them here</p>
+                    </div>
+                `;
+            }
+
+            // Group approved items by store for better organization
+            const groupedByStore = {};
+            approvedRequests.forEach(req => {
+                const store = req.store || 'Unknown';
+                if (!groupedByStore[store]) {
+                    groupedByStore[store] = [];
+                }
+                groupedByStore[store].push(req);
+            });
+
+            return `
+                ${headerSection}
+
+                <!-- Approved Items Table -->
+                <div style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--bg-tertiary);">
+                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Product</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Type</th>
+                                <th style="padding: 14px 16px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Store</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Priority</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Requested</th>
+                                <th style="padding: 14px 16px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${approvedRequests.map((req, index) => {
+                                const itemType = req.itemType || 'product';
+                                const typeColor = itemType === 'supply' ? '#8b5cf6' : '#10b981';
+                                const typeIcon = itemType === 'supply' ? 'fa-tools' : 'fa-box';
+                                const priorityColor = req.priority === 'high' ? '#ef4444' : req.priority === 'medium' ? '#f59e0b' : '#10b981';
+
+                                return `
+                                    <tr style="border-bottom: 1px solid var(--border-color);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                                        <td style="padding: 14px 16px;">
+                                            <div style="font-weight: 600; color: var(--text-primary);">${req.productName}</div>
+                                            ${req.notes ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${req.notes.substring(0, 50)}${req.notes.length > 50 ? '...' : ''}</div>` : ''}
+                                        </td>
+                                        <td style="padding: 14px 16px;">
+                                            <span style="background: ${typeColor}20; color: ${typeColor}; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="fas ${typeIcon}" style="font-size: 10px;"></i>
+                                                ${itemType === 'supply' ? 'Supply' : 'Product'}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 14px 16px; text-align: center;">
+                                            <span style="font-size: 18px; font-weight: 700; color: var(--accent-primary);">${req.quantity}</span>
+                                        </td>
+                                        <td style="padding: 14px 16px;">
+                                            <span style="font-size: 13px; color: var(--text-secondary);">${req.store}</span>
+                                        </td>
+                                        <td style="padding: 14px 16px;">
+                                            <span style="background: ${priorityColor}20; color: ${priorityColor}; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;">
+                                                ${req.priority}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 14px 16px;">
+                                            <div style="font-size: 13px; color: var(--text-secondary);">${formatDate(req.requestDate)}</div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">by ${req.requestedBy}</div>
+                                        </td>
+                                        <td style="padding: 14px 16px; text-align: center;">
+                                            <div style="display: flex; justify-content: center; gap: 6px;">
+                                                <button onclick="markAsOrdered('${req.firestoreId || req.id}')" title="Mark as Ordered" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #10b98120; color: #10b981; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='white'" onmouseout="this.style.background='#10b98120'; this.style.color='#10b981'">
+                                                    <i class="fas fa-shipping-fast"></i>
+                                                </button>
+                                                <button onclick="deleteRestockRequest('${req.firestoreId || req.id}')" title="Delete" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #ef444420; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white'" onmouseout="this.style.background='#ef444420'; this.style.color='#ef4444'">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary by Store -->
+                <div style="margin-top: 24px;">
+                    <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: var(--text-secondary);">
+                        <i class="fas fa-store" style="margin-right: 8px;"></i>Summary by Store
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        ${Object.entries(groupedByStore).map(([store, items]) => `
+                            <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
+                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">${store}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">${items.length} items</span>
+                                    <span style="font-size: 13px; font-weight: 600; color: var(--accent-primary);">${items.reduce((sum, i) => sum + parseInt(i.quantity || 0), 0)} units</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Export approved requests to CSV
+        function exportApprovedRequests() {
+            const approvedRequests = restockRequests.filter(r => r.status === 'approved');
+
+            if (approvedRequests.length === 0) {
+                showToast('No approved requests to export', 'warning');
+                return;
+            }
+
+            const headers = ['Product Name', 'Type', 'Quantity', 'Store', 'Priority', 'Requested By', 'Request Date', 'Notes'];
+            const rows = approvedRequests.map(req => [
+                req.productName,
+                req.itemType || 'product',
+                req.quantity,
+                req.store,
+                req.priority,
+                req.requestedBy,
+                req.requestDate,
+                req.notes || ''
+            ]);
+
+            const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `approved_restock_requests_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+
+            showToast('Exported approved requests to CSV', 'success');
+        }
+
+        // Mark request as ordered (removes from the list)
+        function markAsOrdered(requestId) {
+            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
+            if (request) {
+                if (confirm(`Mark "${request.productName}" as ordered? This will remove it from the approved list.`)) {
+                    // Update status to 'ordered'
+                    request.status = 'ordered';
+
+                    if (firebaseRestockRequestsManager.isInitialized) {
+                        firebaseRestockRequestsManager.updateRestockRequest(request.firestoreId || requestId, {
+                            status: 'ordered',
+                            orderedDate: new Date().toISOString()
+                        }).then(success => {
+                            if (success) {
+                                // Remove from local array after marking as ordered
+                                restockRequests = restockRequests.filter(r => r.firestoreId !== requestId && r.id !== requestId);
+                                renderRestockRequests();
+                                showToast(`"${request.productName}" marked as ordered`, 'success');
+                            }
+                        }).catch(error => {
+                            console.error('Error marking request as ordered:', error);
+                            renderRestockRequests();
+                        });
+                    } else {
+                        restockRequests = restockRequests.filter(r => r.id !== requestId);
+                        renderRestockRequests();
+                        showToast(`"${request.productName}" marked as ordered`, 'success');
+                    }
+                }
+            }
+        }
+
+        // AI Assistant for Restock Analysis
+        async function askRestockAI() {
+            const responseDiv = document.getElementById('restock-ai-response');
+            if (!responseDiv) return;
+
+            // Show loading state
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = `
+                <div style="background: linear-gradient(135deg, #8b5cf620 0%, #7c3aed20 100%); border-radius: 16px; padding: 20px; border: 1px solid #8b5cf640;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">AI Analyzing...</div>
+                            <div style="font-size: 13px; color: var(--text-muted);">Processing your restock data</div>
+                        </div>
+                        <i class="fas fa-spinner fa-spin" style="margin-left: auto; color: #8b5cf6; font-size: 20px;"></i>
+                    </div>
+                </div>
+            `;
+
+            try {
+                // Gather data for AI analysis
+                const approvedRequests = restockRequests.filter(r => r.status === 'approved');
+                const pendingRequests = restockRequests.filter(r => r.status === 'pending');
+                const lowStockItems = shopifyInventory.filter(item => parseInt(item.stock) <= 5).slice(0, 10);
+
+                const dataContext = `
+                    Approved Restock Requests (${approvedRequests.length}):
+                    ${approvedRequests.map(r => `- ${r.productName}: ${r.quantity} units for ${r.store} (${r.priority} priority)`).join('\n')}
+
+                    Pending Requests (${pendingRequests.length}):
+                    ${pendingRequests.slice(0, 5).map(r => `- ${r.productName}: ${r.quantity} units for ${r.store}`).join('\n')}
+
+                    Low Stock Items (${lowStockItems.length}):
+                    ${lowStockItems.map(i => `- ${i.productName || i.brand}: ${i.stock} units at ${i.store}`).join('\n')}
+                `;
+
+                const prompt = `You are a helpful inventory assistant. Based on this restock data, provide a brief analysis and 3 actionable recommendations. Be concise and use bullet points.
+
+                ${dataContext}
+
+                Format your response with:
+                1. A quick summary (1-2 sentences)
+                2. 3 specific recommendations`;
+
+                // Try to call the AI
+                const response = await callRestockAI(prompt);
+
+                responseDiv.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #8b5cf620 0%, #7c3aed20 100%); border-radius: 16px; padding: 20px; border: 1px solid #8b5cf640;">
+                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">AI Analysis</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Based on your current inventory data</div>
+                            </div>
+                            <button onclick="document.getElementById('restock-ai-response').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap;">${response}</div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('AI Error:', error);
+                responseDiv.innerHTML = `
+                    <div style="background: #ef444420; border-radius: 16px; padding: 20px; border: 1px solid #ef444440;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 20px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: #ef4444;">AI Unavailable</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Could not connect to AI service. Check API settings in Project Analytics.</div>
+                            </div>
+                            <button onclick="document.getElementById('restock-ai-response').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; margin-left: auto;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Call AI for restock analysis (uses same API as Celeste)
+        async function callRestockAI(prompt) {
+            // Try Anthropic Claude first
+            const anthropicKey = celesteFirebaseSettings?.anthropic_api_key || 'sk-ant-api03-09Q7EwKig5XiQ20t2bvOAluPYPxDgu5-8_N5cI25_8A1rPc44QkeVIBedrx2faxeddBUg-_8pTFgAA';
+
+            try {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': anthropicKey,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 500,
+                        messages: [{ role: 'user', content: prompt }]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.content[0].text;
+                }
+            } catch (error) {
+                console.warn('Anthropic API failed:', error);
+            }
+
+            // Fallback to OpenAI
+            const openaiKey = celesteFirebaseSettings?.openai_api_key || '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';
+
+            try {
+                const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.openai.com/v1/chat/completions'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${openaiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4',
+                        max_tokens: 500,
+                        messages: [{ role: 'user', content: prompt }]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.choices[0].message.content;
+                }
+            } catch (error) {
+                console.warn('OpenAI API failed:', error);
+            }
+
+            throw new Error('All AI providers failed');
         }
 
         async function switchRestockTab(tab) {
