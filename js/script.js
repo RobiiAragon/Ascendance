@@ -6177,8 +6177,30 @@ async function loadChecklistTasks() {
         const snapshot = await db.collection('checklistTasks').get();
         const customTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        // Load overrides (hidden/edited default tasks)
+        const overridesSnapshot = await db.collection('checklistTaskOverrides').get();
+        const overrides = {};
+        overridesSnapshot.docs.forEach(doc => {
+            overrides[doc.id] = doc.data();
+        });
+
         // Get default task IDs to avoid duplicates
         const defaultTaskIds = defaultTasks.map(t => t.id);
+
+        // Filter out hidden default tasks and get replacements
+        const replacedDefaultIds = new Set();
+        customTasks.forEach(task => {
+            if (task.replacesDefault) {
+                replacedDefaultIds.add(task.replacesDefault);
+            }
+        });
+
+        // Filter default tasks - exclude those that are hidden or replaced
+        const activeDefaultTasks = defaultTasks.filter(task => {
+            if (overrides[task.id]?.hidden) return false;
+            if (replacedDefaultIds.has(task.id)) return false;
+            return true;
+        });
 
         // Filter custom tasks:
         // - Only include tasks marked as custom (isCustom: true)
@@ -6208,9 +6230,9 @@ async function loadChecklistTasks() {
             }
         }
 
-        // Combine default + custom tasks
-        checklistData.tasks = [...defaultTasks, ...validCustomTasks];
-        console.log(`[Checklist] Loaded ${defaultTasks.length} default + ${validCustomTasks.length} custom tasks`);
+        // Combine active default + custom tasks
+        checklistData.tasks = [...activeDefaultTasks, ...validCustomTasks];
+        console.log(`[Checklist] Loaded ${activeDefaultTasks.length} default + ${validCustomTasks.length} custom tasks`);
 
     } catch (error) {
         console.error('Error loading custom tasks:', error);
@@ -6340,7 +6362,21 @@ async function addChecklistTask(task, shift, store = 'all', duration = 'permanen
 async function deleteChecklistTask(taskId) {
     try {
         const db = firebase.firestore();
-        await db.collection('checklistTasks').doc(taskId).delete();
+
+        // Check if this is a default task
+        const isDefaultTask = taskId.startsWith('open-') || taskId.startsWith('close-');
+
+        if (isDefaultTask) {
+            // For default tasks, mark as hidden in overrides collection
+            await db.collection('checklistTaskOverrides').doc(taskId).set({
+                hidden: true,
+                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            // For custom tasks, delete from Firebase
+            await db.collection('checklistTasks').doc(taskId).delete();
+        }
+
         checklistData.tasks = checklistData.tasks.filter(t => t.id !== taskId);
         return true;
     } catch (error) {
@@ -6348,6 +6384,103 @@ async function deleteChecklistTask(taskId) {
         return false;
     }
 }
+
+// Edit task in Firebase
+async function editChecklistTask(taskId, newTaskText, newShift) {
+    try {
+        const db = firebase.firestore();
+        const task = checklistData.tasks.find(t => t.id === taskId);
+
+        if (!task) {
+            console.error('Task not found:', taskId);
+            return false;
+        }
+
+        // Check if this is a default task (not in Firebase yet)
+        const isDefaultTask = taskId.startsWith('open-') || taskId.startsWith('close-');
+
+        if (isDefaultTask) {
+            // For default tasks, we need to create a new custom task and hide the default
+            const newTask = {
+                task: newTaskText,
+                shift: newShift,
+                store: 'all',
+                duration: 'permanent',
+                order: task.order,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdDate: getTodayDateString(),
+                isCustom: true,
+                replacesDefault: taskId // Track which default it replaces
+            };
+
+            const docRef = await db.collection('checklistTasks').add(newTask);
+            newTask.id = docRef.id;
+
+            // Also save a record that this default task is hidden
+            await db.collection('checklistTaskOverrides').doc(taskId).set({
+                hidden: true,
+                replacedBy: docRef.id,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Update local state
+            const taskIndex = checklistData.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex !== -1) {
+                checklistData.tasks[taskIndex] = newTask;
+            }
+        } else {
+            // For custom tasks, just update in Firebase
+            await db.collection('checklistTasks').doc(taskId).update({
+                task: newTaskText,
+                shift: newShift,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Update local state
+            const taskIndex = checklistData.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex !== -1) {
+                checklistData.tasks[taskIndex].task = newTaskText;
+                checklistData.tasks[taskIndex].shift = newShift;
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error editing task:', error);
+        return false;
+    }
+}
+
+// Open edit task modal
+window.openEditTaskModal = function(taskId) {
+    const task = checklistData.tasks.find(t => t.id === taskId);
+    if (!task) {
+        showNotification('Task not found', 'error');
+        return;
+    }
+    openModal('edit-checklist-task', { task });
+};
+
+// Save edited task from modal
+window.saveEditedChecklistTask = async function() {
+    const taskId = document.getElementById('edit-checklist-task-id')?.value;
+    const newTaskText = document.getElementById('edit-checklist-task-description')?.value?.trim();
+    const newShift = document.getElementById('edit-checklist-task-shift')?.value;
+
+    if (!taskId || !newTaskText) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const success = await editChecklistTask(taskId, newTaskText, newShift);
+    if (success) {
+        showNotification('Task updated successfully!', 'success');
+        closeModal();
+        renderDailyChecklist();
+    } else {
+        showNotification('Error updating task', 'error');
+    }
+};
 
 // Render Daily Checklist
 window.renderDailyChecklist = async function() {
@@ -6442,12 +6575,19 @@ window.renderDailyChecklist = async function() {
                         ` : `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Click to complete</div>`}
                     </div>
                     ${isCompleted ? '<i class="fas fa-check-double" style="color: #10b981; font-size: 18px;"></i>' : '<i class="fas fa-circle" style="color: var(--text-muted); font-size: 8px; opacity: 0.3;"></i>'}
-                    ${isCustom ? `
-                        <button onclick="event.stopPropagation(); deleteChecklistTaskUI('${task.id}')"
-                            style="width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s;"
-                            onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0.5';" title="Delete task">
-                            <i class="fas fa-trash" style="color: #ef4444; font-size: 13px;"></i>
-                        </button>
+                    ${canManageTasks ? `
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="event.stopPropagation(); openEditTaskModal('${task.id}')"
+                                style="width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s;"
+                                onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0.5';" title="Edit task">
+                                <i class="fas fa-pen" style="color: var(--accent-primary); font-size: 13px;"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteChecklistTaskUI('${task.id}')"
+                                style="width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s;"
+                                onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0.5';" title="Delete task">
+                                <i class="fas fa-trash" style="color: #ef4444; font-size: 13px;"></i>
+                            </button>
+                        </div>
                     ` : ''}
                 </div>
             `;
@@ -22460,6 +22600,86 @@ Return ONLY the JSON object, no additional text.`
                                 const selected = this.closest('label').querySelector('.duration-option');
                                 selected.style.borderColor = 'var(--accent-primary)';
                                 selected.querySelector('i').style.color = 'var(--accent-primary)';
+                            });
+                        });
+                    }, 100);
+                    break;
+                case 'edit-checklist-task':
+                    const taskToEdit = data?.task;
+                    if (!taskToEdit) {
+                        content = `<div class="modal-header"><h2>Error</h2></div><div class="modal-body"><p>Task not found</p></div>`;
+                        break;
+                    }
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-pen" style="margin-right: 8px; color: var(--accent-primary);"></i>Edit Task</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="edit-checklist-task-id" value="${taskToEdit.id}">
+                            <div class="form-group">
+                                <label>Task Description *</label>
+                                <input type="text" class="form-input" id="edit-checklist-task-description" value="${taskToEdit.task.replace(/"/g, '&quot;')}" placeholder="e.g., Check inventory levels...">
+                            </div>
+
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label>Shift *</label>
+                                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                                    <label style="flex: 1; cursor: pointer;">
+                                        <input type="radio" name="edit-checklist-shift" value="opening" ${taskToEdit.shift === 'opening' ? 'checked' : ''} style="display: none;">
+                                        <div class="shift-option" style="padding: 16px; border: 2px solid ${taskToEdit.shift === 'opening' ? '#f59e0b' : 'var(--border-color)'}; border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
+                                            <i class="fas fa-sun" style="font-size: 24px; color: ${taskToEdit.shift === 'opening' ? '#f59e0b' : 'var(--text-muted)'}; margin-bottom: 8px; display: block;"></i>
+                                            <div style="font-weight: 600; margin-bottom: 4px;">Opening</div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">Morning shift</div>
+                                        </div>
+                                    </label>
+                                    <label style="flex: 1; cursor: pointer;">
+                                        <input type="radio" name="edit-checklist-shift" value="closing" ${taskToEdit.shift === 'closing' ? 'checked' : ''} style="display: none;">
+                                        <div class="shift-option" style="padding: 16px; border: 2px solid ${taskToEdit.shift === 'closing' ? '#8b5cf6' : 'var(--border-color)'}; border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
+                                            <i class="fas fa-moon" style="font-size: 24px; color: ${taskToEdit.shift === 'closing' ? '#8b5cf6' : 'var(--text-muted)'}; margin-bottom: 8px; display: block;"></i>
+                                            <div style="font-weight: 600; margin-bottom: 4px;">Closing</div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">Evening shift</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveEditedChecklistTask()">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    `;
+
+                    // Add event listeners for shift selection after modal renders
+                    setTimeout(() => {
+                        document.querySelectorAll('input[name="edit-checklist-shift"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.querySelectorAll('.shift-option').forEach(opt => {
+                                    opt.style.borderColor = 'var(--border-color)';
+                                    opt.querySelector('i').style.color = 'var(--text-muted)';
+                                });
+                                const selected = this.closest('label').querySelector('.shift-option');
+                                const color = this.value === 'opening' ? '#f59e0b' : '#8b5cf6';
+                                selected.style.borderColor = color;
+                                selected.querySelector('i').style.color = color;
+                            });
+                        });
+
+                        // Also set hidden shift field
+                        const shiftInput = document.getElementById('edit-checklist-task-shift');
+                        if (!shiftInput) {
+                            const hiddenShift = document.createElement('input');
+                            hiddenShift.type = 'hidden';
+                            hiddenShift.id = 'edit-checklist-task-shift';
+                            hiddenShift.value = taskToEdit.shift;
+                            document.querySelector('.modal-body').appendChild(hiddenShift);
+                        }
+
+                        document.querySelectorAll('input[name="edit-checklist-shift"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.getElementById('edit-checklist-task-shift').value = this.value;
                             });
                         });
                     }, 100);
