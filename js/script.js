@@ -57,9 +57,9 @@
         ];
 
         let announcements = [
-            { id: 1, date: '2025-12-02', title: 'Holiday Schedule', content: 'Holiday schedule updates have been posted. Please check your shifts for the upcoming weeks.', author: 'Carlos Admin' },
-            { id: 2, date: '2025-11-28', title: 'New Product Line', content: 'New product line arriving next week - mandatory training session on Thursday.', author: 'Carlos Admin' },
-            { id: 3, date: '2025-11-25', title: 'Q4 Achievement', content: 'Congratulations to VSU Miramar for hitting Q4 sales targets! 🎉', author: 'Carlos Admin' }
+            { id: 1, date: '2025-12-02', title: 'Holiday Schedule', content: 'Holiday schedule updates have been posted. Please check your shifts for the upcoming weeks.', author: 'VSU Admin' },
+            { id: 2, date: '2025-11-28', title: 'New Product Line', content: 'New product line arriving next week - mandatory training session on Thursday.', author: 'VSU Admin' },
+            { id: 3, date: '2025-11-25', title: 'Q4 Achievement', content: 'Congratulations to VSU Miramar for hitting Q4 sales targets! 🎉', author: 'VSU Admin' }
         ];
 
         // Track which announcements the current user has read
@@ -775,7 +775,7 @@
                 amount: 150.00,
                 reason: 'Printer paper and ink cartridges',
                 createdDate: '2025-12-08',
-                createdBy: 'Carlos Admin',
+                createdBy: 'VSU Admin',
                 status: 'open',
                 closedDate: null,
                 receiptPhoto: null,
@@ -23958,7 +23958,7 @@ Return ONLY the JSON object, no additional text.`,
 
                             <div class="form-group">
                                 <label>Responsible Person *</label>
-                                <input type="text" class="form-input" id="issue-resolved-by" placeholder="Who handled this issue?" value="Carlos Admin">
+                                <input type="text" class="form-input" id="issue-resolved-by" placeholder="Who handled this issue?" value="VSU Admin">
                             </div>
 
                             <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-top: 16px;">
@@ -27431,7 +27431,7 @@ Return ONLY the JSON object, no additional text.`,
                 productName: productName,
                 quantity: item.minStock - parseInt(qtyHand),
                 store,
-                requestedBy: 'Carlos Admin',
+                requestedBy: 'VSU Admin',
                 requestDate: date,
                 status: 'pending',
                 priority: parseInt(qtyHand) < item.minStock * 0.3 ? 'high' : parseInt(qtyHand) < item.minStock * 0.6 ? 'medium' : 'low',
