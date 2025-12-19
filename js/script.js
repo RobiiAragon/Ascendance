@@ -2618,17 +2618,6 @@
             // Load trainings from Firebase
             await loadTrainingsFromFirebase();
 
-            // Calculate mandatory training compliance
-            const mandatoryTrainings = trainings.filter(t => t.required);
-            const totalEmployees = employees.length;
-            const employeesCompliantCount = employees.filter(emp => {
-                return mandatoryTrainings.every(training => {
-                    const completions = training.completions || [];
-                    return completions.some(c => c.employeeId === (emp.firestoreId || emp.id));
-                });
-            }).length;
-            const compliancePercentage = totalEmployees > 0 ? Math.round((employeesCompliantCount / totalEmployees) * 100) : 0;
-
             // Render the trainings grid
             dashboard.innerHTML = `
                 <div class="page-header" style="margin-bottom: 24px;">
@@ -2652,29 +2641,6 @@
                     </div>
                 </div>
 
-                ${mandatoryTrainings.length > 0 ? `
-                    <!-- Mandatory Training Compliance -->
-                    <div class="card" style="margin-bottom: 24px; border-left: 4px solid ${compliancePercentage === 100 ? '#10b981' : '#ef4444'};">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">
-                                    <i class="fas fa-exclamation-circle" style="color: ${compliancePercentage === 100 ? '#10b981' : '#ef4444'};"></i>
-                                    Mandatory Training Compliance
-                                </h3>
-                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
-                                    ${mandatoryTrainings.length} mandatory course${mandatoryTrainings.length !== 1 ? 's' : ''} • ${employeesCompliantCount} of ${totalEmployees} employees fully compliant
-                                </p>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 32px; font-weight: 700; color: ${compliancePercentage === 100 ? '#10b981' : '#ef4444'};">${compliancePercentage}%</div>
-                                <button class="btn-secondary" style="margin-top: 8px;" onclick="viewMandatoryTrainingCompliance()">
-                                    <i class="fas fa-chart-bar"></i> View Details
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
-
                 ${trainings.length === 0 ? `
                     <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
                         <i class="fas fa-graduation-cap" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
@@ -2697,9 +2663,6 @@
                                 <div class="training-card-body">
                                     <div class="training-card-type">${(t.type || 'document').toUpperCase()}</div>
                                     <h3 class="training-card-title">${t.title}</h3>
-                                    <div class="training-card-meta">
-                                        <span class="${t.required ? 'required' : ''}"><i class="fas fa-${t.required ? 'exclamation-circle' : 'check'}"></i> ${t.required ? 'Required' : 'Optional'}</span>
-                                    </div>
                                     ${t.fileName ? `
                                         <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
                                             <i class="fas fa-file-pdf"></i> ${t.fileName}
@@ -2743,7 +2706,6 @@
                                     <div style="flex: 1; min-width: 0;">
                                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
                                             <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.title}</h3>
-                                            ${t.required ? `<span style="background: #ef444420; color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;">Required</span>` : ''}
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--text-muted);">
                                             <span style="display: flex; align-items: center; gap: 4px;">
@@ -22732,12 +22694,6 @@ Return ONLY the JSON object, no additional text.`
                                 <label>Description</label>
                                 <textarea class="form-input" id="training-description" rows="3" placeholder="Brief description of the training content..."></textarea>
                             </div>
-                            <div class="form-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="training-required" checked>
-                                    <span>Required for all employees</span>
-                                </label>
-                            </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -34448,10 +34404,11 @@ window.navigateToModule = function(page) {
     }
 }
 
-// API Settings Modal for Celeste AI
+// API Settings Modal for Celeste AI - OpenAI Only
 window.openAPISettings = function() {
-    const currentKey = window.ANTHROPIC_API_KEY || localStorage.getItem('anthropic_api_key') || '';
+    const currentKey = localStorage.getItem('openai_api_key') || '';
     const maskedKey = currentKey ? '••••••••' + currentKey.slice(-8) : '';
+    const isConnected = currentKey && currentKey.startsWith('sk-');
 
     const modalHtml = `
         <div id="api-settings-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: modalSlideIn 0.3s ease;"
@@ -34459,7 +34416,7 @@ window.openAPISettings = function() {
             <div style="background: var(--bg-primary); border-radius: 20px; max-width: 500px; width: 100%; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid var(--border-color);">
                 <!-- Header -->
                 <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
-                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10a37f, #1a7f64); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-key" style="color: white; font-size: 20px;"></i>
                     </div>
                     <div style="flex: 1;">
@@ -34473,48 +34430,57 @@ window.openAPISettings = function() {
 
                 <!-- Content -->
                 <div style="padding: 24px;">
-                    <!-- Celeste AI Section -->
+                    <!-- OpenAI Section -->
                     <div style="margin-bottom: 24px;">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                            <i class="fas fa-stars" style="color: #a855f7; font-size: 20px;"></i>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" alt="OpenAI" style="width: 24px; height: 24px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <i class="fas fa-robot" style="color: #10a37f; font-size: 20px; display: none;"></i>
                             <div>
-                                <div style="font-weight: 600;">Celeste AI (Claude)</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Powered by Anthropic Claude API</div>
+                                <div style="font-weight: 600;">OpenAI GPT-4</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Powered by OpenAI API</div>
                             </div>
-                            <div style="margin-left: auto; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; ${currentKey ? 'background: rgba(16,185,129,0.15); color: #10b981;' : 'background: rgba(239,68,68,0.15); color: #ef4444;'}">
-                                ${currentKey ? 'Connected' : 'Not configured'}
+                            <div style="margin-left: auto; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; ${isConnected ? 'background: rgba(16,185,129,0.15); color: #10b981;' : 'background: rgba(239,68,68,0.15); color: #ef4444;'}">
+                                ${isConnected ? 'Connected' : 'Not configured'}
                             </div>
                         </div>
 
                         <div class="form-group" style="margin-bottom: 16px;">
-                            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500;">Claude API Key</label>
+                            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500;">OpenAI API Key</label>
                             <div style="position: relative;">
-                                <input type="password" id="anthropic-api-key-input" class="form-input"
-                                    placeholder="${maskedKey || 'sk-ant-api03-...'}"
+                                <input type="password" id="openai-api-key-input" class="form-input"
+                                    placeholder="${maskedKey || 'sk-proj-...'}"
                                     value="${currentKey}"
                                     style="padding-right: 80px;">
                                 <button onclick="toggleAPIKeyVisibility()" style="position: absolute; right: 44px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);">
                                     <i class="fas fa-eye" id="api-key-toggle-icon"></i>
                                 </button>
-                                <button onclick="testCelesteConnection()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: var(--accent-primary); border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; color: white; font-size: 11px;">
+                                <button onclick="testOpenAIConnection()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #10a37f; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; color: white; font-size: 11px;">
                                     Test
                                 </button>
                             </div>
                             <p style="margin: 8px 0 0; font-size: 11px; color: var(--text-muted);">
-                                Get your API key from <a href="https://console.anthropic.com/" target="_blank" style="color: var(--accent-primary);">console.anthropic.com</a>
+                                Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #10a37f; font-weight: 600;">platform.openai.com/api-keys</a>
                             </p>
                         </div>
 
                         <div id="api-test-result" style="display: none; padding: 12px; border-radius: 10px; margin-bottom: 16px; font-size: 13px;"></div>
                     </div>
 
+                    <!-- Get API Key Button -->
+                    <a href="https://platform.openai.com/api-keys" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 20px; background: linear-gradient(135deg, #10a37f, #1a7f64); color: white; border-radius: 12px; text-decoration: none; font-weight: 600; margin-bottom: 20px; transition: all 0.2s;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(16,163,127,0.3)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                        <i class="fas fa-external-link-alt"></i>
+                        Get OpenAI API Key
+                    </a>
+
                     <!-- Info -->
                     <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
                         <div style="display: flex; align-items: flex-start; gap: 12px;">
-                            <i class="fas fa-info-circle" style="color: var(--accent-primary); margin-top: 2px;"></i>
+                            <i class="fas fa-info-circle" style="color: #10a37f; margin-top: 2px;"></i>
                             <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
                                 <strong>About Celeste AI:</strong><br>
-                                Celeste uses Claude AI to understand natural language commands. You can ask her to record expenses, report suspicious people, navigate to modules, and more - just by talking or typing naturally.
+                                Celeste uses OpenAI GPT-4 to understand natural language commands. You can ask her to record expenses, report suspicious people, navigate to modules, and more - just by talking or typing naturally.
                             </div>
                         </div>
                     </div>
@@ -34523,7 +34489,7 @@ window.openAPISettings = function() {
                 <!-- Footer -->
                 <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">
                     <button onclick="closeAPISettings()" class="btn-secondary" style="padding: 10px 20px;">Cancel</button>
-                    <button onclick="saveAPISettings()" class="btn-primary" style="padding: 10px 20px;">
+                    <button onclick="saveAPISettings()" class="btn-primary" style="padding: 10px 20px; background: #10a37f;">
                         <i class="fas fa-save"></i> Save Settings
                     </button>
                 </div>
@@ -34549,7 +34515,7 @@ window.closeAPISettings = function() {
 
 // Toggle API key visibility
 window.toggleAPIKeyVisibility = function() {
-    const input = document.getElementById('anthropic-api-key-input');
+    const input = document.getElementById('openai-api-key-input');
     const icon = document.getElementById('api-key-toggle-icon');
 
     if (input.type === 'password') {
@@ -34563,9 +34529,9 @@ window.toggleAPIKeyVisibility = function() {
     }
 }
 
-// Test Celeste AI Connection
-window.testCelesteConnection = async function() {
-    const apiKey = document.getElementById('anthropic-api-key-input').value.trim();
+// Test OpenAI Connection
+window.testOpenAIConnection = async function() {
+    const apiKey = document.getElementById('openai-api-key-input').value.trim();
     const resultDiv = document.getElementById('api-test-result');
 
     if (!apiKey) {
@@ -34582,16 +34548,14 @@ window.testCelesteConnection = async function() {
     resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection...';
 
     try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'claude-3-5-sonnet-20241022',
+                model: 'gpt-4o',
                 max_tokens: 50,
                 messages: [{ role: 'user', content: 'Say "Connected!" in one word.' }]
             })
@@ -34614,15 +34578,15 @@ window.testCelesteConnection = async function() {
 
 // Save API Settings
 window.saveAPISettings = function() {
-    const apiKey = document.getElementById('anthropic-api-key-input').value.trim();
+    const apiKey = document.getElementById('openai-api-key-input').value.trim();
 
     // Save to localStorage for persistence
     if (apiKey) {
-        localStorage.setItem('anthropic_api_key', apiKey);
-        window.ANTHROPIC_API_KEY = apiKey;
+        localStorage.setItem('openai_api_key', apiKey);
+        window.OPENAI_API_KEY = apiKey;
     } else {
-        localStorage.removeItem('anthropic_api_key');
-        window.ANTHROPIC_API_KEY = '';
+        localStorage.removeItem('openai_api_key');
+        window.OPENAI_API_KEY = '';
     }
 
     // Show success toast
