@@ -18,9 +18,9 @@ const DEFAULT_OPENAI_API_KEY = 'sk-proj-IZZNIBwZlMk_ucmGyfvvHfHg537fqxL6fpCqBvjL
 // ═══════════════════════════════════════════════════════════════
 // AI PROVIDER CONFIGURATION - Primary & Fallback System
 // ═══════════════════════════════════════════════════════════════
-// Primary provider: 'anthropic' (Claude) - Fallback: 'openai' (GPT-4)
-const AI_PROVIDER = 'anthropic'; // <-- PRIMARY PROVIDER (Claude)
-const AI_FALLBACK_PROVIDER = 'openai'; // <-- FALLBACK PROVIDER (GPT-4)
+// Primary provider: 'openai' (GPT-4) - More stable for browser-based calls
+const AI_PROVIDER = 'openai'; // <-- PRIMARY PROVIDER (OpenAI GPT-4)
+const AI_FALLBACK_PROVIDER = 'anthropic'; // <-- FALLBACK PROVIDER (Claude)
 
 // Celeste settings loaded from Firebase (will be populated on init)
 let celesteFirebaseSettings = null;
@@ -1969,41 +1969,7 @@ window.renderCelesteAIPage = function() {
 
     dashboard.innerHTML = `
         <div class="celeste-page">
-            <!-- Under Construction Banner -->
-            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 16px; margin-bottom: 24px; text-align: center;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
-                    <i class="fas fa-hard-hat" style="font-size: 32px;"></i>
-                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">Under Construction</h2>
-                    <i class="fas fa-tools" style="font-size: 32px;"></i>
-                </div>
-                <p style="margin: 0; font-size: 15px; opacity: 0.95;">Celeste AI is currently being improved. This feature will be available soon with enhanced capabilities.</p>
-            </div>
-
-            <!-- Page Header
-            <div class="celeste-page-header">
-                <div class="celeste-page-hero">
-                    <div class="celeste-hero-avatar">
-                        <img src="img/celeste-ai.svg" alt="Celeste AI" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="celeste-hero-fallback" style="display: none;">
-                            <i class="fas fa-stars"></i>
-                        </div>
-                        <div class="celeste-hero-status"></div>
-                    </div>
-                    <div class="celeste-hero-info">
-                        <h1>Celeste AI</h1>
-                        <p>Your intelligent assistant for Ascendance Hub</p>
-                        <div class="celeste-hero-badges">
-                            <span class="celeste-badge"><i class="fas fa-microphone"></i> Voice Enabled</span>
-                            <span class="celeste-badge"><i class="fas fa-brain"></i> Anthropic Powered</span>
-                            <span class="celeste-badge"><i class="fas fa-bolt"></i> Real-time Actions</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            -->
-
-            <!-- Main Chat - Full Width (Disabled) -->
-            <div style="opacity: 0.5; pointer-events: none;">
+            <!-- Main Chat - Full Width -->
             <div class="celeste-main-chat">
                 <div class="celeste-chat-container">
                     <div class="celeste-chat-messages" id="celeste-page-messages">
@@ -2140,7 +2106,6 @@ window.renderCelesteAIPage = function() {
                     </div>
                 </div>
             </div>
-            </div><!-- End disabled wrapper -->
         </div>
 
         <style>
