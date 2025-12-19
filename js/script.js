@@ -6626,13 +6626,11 @@ window.renderDailyChecklist = async function() {
                 <button onclick="viewChecklistHistory()" class="btn-secondary">
                     <i class="fas fa-history"></i> History
                 </button>
-                <!-- Add Task button hidden
                 ${canManageTasks ? `
                     <button onclick="openAddTaskModal(checklistCurrentShift)" class="btn-primary">
                         <i class="fas fa-plus"></i> Add Task
                     </button>
                 ` : ''}
-                -->
             </div>
         </div>
 
