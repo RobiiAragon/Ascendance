@@ -22704,127 +22704,6 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                     `;
                     break;
-                case 'mandatory-compliance':
-                    const mandatoryTrainings = data.mandatoryTrainings || [];
-                    const allEmployees = data.employees || [];
-
-                    // Calculate per-training compliance
-                    const trainingStats = mandatoryTrainings.map(training => {
-                        const completions = training.completions || [];
-                        const completedEmployees = allEmployees.filter(emp => {
-                            const empId = emp.firestoreId || emp.id;
-                            return completions.some(c => c.employeeId === empId);
-                        });
-                        const pendingEmployees = allEmployees.filter(emp => {
-                            const empId = emp.firestoreId || emp.id;
-                            return !completions.some(c => c.employeeId === empId);
-                        });
-
-                        return {
-                            training,
-                            completedEmployees,
-                            pendingEmployees,
-                            completionPercentage: allEmployees.length > 0 ? Math.round((completedEmployees.length / allEmployees.length) * 100) : 0
-                        };
-                    });
-
-                    // Calculate overall compliance
-                    const fullyCompliantEmployees = allEmployees.filter(emp => {
-                        return mandatoryTrainings.every(training => {
-                            const empId = emp.firestoreId || emp.id;
-                            const completions = training.completions || [];
-                            return completions.some(c => c.employeeId === empId);
-                        });
-                    });
-
-                    content = `
-                        <div class="modal-header">
-                            <h2><i class="fas fa-exclamation-circle"></i> Mandatory Training Compliance Report</h2>
-                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-                        </div>
-                        <div class="modal-body">
-                            <!-- Overall Compliance -->
-                            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; color: white;">
-                                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Overall Compliance</div>
-                                <div style="font-size: 36px; font-weight: 700; margin-bottom: 4px;">${fullyCompliantEmployees.length} / ${allEmployees.length}</div>
-                                <div style="font-size: 13px; opacity: 0.9;">Employees fully compliant with all mandatory trainings</div>
-                            </div>
-
-                            <!-- Per-Training Breakdown -->
-                            <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Per-Training Compliance</h3>
-                            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
-                                ${trainingStats.map(stat => `
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                                <div style="flex: 1;">
-                                                    <h4 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600;">${stat.training.title}</h4>
-                                                    <div style="font-size: 12px; color: var(--text-muted);">${stat.training.type.toUpperCase()}</div>
-                                                </div>
-                                                <div style="text-align: right;">
-                                                    <div style="font-size: 24px; font-weight: 700; color: ${stat.completionPercentage === 100 ? '#10b981' : '#ef4444'};">${stat.completionPercentage}%</div>
-                                                    <div style="font-size: 12px; color: var(--text-muted);">${stat.completedEmployees.length}/${allEmployees.length} completed</div>
-                                                </div>
-                                            </div>
-                                            <div style="background: var(--bg-tertiary); border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 12px;">
-                                                <div style="background: ${stat.completionPercentage === 100 ? '#10b981' : '#6366f1'}; height: 100%; width: ${stat.completionPercentage}%; transition: width 0.3s;"></div>
-                                            </div>
-                                            ${stat.pendingEmployees.length > 0 ? `
-                                                <details style="margin-top: 12px;">
-                                                    <summary style="cursor: pointer; font-size: 13px; color: var(--text-secondary); font-weight: 500;">
-                                                        <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> ${stat.pendingEmployees.length} employee${stat.pendingEmployees.length !== 1 ? 's' : ''} pending
-                                                    </summary>
-                                                    <div style="margin-top: 8px; padding-left: 20px;">
-                                                        ${stat.pendingEmployees.slice(0, 10).map(emp => `
-                                                            <div style="padding: 4px 0; font-size: 13px; color: var(--text-secondary);">
-                                                                • ${emp.name} (${emp.role} @ ${emp.store})
-                                                            </div>
-                                                        `).join('')}
-                                                        ${stat.pendingEmployees.length > 10 ? `<div style="padding: 4px 0; font-size: 12px; color: var(--text-muted);">+${stat.pendingEmployees.length - 10} more...</div>` : ''}
-                                                    </div>
-                                                </details>
-                                            ` : '<div style="font-size: 13px; color: #10b981;"><i class="fas fa-check-circle"></i> All employees completed</div>'}
-                                            <div style="margin-top: 12px;">
-                                                <button class="btn-secondary" onclick="closeModal(); setTimeout(() => openTrainingCompletionModal('${stat.training.id}'), 100);">
-                                                    <i class="fas fa-check-circle"></i> Manage Completions
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-
-                            <!-- Non-Compliant Employees -->
-                            ${fullyCompliantEmployees.length < allEmployees.length ? `
-                                <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">
-                                    <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Non-Compliant Employees
-                                </h3>
-                                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; max-height: 300px; overflow-y: auto;">
-                                    ${allEmployees.filter(emp => !fullyCompliantEmployees.includes(emp)).map(emp => {
-                                        const incompleteTrainings = mandatoryTrainings.filter(training => {
-                                            const empId = emp.firestoreId || emp.id;
-                                            const completions = training.completions || [];
-                                            return !completions.some(c => c.employeeId === empId);
-                                        });
-                                        return `
-                                            <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 8px;">
-                                                <div style="font-weight: 500; margin-bottom: 4px;">${emp.name}</div>
-                                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">${emp.role} @ ${emp.store}</div>
-                                                <div style="font-size: 13px; color: #ef4444;">
-                                                    Missing ${incompleteTrainings.length} training${incompleteTrainings.length !== 1 ? 's' : ''}:
-                                                    ${incompleteTrainings.slice(0, 3).map(t => t.title).join(', ')}${incompleteTrainings.length > 3 ? ` +${incompleteTrainings.length - 3} more` : ''}
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            ` : '<div style="text-align: center; padding: 40px; background: var(--bg-secondary); border-radius: 12px;"><i class="fas fa-check-circle" style="font-size: 48px; color: #10b981; margin-bottom: 16px; display: block;"></i><div style="font-size: 16px; font-weight: 600; color: #10b981;">100% Compliance!</div><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">All employees have completed all mandatory trainings</div></div>'}
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn-secondary" onclick="closeModal()">Close</button>
-                        </div>
-                    `;
-                    break;
                 case 'add-license':
                     content = `
                         <div class="modal-header">
@@ -26475,7 +26354,6 @@ Return ONLY the JSON object, no additional text.`,
             const type = document.getElementById('training-type').value;
             const url = document.getElementById('training-url').value.trim();
             const description = document.getElementById('training-description')?.value.trim() || '';
-            const required = document.getElementById('training-required').checked;
 
             // Validation
             if (!title) {
@@ -26537,7 +26415,6 @@ Return ONLY the JSON object, no additional text.`,
                         type,
                         url: type === 'video' ? url : '',
                         completion: 0,
-                        required,
                         description
                     };
 
@@ -26577,7 +26454,6 @@ Return ONLY the JSON object, no additional text.`,
                         type,
                         url,
                         completion: 0,
-                        required,
                         description
                     };
 
@@ -27754,10 +27630,7 @@ Return ONLY the JSON object, no additional text.`,
                     </div>
                 </div>
                 <div class="modal-footer" style="padding: 16px 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <span style="color: var(--text-muted); font-size: 13px;">
-                            <i class="fas fa-${training.required ? 'exclamation-circle' : 'check'}"></i> ${training.required ? 'Required' : 'Optional'}
-                        </span>
+                    <div style="display: flex; justify-content: flex-end; align-items: center; width: 100%;">
                         <button class="btn-primary" onclick="closeVideoPlayer()">Close</button>
                     </div>
                 </div>
@@ -27822,10 +27695,6 @@ Return ONLY the JSON object, no additional text.`,
                                     <span style="font-weight: 500; color: var(--text-primary);">${(training.type || 'Document').toUpperCase()}</span>
                                 </div>
                                 <div>
-                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Status</label>
-                                    <span class="badge ${training.required ? 'danger' : 'success'}">${training.required ? 'Required' : 'Optional'}</span>
-                                </div>
-                                <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Completion</label>
                                     <span style="font-weight: 500; color: var(--text-primary);">${training.completion || 0}%</span>
                                 </div>
@@ -27847,21 +27716,6 @@ Return ONLY the JSON object, no additional text.`,
                         </div>
                     </div>
 
-                    ${training.required ? `
-                        <div class="card">
-                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                                <h4 style="margin: 0; color: var(--text-primary);">
-                                    <i class="fas fa-users"></i> Completion Tracking
-                                </h4>
-                                <button class="btn-primary" onclick="openTrainingCompletionModal('${training.id}')">
-                                    <i class="fas fa-check-circle"></i> Manage Completions
-                                </button>
-                            </div>
-                            <div class="card-body">
-                                ${renderTrainingCompletionSummary(training)}
-                            </div>
-                        </div>
-                    ` : ''}
                 </div>
                 <div class="modal-footer">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -27929,12 +27783,6 @@ Return ONLY the JSON object, no additional text.`,
                         <label>Description</label>
                         <textarea class="form-input" id="edit-training-description" rows="3" placeholder="Brief description...">${training.description || ''}</textarea>
                     </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="edit-training-required" ${training.required ? 'checked' : ''}>
-                            <span>Required for all employees</span>
-                        </label>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -27952,7 +27800,6 @@ Return ONLY the JSON object, no additional text.`,
             const urlInput = document.getElementById('edit-training-url');
             const url = urlInput ? urlInput.value.trim() : '';
             const description = document.getElementById('edit-training-description').value.trim();
-            const required = document.getElementById('edit-training-required').checked;
 
             if (!title) {
                 showToast('Please enter a title', 'error');
@@ -27981,8 +27828,7 @@ Return ONLY the JSON object, no additional text.`,
 
                 const updateData = {
                     title,
-                    description,
-                    required
+                    description
                 };
 
                 if (url) {
@@ -28079,13 +27925,6 @@ Return ONLY the JSON object, no additional text.`,
                     </div>
                 ` : '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">No employees have completed this training yet</div>'}
             `;
-        }
-
-        // View mandatory training compliance
-        function viewMandatoryTrainingCompliance() {
-            const mandatoryTrainings = trainings.filter(t => t.required);
-
-            openModal('mandatory-compliance', { mandatoryTrainings, employees });
         }
 
         // Open training completion modal
