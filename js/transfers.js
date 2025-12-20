@@ -14,26 +14,42 @@ let transfersState = {
 
 // Generate unique transfer folio
 function generateTransferFolio() {
-    const transfers = JSON.parse(localStorage.getItem('storeTransfers') || '[]');
-    const lastFolio = transfers.length > 0
-        ? parseInt(transfers[transfers.length - 1].folio.replace('TR-', ''))
-        : 0;
-    const newNumber = (lastFolio + 1).toString().padStart(4, '0');
-    return `TR-${newNumber}`;
+    try {
+        // Use current transfers in state first, fallback to localStorage
+        const transfers = transfersState.transfers.length > 0
+            ? transfersState.transfers
+            : JSON.parse(localStorage.getItem('storeTransfers') || '[]');
+
+        const lastFolio = transfers.length > 0
+            ? parseInt(transfers[transfers.length - 1].folio.replace('TR-', ''))
+            : 0;
+        const newNumber = (lastFolio + 1).toString().padStart(4, '0');
+        const folio = `TR-${newNumber}`;
+        console.log('📋 Generated folio:', folio);
+        return folio;
+    } catch (error) {
+        console.error('Error generating folio:', error);
+        // Fallback to timestamp-based folio
+        return `TR-${Date.now()}`;
+    }
 }
 
 // Initialize Transfers Module
-function initializeTransfersModule() {
+async function initializeTransfersModule() {
     console.log('🔄 Initializing Transfers Module...');
 
     // Wait a bit for DOM to be fully ready
-    setTimeout(() => {
-        loadTransfers();
+    setTimeout(async () => {
+        await loadTransfers();
         renderTransfersPage();
         setupProductSearch();
         setDefaultDate();
         setDefaultSentBy();
         console.log('✅ Transfers Module ready!');
+
+        // Make submitTransfer globally accessible for debugging
+        window.debugSubmitTransfer = submitTransfer;
+        console.log('🔧 Debug: window.debugSubmitTransfer() is available for testing');
     }, 100);
 }
 
@@ -60,14 +76,41 @@ function setDefaultSentBy() {
     }
 }
 
-// Load transfers from localStorage/Firebase
-function loadTransfers() {
+// Load transfers from Firebase (with localStorage fallback)
+async function loadTransfers() {
     try {
+        // Try to load from Firebase first
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            const snapshot = await db.collection('transfers').orderBy('createdAt', 'desc').get();
+
+            if (!snapshot.empty) {
+                transfersState.transfers = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                console.log('✅ Loaded', transfersState.transfers.length, 'transfers from Firebase');
+
+                // Also save to localStorage as backup
+                localStorage.setItem('storeTransfers', JSON.stringify(transfersState.transfers));
+                return;
+            }
+        }
+
+        // Fallback to localStorage if Firebase is not available or empty
         const savedTransfers = localStorage.getItem('storeTransfers');
         transfersState.transfers = savedTransfers ? JSON.parse(savedTransfers) : [];
+        console.log('📦 Loaded', transfersState.transfers.length, 'transfers from localStorage');
     } catch (e) {
         console.error('Error loading transfers:', e);
-        transfersState.transfers = [];
+        // Final fallback to localStorage
+        try {
+            const savedTransfers = localStorage.getItem('storeTransfers');
+            transfersState.transfers = savedTransfers ? JSON.parse(savedTransfers) : [];
+        } catch (localError) {
+            console.error('Error loading from localStorage:', localError);
+            transfersState.transfers = [];
+        }
     }
 }
 
@@ -208,7 +251,7 @@ function renderTransfersPage() {
                 <div style="padding: 24px; background: var(--bg-primary);">
                     <div id="transferMessage" style="display: none; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 13px;"></div>
 
-                    <form id="transferForm" onsubmit="event.preventDefault(); submitTransfer();">
+                    <form id="transferForm" onsubmit="event.preventDefault(); console.log('Form submitted!'); submitTransfer(); return false;">
                         <!-- Store Selection with Visual Route -->
                         <div style="margin-bottom: 24px;">
                             <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
@@ -309,7 +352,7 @@ function renderTransfersPage() {
                             <button type="button" onclick="closeTransferModal()" style="flex: 1; padding: 14px 20px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
                                 Cancel
                             </button>
-                            <button type="submit" id="submitTransferBtn" style="flex: 2; padding: 14px 20px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(99, 102, 241, 0.4)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.3)'">
+                            <button type="submit" id="submitTransferBtn" onclick="console.log('Button clicked directly!'); submitTransfer(); return false;" style="flex: 2; padding: 14px 20px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(99, 102, 241, 0.4)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.3)'">
                                 <i class="fas fa-paper-plane"></i> Create Transfer
                             </button>
                         </div>
@@ -766,17 +809,23 @@ function toggleTransferNotes() {
 
 // Submit transfer
 async function submitTransfer() {
+    console.log('🚀 submitTransfer() called');
+
     const form = document.getElementById('transferForm');
     const messageEl = document.getElementById('transferMessage');
     const submitBtn = document.getElementById('submitTransferBtn');
 
+    console.log('📋 Form elements:', { form, messageEl, submitBtn });
+
     // Validate form
-    const storeOrigin = document.getElementById('transferStoreOrigin').value;
-    const storeDestination = document.getElementById('transferStoreDestination').value;
-    const quantity = document.getElementById('transferQuantity').value;
-    const shipDate = document.getElementById('transferShipDate').value;
-    const sentBy = document.getElementById('transferSentBy').value;
-    const notes = document.getElementById('transferNotes').value;
+    const storeOrigin = document.getElementById('transferStoreOrigin')?.value;
+    const storeDestination = document.getElementById('transferStoreDestination')?.value;
+    const quantity = document.getElementById('transferQuantity')?.value;
+    const shipDate = document.getElementById('transferShipDate')?.value;
+    const sentBy = document.getElementById('transferSentBy')?.value;
+    const notes = document.getElementById('transferNotes')?.value || '';
+
+    console.log('📝 Form values:', { storeOrigin, storeDestination, quantity, shipDate, sentBy, notes });
 
     // Validation
     if (!storeOrigin) {
@@ -794,8 +843,11 @@ async function submitTransfer() {
         return;
     }
 
+    console.log('🔍 Selected product:', transfersState.selectedProduct);
+
     if (!transfersState.selectedProduct) {
         showTransferMessage('Please select a product', 'error');
+        console.log('❌ No product selected!');
         return;
     }
 
@@ -813,6 +865,8 @@ async function submitTransfer() {
         showTransferMessage('Please enter who is sending', 'error');
         return;
     }
+
+    console.log('✅ All validations passed! Creating transfer...');
 
     // Disable submit button
     submitBtn.disabled = true;
@@ -840,24 +894,29 @@ async function submitTransfer() {
 
         // Add to transfers array
         transfersState.transfers.push(transfer);
+        console.log('📦 Added to transfers array. Total transfers:', transfersState.transfers.length);
 
         // Save to localStorage
         saveTransfers();
+        console.log('💾 Saved to localStorage');
 
         // Try to save to Firebase if available
         await saveTransferToFirebase(transfer);
+
+        console.log('✅ Transfer created successfully:', transfer);
 
         // Show success message
         showTransferMessage(`Transfer ${transfer.folio} created successfully!`, 'success');
 
         // Close modal and refresh after delay
         setTimeout(() => {
+            console.log('🔄 Closing modal and refreshing page...');
             closeTransferModal();
             renderTransfersPage();
         }, 1500);
 
     } catch (error) {
-        console.error('Error creating transfer:', error);
+        console.error('❌ Error creating transfer:', error);
         showTransferMessage('Error creating transfer. Please try again.', 'error');
     } finally {
         submitBtn.disabled = false;
@@ -872,10 +931,12 @@ async function saveTransferToFirebase(transfer) {
         if (typeof firebase !== 'undefined' && firebase.firestore) {
             const db = firebase.firestore();
             await db.collection('transfers').doc(transfer.id).set(transfer);
-            console.log('Transfer saved to Firebase:', transfer.folio);
+            console.log('✅ Transfer saved to Firebase:', transfer.folio);
+        } else {
+            console.warn('⚠️ Firebase not available, using localStorage only');
         }
     } catch (error) {
-        console.warn('Could not save transfer to Firebase:', error);
+        console.warn('⚠️ Could not save transfer to Firebase (blocked or error):', error.message);
         // Continue anyway - localStorage has the data
     }
 }
@@ -1051,9 +1112,11 @@ async function confirmReceiveTransfer(transferId) {
                 receivedAt: transfer.receivedAt,
                 receivedBy: transfer.receivedBy
             });
+            console.log('✅ Transfer updated in Firebase:', transfer.folio);
         }
     } catch (error) {
-        console.warn('Could not update transfer in Firebase:', error);
+        console.warn('⚠️ Could not update transfer in Firebase:', error);
+        // Continue anyway - localStorage has the data
     }
 
     // Show confirmation
