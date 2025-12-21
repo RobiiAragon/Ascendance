@@ -36011,52 +36011,143 @@ async function renderLeases() {
 
     const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
 
+    // Calculate summary stats
+    const today = new Date();
+    const activeLeases = firebaseLeases.filter(l => {
+        if (!l.endDate) return true;
+        const end = new Date(l.endDate);
+        const days = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+        return days > 90;
+    });
+    const expiringLeases = firebaseLeases.filter(l => {
+        if (!l.endDate) return false;
+        const end = new Date(l.endDate);
+        const days = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+        return days > 0 && days <= 90;
+    });
+    const expiredLeases = firebaseLeases.filter(l => {
+        if (!l.endDate) return false;
+        const end = new Date(l.endDate);
+        return end < today;
+    });
+
     dashboard.innerHTML = `
         <div class="page-header">
             <div class="page-header-left">
                 <h2 class="section-title">Leases</h2>
-                <p class="section-subtitle">Store lease contracts and documentation</p>
+                <p class="section-subtitle">Store lease contracts by location</p>
             </div>
             ${isAdmin ? `
-                <button class="btn-primary floating-add-btn" onclick="openAddLeaseModal()">
-                    <i class="fas fa-plus"></i>
-                    Add Lease
+                <button class="btn-primary" onclick="openAddLeaseModal()">
+                    <i class="fas fa-plus"></i> Add Lease
                 </button>
             ` : ''}
         </div>
 
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="card-body">
-                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
-                        <div style="position: relative;">
-                            <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
-                            <input
-                                type="text"
-                                class="form-input"
-                                placeholder="Search leases..."
-                                style="padding-left: 40px;"
-                                oninput="searchLeases(this.value)"
-                                value="${leaseSearchTerm}"
-                            >
-                        </div>
-                    </div>
-                    <div style="min-width: 200px;">
-                        <select class="form-input" onchange="filterLeasesByStore(this.value)">
-                            <option value="all" ${leaseStoreFilter === 'all' ? 'selected' : ''}>All Stores</option>
-                            ${STORE_LOCATIONS.map(store => `
-                                <option value="${store.id}" ${leaseStoreFilter === store.id ? 'selected' : ''}>${store.name}</option>
-                            `).join('')}
-                        </select>
-                    </div>
-                </div>
+        <div class="license-summary" style="margin-bottom: 24px;">
+            <div class="license-summary-card valid">
+                <i class="fas fa-check-circle"></i>
+                <span class="count">${activeLeases.length}</span>
+                <span class="label">Active</span>
+            </div>
+            <div class="license-summary-card expiring">
+                <i class="fas fa-clock"></i>
+                <span class="count">${expiringLeases.length}</span>
+                <span class="label">Expiring Soon</span>
+            </div>
+            <div class="license-summary-card expired">
+                <i class="fas fa-times-circle"></i>
+                <span class="count">${expiredLeases.length}</span>
+                <span class="label">Expired</span>
             </div>
         </div>
 
-        <div id="leases-list">
-            ${renderLeasesList()}
+        <div class="license-stores-grid">
+            ${STORE_LOCATIONS.map(store => {
+                const storeLeases = firebaseLeases.filter(l => l.storeId === store.id);
+                const isLiquor = store.type === 'liquor';
+                return `
+                    <div class="license-store-zone" data-store="${store.id}">
+                        <div class="license-store-header">
+                            <div class="license-store-title">
+                                <i class="fas ${isLiquor ? 'fa-wine-bottle' : 'fa-store'}"></i>
+                                <span>${store.name}</span>
+                            </div>
+                            <div class="license-store-count">
+                                <span class="count-badge">${storeLeases.length}</span>
+                            </div>
+                        </div>
+                        <div class="license-drop-area">
+                            ${storeLeases.length === 0 ? `
+                                <div class="license-empty-state">
+                                    <i class="fas fa-file-contract"></i>
+                                    <span>No lease contracts</span>
+                                </div>
+                            ` : ''}
+                            ${storeLeases.map(lease => {
+                                const hasPdf = lease.pdfUrl;
+                                // Calculate status
+                                let status = 'valid';
+                                let statusTitle = 'Active';
+                                if (lease.endDate) {
+                                    const endDate = new Date(lease.endDate);
+                                    const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                                    if (daysLeft < 0) {
+                                        status = 'expired';
+                                        statusTitle = 'Expired';
+                                    } else if (daysLeft <= 90) {
+                                        status = 'expiring';
+                                        statusTitle = 'Expiring Soon';
+                                    }
+                                }
+                                return `
+                                <div class="license-item" style="cursor: pointer;" onclick="viewLeaseDetails('${lease.firestoreId}')">
+                                    <div class="license-item-header">
+                                        <div class="license-item-name">
+                                            <i class="fas fa-file-contract"></i>
+                                            <span>Lease Contract</span>
+                                        </div>
+                                        <div class="license-item-status">
+                                            <div class="status-dot ${status}" title="${statusTitle}"></div>
+                                        </div>
+                                    </div>
+                                    <div style="padding: 8px 12px; font-size: 12px; color: var(--text-muted);">
+                                        ${lease.landlord ? `<div><i class="fas fa-user-tie" style="width: 14px;"></i> ${lease.landlord}</div>` : ''}
+                                        ${lease.monthlyRent ? `<div><i class="fas fa-dollar-sign" style="width: 14px;"></i> $${parseFloat(lease.monthlyRent).toLocaleString()}/mo</div>` : ''}
+                                    </div>
+                                    <div class="license-item-footer">
+                                        <span class="license-expires">
+                                            <i class="fas fa-calendar"></i>
+                                            ${lease.endDate ? formatLeaseDate(lease.endDate) : 'No end date'}
+                                        </span>
+                                        <div class="license-item-actions" style="pointer-events: auto;">
+                                            ${hasPdf ? `
+                                                <a href="${lease.pdfUrl}" target="_blank" class="btn-icon-sm" onclick="event.stopPropagation();" title="View PDF" style="pointer-events: auto;">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </a>
+                                            ` : ''}
+                                            ${isAdmin ? `
+                                                <button class="btn-icon-sm" onclick="event.stopPropagation(); deleteLease('${lease.firestoreId}')" title="Delete" style="pointer-events: auto;">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
+}
+
+function formatLeaseDate(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function renderLeasesList() {
