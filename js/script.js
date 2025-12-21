@@ -35986,6 +35986,7 @@ const STORE_LOCATIONS = [
 
 async function initLeases() {
     try {
+        const db = firebase.firestore();
         const snapshot = await db.collection('leases').orderBy('storeName', 'asc').get();
         firebaseLeases = snapshot.docs.map(doc => ({
             firestoreId: doc.id,
@@ -35999,6 +36000,7 @@ async function initLeases() {
 
 async function renderLeases() {
     const dashboard = document.querySelector('.dashboard');
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
 
     // Load leases from Firebase
     try {
@@ -36075,6 +36077,7 @@ function renderLeasesList() {
         );
     }
 
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
 
     if (filteredLeases.length === 0) {
@@ -36332,6 +36335,9 @@ async function uploadLeasePdf(file, leaseId) {
 }
 
 async function saveLease() {
+    const db = firebase.firestore();
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+
     const storeId = document.getElementById('lease-store').value;
     if (!storeId) {
         showToast('Please select a store location', 'error');
@@ -36354,7 +36360,7 @@ async function saveLease() {
         landlordEmail: document.getElementById('lease-landlord-email').value.trim(),
         notes: document.getElementById('lease-notes').value.trim(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdBy: currentUser.uid
+        createdBy: currentUser?.uid || 'unknown'
     };
 
     try {
@@ -36382,6 +36388,8 @@ async function saveLease() {
 }
 
 async function viewLeaseDetails(leaseId) {
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+
     const lease = firebaseLeases.find(l => l.firestoreId === leaseId);
     if (!lease) {
         showToast('Lease not found', 'error');
@@ -36737,6 +36745,9 @@ function handleEditLeasePdfSelect(input) {
 }
 
 async function updateLease(leaseId) {
+    const db = firebase.firestore();
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+
     const storeId = document.getElementById('edit-lease-store').value;
     if (!storeId) {
         showToast('Please select a store location', 'error');
@@ -36759,7 +36770,7 @@ async function updateLease(leaseId) {
         landlordEmail: document.getElementById('edit-lease-landlord-email').value.trim(),
         notes: document.getElementById('edit-lease-notes').value.trim(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: currentUser.uid
+        updatedBy: currentUser?.uid || 'unknown'
     };
 
     try {
@@ -36789,6 +36800,7 @@ async function deleteLease(leaseId) {
     }
 
     try {
+        const db = firebase.firestore();
         await db.collection('leases').doc(leaseId).delete();
         closeModal('view-lease-modal');
         showToast('Lease deleted successfully', 'success');
