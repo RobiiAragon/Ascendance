@@ -36328,6 +36328,87 @@ function closeLeaseModal(modalId) {
     }
 }
 
+// Add lease modal styles if not exists
+if (!document.getElementById('lease-modal-styles')) {
+    const leaseModalStyles = document.createElement('style');
+    leaseModalStyles.id = 'lease-modal-styles';
+    leaseModalStyles.textContent = `
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-overlay .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+        .modal-overlay .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-overlay .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .modal-overlay .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 0;
+            line-height: 1;
+        }
+        .modal-overlay .modal-close:hover {
+            color: var(--text-primary);
+        }
+        .modal-overlay .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-overlay .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+    `;
+    document.head.appendChild(leaseModalStyles);
+}
+
 function openAddLeaseModal() {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
