@@ -36031,34 +36031,51 @@ async function renderLeases() {
         return end < today;
     });
 
-    dashboard.innerHTML = `
-        <div class="page-header">
-            <div class="page-header-left">
-                <h2 class="section-title">Leases</h2>
-                <p class="section-subtitle">Store lease contracts by location</p>
-            </div>
-            ${isAdmin ? `
-                <button class="btn-primary" onclick="openAddLeaseModal()">
-                    <i class="fas fa-plus"></i> Add Lease
-                </button>
-            ` : ''}
-        </div>
+    // Calculate total monthly rent
+    const totalMonthlyRent = firebaseLeases.reduce((sum, l) => sum + (parseFloat(l.monthlyRent) || 0), 0);
 
-        <div class="license-summary" style="margin-bottom: 24px;">
-            <div class="license-summary-card valid">
-                <i class="fas fa-check-circle"></i>
-                <span class="count">${activeLeases.length}</span>
-                <span class="label">Active</span>
+    dashboard.innerHTML = `
+        <!-- Leases Header Banner -->
+        <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%); border-radius: 16px; padding: 32px; margin-bottom: 24px; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; right: 0; width: 300px; height: 100%; opacity: 0.1;">
+                <i class="fas fa-file-contract" style="font-size: 200px; position: absolute; right: -30px; top: 50%; transform: translateY(-50%); color: white;"></i>
             </div>
-            <div class="license-summary-card expiring">
-                <i class="fas fa-clock"></i>
-                <span class="count">${expiringLeases.length}</span>
-                <span class="label">Expiring Soon</span>
-            </div>
-            <div class="license-summary-card expired">
-                <i class="fas fa-times-circle"></i>
-                <span class="count">${expiredLeases.length}</span>
-                <span class="label">Expired</span>
+            <div style="position: relative; z-index: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+                    <div>
+                        <h1 style="font-size: 28px; font-weight: 700; color: white; margin: 0 0 8px 0;">
+                            <i class="fas fa-file-contract" style="margin-right: 12px;"></i>Lease Contracts
+                        </h1>
+                        <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 15px;">Manage all store lease agreements and contracts</p>
+                    </div>
+                    ${isAdmin ? `
+                        <button class="btn-primary" onclick="openAddLeaseModal()" style="background: white; color: #4c1d95; border: none; font-weight: 600;">
+                            <i class="fas fa-plus"></i> Add Lease
+                        </button>
+                    ` : ''}
+                </div>
+                <div style="display: flex; gap: 32px; margin-top: 24px; flex-wrap: wrap;">
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700; color: white;">${firebaseLeases.length}</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.6);">Total Leases</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700; color: #4ade80;">${activeLeases.length}</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.6);">Active</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700; color: #fbbf24;">${expiringLeases.length}</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.6);">Expiring Soon</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700; color: #f87171;">${expiredLeases.length}</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.6);">Expired</div>
+                    </div>
+                    <div style="border-left: 1px solid rgba(255,255,255,0.2); padding-left: 32px;">
+                        <div style="font-size: 32px; font-weight: 700; color: white;">$${totalMonthlyRent.toLocaleString()}</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.6);">Monthly Rent Total</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -36303,6 +36320,14 @@ function formatDate(dateStr) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function closeLeaseModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
 function openAddLeaseModal() {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -36311,7 +36336,7 @@ function openAddLeaseModal() {
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
                 <h3>Add New Lease</h3>
-                <button class="modal-close" onclick="closeModal('add-lease-modal')">&times;</button>
+                <button class="modal-close" onclick="closeLeaseModal('add-lease-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -36379,7 +36404,7 @@ function openAddLeaseModal() {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('add-lease-modal')">Cancel</button>
+                <button class="btn-secondary" onclick="closeLeaseModal('add-lease-modal')">Cancel</button>
                 <button class="btn-primary" onclick="saveLease()">
                     <i class="fas fa-save"></i> Save Lease
                 </button>
@@ -36469,7 +36494,7 @@ async function saveLease() {
         }
 
         selectedLeasePdf = null;
-        closeModal('add-lease-modal');
+        closeLeaseModal('add-lease-modal');
         showToast('Lease saved successfully!', 'success');
         renderLeases();
     } catch (error) {
@@ -36527,7 +36552,7 @@ async function viewLeaseDetails(leaseId) {
                         </div>
                     </div>
                 </div>
-                <button class="modal-close" onclick="closeModal('view-lease-modal')">&times;</button>
+                <button class="modal-close" onclick="closeLeaseModal('view-lease-modal')">&times;</button>
             </div>
             <div class="modal-body" style="padding: 0;">
                 <!-- Status Banner -->
@@ -36692,7 +36717,7 @@ async function viewLeaseDetails(leaseId) {
                     ` : ''}
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn-secondary" onclick="closeModal('view-lease-modal')">Close</button>
+                    <button class="btn-secondary" onclick="closeLeaseModal('view-lease-modal')">Close</button>
                     ${isAdmin ? `
                         <button class="btn-primary" onclick="editLease('${lease.firestoreId}')">
                             <i class="fas fa-edit"></i> Edit
@@ -36707,7 +36732,7 @@ async function viewLeaseDetails(leaseId) {
 }
 
 async function editLease(leaseId) {
-    closeModal('view-lease-modal');
+    closeLeaseModal('view-lease-modal');
 
     const lease = firebaseLeases.find(l => l.firestoreId === leaseId);
     if (!lease) {
@@ -36722,7 +36747,7 @@ async function editLease(leaseId) {
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
                 <h3>Edit Lease</h3>
-                <button class="modal-close" onclick="closeModal('edit-lease-modal')">&times;</button>
+                <button class="modal-close" onclick="closeLeaseModal('edit-lease-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -36802,7 +36827,7 @@ async function editLease(leaseId) {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('edit-lease-modal')">Cancel</button>
+                <button class="btn-secondary" onclick="closeLeaseModal('edit-lease-modal')">Cancel</button>
                 <button class="btn-primary" onclick="updateLease('${leaseId}')">
                     <i class="fas fa-save"></i> Update Lease
                 </button>
@@ -36876,7 +36901,7 @@ async function updateLease(leaseId) {
         await db.collection('leases').doc(leaseId).update(leaseData);
 
         editSelectedLeasePdf = null;
-        closeModal('edit-lease-modal');
+        closeLeaseModal('edit-lease-modal');
         showToast('Lease updated successfully!', 'success');
         renderLeases();
     } catch (error) {
@@ -36893,7 +36918,7 @@ async function deleteLease(leaseId) {
     try {
         const db = firebase.firestore();
         await db.collection('leases').doc(leaseId).delete();
-        closeModal('view-lease-modal');
+        closeLeaseModal('view-lease-modal');
         showToast('Lease deleted successfully', 'success');
         renderLeases();
     } catch (error) {
