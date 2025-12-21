@@ -36333,15 +36333,15 @@ if (!document.getElementById('lease-modal-styles')) {
     const leaseModalStyles = document.createElement('style');
     leaseModalStyles.id = 'lease-modal-styles';
     leaseModalStyles.textContent = `
-        .modal-overlay {
+        .lease-modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             backdrop-filter: blur(8px);
-            z-index: 1001;
+            z-index: 99999;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -36349,12 +36349,12 @@ if (!document.getElementById('lease-modal-styles')) {
             visibility: hidden;
             transition: all 0.3s;
         }
-        .modal-overlay.active {
+        .lease-modal-overlay.active {
             opacity: 1;
             visibility: visible;
         }
-        .modal-overlay .modal {
-            background: var(--bg-card);
+        .lease-modal-overlay .lease-modal {
+            background: var(--bg-card, #1e1e2e);
             border-radius: 16px;
             width: 90%;
             max-width: 600px;
@@ -36362,45 +36362,46 @@ if (!document.getElementById('lease-modal-styles')) {
             overflow: hidden;
             transform: scale(0.9);
             transition: transform 0.3s;
-            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
         }
-        .modal-overlay.active .modal {
+        .lease-modal-overlay.active .lease-modal {
             transform: scale(1);
         }
-        .modal-overlay .modal-header {
+        .lease-modal .modal-header {
             padding: 20px 24px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color, #333);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .modal-overlay .modal-header h3 {
+        .lease-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
             font-weight: 600;
+            color: var(--text-primary, #fff);
         }
-        .modal-overlay .modal-close {
+        .lease-modal .modal-close {
             background: none;
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: var(--text-muted);
+            color: var(--text-muted, #888);
             padding: 0;
             line-height: 1;
         }
-        .modal-overlay .modal-close:hover {
-            color: var(--text-primary);
+        .lease-modal .modal-close:hover {
+            color: var(--text-primary, #fff);
         }
-        .modal-overlay .modal-body {
+        .lease-modal .modal-body {
             padding: 24px;
             overflow-y: auto;
             flex: 1;
         }
-        .modal-overlay .modal-footer {
+        .lease-modal .modal-footer {
             padding: 16px 24px;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-color, #333);
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -36411,10 +36412,10 @@ if (!document.getElementById('lease-modal-styles')) {
 
 function openAddLeaseModal() {
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'lease-modal-overlay';
     modal.id = 'add-lease-modal';
     modal.innerHTML = `
-        <div class="modal" style="max-width: 600px;">
+        <div class="lease-modal">
             <div class="modal-header">
                 <h3>Add New Lease</h3>
                 <button class="modal-close" onclick="closeLeaseModal('add-lease-modal')">&times;</button>
@@ -36617,10 +36618,10 @@ async function viewLeaseDetails(leaseId) {
     }
 
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'lease-modal-overlay';
     modal.id = 'view-lease-modal';
     modal.innerHTML = `
-        <div class="modal" style="max-width: 700px;">
+        <div class="lease-modal" style="max-width: 700px;">
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="width: 48px; height: 48px; border-radius: 10px; background: linear-gradient(135deg, var(--accent-primary), #7c3aed); display: flex; align-items: center; justify-content: center;">
@@ -36822,10 +36823,10 @@ async function editLease(leaseId) {
     }
 
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'lease-modal-overlay';
     modal.id = 'edit-lease-modal';
     modal.innerHTML = `
-        <div class="modal" style="max-width: 600px;">
+        <div class="lease-modal">
             <div class="modal-header">
                 <h3>Edit Lease</h3>
                 <button class="modal-close" onclick="closeLeaseModal('edit-lease-modal')">&times;</button>
