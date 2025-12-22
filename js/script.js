@@ -13626,151 +13626,241 @@ window.viewChecklistHistory = async function() {
             const vendors = [...new Set(invoices.map(i => i.vendor))].sort();
             const categories = getAllInvoiceCategories();
 
+            // Calculate pending payments for tab badge
+            const pendingPaymentsCount = invoices.filter(i => i.status === 'pending' || i.status === 'overdue' || (i.status === 'partial' && (i.amountPaid || 0) < i.amount)).length;
+
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Invoices</h2>
-                        <p class="section-subtitle">Track and manage payments with insights</p>
+                        <h2 class="section-title">Invoices & Payments</h2>
+                        <p class="section-subtitle">Track and manage all your invoices and payments</p>
                     </div>
                     <button class="btn-primary floating-add-btn" onclick="openModal('add-invoice')">
                         <i class="fas fa-plus"></i> Add Invoice
                     </button>
                 </div>
 
-                <!-- Summary Cards -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
-                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-file-invoice-dollar" style="font-size: 24px;"></i>
+                <!-- MAIN TABS NAVIGATION -->
+                <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+                    <button onclick="switchInvoiceMainTab('pending')" class="invoice-main-tab ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? '#f59e0b' : 'var(--border-color)'}; background: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--bg-card)'}; color: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+                        <i class="fas fa-clock"></i> Pending Payments
+                        ${pendingPaymentsCount > 0 ? `<span style="background: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'rgba(255,255,255,0.3)' : '#ef4444'}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${pendingPaymentsCount}</span>` : ''}
+                    </button>
+                    <button onclick="switchInvoiceMainTab('all')" class="invoice-main-tab ${invoiceFilters.mainTab === 'all' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'all' ? '#6366f1' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'all' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'all' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+                        <i class="fas fa-file-invoice"></i> All Invoices
+                    </button>
+                    <button onclick="switchInvoiceMainTab('recurring')" class="invoice-main-tab ${invoiceFilters.mainTab === 'recurring' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'recurring' ? '#8b5cf6' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'recurring' ? 'linear-gradient(135deg, #8b5cf6, #a855f7)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'recurring' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+                        <i class="fas fa-sync-alt"></i> Recurring
+                    </button>
+                    <button onclick="switchInvoiceMainTab('analytics')" class="invoice-main-tab ${invoiceFilters.mainTab === 'analytics' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'analytics' ? '#10b981' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'analytics' ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'analytics' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+                        <i class="fas fa-chart-pie"></i> Analytics
+                    </button>
+                </div>
+
+                <!-- Summary Cards - Always visible -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 16px; color: white; display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-file-invoice-dollar" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Total Amount</div>
-                            <div style="font-size: 24px; font-weight: 700;">$${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            <div style="font-size: 11px; opacity: 0.9;">Total</div>
+                            <div style="font-size: 20px; font-weight: 700;">$${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
-                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 16px; color: white; display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-check-circle" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Paid</div>
-                            <div style="font-size: 24px; font-weight: 700;">$${totalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            <div style="font-size: 11px; opacity: 0.9;">Paid</div>
+                            <div style="font-size: 20px; font-weight: 700;">$${totalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
-                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-clock" style="font-size: 24px;"></i>
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 16px; color: white; display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-clock" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Pending</div>
-                            <div style="font-size: 24px; font-weight: 700;">$${totalPending.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            <div style="font-size: 11px; opacity: 0.9;">Pending</div>
+                            <div style="font-size: 20px; font-weight: 700;">$${totalPending.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 20px; color: white; display: flex; align-items: center; gap: 16px;">
-                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 24px;"></i>
+                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; padding: 16px; color: white; display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Overdue</div>
-                            <div style="font-size: 24px; font-weight: 700;">${overdueCount}</div>
+                            <div style="font-size: 11px; opacity: 0.9;">Overdue</div>
+                            <div style="font-size: 20px; font-weight: 700;">${overdueCount}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- OPEN INVOICES SECTION - What You Owe -->
-                ${(() => {
-                    const openInvoices = invoices.filter(i => i.status === 'pending' || i.status === 'overdue' || (i.status === 'partial' && (i.amountPaid || 0) < i.amount));
-                    const totalOwed = openInvoices.reduce((sum, i) => sum + (i.amount - (i.amountPaid || 0)), 0);
+                <!-- TAB CONTENT -->
+                <div id="invoice-main-tab-content">
+                    ${renderInvoiceTabContent(invoiceFilters.mainTab || 'pending', filteredInvoices, stores, vendors, categories)}
+                </div>
+            `;
 
-                    if (openInvoices.length === 0) return '';
+            // Initialize charts if on analytics tab
+            if (invoiceFilters.mainTab === 'analytics') {
+                setTimeout(() => initializeInvoiceCharts(filteredInvoices), 100);
+            }
+        }
 
-                    return `
-                <div class="card" style="margin-bottom: 24px; border: 2px solid #ef4444; background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(220,38,38,0.05) 100%);">
-                    <div class="card-header" style="border-bottom: 1px solid rgba(239,68,68,0.3);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <h3 class="card-title" style="color: #ef4444;">
-                                <i class="fas fa-exclamation-circle"></i> Open Invoices - Money You Owe
-                            </h3>
-                            <div style="background: #ef4444; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 18px;">
-                                $${totalOwed.toLocaleString('en-US', {minimumFractionDigits: 2})} OWED
+        // Function to render tab content based on active tab
+        function renderInvoiceTabContent(tab, filteredInvoices, stores, vendors, categories) {
+            if (tab === 'pending') {
+                return renderPendingPaymentsTab();
+            } else if (tab === 'all') {
+                return renderAllInvoicesTab(filteredInvoices, stores, vendors, categories);
+            } else if (tab === 'recurring') {
+                return renderRecurringTab();
+            } else if (tab === 'analytics') {
+                return renderAnalyticsTab(filteredInvoices);
+            }
+            return renderPendingPaymentsTab();
+        }
+
+        // Pending Payments Tab Content
+        function renderPendingPaymentsTab() {
+            const pendingPayments = invoices.filter(i => i.status === 'pending' || i.status === 'overdue' || (i.status === 'partial' && (i.amountPaid || 0) < i.amount));
+            const totalOwed = pendingPayments.reduce((sum, i) => sum + (i.amount - (i.amountPaid || 0)), 0);
+            const overduePayments = pendingPayments.filter(i => {
+                const dueDate = i.dueDate ? new Date(i.dueDate) : null;
+                return dueDate && dueDate < new Date();
+            });
+            const overdueAmount = overduePayments.reduce((sum, i) => sum + (i.amount - (i.amountPaid || 0)), 0);
+
+            if (pendingPayments.length === 0) return `
+                <div class="card" style="border: 2px solid #10b981; background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.05) 100%);">
+                    <div class="card-body" style="text-align: center; padding: 60px;">
+                        <i class="fas fa-check-circle" style="font-size: 64px; color: #10b981; margin-bottom: 20px;"></i>
+                        <h3 style="color: #10b981; margin-bottom: 8px; font-size: 24px;">All Caught Up!</h3>
+                        <p style="color: var(--text-muted); font-size: 16px;">No pending payments at this time.</p>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="card" style="border: 2px solid #f59e0b; background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(217,119,6,0.03) 100%); overflow: hidden;">
+                    <!-- Header Banner -->
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-clock" style="font-size: 28px; color: white;"></i>
+                            </div>
+                            <div>
+                                <h3 style="color: white; font-size: 22px; font-weight: 700; margin: 0;">Pending Payments</h3>
+                                <p style="color: rgba(255,255,255,0.85); font-size: 14px; margin: 4px 0 0 0;">${pendingPayments.length} invoice${pendingPayments.length !== 1 ? 's' : ''} awaiting payment</p>
                             </div>
                         </div>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 11px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px;">Total Owed</div>
+                                <div style="font-size: 24px; font-weight: 800; color: white;">$${totalOwed.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            </div>
+                            ${overduePayments.length > 0 ? `
+                            <div style="background: rgba(239,68,68,0.9); padding: 12px 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 11px; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 1px;">Overdue</div>
+                                <div style="font-size: 24px; font-weight: 800; color: white;">$${overdueAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
-                    <div class="card-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+
+                    <!-- Table -->
+                    <div class="card-body" style="padding: 0; max-height: 500px; overflow-y: auto;">
                         <table style="width: 100%; border-collapse: collapse;">
-                            <thead style="background: rgba(239,68,68,0.1); position: sticky; top: 0;">
+                            <thead style="background: rgba(245,158,11,0.1); position: sticky; top: 0; z-index: 10;">
                                 <tr>
-                                    <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: var(--text-muted); font-weight: 600;">VENDOR</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: var(--text-muted); font-weight: 600;">INVOICE #</th>
-                                    <th style="padding: 12px 16px; text-align: right; font-size: 12px; color: var(--text-muted); font-weight: 600;">TOTAL</th>
-                                    <th style="padding: 12px 16px; text-align: right; font-size: 12px; color: var(--text-muted); font-weight: 600;">PAID</th>
-                                    <th style="padding: 12px 16px; text-align: right; font-size: 12px; color: var(--text-muted); font-weight: 600;">BALANCE</th>
-                                    <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600;">DUE DATE</th>
-                                    <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600;">STATUS</th>
-                                    <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600;">ACTIONS</th>
+                                    <th style="padding: 14px 16px; text-align: left; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Vendor</th>
+                                    <th style="padding: 14px 16px; text-align: left; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Invoice #</th>
+                                    <th style="padding: 14px 16px; text-align: left; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Store</th>
+                                    <th style="padding: 14px 16px; text-align: right; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Amount</th>
+                                    <th style="padding: 14px 16px; text-align: right; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Balance</th>
+                                    <th style="padding: 14px 16px; text-align: center; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Due Date</th>
+                                    <th style="padding: 14px 16px; text-align: center; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Status</th>
+                                    <th style="padding: 14px 16px; text-align: center; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${openInvoices.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).map(inv => {
+                                ${pendingPayments.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).map(inv => {
                                     const balance = inv.amount - (inv.amountPaid || 0);
                                     const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
                                     const today = new Date();
-                                    const daysOverdue = dueDate ? Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)) : 0;
-                                    const isOverdue = daysOverdue > 0;
-                                    const statusColor = isOverdue ? '#ef4444' : (inv.status === 'partial' ? '#f59e0b' : '#6366f1');
-                                    const statusText = isOverdue ? `${daysOverdue}d OVERDUE` : (inv.status === 'partial' ? 'PARTIAL' : 'PENDING');
+                                    today.setHours(0, 0, 0, 0);
+                                    const daysUntilDue = dueDate ? Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24)) : null;
+                                    const isOverdue = daysUntilDue !== null && daysUntilDue < 0;
+                                    const isDueSoon = daysUntilDue !== null && daysUntilDue >= 0 && daysUntilDue <= 7;
 
-                                    return `
-                                <tr style="border-bottom: 1px solid var(--border-color);" onmouseover="this.style.background='rgba(99,102,241,0.05)'" onmouseout="this.style.background='transparent'">
-                                    <td style="padding: 12px 16px;">
-                                        <div style="font-weight: 600; color: var(--text-primary);">${inv.vendor || 'Unknown'}</div>
-                                        ${inv.store ? `<div style="font-size: 11px; color: var(--text-muted);">${inv.store}</div>` : ''}
+                                    let statusColor, statusText, statusBg;
+                                    if (isOverdue) {
+                                        statusColor = '#ef4444';
+                                        statusBg = 'rgba(239,68,68,0.15)';
+                                        statusText = Math.abs(daysUntilDue) + 'd overdue';
+                                    } else if (inv.status === 'partial') {
+                                        statusColor = '#8b5cf6';
+                                        statusBg = 'rgba(139,92,246,0.15)';
+                                        statusText = 'Partial';
+                                    } else if (isDueSoon) {
+                                        statusColor = '#f59e0b';
+                                        statusBg = 'rgba(245,158,11,0.15)';
+                                        statusText = daysUntilDue === 0 ? 'Due today' : daysUntilDue + 'd left';
+                                    } else {
+                                        statusColor = '#6366f1';
+                                        statusBg = 'rgba(99,102,241,0.15)';
+                                        statusText = 'Pending';
+                                    }
+
+                                    return \`
+                                <tr style="border-bottom: 1px solid var(--border-color); \${isOverdue ? 'background: rgba(239,68,68,0.05);' : ''}" onmouseover="this.style.background='\${isOverdue ? 'rgba(239,68,68,0.1)' : 'rgba(99,102,241,0.05)'}'" onmouseout="this.style.background='\${isOverdue ? 'rgba(239,68,68,0.05)' : 'transparent'}'">
+                                    <td style="padding: 14px 16px;"><div style="font-weight: 600; color: var(--text-primary);">\${inv.vendor || 'Unknown'}</div></td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary); font-family: monospace; font-size: 13px;">\${inv.invoiceNumber || '-'}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary); font-size: 13px;">\${inv.store || '-'}</td>
+                                    <td style="padding: 14px 16px; text-align: right; color: var(--text-primary); font-weight: 500;">$\${inv.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: \${isOverdue ? '#ef4444' : '#f59e0b'};">$\${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 14px 16px; text-align: center; color: \${isOverdue ? '#ef4444' : 'var(--text-secondary)'}; font-size: 13px; font-weight: \${isOverdue ? '600' : '400'};">
+                                        \${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '-'}
                                     </td>
-                                    <td style="padding: 12px 16px; color: var(--text-secondary); font-family: monospace;">${inv.invoiceNumber || '-'}</td>
-                                    <td style="padding: 12px 16px; text-align: right; color: var(--text-primary);">$${inv.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                                    <td style="padding: 12px 16px; text-align: right; color: #10b981;">$${(inv.amountPaid || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                                    <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #ef4444;">$${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                                    <td style="padding: 12px 16px; text-align: center; color: ${isOverdue ? '#ef4444' : 'var(--text-secondary)'}; font-size: 13px;">
-                                        ${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : '-'}
+                                    <td style="padding: 14px 16px; text-align: center;">
+                                        <span style="background: \${statusBg}; color: \${statusColor}; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase;">\${statusText}</span>
                                     </td>
-                                    <td style="padding: 12px 16px; text-align: center;">
-                                        <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
-                                            ${statusText}
-                                        </span>
-                                    </td>
-                                    <td style="padding: 12px 16px; text-align: center;">
-                                        <button onclick="openRecordPaymentModal('${inv.id || inv.firestoreId}')" class="btn-primary" style="padding: 6px 12px; font-size: 12px;">
-                                            <i class="fas fa-dollar-sign"></i> Pay
+                                    <td style="padding: 14px 16px; text-align: center;">
+                                        <button onclick="openRecordPaymentModal('\${inv.id || inv.firestoreId}')" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                            <i class="fas fa-credit-card"></i> Pay
                                         </button>
                                     </td>
                                 </tr>
-                                    `;
+                                    \`;
                                 }).join('')}
                             </tbody>
                         </table>
                     </div>
                 </div>
-                    `;
-                })()}
+            `;
+        }
 
+        // All Invoices Tab Content
+        function renderAllInvoicesTab(filteredInvoices, stores, vendors, categories) {
+            return \`
                 <!-- Filters Bar -->
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="card-body">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end;">
                             <div>
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Store</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('store', this.value)">
-                                    ${stores.map(s => `<option value="${s === 'All Stores' ? 'all' : s}" ${invoiceFilters.store === (s === 'All Stores' ? 'all' : s) ? 'selected' : ''}>${s}</option>`).join('')}
+                                    \${stores.map(s => \`<option value="\${s === 'All Stores' ? 'all' : s}" \${invoiceFilters.store === (s === 'All Stores' ? 'all' : s) ? 'selected' : ''}>\${s}</option>\`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Time Period</label>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Period</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('timePeriod', this.value)">
                                     <option value="all">All Time</option>
-                                    <option value="7days">Last 7 Days</option>
                                     <option value="thisMonth">This Month</option>
                                     <option value="lastMonth">Last Month</option>
-                                    <option value="thisQuarter">This Quarter</option>
                                     <option value="thisYear">This Year</option>
                                 </select>
                             </div>
@@ -13778,14 +13868,7 @@ window.viewChecklistHistory = async function() {
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Vendor</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('vendor', this.value)">
                                     <option value="all">All Vendors</option>
-                                    ${vendors.map(v => `<option value="${v}">${v}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Category</label>
-                                <select class="form-input" onchange="updateInvoiceFilter('category', this.value)">
-                                    <option value="all">All Categories</option>
-                                    ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                                    \${vendors.map(v => \`<option value="\${v}">\${v}</option>\`).join('')}
                                 </select>
                             </div>
                             <div>
@@ -13804,8 +13887,42 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
+                <!-- Invoices Table -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0; overflow-x: auto;">
+                        <table class="data-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>File</th>
+                                    <th>Invoice #</th>
+                                    <th>Vendor</th>
+                                    <th>Category</th>
+                                    <th>Store</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                \${renderInvoicesTable('all')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            \`;
+        }
+
+        // Recurring Tab Content
+        function renderRecurringTab() {
+            return renderRecurringProjections();
+        }
+
+        // Analytics Tab Content
+        function renderAnalyticsTab(filteredInvoices) {
+            return `
                 <!-- Charts Section -->
-                <div class="charts-grid-2col">
+                <div class="charts-grid-2col" style="margin-bottom: 24px;">
                     <!-- Status Breakdown (Donut) -->
                     <div class="card">
                         <div class="card-header">
@@ -13827,8 +13944,7 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
-                <!-- Time Charts -->
-                <div class="charts-grid-2col">
+                <div class="charts-grid-2col" style="margin-bottom: 24px;">
                     <!-- Amount Over Time (Bar) -->
                     <div class="card">
                         <div class="card-header">
@@ -13851,7 +13967,7 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Top Vendors -->
-                <div class="card" style="margin-bottom: 24px;">
+                <div class="card">
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-chart-bar"></i> Top Vendors by Amount</h3>
                     </div>
@@ -13859,29 +13975,13 @@ window.viewChecklistHistory = async function() {
                         <canvas id="invoice-vendor-chart" height="150"></canvas>
                     </div>
                 </div>
-
-                <!-- Tabs -->
-                <div class="card">
-                    <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
-                        <div style="display: flex; gap: 16px;">
-                            <button class="btn-${invoiceFilters.activeTab === 'current' ? 'primary' : 'secondary'}" onclick="switchInvoiceTab('current')">
-                                <i class="fas fa-file-invoice"></i> Current Invoices
-                            </button>
-                            <button class="btn-${invoiceFilters.activeTab === 'recurring' ? 'primary' : 'secondary'}" onclick="switchInvoiceTab('recurring')">
-                                <i class="fas fa-sync-alt"></i> Recurring Projections
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body" style="padding: 0;">
-                        <div id="invoice-tab-content">
-                            ${invoiceFilters.activeTab === 'current' ? renderCurrentInvoicesTable(filteredInvoices) : renderRecurringProjections()}
-                        </div>
-                    </div>
-                </div>
             `;
+        }
 
-            // Initialize charts after DOM is ready
-            setTimeout(() => initializeInvoiceCharts(filteredInvoices), 100);
+        // Switch main invoice tab
+        function switchInvoiceMainTab(tab) {
+            invoiceFilters.mainTab = tab;
+            renderInvoices();
         }
 
         function renderInvoicesTable(filter = 'all') {
