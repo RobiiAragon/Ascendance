@@ -13677,6 +13677,82 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
+                <!-- OPEN INVOICES SECTION - What You Owe -->
+                ${(() => {
+                    const openInvoices = invoices.filter(i => i.status === 'pending' || i.status === 'overdue' || (i.status === 'partial' && (i.amountPaid || 0) < i.amount));
+                    const totalOwed = openInvoices.reduce((sum, i) => sum + (i.amount - (i.amountPaid || 0)), 0);
+
+                    if (openInvoices.length === 0) return '';
+
+                    return `
+                <div class="card" style="margin-bottom: 24px; border: 2px solid #ef4444; background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(220,38,38,0.05) 100%);">
+                    <div class="card-header" style="border-bottom: 1px solid rgba(239,68,68,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <h3 class="card-title" style="color: #ef4444;">
+                                <i class="fas fa-exclamation-circle"></i> Open Invoices - Money You Owe
+                            </h3>
+                            <div style="background: #ef4444; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 18px;">
+                                $${totalOwed.toLocaleString('en-US', {minimumFractionDigits: 2})} OWED
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead style="background: rgba(239,68,68,0.1); position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: var(--text-muted); font-weight: 600;">VENDOR</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: var(--text-muted); font-weight: 600;">INVOICE #</th>
+                                    <th style="padding: 12px 16px; text-align: right; font-size: 12px; color: var(--text-muted); font-weight: 600;">TOTAL</th>
+                                    <th style="padding: 12px 16px; text-align: right; font-size: 12px; color: var(--text-muted); font-weight: 600;">PAID</th>
+                                    <th style="padding: 12px 16px; text-align: right; font-size: 12px; color: var(--text-muted); font-weight: 600;">BALANCE</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600;">DUE DATE</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600;">STATUS</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600;">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${openInvoices.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).map(inv => {
+                                    const balance = inv.amount - (inv.amountPaid || 0);
+                                    const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+                                    const today = new Date();
+                                    const daysOverdue = dueDate ? Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)) : 0;
+                                    const isOverdue = daysOverdue > 0;
+                                    const statusColor = isOverdue ? '#ef4444' : (inv.status === 'partial' ? '#f59e0b' : '#6366f1');
+                                    const statusText = isOverdue ? `${daysOverdue}d OVERDUE` : (inv.status === 'partial' ? 'PARTIAL' : 'PENDING');
+
+                                    return `
+                                <tr style="border-bottom: 1px solid var(--border-color);" onmouseover="this.style.background='rgba(99,102,241,0.05)'" onmouseout="this.style.background='transparent'">
+                                    <td style="padding: 12px 16px;">
+                                        <div style="font-weight: 600; color: var(--text-primary);">${inv.vendor || 'Unknown'}</div>
+                                        ${inv.store ? `<div style="font-size: 11px; color: var(--text-muted);">${inv.store}</div>` : ''}
+                                    </td>
+                                    <td style="padding: 12px 16px; color: var(--text-secondary); font-family: monospace;">${inv.invoiceNumber || '-'}</td>
+                                    <td style="padding: 12px 16px; text-align: right; color: var(--text-primary);">$${inv.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 12px 16px; text-align: right; color: #10b981;">$${(inv.amountPaid || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #ef4444;">$${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 12px 16px; text-align: center; color: ${isOverdue ? '#ef4444' : 'var(--text-secondary)'}; font-size: 13px;">
+                                        ${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : '-'}
+                                    </td>
+                                    <td style="padding: 12px 16px; text-align: center;">
+                                        <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                                            ${statusText}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px 16px; text-align: center;">
+                                        <button onclick="openRecordPaymentModal('${inv.id || inv.firestoreId}')" class="btn-primary" style="padding: 6px 12px; font-size: 12px;">
+                                            <i class="fas fa-dollar-sign"></i> Pay
+                                        </button>
+                                    </td>
+                                </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                    `;
+                })()}
+
                 <!-- Filters Bar -->
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="card-body">
@@ -14255,6 +14331,289 @@ window.viewChecklistHistory = async function() {
         // Keep old function name for backwards compatibility
         function previewInvoicePhoto(input) {
             previewInvoiceFile(input);
+        }
+
+        // =====================================================
+        // PAYMENT RECORDING SYSTEM
+        // =====================================================
+
+        function openRecordPaymentModal(invoiceId) {
+            const invoice = invoices.find(i => (i.id === invoiceId || i.firestoreId === invoiceId));
+            if (!invoice) {
+                alert('Invoice not found');
+                return;
+            }
+
+            const balance = invoice.amount - (invoice.amountPaid || 0);
+            const payments = invoice.payments || [];
+
+            const modal = document.createElement('div');
+            modal.className = 'lease-modal-overlay';
+            modal.id = 'record-payment-modal';
+            modal.innerHTML = `
+                <div class="lease-modal" style="max-width: 550px;">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <h3 style="color: white; margin: 0;"><i class="fas fa-dollar-sign"></i> Record Payment</h3>
+                        <button class="modal-close" onclick="closeLeaseModal('record-payment-modal')" style="color: white;">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Invoice Summary -->
+                        <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 16px; color: var(--text-primary);">${invoice.vendor}</div>
+                                    <div style="font-size: 13px; color: var(--text-muted);">Invoice #${invoice.invoiceNumber || 'N/A'}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 12px; color: var(--text-muted);">Total Amount</div>
+                                    <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">$${invoice.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 11px; color: var(--text-muted);">Paid</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #10b981;">$${(invoice.amountPaid || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 11px; color: var(--text-muted);">Balance</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #ef4444;">$${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 11px; color: var(--text-muted);">Payments</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${payments.length}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Form -->
+                        <div class="form-group">
+                            <label class="form-label">Payment Amount *</label>
+                            <div style="position: relative;">
+                                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">$</span>
+                                <input type="number" class="form-input" id="payment-amount" placeholder="0.00" step="0.01" max="${balance}" style="padding-left: 28px;" value="${balance.toFixed(2)}">
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <button type="button" class="btn-secondary" style="flex: 1; font-size: 12px;" onclick="document.getElementById('payment-amount').value = '${balance.toFixed(2)}'">
+                                    Pay Full Balance
+                                </button>
+                                <button type="button" class="btn-secondary" style="flex: 1; font-size: 12px;" onclick="document.getElementById('payment-amount').value = '${(balance / 2).toFixed(2)}'">
+                                    Pay 50%
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label">Payment Date *</label>
+                                <input type="date" class="form-input" id="payment-date" value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Payment Method</label>
+                                <select class="form-input" id="payment-method">
+                                    <option value="check">Check</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Credit/Debit Card</option>
+                                    <option value="transfer">Bank Transfer</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Reference # (Check #, Confirmation, etc.)</label>
+                            <input type="text" class="form-input" id="payment-reference" placeholder="Optional reference number">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-input" id="payment-notes" rows="2" placeholder="Optional payment notes..."></textarea>
+                        </div>
+
+                        <!-- Payment History -->
+                        ${payments.length > 0 ? `
+                            <div style="margin-top: 20px;">
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+                                    <i class="fas fa-history"></i> Payment History
+                                </div>
+                                <div style="background: var(--bg-secondary); border-radius: 8px; overflow: hidden;">
+                                    ${payments.map((p, idx) => `
+                                        <div style="padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; ${idx < payments.length - 1 ? 'border-bottom: 1px solid var(--border-color);' : ''}">
+                                            <div>
+                                                <div style="font-weight: 500; color: var(--text-primary);">$${p.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                                <div style="font-size: 11px; color: var(--text-muted);">${p.method || 'N/A'} ${p.reference ? '• ' + p.reference : ''}</div>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div style="font-size: 12px; color: var(--text-secondary);">${new Date(p.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeLeaseModal('record-payment-modal')">Cancel</button>
+                        <button class="btn-primary" onclick="saveInvoicePayment('${invoiceId}')" style="background: #10b981;">
+                            <i class="fas fa-check"></i> Record Payment
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
+
+        async function saveInvoicePayment(invoiceId) {
+            const amount = parseFloat(document.getElementById('payment-amount').value);
+            const date = document.getElementById('payment-date').value;
+            const method = document.getElementById('payment-method').value;
+            const reference = document.getElementById('payment-reference').value.trim();
+            const notes = document.getElementById('payment-notes').value.trim();
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid payment amount');
+                return;
+            }
+
+            if (!date) {
+                alert('Please select a payment date');
+                return;
+            }
+
+            const invoice = invoices.find(i => (i.id === invoiceId || i.firestoreId === invoiceId));
+            if (!invoice) {
+                alert('Invoice not found');
+                return;
+            }
+
+            const balance = invoice.amount - (invoice.amountPaid || 0);
+            if (amount > balance + 0.01) {
+                alert(`Payment amount ($${amount.toFixed(2)}) exceeds balance ($${balance.toFixed(2)})`);
+                return;
+            }
+
+            // Create payment record
+            const payment = {
+                amount: amount,
+                date: date,
+                method: method,
+                reference: reference,
+                notes: notes,
+                recordedAt: new Date().toISOString(),
+                recordedBy: typeof getCurrentUser === 'function' ? (getCurrentUser()?.name || 'Unknown') : 'Unknown'
+            };
+
+            // Update invoice
+            const payments = invoice.payments || [];
+            payments.push(payment);
+
+            const newAmountPaid = (invoice.amountPaid || 0) + amount;
+            const newStatus = newAmountPaid >= invoice.amount ? 'paid' : 'partial';
+
+            try {
+                // Update in Firebase
+                if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized && invoice.firestoreId) {
+                    const db = firebase.firestore();
+                    await db.collection('invoices').doc(invoice.firestoreId).update({
+                        payments: payments,
+                        amountPaid: newAmountPaid,
+                        status: newStatus,
+                        paidDate: newStatus === 'paid' ? date : null
+                    });
+                }
+
+                // Update local
+                invoice.payments = payments;
+                invoice.amountPaid = newAmountPaid;
+                invoice.status = newStatus;
+                if (newStatus === 'paid') {
+                    invoice.paidDate = date;
+                }
+
+                closeLeaseModal('record-payment-modal');
+                showToast(`Payment of $${amount.toFixed(2)} recorded successfully!`, 'success');
+                renderInvoices();
+            } catch (error) {
+                console.error('Error saving payment:', error);
+                alert('Error recording payment. Please try again.');
+            }
+        }
+
+        function viewPaymentHistory(invoiceId) {
+            const invoice = invoices.find(i => (i.id === invoiceId || i.firestoreId === invoiceId));
+            if (!invoice) return;
+
+            const payments = invoice.payments || [];
+            const balance = invoice.amount - (invoice.amountPaid || 0);
+
+            const modal = document.createElement('div');
+            modal.className = 'lease-modal-overlay';
+            modal.id = 'payment-history-modal';
+            modal.innerHTML = `
+                <div class="lease-modal" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-history"></i> Payment History</h3>
+                        <button class="modal-close" onclick="closeLeaseModal('payment-history-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">${invoice.vendor} - #${invoice.invoiceNumber || 'N/A'}</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Total</div>
+                                    <div style="font-weight: 600;">$${invoice.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Paid</div>
+                                    <div style="font-weight: 600; color: #10b981;">$${(invoice.amountPaid || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Balance</div>
+                                    <div style="font-weight: 600; color: ${balance > 0 ? '#ef4444' : '#10b981'};">$${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${payments.length === 0 ? `
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fas fa-receipt" style="font-size: 32px; margin-bottom: 12px;"></i>
+                                <div>No payments recorded yet</div>
+                            </div>
+                        ` : `
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${payments.map((p, idx) => `
+                                    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 14px; margin-bottom: 8px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                                            <div>
+                                                <div style="font-size: 18px; font-weight: 700; color: #10b981;">$${p.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                                    <i class="fas fa-${p.method === 'check' ? 'money-check' : p.method === 'cash' ? 'money-bill' : p.method === 'card' ? 'credit-card' : 'university'}"></i>
+                                                    ${p.method || 'Unknown'} ${p.reference ? '• Ref: ' + p.reference : ''}
+                                                </div>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div style="font-size: 13px; color: var(--text-secondary);">${new Date(p.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</div>
+                                                <div style="font-size: 11px; color: var(--text-muted);">${p.recordedBy || ''}</div>
+                                            </div>
+                                        </div>
+                                        ${p.notes ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">${p.notes}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeLeaseModal('payment-history-modal')">Close</button>
+                        ${balance > 0 ? `
+                            <button class="btn-primary" onclick="closeLeaseModal('payment-history-modal'); openRecordPaymentModal('${invoiceId}');" style="background: #10b981;">
+                                <i class="fas fa-plus"></i> Add Payment
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            setTimeout(() => modal.classList.add('active'), 10);
         }
 
         // OpenAI API for Invoice Image Analysis
@@ -20651,6 +21010,17 @@ Return ONLY the JSON object, no additional text.`
                 'Store Supplies': '#10b981'
             };
 
+            // Extra colors for custom categories
+            const customCategoryColors = ['#ef4444', '#ec4899', '#14b8a6', '#0ea5e9', '#84cc16', '#a855f7', '#f97316'];
+
+            // Function to get color for any category (including custom)
+            function getCategoryColor(category) {
+                if (categoryColors[category]) return categoryColors[category];
+                // Generate consistent color for custom categories based on name
+                const hash = category.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
+                return customCategoryColors[hash % customCategoryColors.length];
+            }
+
             const typeColors = {
                 'vendor': '#10b981',
                 'service': '#8b5cf6'
@@ -20660,60 +21030,65 @@ Return ONLY the JSON object, no additional text.`
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
                     ${filteredVendors.map(vendor => {
                         const vendorType = vendor.type || 'vendor';
-                        const typeLabel = vendorType === 'service' ? 'Service' : 'Vendor';
+                        const typeLabel = vendorType === 'service' ? 'SERVICE PROVIDER' : 'VENDOR';
                         const typeColor = typeColors[vendorType] || typeColors['vendor'];
+                        const categoryColor = getCategoryColor(vendor.category || 'General');
                         return `
-                        <div class="card" style="cursor: pointer; transition: all 0.2s; border-left: 4px solid ${categoryColors[vendor.category] || 'var(--accent-primary)'};" onclick="viewVendorDetails('${vendor.firestoreId}')">
+                        <div class="card" style="cursor: pointer; transition: all 0.2s; overflow: hidden;" onclick="viewVendorDetails('${vendor.firestoreId}')">
+                            <!-- Category/Service Banner - PROMINENT -->
+                            <div style="background: linear-gradient(135deg, ${categoryColor}, ${categoryColor}dd); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
+                                        ${typeLabel}
+                                    </div>
+                                    <div style="font-size: 18px; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        ${vendor.category || 'General'}
+                                    </div>
+                                </div>
+                                <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas ${vendorType === 'service' ? 'fa-wrench' : 'fa-boxes-stacked'}" style="font-size: 20px; color: white;"></i>
+                                </div>
+                            </div>
+
                             <div class="card-body">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                    <div style="display: flex; align-items: start; gap: 14px; flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 14px;">
+                                    <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
                                         <!-- Vendor Image -->
-                                        <div style="width: 56px; height: 56px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                        <div style="width: 52px; height: 52px; border-radius: 10px; background: var(--bg-secondary); border: 2px solid ${categoryColor}40; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
                                             ${vendor.image
                                                 ? `<img src="${vendor.image}" style="width: 100%; height: 100%; object-fit: cover;">`
-                                                : `<i class="fas fa-building" style="font-size: 20px; color: var(--text-muted);"></i>`
+                                                : `<i class="fas fa-building" style="font-size: 18px; color: var(--text-muted);"></i>`
                                             }
                                         </div>
                                         <div style="flex: 1; min-width: 0;">
-                                            <h3 style="font-size: 17px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 2px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 ${vendor.name}
                                             </h3>
-                                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                                <span class="badge" style="background: ${typeColor};">
-                                                    <i class="fas ${vendorType === 'service' ? 'fa-wrench' : 'fa-truck'}" style="margin-right: 4px; font-size: 10px;"></i>${typeLabel}
-                                                </span>
-                                                <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'};">
-                                                    ${vendor.category}
-                                                </span>
+                                            <div style="font-size: 13px; color: var(--text-muted);">
+                                                ${vendor.products ? vendor.products.split(',').slice(0, 2).join(', ') + (vendor.products.split(',').length > 2 ? '...' : '') : 'Products/Services'}
                                             </div>
                                         </div>
                                     </div>
                                     <i class="fas fa-chevron-right" style="color: var(--text-muted); font-size: 14px;"></i>
                                 </div>
 
-                                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                <div style="padding-top: 14px; border-top: 1px solid var(--border-color);">
                                     <div style="display: grid; gap: 8px;">
                                         <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                                            <i class="fas fa-user" style="width: 16px; color: var(--text-muted);"></i>
-                                            <span style="color: var(--text-secondary);">${vendor.contact}</span>
+                                            <i class="fas fa-user" style="width: 16px; color: ${categoryColor};"></i>
+                                            <span style="color: var(--text-secondary);">${vendor.contact || 'No contact'}</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                                            <i class="fas fa-phone" style="width: 16px; color: var(--text-muted);"></i>
-                                            <span style="color: var(--text-secondary);">${vendor.phone}</span>
+                                            <i class="fas fa-phone" style="width: 16px; color: ${categoryColor};"></i>
+                                            <span style="color: var(--text-secondary);">${vendor.phone || 'No phone'}</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                                            <i class="fas fa-envelope" style="width: 16px; color: var(--text-muted);"></i>
-                                            <span style="color: var(--text-secondary);">${vendor.email}</span>
+                                            <i class="fas fa-envelope" style="width: 16px; color: ${categoryColor};"></i>
+                                            <span style="color: var(--text-secondary);">${vendor.email || 'No email'}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Products</div>
-                                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.4;">
-                                        ${vendor.products ? vendor.products.split(',').slice(0, 2).join(',') + (vendor.products.split(',').length > 2 ? '...' : '') : 'N/A'}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     `}).join('')}
@@ -20818,14 +21193,18 @@ Return ONLY the JSON object, no additional text.`
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label class="form-label">Category</label>
-                                <select id="vendor-category" class="form-input">
+                                <select id="vendor-category" class="form-input" onchange="toggleCustomCategory(this)">
                                     <option value="">Select category</option>
                                     <option value="Vape Products">Vape Products</option>
                                     <option value="Tobacco Products">Tobacco Products</option>
                                     <option value="Beverages">Beverages</option>
                                     <option value="Snacks & Candy">Snacks & Candy</option>
                                     <option value="Store Supplies">Store Supplies</option>
+                                    <option value="__custom__">+ Add Custom Category</option>
                                 </select>
+                                <div id="custom-category-input" style="display: none; margin-top: 8px;">
+                                    <input type="text" id="vendor-custom-category" class="form-input" placeholder="Enter custom category name" style="border: 2px solid var(--accent-primary);">
+                                </div>
                             </div>
                             <div>
                                 <label class="form-label">Contact Person</label>
@@ -20897,10 +21276,32 @@ Return ONLY the JSON object, no additional text.`
             }
         }
 
+        // Toggle custom category input visibility
+        function toggleCustomCategory(selectElement) {
+            const customInput = document.getElementById('custom-category-input');
+            if (selectElement.value === '__custom__') {
+                customInput.style.display = 'block';
+                document.getElementById('vendor-custom-category').focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+
         async function createVendor() {
             const name = document.getElementById('vendor-name').value.trim();
             const type = document.getElementById('vendor-type').value;
-            const category = document.getElementById('vendor-category').value;
+            let category = document.getElementById('vendor-category').value;
+
+            // Handle custom category
+            if (category === '__custom__') {
+                const customCategory = document.getElementById('vendor-custom-category').value.trim();
+                if (!customCategory) {
+                    alert('Please enter a custom category name');
+                    return;
+                }
+                category = customCategory;
+            }
+
             const contact = document.getElementById('vendor-contact').value.trim();
             const phone = document.getElementById('vendor-phone').value.trim();
             const email = document.getElementById('vendor-email').value.trim();
