@@ -21002,23 +21002,38 @@ Return ONLY the JSON object, no additional text.`
                 `;
             }
 
-            const categoryColors = {
-                'Vape Products': '#6366f1',
-                'Tobacco Products': '#8b5cf6',
-                'Beverages': '#3b82f6',
-                'Snacks & Candy': '#f59e0b',
-                'Store Supplies': '#10b981'
+            // Vibrant gradient colors for each category
+            const categoryGradients = {
+                'Vape Products': { from: '#667eea', to: '#764ba2', icon: 'fa-cloud' },
+                'Tobacco Products': { from: '#f093fb', to: '#f5576c', icon: 'fa-smoking' },
+                'Beverages': { from: '#4facfe', to: '#00f2fe', icon: 'fa-bottle-water' },
+                'Snacks & Candy': { from: '#fa709a', to: '#fee140', icon: 'fa-cookie-bite' },
+                'Store Supplies': { from: '#38f9d7', to: '#43e97b', icon: 'fa-box-open' }
             };
 
-            // Extra colors for custom categories
-            const customCategoryColors = ['#ef4444', '#ec4899', '#14b8a6', '#0ea5e9', '#84cc16', '#a855f7', '#f97316'];
+            // Extra gradient colors for custom categories
+            const customGradients = [
+                { from: '#ff6b6b', to: '#feca57', icon: 'fa-star' },
+                { from: '#5f27cd', to: '#48dbfb', icon: 'fa-gem' },
+                { from: '#ff9ff3', to: '#ffeaa7', icon: 'fa-heart' },
+                { from: '#00d2d3', to: '#54a0ff', icon: 'fa-bolt' },
+                { from: '#ff6b81', to: '#c44569', icon: 'fa-fire' },
+                { from: '#a29bfe', to: '#6c5ce7', icon: 'fa-magic' },
+                { from: '#fdcb6e', to: '#e17055', icon: 'fa-sun' }
+            ];
 
-            // Function to get color for any category (including custom)
-            function getCategoryColor(category) {
-                if (categoryColors[category]) return categoryColors[category];
-                // Generate consistent color for custom categories based on name
+            // Function to get gradient for any category (including custom)
+            function getCategoryGradient(category) {
+                if (categoryGradients[category]) return categoryGradients[category];
+                // Generate consistent gradient for custom categories based on name
                 const hash = category.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
-                return customCategoryColors[hash % customCategoryColors.length];
+                return customGradients[hash % customGradients.length];
+            }
+
+            // Simple color for backwards compatibility
+            function getCategoryColor(category) {
+                const gradient = getCategoryGradient(category);
+                return gradient.from;
             }
 
             const typeColors = {
@@ -21034,25 +21049,30 @@ Return ONLY the JSON object, no additional text.`
                         const typeColor = typeColors[vendorType] || typeColors['vendor'];
                         const vendorCategories = vendor.categories || (vendor.category ? [vendor.category] : ['General']);
                         const primaryCategory = vendorCategories[0] || 'General';
-                        const categoryColor = getCategoryColor(primaryCategory);
+                        const gradient = getCategoryGradient(primaryCategory);
+                        const categoryColor = gradient.from;
                         return `
-                        <div class="card" style="cursor: pointer; transition: all 0.2s; overflow: hidden;" onclick="viewVendorDetails('${vendor.firestoreId}')">
-                            <!-- Category/Service Banner - PROMINENT -->
-                            <div style="background: linear-gradient(135deg, ${categoryColor}, ${categoryColor}dd); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;">
-                                <div style="flex: 1;">
-                                    <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
+                        <div class="card" style="cursor: pointer; transition: all 0.3s; overflow: hidden; border: none;" onclick="viewVendorDetails('${vendor.firestoreId}')" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 40px ${gradient.from}30';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                            <!-- Category/Service Banner - VIBRANT GRADIENT -->
+                            <div style="background: linear-gradient(135deg, ${gradient.from}, ${gradient.to}); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden;">
+                                <!-- Decorative circles -->
+                                <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                                <div style="position: absolute; bottom: -30px; right: 40px; width: 60px; height: 60px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
+
+                                <div style="flex: 1; z-index: 1;">
+                                    <div style="font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px;">
                                         ${typeLabel}
                                     </div>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
                                         ${vendorCategories.map((cat, idx) => `
-                                            <span style="font-size: ${idx === 0 ? '16px' : '12px'}; font-weight: ${idx === 0 ? '700' : '500'}; color: white; ${idx > 0 ? 'background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px;' : ''} text-transform: uppercase; letter-spacing: 0.5px;">
+                                            <span style="font-size: ${idx === 0 ? '17px' : '11px'}; font-weight: ${idx === 0 ? '800' : '600'}; color: white; ${idx > 0 ? 'background: rgba(255,255,255,0.25); padding: 3px 10px; border-radius: 20px;' : ''} text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                                                 ${cat}
                                             </span>
                                         `).join('')}
                                     </div>
                                 </div>
-                                <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <i class="fas ${vendorType === 'service' ? 'fa-wrench' : 'fa-boxes-stacked'}" style="font-size: 20px; color: white;"></i>
+                                <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1;">
+                                    <i class="fas ${gradient.icon || (vendorType === 'service' ? 'fa-wrench' : 'fa-boxes-stacked')}" style="font-size: 22px; color: white;"></i>
                                 </div>
                             </div>
 
@@ -21060,10 +21080,10 @@ Return ONLY the JSON object, no additional text.`
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 14px;">
                                     <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
                                         <!-- Vendor Image -->
-                                        <div style="width: 52px; height: 52px; border-radius: 10px; background: var(--bg-secondary); border: 2px solid ${categoryColor}40; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                        <div style="width: 52px; height: 52px; border-radius: 12px; background: linear-gradient(135deg, ${gradient.from}20, ${gradient.to}20); border: 2px solid ${gradient.from}40; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
                                             ${vendor.image
                                                 ? `<img src="${vendor.image}" style="width: 100%; height: 100%; object-fit: cover;">`
-                                                : `<i class="fas fa-building" style="font-size: 18px; color: var(--text-muted);"></i>`
+                                                : `<i class="fas fa-building" style="font-size: 18px; color: ${gradient.from};"></i>`
                                             }
                                         </div>
                                         <div style="flex: 1; min-width: 0;">
