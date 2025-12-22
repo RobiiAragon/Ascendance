@@ -13707,10 +13707,20 @@ window.viewChecklistHistory = async function() {
             // Get filtered invoices
             const filteredInvoices = getFilteredInvoices();
 
-            // Calculate metrics
+            // Calculate metrics - considering partial payments
             const totalAmount = filteredInvoices.reduce((sum, i) => sum + i.amount, 0);
-            const totalPaid = filteredInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0);
-            const totalPending = filteredInvoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+            // Total paid = fully paid invoices + partial payments made
+            const totalPaid = filteredInvoices.reduce((sum, i) => {
+                if (i.status === 'paid') return sum + i.amount;
+                return sum + (i.amountPaid || 0); // Add partial payments
+            }, 0);
+            // Total pending = balance remaining on pending, partial, and overdue invoices
+            const totalPending = filteredInvoices.reduce((sum, i) => {
+                if (i.status === 'pending' || i.status === 'overdue' || i.status === 'partial') {
+                    return sum + (i.amount - (i.amountPaid || 0));
+                }
+                return sum;
+            }, 0);
             const overdueCount = filteredInvoices.filter(i => i.status === 'overdue').length;
 
             // Get unique values for filters

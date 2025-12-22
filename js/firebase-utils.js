@@ -3588,8 +3588,11 @@ class FirebaseInvoiceManager {
                     invoiceNumber: data.invoiceNumber || '',
                     vendor: data.vendor || '',
                     category: data.category || '',
+                    categories: data.categories || [], // Multiple categories support
                     description: data.description || '',
                     amount: data.amount || 0,
+                    amountPaid: data.amountPaid || 0, // Partial payment tracking
+                    payments: data.payments || [], // Payment history
                     dueDate: data.dueDate || '',
                     paidDate: data.paidDate || null,
                     status: data.status || 'pending',
@@ -3600,6 +3603,7 @@ class FirebaseInvoiceManager {
                     photo: data.photo || null,
                     fileType: data.fileType || null,  // 'pdf' or 'image' or null
                     fileName: data.fileName || null,  // Original filename for PDFs
+                    filePath: data.filePath || null, // Storage path
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt
                 });
