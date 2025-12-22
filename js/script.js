@@ -21032,20 +21032,26 @@ Return ONLY the JSON object, no additional text.`
                         const vendorType = vendor.type || 'vendor';
                         const typeLabel = vendorType === 'service' ? 'SERVICE PROVIDER' : 'VENDOR';
                         const typeColor = typeColors[vendorType] || typeColors['vendor'];
-                        const categoryColor = getCategoryColor(vendor.category || 'General');
+                        const vendorCategories = vendor.categories || (vendor.category ? [vendor.category] : ['General']);
+                        const primaryCategory = vendorCategories[0] || 'General';
+                        const categoryColor = getCategoryColor(primaryCategory);
                         return `
                         <div class="card" style="cursor: pointer; transition: all 0.2s; overflow: hidden;" onclick="viewVendorDetails('${vendor.firestoreId}')">
                             <!-- Category/Service Banner - PROMINENT -->
                             <div style="background: linear-gradient(135deg, ${categoryColor}, ${categoryColor}dd); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;">
-                                <div>
+                                <div style="flex: 1;">
                                     <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
                                         ${typeLabel}
                                     </div>
-                                    <div style="font-size: 18px; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        ${vendor.category || 'General'}
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                        ${vendorCategories.map((cat, idx) => `
+                                            <span style="font-size: ${idx === 0 ? '16px' : '12px'}; font-weight: ${idx === 0 ? '700' : '500'}; color: white; ${idx > 0 ? 'background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px;' : ''} text-transform: uppercase; letter-spacing: 0.5px;">
+                                                ${cat}
+                                            </span>
+                                        `).join('')}
                                     </div>
                                 </div>
-                                <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                     <i class="fas ${vendorType === 'service' ? 'fa-wrench' : 'fa-boxes-stacked'}" style="font-size: 20px; color: white;"></i>
                                 </div>
                             </div>
@@ -21190,26 +21196,36 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div>
-                                <label class="form-label">Category</label>
-                                <select id="vendor-category" class="form-input" onchange="toggleCustomCategory(this)">
-                                    <option value="">Select category</option>
-                                    <option value="Vape Products">Vape Products</option>
-                                    <option value="Tobacco Products">Tobacco Products</option>
-                                    <option value="Beverages">Beverages</option>
-                                    <option value="Snacks & Candy">Snacks & Candy</option>
-                                    <option value="Store Supplies">Store Supplies</option>
-                                    <option value="__custom__">+ Add Custom Category</option>
-                                </select>
-                                <div id="custom-category-input" style="display: none; margin-top: 8px;">
-                                    <input type="text" id="vendor-custom-category" class="form-input" placeholder="Enter custom category name" style="border: 2px solid var(--accent-primary);">
-                                </div>
+                        <div>
+                            <label class="form-label">Categories (select all that apply)</label>
+                            <div id="vendor-categories-container" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px;">
+                                    <input type="checkbox" name="vendor-category" value="Vape Products"> Vape Products
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px;">
+                                    <input type="checkbox" name="vendor-category" value="Tobacco Products"> Tobacco Products
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px;">
+                                    <input type="checkbox" name="vendor-category" value="Beverages"> Beverages
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px;">
+                                    <input type="checkbox" name="vendor-category" value="Snacks & Candy"> Snacks & Candy
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px;">
+                                    <input type="checkbox" name="vendor-category" value="Store Supplies"> Store Supplies
+                                </label>
                             </div>
-                            <div>
-                                <label class="form-label">Contact Person</label>
-                                <input type="text" id="vendor-contact" class="form-input" placeholder="Enter contact name">
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="text" id="vendor-custom-category" class="form-input" placeholder="Add custom category..." style="flex: 1;">
+                                <button type="button" class="btn-secondary" onclick="addCustomCategoryCheckbox('vendor-categories-container', 'vendor-custom-category')" style="white-space: nowrap;">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Contact Person</label>
+                            <input type="text" id="vendor-contact" class="form-input" placeholder="Enter contact name">
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -21276,41 +21292,56 @@ Return ONLY the JSON object, no additional text.`
             }
         }
 
-        // Toggle custom category input visibility (Add modal)
-        function toggleCustomCategory(selectElement) {
-            const customInput = document.getElementById('custom-category-input');
-            if (selectElement.value === '__custom__') {
-                customInput.style.display = 'block';
-                document.getElementById('vendor-custom-category').focus();
-            } else {
-                customInput.style.display = 'none';
+        // Add custom category checkbox dynamically
+        function addCustomCategoryCheckbox(containerId, inputId) {
+            const container = document.getElementById(containerId);
+            const input = document.getElementById(inputId);
+            const customCategory = input.value.trim();
+
+            if (!customCategory) {
+                alert('Please enter a category name');
+                return;
             }
+
+            // Check if category already exists
+            const existingCheckboxes = container.querySelectorAll('input[type="checkbox"]');
+            for (let cb of existingCheckboxes) {
+                if (cb.value.toLowerCase() === customCategory.toLowerCase()) {
+                    alert('This category already exists');
+                    return;
+                }
+            }
+
+            // Create new checkbox label
+            const label = document.createElement('label');
+            label.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px; border: 1px solid var(--accent-primary);';
+            label.innerHTML = `
+                <input type="checkbox" name="vendor-category" value="${customCategory}" checked> ${customCategory}
+                <i class="fas fa-times" style="margin-left: 4px; color: var(--text-muted); cursor: pointer;" onclick="this.parentElement.remove(); event.stopPropagation();"></i>
+            `;
+            container.appendChild(label);
+            input.value = '';
         }
 
-        // Toggle custom category input visibility (Edit modal)
-        function toggleEditCustomCategory(selectElement) {
-            const customInput = document.getElementById('edit-custom-category-input');
-            if (selectElement.value === '__custom__') {
-                customInput.style.display = 'block';
-                document.getElementById('edit-vendor-custom-category').focus();
-            } else {
-                customInput.style.display = 'none';
-            }
+        // Get all selected categories from checkboxes
+        function getSelectedCategories(containerId) {
+            const container = document.getElementById(containerId);
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
         }
 
         async function createVendor() {
             const name = document.getElementById('vendor-name').value.trim();
             const type = document.getElementById('vendor-type').value;
-            let category = document.getElementById('vendor-category').value;
 
-            // Handle custom category
-            if (category === '__custom__') {
-                const customCategory = document.getElementById('vendor-custom-category').value.trim();
-                if (!customCategory) {
-                    alert('Please enter a custom category name');
-                    return;
-                }
-                category = customCategory;
+            // Get selected categories (multiple)
+            const categories = getSelectedCategories('vendor-categories-container');
+            // For backwards compatibility, also store first category as 'category'
+            const category = categories.length > 0 ? categories[0] : '';
+
+            if (categories.length === 0) {
+                alert('Please select at least one category');
+                return;
             }
 
             const contact = document.getElementById('vendor-contact').value.trim();
@@ -21376,7 +21407,8 @@ Return ONLY the JSON object, no additional text.`
                 const newVendor = {
                     name,
                     type,
-                    category,
+                    category,           // First category for backwards compatibility
+                    categories,         // Array of all selected categories
                     contact,
                     phone,
                     email,
@@ -21604,6 +21636,15 @@ Return ONLY the JSON object, no additional text.`
             const typeLabel = vendorType === 'service' ? 'Service' : 'Vendor';
             const typeColor = typeColors[vendorType] || typeColors['vendor'];
             const typeIcon = vendorType === 'service' ? 'fa-wrench' : 'fa-truck';
+            const vendorCategories = vendor.categories || (vendor.category ? [vendor.category] : ['General']);
+
+            // Helper function for category colors in modal
+            function getModalCategoryColor(category) {
+                if (categoryColors[category]) return categoryColors[category];
+                const customColors = ['#ef4444', '#ec4899', '#14b8a6', '#0ea5e9', '#84cc16', '#a855f7', '#f97316'];
+                const hash = category.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
+                return customColors[hash % customColors.length];
+            }
 
             modalContent.innerHTML = `
                 <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -21632,9 +21673,11 @@ Return ONLY the JSON object, no additional text.`
                                 <span class="badge" style="background: ${typeColor}; font-size: 14px; padding: 8px 16px;">
                                     <i class="fas ${typeIcon}" style="margin-right: 6px;"></i>${typeLabel}
                                 </span>
-                                <span class="badge" style="background: ${categoryColors[vendor.category] || 'var(--accent-primary)'}; font-size: 14px; padding: 8px 16px;">
-                                    ${vendor.category}
-                                </span>
+                                ${vendorCategories.map(cat => `
+                                    <span class="badge" style="background: ${getModalCategoryColor(cat)}; font-size: 14px; padding: 8px 16px;">
+                                        ${cat}
+                                    </span>
+                                `).join('')}
                             </div>
                         </div>
 
@@ -21778,32 +21821,40 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div>
-                                <label class="form-label">Category</label>
-                                ${(() => {
-                                    const predefinedCategories = ['Vape Products', 'Tobacco Products', 'Beverages', 'Snacks & Candy', 'Store Supplies'];
-                                    const isCustomCategory = vendor.category && !predefinedCategories.includes(vendor.category);
-                                    return `
-                                        <select id="edit-vendor-category" class="form-input" onchange="toggleEditCustomCategory(this)">
-                                            <option value="">Select category</option>
-                                            <option value="Vape Products" ${vendor.category === 'Vape Products' ? 'selected' : ''}>Vape Products</option>
-                                            <option value="Tobacco Products" ${vendor.category === 'Tobacco Products' ? 'selected' : ''}>Tobacco Products</option>
-                                            <option value="Beverages" ${vendor.category === 'Beverages' ? 'selected' : ''}>Beverages</option>
-                                            <option value="Snacks & Candy" ${vendor.category === 'Snacks & Candy' ? 'selected' : ''}>Snacks & Candy</option>
-                                            <option value="Store Supplies" ${vendor.category === 'Store Supplies' ? 'selected' : ''}>Store Supplies</option>
-                                            <option value="__custom__" ${isCustomCategory ? 'selected' : ''}>+ Add Custom Category</option>
-                                        </select>
-                                        <div id="edit-custom-category-input" style="display: ${isCustomCategory ? 'block' : 'none'}; margin-top: 8px;">
-                                            <input type="text" id="edit-vendor-custom-category" class="form-input" placeholder="Enter custom category name" value="${isCustomCategory ? vendor.category : ''}" style="border: 2px solid var(--accent-primary);">
-                                        </div>
-                                    `;
-                                })()}
-                            </div>
-                            <div>
-                                <label class="form-label">Contact Person</label>
-                                <input type="text" id="edit-vendor-contact" class="form-input" value="${vendor.contact}" placeholder="Enter contact name">
-                            </div>
+                        <div>
+                            <label class="form-label">Categories (select all that apply)</label>
+                            ${(() => {
+                                const predefinedCategories = ['Vape Products', 'Tobacco Products', 'Beverages', 'Snacks & Candy', 'Store Supplies'];
+                                const vendorCategories = vendor.categories || (vendor.category ? [vendor.category] : []);
+                                const customCategories = vendorCategories.filter(c => !predefinedCategories.includes(c));
+
+                                return `
+                                    <div id="edit-vendor-categories-container" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
+                                        ${predefinedCategories.map(cat => `
+                                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px;">
+                                                <input type="checkbox" name="edit-vendor-category" value="${cat}" ${vendorCategories.includes(cat) ? 'checked' : ''}> ${cat}
+                                            </label>
+                                        `).join('')}
+                                        ${customCategories.map(cat => `
+                                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 14px; border: 1px solid var(--accent-primary);">
+                                                <input type="checkbox" name="edit-vendor-category" value="${cat}" checked> ${cat}
+                                                <i class="fas fa-times" style="margin-left: 4px; color: var(--text-muted); cursor: pointer;" onclick="this.parentElement.remove(); event.stopPropagation();"></i>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="text" id="edit-vendor-custom-category" class="form-input" placeholder="Add custom category..." style="flex: 1;">
+                                        <button type="button" class="btn-secondary" onclick="addCustomCategoryCheckbox('edit-vendor-categories-container', 'edit-vendor-custom-category')" style="white-space: nowrap;">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
+                                `;
+                            })()}
+                        </div>
+
+                        <div>
+                            <label class="form-label">Contact Person</label>
+                            <input type="text" id="edit-vendor-contact" class="form-input" value="${vendor.contact}" placeholder="Enter contact name">
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -21880,16 +21931,15 @@ Return ONLY the JSON object, no additional text.`
         async function saveVendorChanges(firestoreId) {
             const name = document.getElementById('edit-vendor-name').value.trim();
             const type = document.getElementById('edit-vendor-type').value;
-            let category = document.getElementById('edit-vendor-category').value;
 
-            // Handle custom category
-            if (category === '__custom__') {
-                const customCategory = document.getElementById('edit-vendor-custom-category').value.trim();
-                if (!customCategory) {
-                    alert('Please enter a custom category name');
-                    return;
-                }
-                category = customCategory;
+            // Get selected categories (multiple)
+            const categories = getSelectedCategories('edit-vendor-categories-container');
+            // For backwards compatibility, also store first category as 'category'
+            const category = categories.length > 0 ? categories[0] : '';
+
+            if (categories.length === 0) {
+                alert('Please select at least one category');
+                return;
             }
 
             const contact = document.getElementById('edit-vendor-contact').value.trim();
@@ -21986,7 +22036,8 @@ Return ONLY the JSON object, no additional text.`
                 const updateData = {
                     name,
                     type,
-                    category,
+                    category,           // First category for backwards compatibility
+                    categories,         // Array of all selected categories
                     contact,
                     phone,
                     email,
