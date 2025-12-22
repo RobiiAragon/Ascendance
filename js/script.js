@@ -21276,12 +21276,23 @@ Return ONLY the JSON object, no additional text.`
             }
         }
 
-        // Toggle custom category input visibility
+        // Toggle custom category input visibility (Add modal)
         function toggleCustomCategory(selectElement) {
             const customInput = document.getElementById('custom-category-input');
             if (selectElement.value === '__custom__') {
                 customInput.style.display = 'block';
                 document.getElementById('vendor-custom-category').focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+
+        // Toggle custom category input visibility (Edit modal)
+        function toggleEditCustomCategory(selectElement) {
+            const customInput = document.getElementById('edit-custom-category-input');
+            if (selectElement.value === '__custom__') {
+                customInput.style.display = 'block';
+                document.getElementById('edit-vendor-custom-category').focus();
             } else {
                 customInput.style.display = 'none';
             }
@@ -21595,9 +21606,17 @@ Return ONLY the JSON object, no additional text.`
             const typeIcon = vendorType === 'service' ? 'fa-wrench' : 'fa-truck';
 
             modalContent.innerHTML = `
-                <div class="modal-header">
+                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h2><i class="fas ${typeIcon}"></i> ${vendor.name}</h2>
-                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn-primary" style="padding: 8px 14px; font-size: 13px;" onclick="closeModal(); setTimeout(() => editVendorModal('${vendor.firestoreId}'), 100);">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn-danger" style="padding: 8px 14px; font-size: 13px;" onclick="deleteVendorConfirm('${vendor.firestoreId}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
                 </div>
                 <div class="modal-body">
                     <div style="display: grid; gap: 20px;">
@@ -21708,12 +21727,6 @@ Return ONLY the JSON object, no additional text.`
                         ` : ''}
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn-primary" onclick="closeModal(); setTimeout(() => editVendorModal('${vendor.firestoreId}'), 100);">
-                        <i class="fas fa-edit"></i> Edit ${typeLabel}
-                    </button>
-                    <button class="btn-secondary" onclick="closeModal()">Close</button>
-                </div>
             `;
 
             modal.classList.add('active');
@@ -21768,14 +21781,24 @@ Return ONLY the JSON object, no additional text.`
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
                                 <label class="form-label">Category</label>
-                                <select id="edit-vendor-category" class="form-input">
-                                    <option value="">Select category</option>
-                                    <option value="Vape Products" ${vendor.category === 'Vape Products' ? 'selected' : ''}>Vape Products</option>
-                                    <option value="Tobacco Products" ${vendor.category === 'Tobacco Products' ? 'selected' : ''}>Tobacco Products</option>
-                                    <option value="Beverages" ${vendor.category === 'Beverages' ? 'selected' : ''}>Beverages</option>
-                                    <option value="Snacks & Candy" ${vendor.category === 'Snacks & Candy' ? 'selected' : ''}>Snacks & Candy</option>
-                                    <option value="Store Supplies" ${vendor.category === 'Store Supplies' ? 'selected' : ''}>Store Supplies</option>
-                                </select>
+                                ${(() => {
+                                    const predefinedCategories = ['Vape Products', 'Tobacco Products', 'Beverages', 'Snacks & Candy', 'Store Supplies'];
+                                    const isCustomCategory = vendor.category && !predefinedCategories.includes(vendor.category);
+                                    return `
+                                        <select id="edit-vendor-category" class="form-input" onchange="toggleEditCustomCategory(this)">
+                                            <option value="">Select category</option>
+                                            <option value="Vape Products" ${vendor.category === 'Vape Products' ? 'selected' : ''}>Vape Products</option>
+                                            <option value="Tobacco Products" ${vendor.category === 'Tobacco Products' ? 'selected' : ''}>Tobacco Products</option>
+                                            <option value="Beverages" ${vendor.category === 'Beverages' ? 'selected' : ''}>Beverages</option>
+                                            <option value="Snacks & Candy" ${vendor.category === 'Snacks & Candy' ? 'selected' : ''}>Snacks & Candy</option>
+                                            <option value="Store Supplies" ${vendor.category === 'Store Supplies' ? 'selected' : ''}>Store Supplies</option>
+                                            <option value="__custom__" ${isCustomCategory ? 'selected' : ''}>+ Add Custom Category</option>
+                                        </select>
+                                        <div id="edit-custom-category-input" style="display: ${isCustomCategory ? 'block' : 'none'}; margin-top: 8px;">
+                                            <input type="text" id="edit-vendor-custom-category" class="form-input" placeholder="Enter custom category name" value="${isCustomCategory ? vendor.category : ''}" style="border: 2px solid var(--accent-primary);">
+                                        </div>
+                                    `;
+                                })()}
                             </div>
                             <div>
                                 <label class="form-label">Contact Person</label>
@@ -21857,7 +21880,18 @@ Return ONLY the JSON object, no additional text.`
         async function saveVendorChanges(firestoreId) {
             const name = document.getElementById('edit-vendor-name').value.trim();
             const type = document.getElementById('edit-vendor-type').value;
-            const category = document.getElementById('edit-vendor-category').value;
+            let category = document.getElementById('edit-vendor-category').value;
+
+            // Handle custom category
+            if (category === '__custom__') {
+                const customCategory = document.getElementById('edit-vendor-custom-category').value.trim();
+                if (!customCategory) {
+                    alert('Please enter a custom category name');
+                    return;
+                }
+                category = customCategory;
+            }
+
             const contact = document.getElementById('edit-vendor-contact').value.trim();
             const phone = document.getElementById('edit-vendor-phone').value.trim();
             const email = document.getElementById('edit-vendor-email').value.trim();
