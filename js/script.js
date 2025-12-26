@@ -3723,6 +3723,192 @@
                 const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 subtitleEl.textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
             }
+
+            // Update buttons
+            const startBtn = document.getElementById('analytics-start-btn');
+            const endBtn = document.getElementById('analytics-end-btn');
+            if (startBtn) startBtn.innerHTML = `<i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>${startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            if (endBtn) endBtn.innerHTML = `<i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>${endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+        };
+
+        // Custom Calendar Popup State
+        let customCalendarState = {
+            isOpen: false,
+            type: 'start', // 'start' or 'end'
+            viewMonth: new Date().getMonth(),
+            viewYear: new Date().getFullYear()
+        };
+
+        // Open custom calendar popup
+        window.openCustomCalendar = function(type) {
+            customCalendarState.type = type;
+            customCalendarState.isOpen = true;
+
+            // Set view month based on current selection
+            const currentDate = type === 'start' ? analyticsDateRange.startDate : analyticsDateRange.endDate;
+            if (currentDate) {
+                customCalendarState.viewMonth = currentDate.getMonth();
+                customCalendarState.viewYear = currentDate.getFullYear();
+            } else {
+                customCalendarState.viewMonth = new Date().getMonth();
+                customCalendarState.viewYear = new Date().getFullYear();
+            }
+
+            renderCustomCalendarPopup();
+        };
+
+        // Render the custom calendar popup
+        function renderCustomCalendarPopup() {
+            // Remove existing popup
+            const existing = document.getElementById('custom-calendar-popup');
+            if (existing) existing.remove();
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            const year = customCalendarState.viewYear;
+            const month = customCalendarState.viewMonth;
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const selectedDate = customCalendarState.type === 'start' ? analyticsDateRange.startDate : analyticsDateRange.endDate;
+
+            let daysHtml = '';
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+                daysHtml += '<div style="width: 36px; height: 36px;"></div>';
+            }
+            // Days of month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const isToday = date.getTime() === today.getTime();
+                const isSelected = selectedDate && date.getTime() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
+                const isFuture = date > today;
+                const isDisabled = isFuture;
+
+                daysHtml += `
+                    <div onclick="${isDisabled ? '' : `selectCalendarDate(${year}, ${month}, ${day})`}"
+                         style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+                                border-radius: 10px; cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; font-weight: 500; font-size: 14px;
+                                background: ${isSelected ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : isToday ? 'rgba(99, 102, 241, 0.15)' : 'transparent'};
+                                color: ${isSelected ? 'white' : isDisabled ? 'var(--text-muted)' : isToday ? '#6366f1' : 'var(--text-primary)'};
+                                opacity: ${isDisabled ? '0.4' : '1'};
+                                transition: all 0.15s;
+                                ${!isDisabled && !isSelected ? 'hover: { background: var(--bg-hover); }' : ''}"
+                         onmouseover="${!isDisabled && !isSelected ? "this.style.background='var(--bg-hover)'" : ''}"
+                         onmouseout="${!isDisabled && !isSelected ? "this.style.background='transparent'" : ''}">
+                        ${day}
+                    </div>
+                `;
+            }
+
+            const popup = document.createElement('div');
+            popup.id = 'custom-calendar-popup';
+            popup.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease;';
+            popup.onclick = (e) => { if (e.target === popup) closeCustomCalendar(); };
+
+            popup.innerHTML = `
+                <div style="background: var(--bg-card); border-radius: 20px; padding: 24px; min-width: 320px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: slideUp 0.3s ease;">
+                    <!-- Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+                                Select ${customCalendarState.type === 'start' ? 'Start' : 'End'} Date
+                            </div>
+                            <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
+                                ${monthNames[month]} ${year}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="navigateCalendar(-1)" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chevron-left" style="color: var(--text-secondary); font-size: 12px;"></i>
+                            </button>
+                            <button onclick="navigateCalendar(1)" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Day Names -->
+                    <div style="display: grid; grid-template-columns: repeat(7, 36px); gap: 4px; margin-bottom: 8px; justify-content: center;">
+                        ${dayNames.map(d => `<div style="width: 36px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">${d}</div>`).join('')}
+                    </div>
+
+                    <!-- Days Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(7, 36px); gap: 4px; justify-content: center;">
+                        ${daysHtml}
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div style="display: flex; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <button onclick="selectCalendarToday()" style="flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; cursor: pointer; font-size: 13px;">
+                            Today
+                        </button>
+                        <button onclick="closeCustomCalendar()" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            Done
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+        }
+
+        // Navigate calendar months
+        window.navigateCalendar = function(direction) {
+            customCalendarState.viewMonth += direction;
+            if (customCalendarState.viewMonth > 11) {
+                customCalendarState.viewMonth = 0;
+                customCalendarState.viewYear++;
+            } else if (customCalendarState.viewMonth < 0) {
+                customCalendarState.viewMonth = 11;
+                customCalendarState.viewYear--;
+            }
+            renderCustomCalendarPopup();
+        };
+
+        // Select a date from calendar
+        window.selectCalendarDate = function(year, month, day) {
+            const selectedDate = new Date(year, month, day);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (customCalendarState.type === 'start') {
+                analyticsDateRange.startDate = selectedDate;
+                // Update button
+                const btn = document.getElementById('analytics-start-btn');
+                if (btn) btn.innerHTML = `<i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>${selectedDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            } else {
+                analyticsDateRange.endDate = selectedDate;
+                // Update button
+                const btn = document.getElementById('analytics-end-btn');
+                if (btn) btn.innerHTML = `<i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>${selectedDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            }
+
+            // Update subtitle
+            if (analyticsDateRange.startDate && analyticsDateRange.endDate) {
+                const subtitleEl = document.querySelector('.page-header .section-subtitle');
+                if (subtitleEl) {
+                    const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    subtitleEl.textContent = `${formatDate(analyticsDateRange.startDate)} - ${formatDate(analyticsDateRange.endDate)}`;
+                }
+            }
+
+            renderCustomCalendarPopup();
+        };
+
+        // Select today
+        window.selectCalendarToday = function() {
+            const today = new Date();
+            selectCalendarDate(today.getFullYear(), today.getMonth(), today.getDate());
+        };
+
+        // Close calendar popup
+        window.closeCustomCalendar = function() {
+            customCalendarState.isOpen = false;
+            const popup = document.getElementById('custom-calendar-popup');
+            if (popup) popup.remove();
         };
 
         function renderAnalyticsCalendars() {
