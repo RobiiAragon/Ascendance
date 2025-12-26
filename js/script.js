@@ -13757,6 +13757,17 @@ window.viewChecklistHistory = async function() {
                     <button onclick="switchInvoiceMainTab('analytics')" class="invoice-main-tab ${invoiceFilters.mainTab === 'analytics' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'analytics' ? '#10b981' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'analytics' ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'analytics' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
                         <i class="fas fa-chart-pie"></i> Analytics
                     </button>
+
+                    <!-- Store Quick Filters -->
+                    <div style="display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap;">
+                        <button onclick="filterInvoicesByStore('all')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'all' ? '#10b981' : '#e5e7eb'}; color: ${invoiceFilters.store === 'all' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">Cash Expense</button>
+                        <button onclick="filterInvoicesByStore('Miramar')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'Miramar' ? '#8b5cf6' : '#e5e7eb'}; color: ${invoiceFilters.store === 'Miramar' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">MM Expenses</button>
+                        <button onclick="filterInvoicesByStore('Chula Vista')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'Chula Vista' ? '#ec4899' : '#e5e7eb'}; color: ${invoiceFilters.store === 'Chula Vista' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">CV Expenses</button>
+                        <button onclick="filterInvoicesByStore('North Park')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'North Park' ? '#f59e0b' : '#e5e7eb'}; color: ${invoiceFilters.store === 'North Park' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">NP Expenses</button>
+                        <button onclick="filterInvoicesByStore('Morena')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'Morena' ? '#3b82f6' : '#e5e7eb'}; color: ${invoiceFilters.store === 'Morena' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">MB Expenses</button>
+                        <button onclick="filterInvoicesByStore('Kearny Mesa')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'Kearny Mesa' ? '#14b8a6' : '#e5e7eb'}; color: ${invoiceFilters.store === 'Kearny Mesa' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">KM Expenses</button>
+                        <button onclick="filterInvoicesByStore('Miramar Wine & Liquor')" style="padding: 8px 12px; border-radius: 8px; border: none; background: ${invoiceFilters.store === 'Miramar Wine & Liquor' ? '#7c3aed' : '#e5e7eb'}; color: ${invoiceFilters.store === 'Miramar Wine & Liquor' ? 'white' : '#374151'}; font-weight: 600; font-size: 11px; cursor: pointer; text-transform: uppercase;">Liquor Expenses</button>
+                    </div>
                 </div>
 
                 <!-- Summary Cards - Always visible -->
@@ -14086,6 +14097,12 @@ window.viewChecklistHistory = async function() {
         // Switch main invoice tab
         function switchInvoiceMainTab(tab) {
             invoiceFilters.mainTab = tab;
+            renderInvoices();
+        }
+
+        // Filter invoices by store (quick filter buttons)
+        function filterInvoicesByStore(store) {
+            invoiceFilters.store = store;
             renderInvoices();
         }
 
@@ -23929,13 +23946,13 @@ Return ONLY the JSON object, no additional text.`
                             <div class="form-group">
                                 <label>Store</label>
                                 <select class="form-input" id="invoice-store">
-                                    <option value="">Unassigned</option>
-                                    <option value="Miramar">VSU Miramar</option>
-                                    <option value="Morena">VSU Morena</option>
-                                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                    <option value="Chula Vista">VSU Chula Vista</option>
-                                    <option value="North Park">VSU North Park</option>
-                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    <option value="" ${!invoiceFilters.store || invoiceFilters.store === 'all' ? 'selected' : ''}>Unassigned</option>
+                                    <option value="Miramar" ${invoiceFilters.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                    <option value="Morena" ${invoiceFilters.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                    <option value="Kearny Mesa" ${invoiceFilters.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                    <option value="Chula Vista" ${invoiceFilters.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                    <option value="North Park" ${invoiceFilters.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                    <option value="Miramar Wine & Liquor" ${invoiceFilters.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                 </select>
                             </div>
                             <div class="form-row">
@@ -37868,4 +37885,62 @@ async function deleteLease(leaseId) {
         showToast('Error deleting lease. Please try again.', 'error');
     }
 }
+
+// ========== Migration Function: Update "Carlos Admin" to "VSU Admin" ==========
+// Auto-run on load to fix existing records
+(async function migrateCarlosAdminToVSUAdmin() {
+    // Wait for Firebase to be ready
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    if (typeof firebase === 'undefined' || !firebase.firestore) {
+        console.log('Firebase not ready for migration');
+        return;
+    }
+
+    const db = firebase.firestore();
+    const collections = ['cashOutRecords', 'invoices', 'issues', 'gifts', 'changeRecords', 'riskNotes', 'clockRecords'];
+    let totalUpdated = 0;
+
+    console.log('🔄 Auto-migration: Carlos Admin -> VSU Admin');
+
+    for (const collectionName of collections) {
+        try {
+            const snapshot = await db.collection(collectionName).where('createdBy', '==', 'Carlos Admin').get();
+
+            if (!snapshot.empty) {
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => {
+                    batch.update(doc.ref, { createdBy: 'VSU Admin' });
+                });
+                await batch.commit();
+                console.log(`✅ Updated ${snapshot.size} records in ${collectionName}`);
+                totalUpdated += snapshot.size;
+            }
+        } catch (error) {
+            // Collection might not exist, ignore
+        }
+    }
+
+    // Also check for 'recordedBy' field
+    for (const collectionName of collections) {
+        try {
+            const snapshot = await db.collection(collectionName).where('recordedBy', '==', 'Carlos Admin').get();
+
+            if (!snapshot.empty) {
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => {
+                    batch.update(doc.ref, { recordedBy: 'VSU Admin' });
+                });
+                await batch.commit();
+                totalUpdated += snapshot.size;
+            }
+        } catch (error) {
+            // Silently ignore
+        }
+    }
+
+    if (totalUpdated > 0) {
+        console.log(`✅ Migration complete! Updated ${totalUpdated} records to VSU Admin`);
+    }
+})();
 
