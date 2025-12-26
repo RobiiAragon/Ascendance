@@ -1240,8 +1240,9 @@ function getDateRange(period, customRange = null) {
             break;
 
         case 'month':
-            // This month: from 1st of current month to now
-            since = new Date(now.getFullYear(), now.getMonth(), 1);
+            // Last 30 days rolling (full month of sales)
+            since = new Date(now);
+            since.setDate(now.getDate() - 30);
             since.setHours(0, 0, 0, 0);
             until = new Date();
             break;
