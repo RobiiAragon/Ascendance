@@ -14384,7 +14384,13 @@ window.viewChecklistHistory = async function() {
         }
 
         function renderInvoicesTable(filter = 'all') {
-            const filteredInvoices = filter === 'all' ? invoices : invoices.filter(i => i.status === filter);
+            // First apply store filter from invoiceFilters
+            let baseInvoices = invoices;
+            if (invoiceFilters.store && invoiceFilters.store !== 'all') {
+                baseInvoices = invoices.filter(i => i.store === invoiceFilters.store);
+            }
+            // Then apply status filter if specified
+            const filteredInvoices = filter === 'all' ? baseInvoices : baseInvoices.filter(i => i.status === filter);
 
             if (filteredInvoices.length === 0) {
                 return `
@@ -14426,9 +14432,8 @@ window.viewChecklistHistory = async function() {
                         <td data-label="Category">
                             ${renderInvoiceCategoryBadges(invoice)}
                         </td>
-                        <td data-label="Store">${invoice.description}</td>
+                        <td data-label="Store">${invoice.store || '-'}</td>
                         <td data-label="Amount" style="font-weight: 600;">$${invoice.amount.toFixed(2)}</td>
-                        <td data-label="Account">${invoice.paymentAccount || '-'}</td>
                         <td data-label="Due Date">${formatDate(invoice.dueDate)}</td>
                         <td data-label="Status">
                             <span class="badge" style="${statusStyles[invoice.status]}">${invoice.status.toUpperCase()}</span>
