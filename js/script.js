@@ -2860,13 +2860,17 @@
             `;
         }
 
-        // Analytics date range state
+        // Analytics date range state - Initialize with current month dates
+        const analyticsNow = new Date();
+        const analyticsMonthStart = new Date(analyticsNow.getFullYear(), analyticsNow.getMonth(), 1);
+        const analyticsMonthEnd = new Date(analyticsNow.getFullYear(), analyticsNow.getMonth() + 1, 0); // Last day of current month
+
         let analyticsDateRange = {
-            startDate: null,
-            endDate: null,
+            startDate: analyticsMonthStart,
+            endDate: analyticsNow, // Today, not future date
             period: 'month', // 'today', 'week', 'month', 'quarter', 'year', 'custom'
             calendarMonth1: new Date(),
-            calendarMonth2: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+            calendarMonth2: new Date(analyticsNow.getFullYear(), analyticsNow.getMonth() + 1, 1),
             isSelecting: false,
             tempStartDate: null
         };
@@ -3053,14 +3057,34 @@
                 </div>
 
                 <!-- Custom Date Range (only shown when custom is selected) -->
-                <div id="analytics-custom-range" style="display: ${analyticsDateRange.period === 'custom' ? 'flex' : 'none'}; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
-                    <span style="color: var(--text-secondary); font-size: 13px;">From:</span>
-                    <input type="date" id="analytics-start-date" class="form-input" style="width: auto;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
-                    <span style="color: var(--text-secondary); font-size: 13px;">To:</span>
-                    <input type="date" id="analytics-end-date" class="form-input" style="width: auto;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
-                    <button onclick="loadAnalyticsData()" class="btn-secondary" style="padding: 8px 16px;">
-                        <i class="fas fa-check"></i> Apply
-                    </button>
+                <div id="analytics-custom-range" style="display: ${analyticsDateRange.period === 'custom' ? 'flex' : 'none'}; gap: 16px; align-items: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%); border-radius: 16px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Start Date</span>
+                            <div style="position: relative;">
+                                <input type="date" id="analytics-start-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                                <i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>
+                            </div>
+                        </div>
+                        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
+                            <i class="fas fa-arrow-right" style="color: white; font-size: 14px;"></i>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">End Date</span>
+                            <div style="position: relative;">
+                                <input type="date" id="analytics-end-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                                <i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
+                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
+                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
+                        <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-play"></i> Apply
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Real Data Summary Cards -->
@@ -3291,14 +3315,34 @@
                 </div>
 
                 <!-- Custom Date Range (only shown when custom is selected) -->
-                <div id="analytics-custom-range" style="display: ${analyticsDateRange.period === 'custom' ? 'flex' : 'none'}; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
-                    <span style="color: var(--text-secondary); font-size: 13px;">From:</span>
-                    <input type="date" id="analytics-start-date" class="form-input" style="width: auto;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
-                    <span style="color: var(--text-secondary); font-size: 13px;">To:</span>
-                    <input type="date" id="analytics-end-date" class="form-input" style="width: auto;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()">
-                    <button onclick="loadAnalyticsData()" class="btn-secondary" style="padding: 8px 16px;">
-                        <i class="fas fa-check"></i> Apply
-                    </button>
+                <div id="analytics-custom-range" style="display: ${analyticsDateRange.period === 'custom' ? 'flex' : 'none'}; gap: 16px; align-items: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%); border-radius: 16px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Start Date</span>
+                            <div style="position: relative;">
+                                <input type="date" id="analytics-start-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                                <i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>
+                            </div>
+                        </div>
+                        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
+                            <i class="fas fa-arrow-right" style="color: white; font-size: 14px;"></i>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">End Date</span>
+                            <div style="position: relative;">
+                                <input type="date" id="analytics-end-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                                <i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
+                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
+                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
+                        <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-play"></i> Apply
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Annual Totals -->
@@ -3637,6 +3681,47 @@
             if (subtitleEl && analyticsDateRange.startDate && analyticsDateRange.endDate) {
                 const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 subtitleEl.textContent = `${formatDate(analyticsDateRange.startDate)} - ${formatDate(analyticsDateRange.endDate)}`;
+            }
+        };
+
+        // Quick date range buttons for custom range
+        window.setQuickDateRange = function(range) {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let startDate, endDate;
+
+            switch(range) {
+                case 'today':
+                    startDate = new Date(today);
+                    endDate = new Date(today);
+                    break;
+                case 'week':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - today.getDay());
+                    endDate = new Date(today);
+                    break;
+                case 'month':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today);
+                    break;
+                default:
+                    return;
+            }
+
+            analyticsDateRange.startDate = startDate;
+            analyticsDateRange.endDate = endDate;
+
+            // Update the input fields
+            const startInput = document.getElementById('analytics-start-date');
+            const endInput = document.getElementById('analytics-end-date');
+            if (startInput) startInput.value = startDate.toISOString().split('T')[0];
+            if (endInput) endInput.value = endDate.toISOString().split('T')[0];
+
+            // Update subtitle
+            const subtitleEl = document.querySelector('.page-header .section-subtitle');
+            if (subtitleEl) {
+                const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                subtitleEl.textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
             }
         };
 
