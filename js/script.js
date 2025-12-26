@@ -1174,7 +1174,7 @@
                 vendors: 'Vendors & Suppliers',
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
-                cashout: 'Expenses Control',
+                cashout: 'Cash Control',
                 treasury: 'Heady Pieces',
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
@@ -18821,8 +18821,8 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Expenses Control</h2>
-                        <p class="section-subtitle">Track and manage store expenses</p>
+                        <h2 class="section-title">Cash Control</h2>
+                        <p class="section-subtitle">Track and manage store cash flow</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-cashout')">
                         <i class="fas fa-plus"></i>
@@ -29181,7 +29181,7 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Issues Registry', page: 'issues', icon: 'fa-exclamation-triangle' },
                 { name: 'Gconomics', page: 'gconomics', icon: 'fa-wallet' },
                 { name: 'Vendors & Suppliers', page: 'vendors', icon: 'fa-truck' },
-                { name: 'Expenses Control', page: 'cashout', icon: 'fa-money-bill-wave' },
+                { name: 'Cash Control', page: 'cashout', icon: 'fa-money-bill-wave' },
                 { name: 'Heady Pieces', page: 'treasury', icon: 'fa-vault' },
                 { name: 'Change Records', page: 'change', icon: 'fa-coins' },
                 { name: 'Customer Care', page: 'customercare', icon: 'fa-heart' },
@@ -30802,7 +30802,7 @@ Return ONLY the JSON object, no additional text.`
         }
         // ========== End Gift Voice Assistant ==========
 
-        // ========== Cashout (Expenses Control) Voice Assistant ==========
+        // ========== Cashout (Cash Control) Voice Assistant ==========
         let cashoutVoiceRecognition = null;
         let cashoutIsRecording = false;
         let cashoutTranscript = '';
@@ -34444,7 +34444,7 @@ window.renderProjectAnalytics = function() {
         { name: 'Issues Registry', icon: 'fa-exclamation-triangle', status: 'active', page: 'issues', description: 'Customer complaints', fullDescription: 'Customer complaint and issue tracking system with resolution workflow.', features: ['Ticket system', 'Resolution tracking', 'Priority queue', 'Customer follow-up'], version: '1.5', linesOfCode: 620 },
         { name: 'Gconomics', icon: 'fa-wallet', status: 'active', page: 'gconomics', description: 'Financial tracking', fullDescription: 'Personal finance tracking for expense planning and budget management.', features: ['Expense categories', 'Budget planning', 'Monthly reports', 'Spending insights'], version: '1.8', linesOfCode: 850 },
         { name: 'Vendors', icon: 'fa-truck', status: 'active', page: 'vendors', description: 'Supplier directory', fullDescription: 'Vendor and supplier management with contact information and order history.', features: ['Contact directory', 'Order history', 'Rating system', 'Quick reorder'], version: '1.4', linesOfCode: 520 },
-        { name: 'Expenses Control', icon: 'fa-money-bill-wave', status: 'active', page: 'cashout', description: 'Cash out tracking', fullDescription: 'Daily expense tracking and cash out management with receipt documentation.', features: ['Receipt upload', 'Category tracking', 'Daily totals', 'Approval workflow'], version: '2.0', linesOfCode: 980 },
+        { name: 'Cash Control', icon: 'fa-money-bill-wave', status: 'active', page: 'cashout', description: 'Cash flow tracking', fullDescription: 'Daily cash flow tracking and management with receipt documentation.', features: ['Receipt upload', 'Category tracking', 'Daily totals', 'Approval workflow'], version: '2.0', linesOfCode: 980 },
         { name: 'Heady Pieces', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Art collection', fullDescription: 'Heady glass and art piece collection management with photos and valuations.', features: ['Photo gallery', 'Artist tracking', 'Valuation records', 'Location tracking'], version: '1.8', linesOfCode: 720 },
         { name: 'Change Records', icon: 'fa-coins', status: 'active', page: 'change', description: 'Cash flow between stores', fullDescription: 'Track change and cash transfers between store locations with photo verification.', features: ['Photo verification', 'Transfer tracking', 'Store-to-store', 'Balance history'], version: '1.6', linesOfCode: 580 },
         { name: 'Customer Care', icon: 'fa-heart', status: 'active', page: 'customercare', description: 'Customer care', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.5', linesOfCode: 540 },
