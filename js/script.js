@@ -3061,23 +3061,23 @@
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Start Date</span>
-                            <div style="position: relative;">
-                                <input type="date" id="analytics-start-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                            <button onclick="openCustomCalendar('start')" id="analytics-start-btn" style="width: 170px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 600; background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-primary); cursor: pointer; text-align: left; position: relative; transition: all 0.2s;">
                                 <i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>
-                            </div>
+                                ${analyticsDateRange.startDate ? analyticsDateRange.startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'Select date'}
+                            </button>
                         </div>
                         <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
                             <i class="fas fa-arrow-right" style="color: white; font-size: 14px;"></i>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">End Date</span>
-                            <div style="position: relative;">
-                                <input type="date" id="analytics-end-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                            <button onclick="openCustomCalendar('end')" id="analytics-end-btn" style="width: 170px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 600; background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-primary); cursor: pointer; text-align: left; position: relative; transition: all 0.2s;">
                                 <i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>
-                            </div>
+                                ${analyticsDateRange.endDate ? analyticsDateRange.endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'Select date'}
+                            </button>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                    <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
                         <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
                         <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
                         <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
@@ -3319,23 +3319,23 @@
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Start Date</span>
-                            <div style="position: relative;">
-                                <input type="date" id="analytics-start-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.startDate ? analyticsDateRange.startDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                            <button onclick="openCustomCalendar('start')" id="analytics-start-btn" style="width: 170px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 600; background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-primary); cursor: pointer; text-align: left; position: relative; transition: all 0.2s;">
                                 <i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>
-                            </div>
+                                ${analyticsDateRange.startDate ? analyticsDateRange.startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'Select date'}
+                            </button>
                         </div>
                         <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
                             <i class="fas fa-arrow-right" style="color: white; font-size: 14px;"></i>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">End Date</span>
-                            <div style="position: relative;">
-                                <input type="date" id="analytics-end-date" class="form-input" style="width: 160px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 500;" value="${analyticsDateRange.endDate ? analyticsDateRange.endDate.toISOString().split('T')[0] : ''}" onchange="updateCustomDateRange()" max="${new Date().toISOString().split('T')[0]}">
+                            <button onclick="openCustomCalendar('end')" id="analytics-end-btn" style="width: 170px; padding: 12px 16px; padding-left: 40px; border-radius: 10px; font-weight: 600; background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-primary); cursor: pointer; text-align: left; position: relative; transition: all 0.2s;">
                                 <i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>
-                            </div>
+                                ${analyticsDateRange.endDate ? analyticsDateRange.endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'Select date'}
+                            </button>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                    <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
                         <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
                         <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
                         <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
@@ -13923,7 +13923,13 @@ window.viewChecklistHistory = async function() {
 
         // Pending Payments Tab Content
         function renderPendingPaymentsTab() {
-            const pendingPayments = invoices.filter(i => i.status === 'pending' || i.status === 'overdue' || (i.status === 'partial' && (i.amountPaid || 0) < i.amount));
+            // First filter by store if a store filter is active
+            let filteredInvoices = invoices;
+            if (invoiceFilters.store && invoiceFilters.store !== 'all') {
+                filteredInvoices = invoices.filter(i => i.store === invoiceFilters.store);
+            }
+            // Then filter for pending/overdue/partial
+            const pendingPayments = filteredInvoices.filter(i => i.status === 'pending' || i.status === 'overdue' || (i.status === 'partial' && (i.amountPaid || 0) < i.amount));
             const totalOwed = pendingPayments.reduce((sum, i) => sum + (i.amount - (i.amountPaid || 0)), 0);
             const overduePayments = pendingPayments.filter(i => {
                 const dueDate = i.dueDate ? new Date(i.dueDate) : null;
