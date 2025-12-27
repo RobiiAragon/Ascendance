@@ -304,13 +304,19 @@ async function saveCelesteSettingsToFirebase(settings) {
             return false;
         }
 
+        console.log('[Celeste] Attempting to save settings:', settings);
+
         await db.collection('settings').doc('celeste_ai').set({
             ...settings,
             updated_at: new Date().toISOString()
         }, { merge: true });
 
+        // Initialize celesteFirebaseSettings if null
+        if (!celesteFirebaseSettings) {
+            celesteFirebaseSettings = {};
+        }
         celesteFirebaseSettings = { ...celesteFirebaseSettings, ...settings };
-        console.log('[Celeste] Settings saved to Firebase');
+        console.log('[Celeste] Settings saved to Firebase successfully');
         return true;
     } catch (error) {
         console.error('[Celeste] Error saving settings to Firebase:', error);
