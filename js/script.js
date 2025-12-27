@@ -2354,6 +2354,9 @@
             }
         }
 
+        // Employee view mode state
+        let employeeViewMode = localStorage.getItem('employeeViewMode') || 'grid';
+
         async function renderEmployees() {
             const dashboard = document.querySelector('.dashboard');
 
@@ -2393,12 +2396,20 @@
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
+                    <div style="display: flex; gap: 4px; margin-left: auto;">
+                        <button id="view-grid-btn" onclick="setEmployeeViewMode('grid')" class="btn-secondary" style="padding: 8px 12px; ${employeeViewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : ''}" title="Grid View">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button id="view-list-btn" onclick="setEmployeeViewMode('list')" class="btn-secondary" style="padding: 8px 12px; ${employeeViewMode === 'list' ? 'background: var(--accent-primary); color: white;' : ''}" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
                     <button class="btn-secondary" onclick="refreshEmployeesFromFirebase()" title="Refresh from database">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
 
-                <div class="employees-grid" id="employees-grid">
+                <div class="${employeeViewMode === 'list' ? 'employees-list' : 'employees-grid'}" id="employees-container">
                     <div class="loading-state">
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Loading employees...</p>
@@ -2409,11 +2420,11 @@
             // Load employees from Firebase
             await loadEmployeesFromFirebase();
 
-            // Render employees grid
-            const grid = document.getElementById('employees-grid');
-            if (grid) {
+            // Render employees based on view mode
+            const container = document.getElementById('employees-container');
+            if (container) {
                 if (employees.length === 0) {
-                    grid.innerHTML = `
+                    container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-users"></i>
                             <h3>No employees yet</h3>
@@ -2424,9 +2435,63 @@
                         </div>
                     `;
                 } else {
-                    grid.innerHTML = employees.map(emp => renderEmployeeCard(emp)).join('');
+                    if (employeeViewMode === 'list') {
+                        container.innerHTML = `
+                            <div class="employee-list-header">
+                                <div class="list-col-photo">Photo</div>
+                                <div class="list-col-name">Name</div>
+                                <div class="list-col-role">Role</div>
+                                <div class="list-col-store">Store</div>
+                                <div class="list-col-status">Status</div>
+                                <div class="list-col-actions">Actions</div>
+                            </div>
+                            ${employees.filter(emp => emp.status !== 'inactive').map(emp => renderEmployeeListRow(emp)).join('')}
+                        `;
+                    } else {
+                        container.innerHTML = employees.filter(emp => emp.status !== 'inactive').map(emp => renderEmployeeCard(emp)).join('');
+                    }
                 }
             }
+        }
+
+        // Set employee view mode (grid or list)
+        window.setEmployeeViewMode = function(mode) {
+            employeeViewMode = mode;
+            localStorage.setItem('employeeViewMode', mode);
+            renderEmployees();
+        }
+
+        // Render employee as list row
+        function renderEmployeeListRow(emp) {
+            const statusClass = emp.status === 'active' ? 'status-active' : 'status-inactive';
+            const statusText = emp.status === 'active' ? 'Active' : 'Inactive';
+
+            return `
+                <div class="employee-list-row" onclick="openEmployeeProfile('${emp.firestoreId || emp.id}')">
+                    <div class="list-col-photo">
+                        ${emp.photo ?
+                            `<img src="${emp.photo}" alt="${emp.name}" class="employee-list-photo">` :
+                            `<div class="employee-avatar-small color-${emp.color}">${emp.initials}</div>`
+                        }
+                    </div>
+                    <div class="list-col-name">
+                        <span class="employee-list-name">${emp.name}</span>
+                    </div>
+                    <div class="list-col-role">${emp.role || 'N/A'}</div>
+                    <div class="list-col-store">${emp.store || 'N/A'}</div>
+                    <div class="list-col-status">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="list-col-actions">
+                        <button class="btn-icon" onclick="event.stopPropagation(); openEmployeeProfile('${emp.firestoreId || emp.id}')" title="View Profile">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-icon" onclick="event.stopPropagation(); editEmployee('${emp.firestoreId || emp.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         /**
@@ -2485,9 +2550,9 @@
          * Refresh employees from Firebase (manual refresh button)
          */
         async function refreshEmployeesFromFirebase() {
-            const grid = document.getElementById('employees-grid');
-            if (grid) {
-                grid.innerHTML = `
+            const container = document.getElementById('employees-container');
+            if (container) {
+                container.innerHTML = `
                     <div class="loading-state">
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Refreshing...</p>
@@ -2497,8 +2562,23 @@
 
             await loadEmployeesFromFirebase();
 
-            if (grid) {
-                grid.innerHTML = employees.map(emp => renderEmployeeCard(emp)).join('');
+            if (container) {
+                const activeEmployees = employees.filter(emp => emp.status !== 'inactive');
+                if (employeeViewMode === 'list') {
+                    container.innerHTML = `
+                        <div class="employee-list-header">
+                            <div class="list-col-photo">Photo</div>
+                            <div class="list-col-name">Name</div>
+                            <div class="list-col-role">Role</div>
+                            <div class="list-col-store">Store</div>
+                            <div class="list-col-status">Status</div>
+                            <div class="list-col-actions">Actions</div>
+                        </div>
+                        ${activeEmployees.map(emp => renderEmployeeListRow(emp)).join('')}
+                    `;
+                } else {
+                    container.innerHTML = activeEmployees.map(emp => renderEmployeeCard(emp)).join('');
+                }
             }
         }
 
@@ -26744,7 +26824,24 @@ Return ONLY the JSON object, no additional text.`,
                 return matchSearch && matchStore && matchStatus;
             });
 
-            document.getElementById('employees-grid').innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
+            const container = document.getElementById('employees-container');
+            if (container) {
+                if (employeeViewMode === 'list') {
+                    container.innerHTML = `
+                        <div class="employee-list-header">
+                            <div class="list-col-photo">Photo</div>
+                            <div class="list-col-name">Name</div>
+                            <div class="list-col-role">Role</div>
+                            <div class="list-col-store">Store</div>
+                            <div class="list-col-status">Status</div>
+                            <div class="list-col-actions">Actions</div>
+                        </div>
+                        ${filtered.map(emp => renderEmployeeListRow(emp)).join('')}
+                    `;
+                } else {
+                    container.innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
+                }
+            }
         }
 
         /**
@@ -35920,14 +36017,16 @@ window.quickTestOpenAI = async function() {
         btn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
     }
 
-    // Get API key: input field > saved custom > hardcoded default
+    // Get API key: input field > Firebase > saved custom > hardcoded default
     const inputKey = keyInput ? keyInput.value.trim() : '';
+    const firebaseKey = window.celesteFirebaseSettings?.openai_api_key;
     const savedKey = window.OPENAI_CUSTOM_KEY || localStorage.getItem('openai_api_key_custom');
-    const defaultKey = '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';
-    const apiKey = inputKey || savedKey || defaultKey;
+    const defaultKey = DEFAULT_OPENAI_KEY || '';
+    const apiKey = inputKey || firebaseKey || savedKey || defaultKey;
     const corsProxy = 'https://corsproxy.io/?';
 
-    console.log('🔑 Using API key:', apiKey.substring(0, 20) + '...');
+    const keySource = inputKey ? 'input' : (firebaseKey ? 'Firebase' : (savedKey ? 'localStorage' : 'default'));
+    console.log('🔑 Using API key from:', keySource, '-', apiKey.substring(0, 20) + '...');
 
     try {
         const startTime = performance.now();

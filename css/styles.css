@@ -2567,6 +2567,122 @@
             gap: 8px;
         }
 
+        /* Employee List View */
+        .employees-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .employee-list-header {
+            display: grid;
+            grid-template-columns: 60px 1fr 150px 150px 100px 100px;
+            gap: 16px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .employee-list-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 150px 150px 100px 100px;
+            gap: 16px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .employee-list-row:last-child {
+            border-bottom: none;
+        }
+
+        .employee-list-row:hover {
+            background: var(--bg-secondary);
+        }
+
+        .employee-list-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .employee-avatar-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .employee-avatar-small.color-a { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .employee-avatar-small.color-b { background: linear-gradient(135deg, #06b6d4, #0ea5e9); }
+        .employee-avatar-small.color-c { background: linear-gradient(135deg, #10b981, #34d399); }
+        .employee-avatar-small.color-d { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+        .employee-avatar-small.color-e { background: linear-gradient(135deg, #ef4444, #f87171); }
+
+        .employee-list-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .list-col-role,
+        .list-col-store {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .list-col-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .list-col-actions .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .list-col-actions .btn-icon:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        @media (max-width: 900px) {
+            .employee-list-header,
+            .employee-list-row {
+                grid-template-columns: 50px 1fr 100px 80px;
+            }
+            .list-col-role,
+            .list-col-store {
+                display: none;
+            }
+        }
+
         /* Training Page */
         .training-stats {
             display: grid;

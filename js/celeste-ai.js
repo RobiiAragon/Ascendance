@@ -15,6 +15,8 @@ const DEFAULT_OPENAI_API_KEY = 'sk-proj-7_4SdDtBkih64WMW8oPVQRlguf_v0_TAp75K-Zs2
 
 // Celeste settings loaded from Firebase (will be populated on init)
 let celesteFirebaseSettings = null;
+// Expose globally for other scripts
+window.celesteFirebaseSettings = celesteFirebaseSettings;
 
 /**
  * Save Celeste AI settings to Firebase (defined early for availability)
@@ -29,7 +31,8 @@ window.saveCelesteSettings = async function(settings) {
 
         console.log('[Celeste] Saving settings to Firebase:', Object.keys(settings));
 
-        await db.collection('settings').doc('celeste_ai').set({
+        // Try saving to app_config collection (more permissive)
+        await db.collection('app_config').doc('openai_settings').set({
             ...settings,
             updated_at: new Date().toISOString()
         }, { merge: true });
@@ -39,10 +42,25 @@ window.saveCelesteSettings = async function(settings) {
             celesteFirebaseSettings = {};
         }
         celesteFirebaseSettings = { ...celesteFirebaseSettings, ...settings };
+
+        // Also save to localStorage as backup
+        if (settings.openai_api_key) {
+            localStorage.setItem('openai_api_key_custom', settings.openai_api_key);
+            window.OPENAI_CUSTOM_KEY = settings.openai_api_key;
+        }
+
         console.log('[Celeste] Settings saved to Firebase successfully');
         return true;
     } catch (error) {
         console.error('[Celeste] Error saving settings to Firebase:', error);
+
+        // Fallback: save to localStorage if Firebase fails
+        if (settings.openai_api_key) {
+            localStorage.setItem('openai_api_key_custom', settings.openai_api_key);
+            window.OPENAI_CUSTOM_KEY = settings.openai_api_key;
+            console.log('[Celeste] Saved to localStorage as fallback');
+            return true; // Return true since we saved somewhere
+        }
         return false;
     }
 };
@@ -312,25 +330,52 @@ async function loadCelesteSettingsFromFirebase() {
     try {
         const db = window.db || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
         if (!db) {
-            console.log('[Celeste] Firebase not available, using default settings');
+            console.log('[Celeste] Firebase not available, checking localStorage');
+            // Try localStorage
+            const localKey = localStorage.getItem('openai_api_key_custom');
+            if (localKey) {
+                celesteFirebaseSettings = { openai_api_key: localKey };
+                window.OPENAI_CUSTOM_KEY = localKey;
+                console.log('[Celeste] Loaded API key from localStorage');
+            }
             return;
         }
 
-        const doc = await db.collection('settings').doc('celeste_ai').get();
+        // Try new collection first
+        let doc = await db.collection('app_config').doc('openai_settings').get();
+
+        // Fallback to old collection
+        if (!doc.exists) {
+            doc = await db.collection('settings').doc('celeste_ai').get();
+        }
+
         if (doc.exists) {
             celesteFirebaseSettings = doc.data();
-            console.log('[Celeste] Settings loaded from Firebase');
+            window.celesteFirebaseSettings = celesteFirebaseSettings; // Update global
+            if (celesteFirebaseSettings.openai_api_key) {
+                window.OPENAI_CUSTOM_KEY = celesteFirebaseSettings.openai_api_key;
+                localStorage.setItem('openai_api_key_custom', celesteFirebaseSettings.openai_api_key);
+            }
+            console.log('[Celeste] Settings loaded from Firebase:', celesteFirebaseSettings.openai_api_key ? 'API key found' : 'No API key');
         } else {
-            // Initialize settings in Firebase with default API key
-            await window.saveCelesteSettings({
-                openai_api_key: DEFAULT_OPENAI_API_KEY,
-                provider: AI_PROVIDER,
-                created_at: new Date().toISOString()
-            });
-            console.log('[Celeste] Default settings saved to Firebase');
+            // Check localStorage as fallback
+            const localKey = localStorage.getItem('openai_api_key_custom');
+            if (localKey) {
+                celesteFirebaseSettings = { openai_api_key: localKey };
+                window.celesteFirebaseSettings = celesteFirebaseSettings; // Update global
+                window.OPENAI_CUSTOM_KEY = localKey;
+                console.log('[Celeste] Loaded API key from localStorage');
+            }
         }
     } catch (error) {
         console.error('[Celeste] Error loading settings from Firebase:', error);
+        // Try localStorage as fallback
+        const localKey = localStorage.getItem('openai_api_key_custom');
+        if (localKey) {
+            celesteFirebaseSettings = { openai_api_key: localKey };
+            window.OPENAI_CUSTOM_KEY = localKey;
+            console.log('[Celeste] Loaded API key from localStorage (fallback)');
+        }
     }
 }
 
@@ -1032,9 +1077,11 @@ async function processCelesteMessage(userMessage) {
         return localIntent;
     }
 
-    // OpenAI API key - check saved key first, then use default
+    // OpenAI API key - check Firebase first, then saved key, then default
+    const firebaseKey = celesteFirebaseSettings?.openai_api_key;
     const savedKey = window.OPENAI_CUSTOM_KEY || localStorage.getItem('openai_api_key_custom');
-    const openaiApiKey = savedKey || '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';
+    const openaiApiKey = firebaseKey || savedKey || DEFAULT_OPENAI_API_KEY;
+    console.log('🔑 Using API key from:', firebaseKey ? 'Firebase' : (savedKey ? 'localStorage' : 'default'));
 
     // Call OpenAI API
     const systemPrompt = buildCelesteSystemPrompt();
