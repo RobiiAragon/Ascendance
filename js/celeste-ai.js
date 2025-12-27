@@ -16,6 +16,37 @@ const DEFAULT_OPENAI_API_KEY = ''; // User must configure their own key
 // Celeste settings loaded from Firebase (will be populated on init)
 let celesteFirebaseSettings = null;
 
+/**
+ * Save Celeste AI settings to Firebase (defined early for availability)
+ */
+window.saveCelesteSettings = async function(settings) {
+    try {
+        const db = window.db || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
+        if (!db) {
+            console.warn('[Celeste] Firebase not available, cannot save settings');
+            return false;
+        }
+
+        console.log('[Celeste] Saving settings to Firebase:', Object.keys(settings));
+
+        await db.collection('settings').doc('celeste_ai').set({
+            ...settings,
+            updated_at: new Date().toISOString()
+        }, { merge: true });
+
+        // Initialize celesteFirebaseSettings if null
+        if (!celesteFirebaseSettings) {
+            celesteFirebaseSettings = {};
+        }
+        celesteFirebaseSettings = { ...celesteFirebaseSettings, ...settings };
+        console.log('[Celeste] Settings saved to Firebase successfully');
+        return true;
+    } catch (error) {
+        console.error('[Celeste] Error saving settings to Firebase:', error);
+        return false;
+    }
+};
+
 // OpenAI Configuration
 const AI_CONFIG = {
     name: 'OpenAI GPT-4',
@@ -43,7 +74,7 @@ window.getFirebaseAPIKey = function() {
  * @returns {Promise<boolean>} Success status
  */
 window.saveFirebaseAPIKey = async function(apiKey) {
-    return await saveCelesteSettingsToFirebase({ openai_api_key: apiKey });
+    return await window.saveCelesteSettings({ openai_api_key: apiKey });
 };
 
 /**
@@ -64,8 +95,15 @@ window.getFirebaseAPIKeys = function() {
  * @returns {Promise<boolean>} Success status
  */
 window.saveFirebaseAPIKeys = async function(openaiKey) {
-    if (openaiKey !== undefined) {
-        return await saveCelesteSettingsToFirebase({ openai_api_key: openaiKey });
+    console.log('[Celeste] saveFirebaseAPIKeys called with key:', openaiKey ? 'provided' : 'empty');
+    if (openaiKey !== undefined && openaiKey !== '') {
+        // Call the save function directly through window to ensure it's available
+        if (typeof window.saveCelesteSettings === 'function') {
+            return await window.saveCelesteSettings({ openai_api_key: openaiKey });
+        } else {
+            console.error('[Celeste] saveCelesteSettings function not available');
+            return false;
+        }
     }
     return false;
 };
@@ -75,7 +113,7 @@ window.saveFirebaseAPIKeys = async function(openaiKey) {
  * @returns {Promise<boolean>} Success status
  */
 window.resetFirebaseAPIKeys = async function() {
-    return await saveCelesteSettingsToFirebase({
+    return await window.saveCelesteSettings({
         openai_api_key: ''
     });
 };
@@ -281,7 +319,7 @@ async function loadCelesteSettingsFromFirebase() {
             console.log('[Celeste] Settings loaded from Firebase');
         } else {
             // Initialize settings in Firebase with default API key
-            await saveCelesteSettingsToFirebase({
+            await window.saveCelesteSettings({
                 openai_api_key: DEFAULT_OPENAI_API_KEY,
                 provider: AI_PROVIDER,
                 created_at: new Date().toISOString()
@@ -294,41 +332,10 @@ async function loadCelesteSettingsFromFirebase() {
 }
 
 /**
- * Save Celeste AI settings to Firebase
- */
-async function saveCelesteSettingsToFirebase(settings) {
-    try {
-        const db = window.db || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
-        if (!db) {
-            console.warn('[Celeste] Firebase not available, cannot save settings');
-            return false;
-        }
-
-        console.log('[Celeste] Attempting to save settings:', settings);
-
-        await db.collection('settings').doc('celeste_ai').set({
-            ...settings,
-            updated_at: new Date().toISOString()
-        }, { merge: true });
-
-        // Initialize celesteFirebaseSettings if null
-        if (!celesteFirebaseSettings) {
-            celesteFirebaseSettings = {};
-        }
-        celesteFirebaseSettings = { ...celesteFirebaseSettings, ...settings };
-        console.log('[Celeste] Settings saved to Firebase successfully');
-        return true;
-    } catch (error) {
-        console.error('[Celeste] Error saving settings to Firebase:', error);
-        return false;
-    }
-}
-
-/**
  * Update Celeste API key (can be called from settings page)
  */
 async function updateCelesteApiKey(apiKey) {
-    return await saveCelesteSettingsToFirebase({ openai_api_key: apiKey });
+    return await window.saveCelesteSettings({ openai_api_key: apiKey });
 }
 
 /**
