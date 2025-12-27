@@ -34819,55 +34819,53 @@ window.renderProjectAnalytics = function() {
             </div>
         </div>
 
-        <!-- AI Providers Configuration -->
-        <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(139,92,246,0.3); background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(109,40,217,0.05));">
-            <div class="card-header" style="border-bottom: 1px solid rgba(139,92,246,0.2);">
+        <!-- AI Configuration - With API Key Input -->
+        <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(16,185,129,0.3); background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(5,150,105,0.05));">
+            <div class="card-header" style="border-bottom: 1px solid rgba(16,185,129,0.2);">
                 <h3 class="card-title" style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-brain" style="color: #10b981;"></i> AI Configuration
+                    <i class="fas fa-robot" style="color: #10b981;"></i> Celeste AI
                 </h3>
-                <div id="celeste-api-status" style="padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(16,185,129,0.15); color: #10b981;">
-                    ● OpenAI GPT-4
+                <div id="celeste-api-status" style="padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(245,158,11,0.15); color: #f59e0b;">
+                    ○ Not Configured
                 </div>
             </div>
             <div class="card-body">
-                <p style="margin: 0 0 16px; color: var(--text-secondary); font-size: 13px;">
-                    Celeste AI and all assistants are powered by <strong>OpenAI GPT-4</strong>. Configure your API key to enable AI features.
-                </p>
-
-                <!-- OpenAI Provider -->
-                <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid rgba(16,185,129,0.2);">
-                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-weight: 600; font-size: 14px;">OpenAI GPT-4</span>
+                <!-- API Key Input Section -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">
+                        <i class="fas fa-key" style="color: #10b981; margin-right: 6px;"></i> OpenAI API Key
+                    </label>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="password" id="openai-key-input" placeholder="sk-proj-..."
+                                style="width: 100%; padding: 14px 45px 14px 14px; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-size: 14px; font-family: monospace; box-sizing: border-box; transition: border-color 0.2s;"
+                                onfocus="this.style.borderColor='#10b981'"
+                                onblur="this.style.borderColor='var(--border-color)'">
+                            <button onclick="toggleKeyVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px;">
+                                <i id="key-toggle-icon" class="fas fa-eye" style="color: var(--text-muted);"></i>
+                            </button>
                         </div>
-                        <div style="font-size: 12px; color: var(--text-muted);">GPT-4o - Fast and powerful AI model</div>
+                        <button id="save-key-btn" onclick="saveOpenAIKey()" style="padding: 14px 24px; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; border-radius: 10px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
+                            <i class="fas fa-save"></i> Save
+                        </button>
                     </div>
-                    <div id="openai-connection-status" style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%;"></span>
-                        <span style="font-size: 12px; color: #f59e0b; font-weight: 500;">Needs API Key</span>
+                    <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <a href="https://platform.openai.com/api-keys" target="_blank" style="font-size: 12px; color: #3b82f6; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-external-link-alt"></i> Get your API key from OpenAI
+                        </a>
+                        <span id="key-status" style="font-size: 12px; color: var(--text-muted);"></span>
                     </div>
                 </div>
 
-                <div style="margin-top: 16px; padding: 12px 16px; background: rgba(59,130,246,0.1); border-radius: 10px; border: 1px solid rgba(59,130,246,0.2);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <i class="fas fa-info-circle" style="color: #3b82f6;"></i>
-                        <span style="font-weight: 600; color: #3b82f6; font-size: 13px;">Get your API Key</span>
-                    </div>
-                    <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">
-                        Visit <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #3b82f6; text-decoration: underline;">platform.openai.com/api-keys</a> to create your OpenAI API key.
-                    </p>
-                </div>
+                <!-- Test Button -->
+                <button id="test-ai-btn" onclick="quickTestOpenAI()" style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(16,185,129,0.3);">
+                    <i class="fas fa-bolt"></i> Test AI Connection
+                </button>
 
-                <div style="display: flex; gap: 12px; margin-top: 16px;">
-                    <button onclick="openAIProvidersSettings()" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #10b981, #059669);">
-                        <i class="fas fa-key"></i> Configure API Key
-                    </button>
-                    <button onclick="testCelesteFromProjectAnalytics()" class="btn-secondary" style="padding: 10px 20px;">
-                        <i class="fas fa-plug"></i> Test Connection
-                    </button>
+                <!-- Response Area -->
+                <div id="ai-test-response" style="display: none; margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">AI Response:</div>
+                    <div id="ai-response-text" style="font-size: 14px; color: var(--text-primary); line-height: 1.5;"></div>
                 </div>
             </div>
         </div>
@@ -35840,6 +35838,176 @@ function animateCounters() {
         }, stepDuration);
     });
 }
+
+// Toggle API Key visibility
+window.toggleKeyVisibility = function() {
+    const input = document.getElementById('openai-key-input');
+    const icon = document.getElementById('key-toggle-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+};
+
+// Save OpenAI API Key
+window.saveOpenAIKey = function() {
+    const input = document.getElementById('openai-key-input');
+    const keyStatus = document.getElementById('key-status');
+    const statusBadge = document.getElementById('celeste-api-status');
+    const saveBtn = document.getElementById('save-key-btn');
+
+    const apiKey = input.value.trim();
+
+    if (!apiKey) {
+        if (keyStatus) keyStatus.innerHTML = '<span style="color: #ef4444;"><i class="fas fa-exclamation-circle"></i> Enter an API key</span>';
+        return;
+    }
+
+    if (!apiKey.startsWith('sk-')) {
+        if (keyStatus) keyStatus.innerHTML = '<span style="color: #ef4444;"><i class="fas fa-exclamation-circle"></i> Invalid key format</span>';
+        return;
+    }
+
+    // Save to localStorage
+    localStorage.setItem('openai_api_key_custom', apiKey);
+    window.OPENAI_CUSTOM_KEY = apiKey;
+
+    // Update UI
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+        setTimeout(() => { saveBtn.innerHTML = '<i class="fas fa-save"></i> Save'; }, 2000);
+    }
+    if (keyStatus) keyStatus.innerHTML = '<span style="color: #10b981;"><i class="fas fa-check-circle"></i> Key saved locally</span>';
+    if (statusBadge) {
+        statusBadge.innerHTML = '● Key Saved';
+        statusBadge.style.background = 'rgba(16,185,129,0.15)';
+        statusBadge.style.color = '#10b981';
+    }
+
+    // Clear input for security
+    input.value = '';
+    input.placeholder = '••••••••••••••••••••';
+};
+
+// Load saved key on page load
+(function loadSavedKey() {
+    const savedKey = localStorage.getItem('openai_api_key_custom');
+    if (savedKey) {
+        window.OPENAI_CUSTOM_KEY = savedKey;
+    }
+})();
+
+// Quick Test OpenAI - Simple & Direct
+window.quickTestOpenAI = async function() {
+    const btn = document.getElementById('test-ai-btn');
+    const responseDiv = document.getElementById('ai-test-response');
+    const responseText = document.getElementById('ai-response-text');
+    const statusBadge = document.getElementById('celeste-api-status');
+    const keyInput = document.getElementById('openai-key-input');
+
+    // Show loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        btn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+    }
+
+    // Get API key: input field > saved custom > hardcoded default
+    const inputKey = keyInput ? keyInput.value.trim() : '';
+    const savedKey = window.OPENAI_CUSTOM_KEY || localStorage.getItem('openai_api_key_custom');
+    const defaultKey = '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';
+    const apiKey = inputKey || savedKey || defaultKey;
+    const corsProxy = 'https://corsproxy.io/?';
+
+    console.log('🔑 Using API key:', apiKey.substring(0, 20) + '...');
+
+    try {
+        const startTime = performance.now();
+        const response = await fetch(corsProxy + 'https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                max_tokens: 100,
+                messages: [{ role: 'user', content: 'Responde en español: Saluda al equipo de Vape Smoke Universe y di que OpenAI está funcionando perfectamente. Sé breve y amigable.' }]
+            })
+        });
+
+        const latency = Math.round(performance.now() - startTime);
+        const data = await response.json();
+
+        if (response.ok) {
+            const aiMessage = data.choices?.[0]?.message?.content || 'Connected!';
+
+            // Success state
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Connected!';
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                btn.disabled = false;
+            }
+            if (resultDiv) {
+                resultDiv.innerHTML = `<div style="color: #10b981; font-weight: 600;"><i class="fas fa-check-circle"></i> ${latency}ms</div>`;
+            }
+            if (statusCard) {
+                statusCard.style.borderColor = 'rgba(16,185,129,0.5)';
+            }
+            if (statusBadge) {
+                statusBadge.innerHTML = '● Connected';
+                statusBadge.style.background = 'rgba(16,185,129,0.15)';
+                statusBadge.style.color = '#10b981';
+            }
+            if (responseDiv && responseText) {
+                responseDiv.style.display = 'block';
+                responseDiv.style.borderColor = '#10b981';
+                responseText.innerHTML = `<i class="fas fa-quote-left" style="color: #10b981; margin-right: 8px;"></i>${aiMessage}`;
+            }
+
+            console.log('✅ OpenAI Test SUCCESS:', aiMessage);
+        } else {
+            throw new Error(data.error?.message || `HTTP ${response.status}`);
+        }
+    } catch (error) {
+        // Error state
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-times-circle"></i> Failed - Try Again';
+            btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            btn.disabled = false;
+        }
+        if (resultDiv) {
+            resultDiv.innerHTML = `<div style="color: #ef4444; font-weight: 600;"><i class="fas fa-times-circle"></i> Error</div>`;
+        }
+        if (statusCard) {
+            statusCard.style.borderColor = 'rgba(239,68,68,0.5)';
+        }
+        if (statusBadge) {
+            statusBadge.innerHTML = '○ Error';
+            statusBadge.style.background = 'rgba(239,68,68,0.15)';
+            statusBadge.style.color = '#ef4444';
+        }
+        if (responseDiv && responseText) {
+            responseDiv.style.display = 'block';
+            responseDiv.style.borderColor = '#ef4444';
+            responseText.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 8px;"></i>${error.message}`;
+        }
+
+        console.error('❌ OpenAI Test FAILED:', error.message);
+    }
+
+    // Reset button after 3 seconds
+    setTimeout(() => {
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-bolt"></i> Test AI Connection';
+            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            btn.disabled = false;
+        }
+    }, 3000);
+};
 
 // Quick Action: System Check
 window.runSystemCheck = async function() {

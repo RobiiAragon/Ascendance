@@ -1032,8 +1032,9 @@ async function processCelesteMessage(userMessage) {
         return localIntent;
     }
 
-    // OpenAI API key - hardcoded for reliability
-    const openaiApiKey = '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';
+    // OpenAI API key - check saved key first, then use default
+    const savedKey = window.OPENAI_CUSTOM_KEY || localStorage.getItem('openai_api_key_custom');
+    const openaiApiKey = savedKey || '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';
 
     // Call OpenAI API
     const systemPrompt = buildCelesteSystemPrompt();
