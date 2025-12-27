@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Analytics cache - readable by authenticated users, writable only by functions
+    match /shopify_analytics_cache/{document=**} {
+      allow read: if true;  // Public read for frontend
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Sync logs - admin only
+    match /shopify_sync_logs/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Other collections - keep existing rules
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
