@@ -1,20 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "shopify_analytics_cache",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "storeInfo.key", "order": "ASCENDING" },
-        { "fieldPath": "dateRange.period", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "shopify_sync_logs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }
