@@ -41,6 +41,198 @@ const API_VERSION = '2024-01';
 const locationCache = {};
 
 // =============================================================================
+// LOCAL CACHE SYSTEM
+// =============================================================================
+//
+// Caches API responses in localStorage to reduce API calls and improve performance.
+// Each cache entry has a TTL (Time-To-Live) after which it's considered stale.
+//
+// Cache keys format: 'shopify_cache_{type}_{storeKey}_{params}'
+// Cache structure: { data: <response>, timestamp: <unix_ms>, ttl: <ms> }
+//
+// =============================================================================
+
+const CACHE_CONFIG = {
+    // TTL values in milliseconds
+    TTL: {
+        analytics: 5 * 60 * 1000,      // 5 minutes for analytics (sales data changes frequently)
+        analyticsBulk: 10 * 60 * 1000, // 10 minutes for bulk analytics (large queries)
+        inventory: 15 * 60 * 1000,     // 15 minutes for inventory
+        locations: 60 * 60 * 1000      // 1 hour for locations (rarely changes)
+    },
+    // Prefix for all cache keys
+    PREFIX: 'shopify_cache_',
+    // Max cache entries before cleanup
+    MAX_ENTRIES: 50
+};
+
+/**
+ * Generate a cache key from parameters
+ * @param {string} type - Cache type (analytics, inventory, locations)
+ * @param {Object} params - Parameters to include in key
+ * @returns {string} Cache key
+ */
+function generateCacheKey(type, params = {}) {
+    const paramStr = Object.entries(params)
+        .filter(([_, v]) => v !== null && v !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('_');
+    return `${CACHE_CONFIG.PREFIX}${type}_${paramStr}`;
+}
+
+/**
+ * Get data from cache if valid
+ * @param {string} key - Cache key
+ * @returns {Object|null} Cached data or null if not found/expired
+ */
+function getFromCache(key) {
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+
+        const { data, timestamp, ttl } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+
+        if (age > ttl) {
+            console.log(`🗑️ [CACHE] Expired: ${key} (age: ${Math.round(age / 1000)}s, ttl: ${Math.round(ttl / 1000)}s)`);
+            localStorage.removeItem(key);
+            return null;
+        }
+
+        console.log(`✅ [CACHE] Hit: ${key} (age: ${Math.round(age / 1000)}s)`);
+        return { data, fromCache: true, cacheAge: age };
+    } catch (error) {
+        console.warn('⚠️ [CACHE] Error reading cache:', error);
+        return null;
+    }
+}
+
+/**
+ * Save data to cache
+ * @param {string} key - Cache key
+ * @param {*} data - Data to cache
+ * @param {number} ttl - Time-to-live in milliseconds
+ */
+function saveToCache(key, data, ttl) {
+    try {
+        const cacheEntry = {
+            data,
+            timestamp: Date.now(),
+            ttl
+        };
+        localStorage.setItem(key, JSON.stringify(cacheEntry));
+        console.log(`💾 [CACHE] Saved: ${key} (ttl: ${Math.round(ttl / 1000)}s)`);
+
+        // Cleanup old entries if needed
+        cleanupCache();
+    } catch (error) {
+        console.warn('⚠️ [CACHE] Error saving to cache:', error);
+        // If localStorage is full, clear old cache entries
+        if (error.name === 'QuotaExceededError') {
+            clearAllCache();
+        }
+    }
+}
+
+/**
+ * Clear all Shopify cache entries
+ */
+function clearAllCache() {
+    try {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+        keys.forEach(k => localStorage.removeItem(k));
+        console.log(`🧹 [CACHE] Cleared ${keys.length} cache entries`);
+    } catch (error) {
+        console.warn('⚠️ [CACHE] Error clearing cache:', error);
+    }
+}
+
+/**
+ * Clear cache for a specific store
+ * @param {string} storeKey - Store identifier
+ */
+function clearStoreCache(storeKey) {
+    try {
+        const keys = Object.keys(localStorage).filter(k =>
+            k.startsWith(CACHE_CONFIG.PREFIX) && k.includes(storeKey)
+        );
+        keys.forEach(k => localStorage.removeItem(k));
+        console.log(`🧹 [CACHE] Cleared ${keys.length} cache entries for store: ${storeKey}`);
+    } catch (error) {
+        console.warn('⚠️ [CACHE] Error clearing store cache:', error);
+    }
+}
+
+/**
+ * Cleanup old cache entries to stay under MAX_ENTRIES
+ */
+function cleanupCache() {
+    try {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+
+        if (keys.length <= CACHE_CONFIG.MAX_ENTRIES) return;
+
+        // Get entries with timestamps
+        const entries = keys.map(key => {
+            try {
+                const cached = JSON.parse(localStorage.getItem(key));
+                return { key, timestamp: cached?.timestamp || 0 };
+            } catch {
+                return { key, timestamp: 0 };
+            }
+        });
+
+        // Sort by timestamp (oldest first) and remove excess
+        entries.sort((a, b) => a.timestamp - b.timestamp);
+        const toRemove = entries.slice(0, entries.length - CACHE_CONFIG.MAX_ENTRIES);
+
+        toRemove.forEach(({ key }) => localStorage.removeItem(key));
+        console.log(`🧹 [CACHE] Cleaned up ${toRemove.length} old entries`);
+    } catch (error) {
+        console.warn('⚠️ [CACHE] Error during cleanup:', error);
+    }
+}
+
+/**
+ * Get cache statistics
+ * @returns {Object} Cache stats
+ */
+function getCacheStats() {
+    try {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+        let totalSize = 0;
+        let validEntries = 0;
+        let expiredEntries = 0;
+
+        keys.forEach(key => {
+            const item = localStorage.getItem(key);
+            totalSize += item ? item.length : 0;
+
+            try {
+                const { timestamp, ttl } = JSON.parse(item);
+                if (Date.now() - timestamp <= ttl) {
+                    validEntries++;
+                } else {
+                    expiredEntries++;
+                }
+            } catch {
+                expiredEntries++;
+            }
+        });
+
+        return {
+            totalEntries: keys.length,
+            validEntries,
+            expiredEntries,
+            totalSizeKB: Math.round(totalSize / 1024 * 100) / 100
+        };
+    } catch (error) {
+        return { error: error.message };
+    }
+}
+
+// =============================================================================
 // GRAPHQL BULK OPERATIONS
 // =============================================================================
 //
@@ -809,10 +1001,11 @@ function transformBulkDataToAnalytics(bulkOrders, locationId = null) {
  * @param {string} period - 'today', 'week', 'month', 'quarter', 'year', or 'custom'
  * @param {Function|null} onProgress - Progress callback (percent, message)
  * @param {Object|null} customRange - { startDate: Date, endDate: Date } for custom ranges
+ * @param {boolean} forceRefresh - Force refresh from API, bypassing cache (default: false)
  * @returns {Promise<Object>} Analytics data in standard format
  */
-async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null) {
-    console.log('🚀 [BULK] fetchSalesAnalyticsBulk called with:', { storeKey, locationId, period, customRange });
+async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null, forceRefresh = false) {
+    console.log('🚀 [BULK] fetchSalesAnalyticsBulk called with:', { storeKey, locationId, period, customRange, forceRefresh });
 
     const storeConfig = STORES_CONFIG[storeKey];
 
@@ -823,12 +1016,39 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
 
     console.log('✅ [BULK] Store config found:', storeConfig.name);
 
+    // Generate cache key for this request
+    const dateRange = getDateRange(period, customRange);
+    const cacheKey = generateCacheKey('analyticsBulk', {
+        store: storeKey,
+        location: locationId,
+        period: period,
+        since: dateRange.since.split('T')[0], // Just date part for cache key
+        until: dateRange.until.split('T')[0]
+    });
+
+    // Check cache first (unless forceRefresh)
+    if (!forceRefresh) {
+        const cached = getFromCache(cacheKey);
+        if (cached) {
+            console.log('📦 [BULK] Returning cached data');
+            if (onProgress) {
+                onProgress(100, 'Loaded from cache');
+            }
+            // Add cache metadata to response
+            cached.data.fromCache = true;
+            cached.data.cacheAge = cached.cacheAge;
+            cached.data.cacheAgeFormatted = formatCacheAge(cached.cacheAge);
+            return cached.data;
+        }
+    } else {
+        console.log('🔄 [BULK] Force refresh requested, bypassing cache');
+    }
+
     // Location filtering is now supported - we fetch all orders and filter by fulfillment location
     if (locationId) {
         console.log('📍 [BULK] Location filter active:', locationId);
     }
 
-    const dateRange = getDateRange(period, customRange);
     console.log('📅 [BULK] Date range:', dateRange);
 
     if (onProgress) {
@@ -851,7 +1071,7 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
     if (!completedOp.url) {
         // No data returned (empty result)
         console.log('📭 Bulk operation completed but no data URL - likely no orders in range');
-        return {
+        const emptyResult = {
             summary: {
                 totalSales: '0.00',
                 netSales: '0.00',
@@ -876,8 +1096,12 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
                 period,
                 since: dateRange.since,
                 until: dateRange.until
-            }
+            },
+            fromCache: false
         };
+        // Cache empty result too (shorter TTL)
+        saveToCache(cacheKey, emptyResult, CACHE_CONFIG.TTL.analytics);
+        return emptyResult;
     }
 
     // Step 3: Download and parse NDJSON
@@ -916,11 +1140,30 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
         until: dateRange.until
     };
 
+    analytics.fromCache = false;
+
+    // Save to cache
+    saveToCache(cacheKey, analytics, CACHE_CONFIG.TTL.analyticsBulk);
+
     if (onProgress) {
         onProgress(100, 'Complete!');
     }
 
     return analytics;
+}
+
+/**
+ * Format cache age for display
+ * @param {number} ageMs - Age in milliseconds
+ * @returns {string} Formatted age string
+ */
+function formatCacheAge(ageMs) {
+    const seconds = Math.floor(ageMs / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
 }
 
 // CORS Proxy Configuration
@@ -1043,20 +1286,40 @@ function parseTaxBreakdown(taxLines) {
 
 /**
  * Fetch locations for a store
+ * Uses localStorage cache with 1 hour TTL (locations rarely change)
+ *
+ * @param {string} storeKey - Store identifier
+ * @param {boolean} forceRefresh - Force refresh from API
+ * @returns {Promise<Array>} Array of location objects
  */
-async function fetchStoreLocations(storeKey) {
+async function fetchStoreLocations(storeKey, forceRefresh = false) {
     const storeConfig = STORES_CONFIG[storeKey];
 
     if (!storeConfig) {
         throw new Error(`Invalid store key: ${storeKey}`);
     }
 
-    // Return cached locations if available
-    if (locationCache[storeKey]) {
-        return locationCache[storeKey];
+    // Generate cache key
+    const cacheKey = generateCacheKey('locations', { store: storeKey });
+
+    // Check localStorage cache first (unless forceRefresh)
+    if (!forceRefresh) {
+        const cached = getFromCache(cacheKey);
+        if (cached) {
+            console.log(`📍 [Locations] Returning cached locations for ${storeConfig.name}`);
+            // Also update memory cache
+            locationCache[storeKey] = cached.data;
+            return cached.data;
+        }
+
+        // Fallback to memory cache
+        if (locationCache[storeKey]) {
+            return locationCache[storeKey];
+        }
     }
 
     try {
+        console.log(`📍 [Locations] Fetching locations for ${storeConfig.name}...`);
         const data = await fetchShopifyAPI('locations.json', {}, storeConfig);
 
         // Map locations to a more usable format
@@ -1066,9 +1329,13 @@ async function fetchStoreLocations(storeKey) {
             active: loc.active
         }));
 
-        // Cache the results
+        // Cache in memory
         locationCache[storeKey] = locations;
 
+        // Cache in localStorage
+        saveToCache(cacheKey, locations, CACHE_CONFIG.TTL.locations);
+
+        console.log(`✅ [Locations] Loaded ${locations.length} locations for ${storeConfig.name}`);
         return locations;
     } catch (error) {
         console.error('Failed to fetch locations:', error);
@@ -1492,12 +1759,36 @@ function formatDateTime(dateString) {
  * Fetch products/inventory from a Shopify store
  * Uses GraphQL for better performance and data quality
  * For VSU: fetches inventory levels per location
+ *
+ * @param {string} storeKey - Store identifier
+ * @param {number} limit - Max products to fetch
+ * @param {boolean} forceRefresh - Force refresh from API, bypassing cache
+ * @returns {Promise<Array>} Array of inventory items
  */
-async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
+async function fetchStoreInventory(storeKey = 'vsu', limit = 100, forceRefresh = false) {
     const storeConfig = STORES_CONFIG[storeKey];
 
     if (!storeConfig) {
         throw new Error(`Invalid store key: ${storeKey}`);
+    }
+
+    // Generate cache key
+    const cacheKey = generateCacheKey('inventory', { store: storeKey, limit });
+
+    // Check cache first (unless forceRefresh)
+    if (!forceRefresh) {
+        const cached = getFromCache(cacheKey);
+        if (cached) {
+            console.log(`📦 [Inventory] Returning cached data for ${storeConfig.name}`);
+            // Add cache metadata
+            cached.data.forEach(item => {
+                item.fromCache = true;
+                item.cacheAge = cached.cacheAge;
+            });
+            return cached.data;
+        }
+    } else {
+        console.log(`🔄 [Inventory] Force refresh requested for ${storeConfig.name}`);
     }
 
     console.log(`📦 [Inventory] Fetching inventory from ${storeConfig.name}...`);
@@ -1507,7 +1798,10 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
     // For stores with multiple locations (VSU), fetch inventory levels per location
     if (storeConfig.hasMultipleLocations && storeConfig.locations) {
         try {
-            return await fetchStoreInventoryWithLocations(storeConfig, storeKey, limit);
+            const inventory = await fetchStoreInventoryWithLocations(storeConfig, storeKey, limit);
+            // Save to cache
+            saveToCache(cacheKey, inventory, CACHE_CONFIG.TTL.inventory);
+            return inventory;
         } catch (error) {
             console.warn(`⚠️ [Inventory] Location-based fetch failed for ${storeConfig.name}, falling back to standard fetch:`, error);
             // Fall through to standard fetch
@@ -1594,12 +1888,17 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
                     minStock: 10, // Default min stock
                     productType: product.productType || 'General',
                     status: product.status,
-                    imageUrl: imageUrl
+                    imageUrl: imageUrl,
+                    fromCache: false
                 };
             });
         }).flat();
 
         console.log(`✅ [Inventory] Loaded ${products.length} items from ${storeConfig.name}`);
+
+        // Save to cache
+        saveToCache(cacheKey, products, CACHE_CONFIG.TTL.inventory);
+
         return products;
     } catch (error) {
         console.error(`❌ [Inventory] Error fetching from ${storeConfig.name}:`, error);
@@ -1832,11 +2131,16 @@ function mapVSULocationName(shopifyLocationName) {
 
 /**
  * Fetch inventory from all configured stores
+ *
+ * @param {Function|null} onProgress - Progress callback
+ * @param {boolean} forceRefresh - Force refresh from API, bypassing cache
+ * @returns {Promise<Array>} Combined inventory from all stores
  */
-async function fetchAllStoresInventory(onProgress = null) {
+async function fetchAllStoresInventory(onProgress = null, forceRefresh = false) {
     const allInventory = [];
     const storeKeys = Object.keys(STORES_CONFIG);
     let completed = 0;
+    let fromCache = true;
 
     console.log(`📦 [Inventory] Fetching inventory from ${storeKeys.length} stores...`);
 
@@ -1847,8 +2151,14 @@ async function fetchAllStoresInventory(onProgress = null) {
                 onProgress(progress, `Loading ${STORES_CONFIG[storeKey].name}...`);
             }
 
-            const storeInventory = await fetchStoreInventory(storeKey);
+            const storeInventory = await fetchStoreInventory(storeKey, 100, forceRefresh);
             allInventory.push(...storeInventory);
+
+            // Check if any item was not from cache
+            if (storeInventory.some(item => !item.fromCache)) {
+                fromCache = false;
+            }
+
             completed++;
         } catch (error) {
             console.error(`Failed to fetch inventory from ${storeKey}:`, error);
@@ -1857,7 +2167,8 @@ async function fetchAllStoresInventory(onProgress = null) {
     }
 
     if (onProgress) {
-        onProgress(100, 'Complete!');
+        const message = fromCache ? 'Loaded from cache' : 'Complete!';
+        onProgress(100, message);
     }
 
     return allInventory;
@@ -1868,6 +2179,48 @@ async function fetchAllStoresInventory(onProgress = null) {
  */
 function getStoresConfig() {
     return STORES_CONFIG;
+}
+
+// =============================================================================
+// CACHE UTILITY EXPORTS
+// =============================================================================
+// Expose cache utilities for external use (e.g., manual refresh, stats display)
+
+/**
+ * Get cache configuration
+ */
+function getCacheConfig() {
+    return CACHE_CONFIG;
+}
+
+/**
+ * Force refresh all cached data for a specific store
+ * @param {string} storeKey - Store identifier
+ */
+async function refreshStoreData(storeKey) {
+    console.log(`🔄 [CACHE] Refreshing all data for store: ${storeKey}`);
+    clearStoreCache(storeKey);
+
+    // Pre-fetch fresh data
+    try {
+        await fetchStoreLocations(storeKey, true);
+        await fetchStoreInventory(storeKey, 100, true);
+        console.log(`✅ [CACHE] Store data refreshed: ${storeKey}`);
+    } catch (error) {
+        console.error(`❌ [CACHE] Error refreshing store data:`, error);
+    }
+}
+
+/**
+ * Force refresh all cached analytics data
+ */
+function refreshAnalyticsCache() {
+    console.log('🔄 [CACHE] Clearing all analytics cache');
+    const keys = Object.keys(localStorage).filter(k =>
+        k.startsWith(CACHE_CONFIG.PREFIX) && k.includes('analytics')
+    );
+    keys.forEach(k => localStorage.removeItem(k));
+    console.log(`🧹 [CACHE] Cleared ${keys.length} analytics cache entries`);
 }
 
 
