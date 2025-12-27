@@ -13144,7 +13144,7 @@ window.viewChecklistHistory = async function() {
         }
 
         // Add new custom category
-        async function addInvoiceCategory(name) {
+        window.addInvoiceCategory = async function(name) {
             if (!name || name.trim() === '') return null;
 
             const trimmedName = name.trim();
@@ -13177,7 +13177,7 @@ window.viewChecklistHistory = async function() {
         }
 
         // Delete custom category
-        async function deleteInvoiceCategory(categoryId) {
+        window.deleteInvoiceCategory = async function(categoryId) {
             // Prevent deleting default categories
             if (DEFAULT_INVOICE_CATEGORIES.some(c => c.id === categoryId)) {
                 showToast('Cannot delete default categories', 'warning');
