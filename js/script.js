@@ -35710,9 +35710,8 @@ Initializing test...
     updateStatus('openai', 'Testing...', 'testing');
 
     try {
-        const openaiKey = window.OPENAI_API_KEY || localStorage.getItem('openai_api_key') ||
-            (typeof window.celesteFirebaseSettings !== 'undefined' ? window.celesteFirebaseSettings?.openai_api_key : null) ||
-            (typeof DEFAULT_OPENAI_KEY !== 'undefined' ? DEFAULT_OPENAI_KEY : null);
+        // Direct API key - no need to fetch from multiple sources
+        const openaiKey = DEFAULT_OPENAI_KEY || window.OPENAI_API_KEY || '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';
         const corsProxy = 'https://corsproxy.io/?';
 
         updateDetails('openai', `[${new Date().toLocaleTimeString()}] Starting OpenAI GPT-4 test...`, false);
@@ -35780,6 +35779,48 @@ Initializing test...
     console.log('=== AI API TEST SUMMARY ===');
     console.log('OpenAI GPT-4:', openaiSuccess ? '✅ SUCCESS' : '❌ FAILED');
 }
+
+// Quick test function - call from console: testOpenAI()
+window.testOpenAI = async function() {
+    const apiKey = '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';
+    const corsProxy = 'https://corsproxy.io/?';
+
+    console.log('🧪 Testing OpenAI API...');
+    console.log('🔑 Key:', apiKey.substring(0, 20) + '...');
+
+    try {
+        const response = await fetch(corsProxy + 'https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                max_tokens: 50,
+                messages: [{ role: 'user', content: 'Say "Hola! OpenAI funciona perfecto!" in Spanish.' }]
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const msg = data.choices?.[0]?.message?.content;
+            console.log('✅ SUCCESS!');
+            console.log('💬 Response:', msg);
+            alert('✅ OpenAI funciona!\n\n' + msg);
+            return true;
+        } else {
+            console.error('❌ Error:', data.error?.message);
+            alert('❌ Error: ' + data.error?.message);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error:', error.message);
+        alert('❌ Error: ' + error.message);
+        return false;
+    }
+};
 
 // Animated counter function
 function animateCounters() {
@@ -36542,7 +36583,7 @@ window.resetAIProviderKeys = async function() {
 // ═══════════════════════════════════════════════════════════════
 // OpenAI GPT-4 (used by Celeste AI and all voice assistants)
 // Get your API key at: https://platform.openai.com/api-keys
-const DEFAULT_OPENAI_KEY = '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';
+const DEFAULT_OPENAI_KEY = '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';
 
 // Initialize default API key in localStorage on app load
 (function initializeDefaultAPIKey() {

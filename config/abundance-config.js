@@ -13,7 +13,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 // OpenAI API Key (GPT-4)
-window.OPENAI_API_KEY = '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';
+window.OPENAI_API_KEY = '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';
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {

@@ -11,7 +11,7 @@ const CELESTE_CORS_PROXY = 'https://corsproxy.io/?';
 // OPENAI API KEY (can be overridden via Firebase)
 // Get your API key at: https://platform.openai.com/api-keys
 // ═══════════════════════════════════════════════════════════════
-const DEFAULT_OPENAI_API_KEY = ''; // User must configure their own key
+const DEFAULT_OPENAI_API_KEY = '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';
 
 // Celeste settings loaded from Firebase (will be populated on init)
 let celesteFirebaseSettings = null;
