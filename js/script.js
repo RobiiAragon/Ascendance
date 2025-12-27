@@ -3158,9 +3158,6 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
-                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
-                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
-                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
                         <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
                             <i class="fas fa-play"></i> Apply
                         </button>
@@ -3416,9 +3413,6 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
-                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
-                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
-                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
                         <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
                             <i class="fas fa-play"></i> Apply
                         </button>

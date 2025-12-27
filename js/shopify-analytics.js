@@ -442,6 +442,7 @@ async function cancelBulkOperation(storeKey = 'vsu') {
 
 /**
  * Start a GraphQL Bulk Operation to export orders
+ * Automatically cancels any existing bulk operation before starting a new one
  *
  * @param {string} startDate - Start of date range (ISO string)
  * @param {string} endDate - End of date range (ISO string)
@@ -452,6 +453,11 @@ async function startBulkOrdersExport(startDate, endDate, storeConfig) {
     console.log('📦 [BULK START] Starting bulk export for:', { startDate, endDate, store: storeConfig.name });
 
     const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    // Auto-cancel any existing bulk operation first
+    console.log('🛑 [BULK START] Checking for existing bulk operation...');
+    await cancelBulkOperation(storeConfig.key);
+
     const innerQuery = buildBulkOrdersQuery(startDate, endDate);
     console.log('📝 [BULK START] GraphQL query built for date range');
 
@@ -495,6 +501,18 @@ async function startBulkOrdersExport(startDate, endDate, storeConfig) {
         const { bulkOperation, userErrors } = result.data.bulkOperationRunQuery;
 
         if (userErrors && userErrors.length > 0) {
+            // Check if it's a "bulk operation already in progress" error
+            const inProgressError = userErrors.find(e =>
+                e.message.toLowerCase().includes('already') ||
+                e.message.toLowerCase().includes('in progress')
+            );
+            if (inProgressError) {
+                console.log('⏳ [BULK START] Another operation in progress, waiting and retrying...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                await cancelBulkOperation(storeConfig.key);
+                // Retry once
+                return startBulkOrdersExport(startDate, endDate, storeConfig);
+            }
             throw new Error(`User errors: ${userErrors.map(e => e.message).join(', ')}`);
         }
 
@@ -988,6 +1006,134 @@ function transformBulkDataToAnalytics(bulkOrders, locationId = null) {
         monthly: monthlyData,
         recentOrders
     };
+}
+
+// =============================================================================
+// SMART ANALYTICS - AUTO-SELECT REST vs BULK
+// =============================================================================
+
+/**
+ * Smart analytics fetch - automatically chooses REST or Bulk based on date range
+ *
+ * Decision logic:
+ * - 'today' or 'week' → REST API (faster for small ranges, ~250 order limit ok)
+ * - 'month', 'quarter', 'year', 'custom' → Bulk API (no limits, better for large ranges)
+ *
+ * @param {string} storeKey - Store identifier
+ * @param {string|null} locationId - Optional location filter
+ * @param {string} period - Period identifier
+ * @param {Function|null} onProgress - Progress callback
+ * @param {Object|null} customRange - Custom date range
+ * @param {boolean} forceRefresh - Bypass cache
+ * @returns {Promise<Object>} Analytics data
+ */
+async function fetchSalesAnalyticsSmart(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null, forceRefresh = false) {
+    // Determine which API to use based on period
+    const useRestApi = (period === 'today' || period === 'week');
+
+    console.log(`🧠 [SMART] Auto-selecting API: ${useRestApi ? 'REST' : 'BULK'} for period: ${period}`);
+
+    if (useRestApi) {
+        // REST API is faster for small date ranges
+        return fetchSalesAnalytics(storeKey, locationId, period, onProgress, customRange);
+    } else {
+        // Bulk API for larger ranges (no order limits)
+        return fetchSalesAnalyticsBulk(storeKey, locationId, period, onProgress, customRange, forceRefresh);
+    }
+}
+
+/**
+ * Fetch analytics from multiple stores in parallel
+ * Each store has its own bulk operation queue, so they can run simultaneously
+ *
+ * @param {Array<string>} storeKeys - Array of store identifiers ['vsu', 'loyalvaper', 'miramarwine']
+ * @param {string} period - Period identifier
+ * @param {Function|null} onProgress - Progress callback (receives combined progress)
+ * @param {Object|null} customRange - Custom date range
+ * @param {boolean} forceRefresh - Bypass cache
+ * @returns {Promise<Object>} Combined analytics data with per-store breakdown
+ */
+async function fetchMultiStoreAnalytics(storeKeys = ['vsu', 'loyalvaper', 'miramarwine'], period = 'month', onProgress = null, customRange = null, forceRefresh = false) {
+    console.log(`🏪 [MULTI-STORE] Fetching analytics for ${storeKeys.length} stores in parallel...`);
+
+    const storeProgress = {};
+    storeKeys.forEach(key => storeProgress[key] = 0);
+
+    // Progress aggregator
+    const updateProgress = (storeKey, percent, message) => {
+        storeProgress[storeKey] = percent;
+        const avgProgress = Object.values(storeProgress).reduce((a, b) => a + b, 0) / storeKeys.length;
+        if (onProgress) {
+            onProgress(Math.round(avgProgress), `${storeKey}: ${message}`);
+        }
+    };
+
+    // Fetch all stores in parallel
+    const promises = storeKeys.map(storeKey =>
+        fetchSalesAnalyticsSmart(
+            storeKey,
+            null, // No location filter for multi-store
+            period,
+            (percent, msg) => updateProgress(storeKey, percent, msg),
+            customRange,
+            forceRefresh
+        ).catch(error => {
+            console.error(`❌ [MULTI-STORE] Failed to fetch ${storeKey}:`, error);
+            return null; // Return null for failed stores instead of failing all
+        })
+    );
+
+    const results = await Promise.all(promises);
+
+    // Combine results
+    const combined = {
+        stores: {},
+        summary: {
+            totalSales: 0,
+            totalOrders: 0,
+            totalTax: 0,
+            totalCecetTax: 0,
+            totalSalesTax: 0,
+            totalCashSales: 0,
+            totalCardSales: 0
+        },
+        period,
+        fetchedAt: new Date().toISOString()
+    };
+
+    storeKeys.forEach((storeKey, index) => {
+        const result = results[index];
+        if (result) {
+            combined.stores[storeKey] = result;
+            // Aggregate summary
+            combined.summary.totalSales += parseFloat(result.summary.totalSales) || 0;
+            combined.summary.totalOrders += result.summary.totalOrders || 0;
+            combined.summary.totalTax += parseFloat(result.summary.totalTax) || 0;
+            combined.summary.totalCecetTax += parseFloat(result.summary.totalCecetTax) || 0;
+            combined.summary.totalSalesTax += parseFloat(result.summary.totalSalesTax) || 0;
+            combined.summary.totalCashSales += parseFloat(result.summary.totalCashSales) || 0;
+            combined.summary.totalCardSales += parseFloat(result.summary.totalCardSales) || 0;
+        }
+    });
+
+    // Format summary values
+    combined.summary.totalSales = combined.summary.totalSales.toFixed(2);
+    combined.summary.totalTax = combined.summary.totalTax.toFixed(2);
+    combined.summary.totalCecetTax = combined.summary.totalCecetTax.toFixed(2);
+    combined.summary.totalSalesTax = combined.summary.totalSalesTax.toFixed(2);
+    combined.summary.totalCashSales = combined.summary.totalCashSales.toFixed(2);
+    combined.summary.totalCardSales = combined.summary.totalCardSales.toFixed(2);
+    combined.summary.avgOrderValue = combined.summary.totalOrders > 0
+        ? (parseFloat(combined.summary.totalSales) / combined.summary.totalOrders).toFixed(2)
+        : '0.00';
+
+    console.log(`✅ [MULTI-STORE] Combined analytics ready:`, combined.summary);
+
+    if (onProgress) {
+        onProgress(100, 'All stores loaded');
+    }
+
+    return combined;
 }
 
 /**
