@@ -36488,7 +36488,7 @@ window.saveAIProviderKeys = async function() {
         // Save to Firebase (cloud-only)
         if (typeof window.saveFirebaseAPIKeys === 'function') {
             if (openaiKey) {
-                const success = await window.saveFirebaseAPIKeys(undefined, openaiKey);
+                const success = await window.saveFirebaseAPIKeys(openaiKey);
 
                 if (success) {
                     showNotification('OpenAI API key saved to cloud successfully!', 'success');
