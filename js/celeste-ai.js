@@ -1,6 +1,6 @@
 /**
  * Celeste AI - Intelligent Assistant for Ascendance Hub
- * Voice & Text powered by OpenAI GPT-4 / Anthropic Claude (Switchable)
+ * Voice & Text powered by OpenAI GPT-4
  * Handles all module actions through natural language
  */
 
@@ -8,39 +8,21 @@
 const CELESTE_CORS_PROXY = 'https://corsproxy.io/?';
 
 // ═══════════════════════════════════════════════════════════════
-// DEFAULT API KEYS (can be overridden via Firebase or localStorage)
+// OPENAI API KEY (can be overridden via Firebase)
+// Get your API key at: https://platform.openai.com/api-keys
 // ═══════════════════════════════════════════════════════════════
-// PRIMARY: Anthropic Claude
-const DEFAULT_ANTHROPIC_API_KEY = 'sk-ant-api03-09Q7EwKig5XiQ20t2bvOAluPYPxDgu5-8_N5cI25_8A1rPc44QkeVIBedrx2faxeddBUg-_8pTFgAA';
-// FALLBACK: OpenAI GPT-4
-const DEFAULT_OPENAI_API_KEY = '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';
-
-// ═══════════════════════════════════════════════════════════════
-// AI PROVIDER CONFIGURATION - Primary & Fallback System
-// ═══════════════════════════════════════════════════════════════
-// Primary provider: 'openai' (GPT-4) - More stable for browser-based calls
-const AI_PROVIDER = 'openai'; // <-- PRIMARY PROVIDER (OpenAI GPT-4)
-const AI_FALLBACK_PROVIDER = 'anthropic'; // <-- FALLBACK PROVIDER (Claude)
+const DEFAULT_OPENAI_API_KEY = ''; // User must configure their own key
 
 // Celeste settings loaded from Firebase (will be populated on init)
 let celesteFirebaseSettings = null;
 
-// Provider-specific configurations
-const AI_PROVIDERS = {
-    openai: {
-        name: 'OpenAI GPT-4',
-        apiEndpoint: 'https://api.openai.com/v1/chat/completions',
-        model: 'gpt-4o',
-        maxTokens: 1024,
-        getApiKey: () => celesteFirebaseSettings?.openai_api_key || DEFAULT_OPENAI_API_KEY
-    },
-    anthropic: {
-        name: 'Anthropic Claude',
-        apiEndpoint: 'https://api.anthropic.com/v1/messages',
-        model: 'claude-3-5-sonnet-20241022',
-        maxTokens: 1024,
-        getApiKey: () => celesteFirebaseSettings?.anthropic_api_key || DEFAULT_ANTHROPIC_API_KEY
-    }
+// OpenAI Configuration
+const AI_CONFIG = {
+    name: 'OpenAI GPT-4',
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o',
+    maxTokens: 1024,
+    getApiKey: () => celesteFirebaseSettings?.openai_api_key || DEFAULT_OPENAI_API_KEY
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -48,63 +30,53 @@ const AI_PROVIDERS = {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get API key from Firebase (cloud-only, no localStorage)
- * @param {string} provider - 'anthropic' or 'openai'
- * @returns {string} The API key or default
+ * Get OpenAI API key from Firebase
+ * @returns {string} The API key
  */
-window.getFirebaseAPIKey = function(provider) {
-    const keyField = provider === 'openai' ? 'openai_api_key' : 'anthropic_api_key';
-    const defaultKey = provider === 'openai' ? DEFAULT_OPENAI_API_KEY : DEFAULT_ANTHROPIC_API_KEY;
-    return celesteFirebaseSettings?.[keyField] || defaultKey;
+window.getFirebaseAPIKey = function() {
+    return celesteFirebaseSettings?.openai_api_key || DEFAULT_OPENAI_API_KEY;
 };
 
 /**
- * Save API key to Firebase (cloud-only)
- * @param {string} provider - 'anthropic' or 'openai'
+ * Save OpenAI API key to Firebase
  * @param {string} apiKey - The API key to save
  * @returns {Promise<boolean>} Success status
  */
-window.saveFirebaseAPIKey = async function(provider, apiKey) {
-    const keyField = provider === 'openai' ? 'openai_api_key' : 'anthropic_api_key';
-    return await saveCelesteSettingsToFirebase({ [keyField]: apiKey });
+window.saveFirebaseAPIKey = async function(apiKey) {
+    return await saveCelesteSettingsToFirebase({ openai_api_key: apiKey });
 };
 
 /**
- * Get both API keys from Firebase
- * @returns {Object} { anthropic_api_key, openai_api_key, hasCustomAnthropicKey, hasCustomOpenAIKey }
+ * Get API key info from Firebase
+ * @returns {Object} { openai_api_key, hasCustomOpenAIKey }
  */
 window.getFirebaseAPIKeys = function() {
-    const anthropicKey = celesteFirebaseSettings?.anthropic_api_key || '';
     const openaiKey = celesteFirebaseSettings?.openai_api_key || '';
     return {
-        anthropic_api_key: anthropicKey,
         openai_api_key: openaiKey,
-        hasCustomAnthropicKey: anthropicKey && anthropicKey !== DEFAULT_ANTHROPIC_API_KEY,
-        hasCustomOpenAIKey: openaiKey && openaiKey !== DEFAULT_OPENAI_API_KEY
+        hasCustomOpenAIKey: !!openaiKey
     };
 };
 
 /**
- * Save both API keys to Firebase
- * @param {string} anthropicKey - Anthropic API key
+ * Save OpenAI API key to Firebase
  * @param {string} openaiKey - OpenAI API key
  * @returns {Promise<boolean>} Success status
  */
-window.saveFirebaseAPIKeys = async function(anthropicKey, openaiKey) {
-    const settings = {};
-    if (anthropicKey !== undefined) settings.anthropic_api_key = anthropicKey;
-    if (openaiKey !== undefined) settings.openai_api_key = openaiKey;
-    return await saveCelesteSettingsToFirebase(settings);
+window.saveFirebaseAPIKeys = async function(openaiKey) {
+    if (openaiKey !== undefined) {
+        return await saveCelesteSettingsToFirebase({ openai_api_key: openaiKey });
+    }
+    return false;
 };
 
 /**
- * Reset API keys to defaults in Firebase
+ * Reset API key in Firebase
  * @returns {Promise<boolean>} Success status
  */
 window.resetFirebaseAPIKeys = async function() {
     return await saveCelesteSettingsToFirebase({
-        anthropic_api_key: DEFAULT_ANTHROPIC_API_KEY,
-        openai_api_key: DEFAULT_OPENAI_API_KEY
+        openai_api_key: ''
     });
 };
 
@@ -311,7 +283,6 @@ async function loadCelesteSettingsFromFirebase() {
             // Initialize settings in Firebase with default API key
             await saveCelesteSettingsToFirebase({
                 openai_api_key: DEFAULT_OPENAI_API_KEY,
-                anthropic_api_key: '',
                 provider: AI_PROVIDER,
                 created_at: new Date().toISOString()
             });
@@ -350,9 +321,8 @@ async function saveCelesteSettingsToFirebase(settings) {
 /**
  * Update Celeste API key (can be called from settings page)
  */
-async function updateCelesteApiKey(provider, apiKey) {
-    const keyField = provider === 'openai' ? 'openai_api_key' : 'anthropic_api_key';
-    return await saveCelesteSettingsToFirebase({ [keyField]: apiKey });
+async function updateCelesteApiKey(apiKey) {
+    return await saveCelesteSettingsToFirebase({ openai_api_key: apiKey });
 }
 
 /**
@@ -1036,7 +1006,7 @@ async function sendCelesteMessage() {
 }
 
 /**
- * Process message with AI (OpenAI or Anthropic based on config)
+ * Process message with AI (OpenAI GPT-4)
  */
 async function processCelesteMessage(userMessage) {
     // First, try to detect intent locally
@@ -1046,116 +1016,65 @@ async function processCelesteMessage(userMessage) {
         return localIntent;
     }
 
+    // Get OpenAI API key
+    const openaiApiKey = AI_CONFIG.getApiKey();
+
     // If no API key, use local processing only
-    if (!CELESTE_CONFIG.apiKey) {
+    if (!openaiApiKey) {
         return {
-            message: `I understand you want to do something, but I need the ${CELESTE_CONFIG.providerName} API key to give you smarter responses. For now, try being more specific with commands like "record expense $50" or "go to sales".`,
+            message: `I need an OpenAI API key to give you smarter responses. Please configure your API key in Project Analytics settings. Get your key at: https://platform.openai.com/api-keys`,
             action: null
         };
     }
 
-    // Call AI API with fallback system (Primary: Claude, Fallback: OpenAI)
+    // Call OpenAI API
     const systemPrompt = buildCelesteSystemPrompt();
     let assistantMessage = null;
 
-    // ═══════════════════════════════════════════════════════════════
-    // TRY PRIMARY PROVIDER FIRST (Anthropic Claude)
-    // ═══════════════════════════════════════════════════════════════
     try {
-        const anthropicConfig = AI_PROVIDERS.anthropic;
-        const anthropicApiKey = anthropicConfig.getApiKey();
+        console.log('🤖 Celeste: Calling OpenAI GPT-4...');
+        const openaiUrl = CELESTE_CORS_PROXY + encodeURIComponent(AI_CONFIG.apiEndpoint);
+        const response = await fetch(openaiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+                model: AI_CONFIG.model,
+                max_tokens: AI_CONFIG.maxTokens,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...celesteConversation.slice(-6),
+                    { role: 'user', content: userMessage }
+                ]
+            })
+        });
 
-        if (anthropicApiKey) {
-            console.log('🤖 Celeste: Trying primary provider (Anthropic Claude)...');
-            const response = await fetch(anthropicConfig.apiEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': anthropicApiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: anthropicConfig.model,
-                    max_tokens: anthropicConfig.maxTokens,
-                    system: systemPrompt,
-                    messages: [
-                        ...celesteConversation.slice(-6),
-                        { role: 'user', content: userMessage }
-                    ]
-                })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                assistantMessage = data.content[0].text;
-                console.log('✅ Celeste: Primary provider (Claude) succeeded');
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(`Anthropic API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-            }
+        if (response.ok) {
+            const data = await response.json();
+            assistantMessage = data.choices[0].message.content;
+            console.log('✅ Celeste: OpenAI GPT-4 succeeded');
         } else {
-            throw new Error('No Anthropic API key available');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
         }
-    } catch (primaryError) {
-        console.warn('⚠️ Celeste: Primary provider (Claude) failed:', primaryError.message);
-
-        // ═══════════════════════════════════════════════════════════════
-        // TRY FALLBACK PROVIDER (OpenAI GPT-4)
-        // ═══════════════════════════════════════════════════════════════
-        try {
-            const openaiConfig = AI_PROVIDERS.openai;
-            const openaiApiKey = openaiConfig.getApiKey();
-
-            if (openaiApiKey) {
-                console.log('🔄 Celeste: Trying fallback provider (OpenAI GPT-4)...');
-                const openaiUrl = CELESTE_CORS_PROXY + encodeURIComponent(openaiConfig.apiEndpoint);
-                const response = await fetch(openaiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${openaiApiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: openaiConfig.model,
-                        max_tokens: openaiConfig.maxTokens,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            ...celesteConversation.slice(-6),
-                            { role: 'user', content: userMessage }
-                        ]
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    assistantMessage = data.choices[0].message.content;
-                    console.log('✅ Celeste: Fallback provider (OpenAI) succeeded');
-                } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-                }
-            } else {
-                throw new Error('No OpenAI API key available');
-            }
-        } catch (fallbackError) {
-            console.error('❌ Celeste: Both providers failed:', fallbackError.message);
-            // All providers failed - return error message
-            return {
-                message: "I couldn't connect to any AI provider. Both Claude and OpenAI are unavailable. Please check your API keys in Project Analytics settings.",
-                action: null
-            };
-        }
+    } catch (error) {
+        console.error('❌ Celeste: OpenAI API failed:', error.message);
+        return {
+            message: "I couldn't connect to OpenAI. Please check your API key in Project Analytics settings. Get your key at: https://platform.openai.com/api-keys",
+            action: null
+        };
     }
 
-    // Successfully got a response from one of the providers
+    // Successfully got a response
     if (assistantMessage) {
         // Add to conversation history
         celesteConversation.push({ role: 'user', content: userMessage });
         celesteConversation.push({ role: 'assistant', content: assistantMessage });
 
-        // Parse response for actions (same format for both providers)
-        return parseAnthropicResponse(assistantMessage);
+        // Parse response for actions
+        return parseAIResponse(assistantMessage);
     }
 
     // Fallback if something unexpected happened
@@ -1167,7 +1086,6 @@ async function processCelesteMessage(userMessage) {
 
 /**
  * Build system prompt for AI - Full Integration with All Modules
- * Works with both OpenAI GPT-4 and Anthropic Claude
  */
 function buildCelesteSystemPrompt() {
     const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'User', role: 'employee' };
@@ -1432,9 +1350,9 @@ function detectLocalIntent(message) {
 }
 
 /**
- * Parse AI response for actions (works with both OpenAI and Anthropic)
+ * Parse AI response for actions
  */
-function parseAnthropicResponse(response) {
+function parseAIResponse(response) {
     // Look for action JSON in response - support multi-line JSON
     const actionMatch = response.match(/\[ACTION:(\{[\s\S]*?\})\]/);
 
@@ -3072,10 +2990,10 @@ function checkCelesteConnection() {
 
     if (apiKey) {
         statusEl.className = 'celeste-connection-status connected';
-        statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>Connected to Anthropic AI</span>';
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>Connected to OpenAI</span>';
     } else {
         statusEl.className = 'celeste-connection-status disconnected';
-        statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>API key not configured</span>';
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> <span>OpenAI API key not configured</span>';
     }
 }
 

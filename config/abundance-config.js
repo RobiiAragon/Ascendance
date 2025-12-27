@@ -1,21 +1,19 @@
 /**
  * Abundance Cloud Configuration
  *
- * ACTUALIZADO: 15 de Diciembre 2025
+ * ACTUALIZADO: 26 de Diciembre 2025
  * Sistema completo con Firebase Authentication y Firestore
- * Celeste AI Assistant con Claude
+ * Celeste AI Assistant con OpenAI GPT-4
  */
 
 // ═══════════════════════════════════════════════════════════════
-// CELESTE AI - API KEYS
-// Currently using: OpenAI GPT-4 (switch in js/celeste-ai.js → AI_PROVIDER)
+// CELESTE AI - API KEY
+// Powered by OpenAI GPT-4
+// Get your API key at: https://platform.openai.com/api-keys
 // ═══════════════════════════════════════════════════════════════
 
-// OpenAI API Key (GPT-4) - CURRENTLY ACTIVE
+// OpenAI API Key (GPT-4)
 window.OPENAI_API_KEY = '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';
-
-// Anthropic API Key (Claude) - For switching back to Claude
-window.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-placeholder';
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {
