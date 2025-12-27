@@ -53,8 +53,11 @@ const AI_CONFIG = {
     apiEndpoint: 'https://api.openai.com/v1/chat/completions',
     model: 'gpt-4o',
     maxTokens: 1024,
-    getApiKey: () => celesteFirebaseSettings?.openai_api_key || DEFAULT_OPENAI_API_KEY
+    getApiKey: () => DEFAULT_OPENAI_API_KEY
 };
+
+// Make API key globally accessible
+window.OPENAI_API_KEY = DEFAULT_OPENAI_API_KEY;
 
 // ═══════════════════════════════════════════════════════════════
 // FIREBASE API KEY MANAGEMENT (Cloud-only storage)
@@ -1029,16 +1032,8 @@ async function processCelesteMessage(userMessage) {
         return localIntent;
     }
 
-    // Get OpenAI API key
-    const openaiApiKey = AI_CONFIG.getApiKey();
-
-    // If no API key, use local processing only
-    if (!openaiApiKey) {
-        return {
-            message: `I need an OpenAI API key to give you smarter responses. Please configure your API key in Project Analytics settings. Get your key at: https://platform.openai.com/api-keys`,
-            action: null
-        };
-    }
+    // OpenAI API key - hardcoded for reliability
+    const openaiApiKey = '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';
 
     // Call OpenAI API
     const systemPrompt = buildCelesteSystemPrompt();

@@ -35710,19 +35710,15 @@ Initializing test...
     updateStatus('openai', 'Testing...', 'testing');
 
     try {
-        // Direct API key - no need to fetch from multiple sources
-        const openaiKey = DEFAULT_OPENAI_KEY || window.OPENAI_API_KEY || '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';
+        // Direct hardcoded API key for reliability
+        const openaiKey = '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';
         const corsProxy = 'https://corsproxy.io/?';
 
         updateDetails('openai', `[${new Date().toLocaleTimeString()}] Starting OpenAI GPT-4 test...`, false);
         updateDetails('openai', `📍 Endpoint: ${corsProxy}https://api.openai.com/v1/chat/completions`);
         updateDetails('openai', `🤖 Model: gpt-4o`);
         updateDetails('openai', `🔑 API Key: ${maskKey(openaiKey)}`);
-        updateDetails('openai', `🔄 Using CORS Proxy: Yes (OpenAI requires it for browser)`);
-
-        if (!openaiKey) {
-            throw new Error('No OpenAI API key configured. Go to Settings to add your key.');
-        }
+        updateDetails('openai', `🔄 Using CORS Proxy: Yes`);
 
         updateDetails('openai', `\n⏳ Sending request...`);
         const startTime = performance.now();
