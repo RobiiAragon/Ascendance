@@ -35859,6 +35859,11 @@ window.saveOpenAIKey = function() {
     const statusBadge = document.getElementById('celeste-api-status');
     const saveBtn = document.getElementById('save-key-btn');
 
+    if (!input) {
+        console.error('Input not found');
+        return;
+    }
+
     const apiKey = input.value.trim();
 
     if (!apiKey) {
@@ -35951,12 +35956,7 @@ window.quickTestOpenAI = async function() {
                 btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                 btn.disabled = false;
             }
-            if (resultDiv) {
-                resultDiv.innerHTML = `<div style="color: #10b981; font-weight: 600;"><i class="fas fa-check-circle"></i> ${latency}ms</div>`;
-            }
-            if (statusCard) {
-                statusCard.style.borderColor = 'rgba(16,185,129,0.5)';
-            }
+            console.log('⚡ Latency:', latency + 'ms');
             if (statusBadge) {
                 statusBadge.innerHTML = '● Connected';
                 statusBadge.style.background = 'rgba(16,185,129,0.15)';
@@ -35978,12 +35978,6 @@ window.quickTestOpenAI = async function() {
             btn.innerHTML = '<i class="fas fa-times-circle"></i> Failed - Try Again';
             btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
             btn.disabled = false;
-        }
-        if (resultDiv) {
-            resultDiv.innerHTML = `<div style="color: #ef4444; font-weight: 600;"><i class="fas fa-times-circle"></i> Error</div>`;
-        }
-        if (statusCard) {
-            statusCard.style.borderColor = 'rgba(239,68,68,0.5)';
         }
         if (statusBadge) {
             statusBadge.innerHTML = '○ Error';
