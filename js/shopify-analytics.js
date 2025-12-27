@@ -41,6 +41,82 @@ const API_VERSION = '2024-01';
 const locationCache = {};
 
 // =============================================================================
+// LOCAL CACHE SYSTEM
+// =============================================================================
+// Caches API responses in localStorage to reduce API calls and improve performance.
+// Each cache entry has a TTL (Time-To-Live) after which it's considered stale.
+// =============================================================================
+
+const CACHE_CONFIG = {
+    TTL: {
+        analytics: 5 * 60 * 1000,      // 5 minutes for analytics
+        analyticsBulk: 10 * 60 * 1000, // 10 minutes for bulk analytics
+        inventory: 15 * 60 * 1000,     // 15 minutes for inventory
+        locations: 60 * 60 * 1000      // 1 hour for locations
+    },
+    PREFIX: 'shopify_cache_',
+    MAX_ENTRIES: 50
+};
+
+/**
+ * Generate a cache key from parameters
+ */
+function generateCacheKey(type, params = {}) {
+    const paramStr = Object.entries(params)
+        .filter(([_, v]) => v !== null && v !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('_');
+    return `${CACHE_CONFIG.PREFIX}${type}_${paramStr}`;
+}
+
+/**
+ * Get data from cache if valid
+ */
+function getFromCache(key) {
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+
+        const { data, timestamp, ttl } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+
+        if (age > ttl) {
+            localStorage.removeItem(key);
+            return null;
+        }
+
+        console.log(`✅ [CACHE] Hit: ${key} (age: ${Math.round(age / 1000)}s)`);
+        return { data, age, fromCache: true };
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Save data to cache
+ */
+function saveToCache(key, data, ttl) {
+    try {
+        const entry = { data, timestamp: Date.now(), ttl };
+        localStorage.setItem(key, JSON.stringify(entry));
+        console.log(`💾 [CACHE] Saved: ${key} (ttl: ${Math.round(ttl / 1000)}s)`);
+    } catch (e) {
+        console.warn('[CACHE] Failed to save:', e.message);
+    }
+}
+
+/**
+ * Clear all analytics cache
+ */
+function clearAllCache() {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+    keys.forEach(k => localStorage.removeItem(k));
+    console.log(`🗑️ [CACHE] Cleared ${keys.length} entries`);
+    return keys.length;
+}
+
+// =============================================================================
 // GRAPHQL BULK OPERATIONS
 // =============================================================================
 //
