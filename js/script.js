@@ -1904,18 +1904,12 @@
             if (!revenueValue || !revenueTrend) return;
 
             try {
-                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
-                // Falls back to fetchSalesAnalyticsBulk or fetchSalesAnalytics if Firestore not available
-                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
-                    ? fetchAnalyticsWithFirestoreFallback
-                    : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk
-                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
-
-                if (fetchFn) {
-                    console.log('[Dashboard] Loading monthly revenue (Firestore → Shopify fallback)...');
+                // Check if fetchSalesAnalytics is available (from shopify-analytics.js)
+                if (typeof fetchSalesAnalytics === 'function') {
+                    console.log('[Dashboard] Loading monthly revenue from Shopify...');
 
                     // Fetch monthly sales data for VSU (default store)
-                    const salesData = await fetchFn('vsu', null, 'month');
+                    const salesData = await fetchSalesAnalytics('vsu', null, 'month');
 
                     if (salesData && salesData.summary) {
                         const totalSales = parseFloat(salesData.summary.totalSales);
@@ -1931,16 +1925,15 @@
                             displayValue = '$' + totalSales.toFixed(0);
                         }
 
-                        // Update the card with cache indicator if from Firestore
+                        // Update the card
                         revenueValue.textContent = displayValue;
-                        const cacheLabel = salesData.fromFirestore ? ' (cached)' : '';
-                        revenueTrend.innerHTML = `<i class="fas fa-shopping-cart"></i> ${totalOrders} orders${cacheLabel}`;
+                        revenueTrend.innerHTML = `<i class="fas fa-shopping-cart"></i> ${totalOrders} orders`;
                         revenueTrend.className = 'stat-trend up';
 
                     }
                 } else {
-                    // Fallback: no analytics function available
-                    console.warn('[Dashboard] No analytics function available, showing placeholder');
+                    // Fallback: fetchSalesAnalytics not available
+                    console.warn('[Dashboard] fetchSalesAnalytics not available, showing placeholder');
                     revenueValue.textContent = '$--';
                     revenueTrend.innerHTML = `<i class="fas fa-exclamation-circle"></i> API unavailable`;
                     revenueTrend.className = 'stat-trend';
@@ -1961,11 +1954,10 @@
             if (!container) return;
 
             try {
-                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
-                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
-                    ? fetchAnalyticsWithFirestoreFallback
-                    : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk
-                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
+                // Check if fetchSalesAnalytics is available
+                const fetchFn = typeof fetchSalesAnalyticsBulk === 'function'
+                    ? fetchSalesAnalyticsBulk
+                    : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null);
 
                 if (!fetchFn) {
                     console.warn('[Dashboard] No sales analytics function available');
@@ -1973,7 +1965,7 @@
                     return;
                 }
 
-                console.log('[Dashboard] Loading weekly store performance (Firestore → Shopify fallback)...');
+                console.log('[Dashboard] Loading weekly store performance...');
 
                 // Fetch weekly sales data for each store in parallel
                 const storeKeys = ['vsu', 'miramarwine', 'loyalvaper'];
@@ -2184,13 +2176,8 @@
                 // Weekly goal (configurable)
                 const weeklyGoal = 50000; // $50,000 weekly goal
 
-                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
-                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
-                    ? fetchAnalyticsWithFirestoreFallback
-                    : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk
-                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
-
-                if (fetchFn) {
+                if (typeof fetchSalesAnalyticsBulk === 'function' || typeof fetchSalesAnalytics === 'function') {
+                    const fetchFn = typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk : fetchSalesAnalytics;
                     const salesData = await fetchFn('vsu', null, 'week');
 
                     if (salesData?.summary) {
@@ -3009,13 +2996,8 @@
                     updateAnalyticsLoadingState(true, message, percent);
                 };
 
-                // Fetch data - try Firestore pre-calculated data first, then fall back to Shopify API
-                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
-                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
-                    ? fetchAnalyticsWithFirestoreFallback
-                    : fetchSalesAnalyticsBulk;
-
-                const data = await fetchFn(
+                // Fetch data using bulk operations from shopify-analytics.js
+                const data = await fetchSalesAnalyticsBulk(
                     analyticsData.storeKey,
                     null, // locationId - not supported in bulk
                     analyticsDateRange.period,
@@ -3176,6 +3158,9 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
+                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
+                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
+                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
                         <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
                             <i class="fas fa-play"></i> Apply
                         </button>
@@ -3431,6 +3416,9 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
+                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
+                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
+                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
                         <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
                             <i class="fas fa-play"></i> Apply
                         </button>
