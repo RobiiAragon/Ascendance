@@ -13116,6 +13116,7 @@ window.viewChecklistHistory = async function() {
             { id: 'insurance', name: 'Insurance', icon: 'fa-shield-alt' },
             { id: 'taxes', name: 'Taxes', icon: 'fa-file-invoice-dollar' },
             { id: 'payroll', name: 'Payroll', icon: 'fa-users' },
+            { id: 'rent', name: 'Rent', icon: 'fa-home' },
             { id: 'other', name: 'Other', icon: 'fa-ellipsis-h' }
         ];
 
@@ -13416,6 +13417,7 @@ window.viewChecklistHistory = async function() {
                 'Insurance': '#14b8a6',
                 'Taxes': '#f97316',
                 'Payroll': '#06b6d4',
+                'Rent': '#ef4444',
                 'Other': '#6b7280'
             };
 
