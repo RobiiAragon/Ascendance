@@ -2369,4 +2369,246 @@ function refreshAnalyticsCache() {
     console.log(`🧹 [CACHE] Cleared ${keys.length} analytics cache entries`);
 }
 
+// =============================================================================
+// FIRESTORE PRE-CALCULATED DATA ACCESS
+// =============================================================================
+//
+// These functions read analytics data that was pre-calculated by Cloud Functions
+// running on a schedule. This provides instant access without hitting Shopify API.
+//
+// Data is synced:
+// - Every night at midnight (full sync: all periods)
+// - Every 6 hours (frequent sync: today, week, month)
+//
+// =============================================================================
+
+const FIRESTORE_ANALYTICS_COLLECTION = 'shopify_analytics_cache';
+
+/**
+ * Fetch pre-calculated analytics from Firestore
+ * This is the fastest way to get analytics - no Shopify API calls needed
+ *
+ * @param {string} storeKey - Store identifier
+ * @param {string} period - Period identifier
+ * @returns {Promise<Object|null>} Analytics data or null if not found
+ */
+async function fetchCachedAnalyticsFromFirestore(storeKey = 'vsu', period = 'month') {
+    // Check if Firebase is available
+    if (typeof firebase === 'undefined' || !firebase.firestore) {
+        console.warn('⚠️ [FIRESTORE] Firebase not available, falling back to API');
+        return null;
+    }
+
+    const docId = `${storeKey}_${period}`;
+
+    try {
+        console.log(`🔥 [FIRESTORE] Fetching cached analytics: ${docId}`);
+        const db = firebase.firestore();
+        const doc = await db.collection(FIRESTORE_ANALYTICS_COLLECTION).doc(docId).get();
+
+        if (!doc.exists) {
+            console.log(`📭 [FIRESTORE] No cached data found for ${docId}`);
+            return null;
+        }
+
+        const data = doc.data();
+
+        // Calculate how old the data is
+        const syncedAt = data.syncedAt ? new Date(data.syncedAt) : null;
+        const cacheAge = syncedAt ? Date.now() - syncedAt.getTime() : null;
+
+        console.log(`✅ [FIRESTORE] Found cached data for ${docId} (synced: ${syncedAt ? formatCacheAge(cacheAge) : 'unknown'})`);
+
+        return {
+            ...data,
+            fromFirestore: true,
+            fromCache: true,
+            cacheAge,
+            cacheAgeFormatted: cacheAge ? formatCacheAge(cacheAge) : 'unknown'
+        };
+    } catch (error) {
+        console.error(`❌ [FIRESTORE] Error fetching ${docId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Fetch all stores' pre-calculated analytics from Firestore
+ *
+ * @param {string} period - Period identifier
+ * @returns {Promise<Object>} Combined analytics for all stores
+ */
+async function fetchAllStoresCachedAnalytics(period = 'month') {
+    if (typeof firebase === 'undefined' || !firebase.firestore) {
+        console.warn('⚠️ [FIRESTORE] Firebase not available');
+        return null;
+    }
+
+    console.log(`🔥 [FIRESTORE] Fetching all stores for period: ${period}`);
+
+    const storeKeys = Object.keys(STORES_CONFIG);
+    const results = {
+        stores: {},
+        summary: {
+            totalSales: 0,
+            totalOrders: 0,
+            totalTax: 0,
+            totalCecetTax: 0,
+            totalSalesTax: 0,
+            totalCashSales: 0,
+            totalCardSales: 0
+        },
+        period,
+        fromFirestore: true
+    };
+
+    try {
+        const db = firebase.firestore();
+
+        for (const storeKey of storeKeys) {
+            const docId = `${storeKey}_${period}`;
+            const doc = await db.collection(FIRESTORE_ANALYTICS_COLLECTION).doc(docId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                results.stores[storeKey] = data;
+
+                // Aggregate summary
+                results.summary.totalSales += parseFloat(data.summary?.totalSales || 0);
+                results.summary.totalOrders += data.summary?.totalOrders || 0;
+                results.summary.totalTax += parseFloat(data.summary?.totalTax || 0);
+                results.summary.totalCecetTax += parseFloat(data.summary?.totalCecetTax || 0);
+                results.summary.totalSalesTax += parseFloat(data.summary?.totalSalesTax || 0);
+                results.summary.totalCashSales += parseFloat(data.summary?.totalCashSales || 0);
+                results.summary.totalCardSales += parseFloat(data.summary?.totalCardSales || 0);
+            }
+        }
+
+        // Format summary values
+        results.summary.totalSales = results.summary.totalSales.toFixed(2);
+        results.summary.totalTax = results.summary.totalTax.toFixed(2);
+        results.summary.totalCecetTax = results.summary.totalCecetTax.toFixed(2);
+        results.summary.totalSalesTax = results.summary.totalSalesTax.toFixed(2);
+        results.summary.totalCashSales = results.summary.totalCashSales.toFixed(2);
+        results.summary.totalCardSales = results.summary.totalCardSales.toFixed(2);
+        results.summary.avgOrderValue = results.summary.totalOrders > 0
+            ? (parseFloat(results.summary.totalSales) / results.summary.totalOrders).toFixed(2)
+            : '0.00';
+
+        console.log(`✅ [FIRESTORE] Loaded ${Object.keys(results.stores).length} stores`);
+        return results;
+    } catch (error) {
+        console.error('❌ [FIRESTORE] Error fetching all stores:', error);
+        return null;
+    }
+}
+
+/**
+ * Smart analytics fetch with Firestore fallback
+ * Tries Firestore first (instant), falls back to Shopify API if not available
+ *
+ * @param {string} storeKey - Store identifier
+ * @param {string|null} locationId - Optional location filter
+ * @param {string} period - Period identifier
+ * @param {Function|null} onProgress - Progress callback
+ * @param {Object|null} customRange - Custom date range
+ * @param {boolean} forceRefresh - Bypass all caches and hit Shopify API
+ * @returns {Promise<Object>} Analytics data
+ */
+async function fetchAnalyticsWithFirestoreFallback(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null, forceRefresh = false) {
+    // If force refresh, skip Firestore and go directly to API
+    if (forceRefresh) {
+        console.log('🔄 [SMART] Force refresh - skipping Firestore cache');
+        return fetchSalesAnalyticsSmart(storeKey, locationId, period, onProgress, customRange, true);
+    }
+
+    // Try Firestore first (instant data from nightly sync)
+    if (onProgress) onProgress(10, 'Checking pre-calculated data...');
+
+    const firestoreData = await fetchCachedAnalyticsFromFirestore(storeKey, period);
+
+    if (firestoreData) {
+        // Check if data is too old (more than 24 hours for 'today', 12 hours for others)
+        const maxAge = period === 'today' ? 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
+
+        if (firestoreData.cacheAge && firestoreData.cacheAge < maxAge) {
+            console.log('🚀 [SMART] Using pre-calculated Firestore data');
+            if (onProgress) onProgress(100, 'Loaded from pre-calculated cache');
+            return firestoreData;
+        } else {
+            console.log('⏰ [SMART] Firestore data too old, fetching fresh data...');
+        }
+    }
+
+    // Fall back to localStorage cache or Shopify API
+    console.log('📡 [SMART] Fetching from Shopify API...');
+    return fetchSalesAnalyticsSmart(storeKey, locationId, period, onProgress, customRange, false);
+}
+
+/**
+ * Trigger manual sync via Cloud Function
+ * Useful when you need fresh data immediately
+ *
+ * @param {string} storeKey - Store identifier or 'all'
+ * @param {string} period - Period identifier
+ * @returns {Promise<Object>} Sync result
+ */
+async function triggerManualSync(storeKey = 'all', period = 'month') {
+    // You'll need to replace this with your actual Cloud Function URL after deployment
+    const CLOUD_FUNCTION_URL = 'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/manualAnalyticsSync';
+
+    try {
+        console.log(`🔧 [SYNC] Triggering manual sync: store=${storeKey}, period=${period}`);
+
+        const response = await fetch(`${CLOUD_FUNCTION_URL}?store=${storeKey}&period=${period}`);
+        const result = await response.json();
+
+        if (result.success) {
+            console.log('✅ [SYNC] Manual sync completed');
+        } else {
+            console.error('❌ [SYNC] Manual sync failed:', result.error);
+        }
+
+        return result;
+    } catch (error) {
+        console.error('❌ [SYNC] Error triggering manual sync:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get last sync status from Firestore
+ * Shows when data was last updated
+ *
+ * @returns {Promise<Object>} Last sync info
+ */
+async function getLastSyncStatus() {
+    if (typeof firebase === 'undefined' || !firebase.firestore) {
+        return { available: false };
+    }
+
+    try {
+        const db = firebase.firestore();
+        const logsSnapshot = await db.collection('shopify_sync_logs')
+            .orderBy('timestamp', 'desc')
+            .limit(1)
+            .get();
+
+        if (logsSnapshot.empty) {
+            return { available: false, lastSync: null };
+        }
+
+        const lastLog = logsSnapshot.docs[0].data();
+        return {
+            available: true,
+            lastSync: lastLog.timestamp?.toDate?.() || null,
+            status: lastLog.status,
+            details: lastLog.details
+        };
+    } catch (error) {
+        console.error('Error fetching sync status:', error);
+        return { available: false, error: error.message };
+    }
+}
+
 

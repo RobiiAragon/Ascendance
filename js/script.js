@@ -1904,12 +1904,18 @@
             if (!revenueValue || !revenueTrend) return;
 
             try {
-                // Check if fetchSalesAnalytics is available (from shopify-analytics.js)
-                if (typeof fetchSalesAnalytics === 'function') {
-                    console.log('[Dashboard] Loading monthly revenue from Shopify...');
+                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
+                // Falls back to fetchSalesAnalyticsBulk or fetchSalesAnalytics if Firestore not available
+                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
+                    ? fetchAnalyticsWithFirestoreFallback
+                    : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk
+                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
+
+                if (fetchFn) {
+                    console.log('[Dashboard] Loading monthly revenue (Firestore → Shopify fallback)...');
 
                     // Fetch monthly sales data for VSU (default store)
-                    const salesData = await fetchSalesAnalytics('vsu', null, 'month');
+                    const salesData = await fetchFn('vsu', null, 'month');
 
                     if (salesData && salesData.summary) {
                         const totalSales = parseFloat(salesData.summary.totalSales);
@@ -1925,15 +1931,16 @@
                             displayValue = '$' + totalSales.toFixed(0);
                         }
 
-                        // Update the card
+                        // Update the card with cache indicator if from Firestore
                         revenueValue.textContent = displayValue;
-                        revenueTrend.innerHTML = `<i class="fas fa-shopping-cart"></i> ${totalOrders} orders`;
+                        const cacheLabel = salesData.fromFirestore ? ' (cached)' : '';
+                        revenueTrend.innerHTML = `<i class="fas fa-shopping-cart"></i> ${totalOrders} orders${cacheLabel}`;
                         revenueTrend.className = 'stat-trend up';
 
                     }
                 } else {
-                    // Fallback: fetchSalesAnalytics not available
-                    console.warn('[Dashboard] fetchSalesAnalytics not available, showing placeholder');
+                    // Fallback: no analytics function available
+                    console.warn('[Dashboard] No analytics function available, showing placeholder');
                     revenueValue.textContent = '$--';
                     revenueTrend.innerHTML = `<i class="fas fa-exclamation-circle"></i> API unavailable`;
                     revenueTrend.className = 'stat-trend';
@@ -1954,10 +1961,11 @@
             if (!container) return;
 
             try {
-                // Check if fetchSalesAnalytics is available
-                const fetchFn = typeof fetchSalesAnalyticsBulk === 'function'
-                    ? fetchSalesAnalyticsBulk
-                    : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null);
+                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
+                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
+                    ? fetchAnalyticsWithFirestoreFallback
+                    : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk
+                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
 
                 if (!fetchFn) {
                     console.warn('[Dashboard] No sales analytics function available');
@@ -1965,7 +1973,7 @@
                     return;
                 }
 
-                console.log('[Dashboard] Loading weekly store performance...');
+                console.log('[Dashboard] Loading weekly store performance (Firestore → Shopify fallback)...');
 
                 // Fetch weekly sales data for each store in parallel
                 const storeKeys = ['vsu', 'miramarwine', 'loyalvaper'];
@@ -2176,8 +2184,13 @@
                 // Weekly goal (configurable)
                 const weeklyGoal = 50000; // $50,000 weekly goal
 
-                if (typeof fetchSalesAnalyticsBulk === 'function' || typeof fetchSalesAnalytics === 'function') {
-                    const fetchFn = typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk : fetchSalesAnalytics;
+                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
+                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
+                    ? fetchAnalyticsWithFirestoreFallback
+                    : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk
+                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
+
+                if (fetchFn) {
                     const salesData = await fetchFn('vsu', null, 'week');
 
                     if (salesData?.summary) {
@@ -2996,8 +3009,13 @@
                     updateAnalyticsLoadingState(true, message, percent);
                 };
 
-                // Fetch data using bulk operations from shopify-analytics.js
-                const data = await fetchSalesAnalyticsBulk(
+                // Fetch data - try Firestore pre-calculated data first, then fall back to Shopify API
+                // Use fetchAnalyticsWithFirestoreFallback for instant loading when nightly sync data is available
+                const fetchFn = typeof fetchAnalyticsWithFirestoreFallback === 'function'
+                    ? fetchAnalyticsWithFirestoreFallback
+                    : fetchSalesAnalyticsBulk;
+
+                const data = await fetchFn(
                     analyticsData.storeKey,
                     null, // locationId - not supported in bulk
                     analyticsDateRange.period,
