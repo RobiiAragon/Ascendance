@@ -38626,15 +38626,21 @@ function renderGLabs() {
 
 // Format value based on format type
 function glabsFormatValue(value, format) {
-    if (!format || !value) return value;
-    const num = parseFloat(String(value).replace(/,/g, ''));
-    if (isNaN(num)) return value;
+    if (!format) return value;
+    if (value === '' || value === null || value === undefined) return '';
+
+    // Remove existing format symbols to get raw number
+    const cleanValue = String(value).replace(/[$,%]/g, '').replace(/,/g, '').trim();
+    const num = parseFloat(cleanValue);
+
+    if (isNaN(num)) return value; // Return original if not a number
 
     switch (format) {
         case 'currency':
             return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         case 'percent':
-            return (num * 100).toFixed(2) + '%';
+            // Don't multiply by 100 - user enters the number they want to see
+            return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + '%';
         case 'number':
             return num.toLocaleString('en-US');
         case 'decimal':
@@ -38900,14 +38906,21 @@ function glabsSaveCell(input, row, col) {
     // Save to localStorage
     glabsSaveData();
 
-    // Re-render the cell
-    const displayValue = glabsEvaluateCell(value, row, col);
+    // Re-render the cell with proper formatting
+    const evaluatedValue = glabsEvaluateCell(value, row, col);
     const cellStyle = sheet.cellStyles?.[`${row}-${col}`] || {};
+    const displayValue = glabsFormatValue(evaluatedValue, cellStyle.format);
     const textColor = cellStyle.color || '';
-    input.parentElement.innerHTML = `<span style="${textColor ? 'color: ' + textColor + ';' : ''}">${displayValue}</span>`;
+    const bold = cellStyle.bold ? 'font-weight: 700;' : '';
+    const italic = cellStyle.italic ? 'font-style: italic;' : '';
+
+    if (input.parentElement) {
+        input.parentElement.innerHTML = `<span style="${textColor ? 'color: ' + textColor + ';' : ''} ${bold} ${italic}">${displayValue}</span>`;
+    }
 
     // Show saved indicator
-    document.getElementById('glabs-saved').innerHTML = '<i class="fas fa-check-circle"></i> Saved';
+    const savedEl = document.getElementById('glabs-saved');
+    if (savedEl) savedEl.innerHTML = '<i class="fas fa-check-circle"></i> Saved';
 }
 
 // Move to next cell
@@ -39300,14 +39313,21 @@ function glabsApplyFormula() {
     // Save to localStorage
     glabsSaveData();
 
-    // Update display
-    const displayValue = glabsEvaluateCell(value, row, col);
+    // Update display with proper formatting
+    const evaluatedValue = glabsEvaluateCell(value, row, col);
     const cellStyle = sheet.cellStyles?.[`${row}-${col}`] || {};
+    const displayValue = glabsFormatValue(evaluatedValue, cellStyle.format);
     const textColor = cellStyle.color || '';
-    element.querySelector('.glabs-cell-content').innerHTML = `<span style="${textColor ? 'color: ' + textColor + ';' : ''}">${displayValue}</span>`;
+    const bold = cellStyle.bold ? 'font-weight: 700;' : '';
+    const italic = cellStyle.italic ? 'font-style: italic;' : '';
+
+    const contentEl = element?.querySelector('.glabs-cell-content');
+    if (contentEl) {
+        contentEl.innerHTML = `<span style="${textColor ? 'color: ' + textColor + ';' : ''} ${bold} ${italic}">${displayValue}</span>`;
+    }
 
     // Update quick stats
-    const numValue = parseFloat(String(displayValue).replace(/,/g, ''));
+    const numValue = parseFloat(String(evaluatedValue).replace(/[$,%]/g, '').replace(/,/g, ''));
     if (!isNaN(numValue)) {
         document.getElementById('glabs-sum').textContent = numValue.toLocaleString();
         document.getElementById('glabs-avg').textContent = numValue.toLocaleString();
