@@ -442,7 +442,12 @@ async function downloadAndParseBulkData(url, onProgress = null) {
             const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
             console.log(`📥 [BULK DOWNLOAD] Trying proxy: ${proxy || '(direct)'}`);
 
-            const response = await fetch(fetchUrl);
+            // Add timeout to prevent hanging forever
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+            const response = await fetch(fetchUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 console.warn(`⚠️ [BULK DOWNLOAD] Proxy failed (${response.status}): ${proxy || '(direct)'}`);
@@ -455,8 +460,13 @@ async function downloadAndParseBulkData(url, onProgress = null) {
             break;
 
         } catch (proxyError) {
-            console.warn(`⚠️ [BULK DOWNLOAD] Proxy error: ${proxy || '(direct)'}`, proxyError.message);
-            lastError = proxyError;
+            if (proxyError.name === 'AbortError') {
+                console.warn(`⏱️ [BULK DOWNLOAD] Timeout after 60s: ${proxy || '(direct)'}`);
+                lastError = new Error('Download timeout - trying next proxy');
+            } else {
+                console.warn(`⚠️ [BULK DOWNLOAD] Proxy error: ${proxy || '(direct)'}`, proxyError.message);
+                lastError = proxyError;
+            }
         }
     }
 
