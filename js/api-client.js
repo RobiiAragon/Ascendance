@@ -125,244 +125,18 @@ function injectAnalyticsStyles() {
             flex-wrap: wrap;
         }
 
-        .date-range-btn {
+        .analytics-date-input {
             background: var(--bg-tertiary);
-            border: 2px solid var(--border-color);
+            border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-size: 14px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
             font-family: 'Outfit', sans-serif;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s;
-            min-width: 280px;
         }
 
-        .date-range-btn:hover {
-            border-color: var(--accent-primary);
-            background: var(--bg-hover);
-        }
-
-        .date-range-btn i {
-            color: var(--accent-primary);
-        }
-
-        /* Airline-style Calendar Popup */
-        .airline-calendar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .airline-calendar-popup {
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-            animation: slideUp 0.3s ease;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .airline-calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .airline-calendar-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .airline-calendar-subtitle {
-            font-size: 12px;
+        .date-separator {
             color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .airline-calendar-nav {
-            display: flex;
-            gap: 8px;
-        }
-
-        .airline-calendar-nav button {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-        }
-
-        .airline-calendar-nav button:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-        }
-
-        .airline-calendar-weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            margin-bottom: 8px;
-        }
-
-        .airline-calendar-weekday {
-            text-align: center;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            padding: 8px 0;
-        }
-
-        .airline-calendar-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-        }
-
-        .airline-calendar-day {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.15s;
-            color: var(--text-primary);
-        }
-
-        .airline-calendar-day:hover:not(.empty):not(.disabled) {
-            background: var(--bg-hover);
-        }
-
-        .airline-calendar-day.empty {
-            cursor: default;
-        }
-
-        .airline-calendar-day.disabled {
-            color: var(--text-muted);
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .airline-calendar-day.today {
-            background: rgba(99, 102, 241, 0.15);
-            color: #6366f1;
-        }
-
-        .airline-calendar-day.selected {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-        }
-
-        .airline-calendar-day.in-range {
-            background: rgba(99, 102, 241, 0.2);
-            border-radius: 0;
-        }
-
-        .airline-calendar-day.range-start {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border-radius: 10px 0 0 10px;
-        }
-
-        .airline-calendar-day.range-end {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border-radius: 0 10px 10px 0;
-        }
-
-        .airline-calendar-day.range-start.range-end {
-            border-radius: 10px;
-        }
-
-        .airline-calendar-selection {
-            display: flex;
-            gap: 12px;
-            margin: 20px 0;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-        }
-
-        .airline-calendar-selection-item {
-            flex: 1;
-            text-align: center;
-        }
-
-        .airline-calendar-selection-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-
-        .airline-calendar-selection-date {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .airline-calendar-actions {
-            display: flex;
-            gap: 8px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .airline-calendar-actions button {
-            flex: 1;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .airline-calendar-actions .btn-secondary {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        .airline-calendar-actions .btn-primary {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            color: white;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .apply-btn {
@@ -968,10 +742,9 @@ async function renderAnalyticsPage(period = 'month') {
                 <div class="filter-group">
                     <label class="filter-label">Date Range</label>
                     <div class="date-range-inputs">
-                        <button onclick="openAirlineCalendar()" class="date-range-btn" id="date-range-display">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>${formatDateDisplay(fromDateStr)} → ${formatDateDisplay(toDateStr)}</span>
-                        </button>
+                        <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input">
+                        <span class="date-separator">→</span>
+                        <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input">
                         <button onclick="applyAnalyticsFilters()" class="btn-primary apply-btn">
                             <i class="fas fa-play"></i> Apply
                         </button>
@@ -1057,14 +830,20 @@ function setAnalyticsPreset(preset) {
             break;
     }
 
+    // Update date inputs
+    const fromInput = document.getElementById('analytics-date-from');
+    const toInput = document.getElementById('analytics-date-to');
+
+    if (fromInput && toInput && preset !== 'custom') {
+        fromInput.value = fromDate.toISOString().split('T')[0];
+        toInput.value = toDate.toISOString().split('T')[0];
+    }
+
     // Update custom range state
     if (preset !== 'custom') {
         window.analyticsCustomRange.startDate = fromDate;
         window.analyticsCustomRange.endDate = toDate;
     }
-
-    // Update display button
-    updateDateRangeDisplay();
 
     // Re-render to update button states
     renderAnalyticsPage(preset);
@@ -1072,17 +851,22 @@ function setAnalyticsPreset(preset) {
 
 // Apply analytics filters (run query)
 function applyAnalyticsFilters() {
-    if (!window.analyticsCustomRange.startDate || !window.analyticsCustomRange.endDate) {
+    const fromInput = document.getElementById('analytics-date-from');
+    const toInput = document.getElementById('analytics-date-to');
+
+    if (!fromInput || !toInput || !fromInput.value || !toInput.value) {
         showToast('Please select a date range', 'error');
         return;
     }
 
+    // Update custom range
+    window.analyticsCustomRange.startDate = new Date(fromInput.value);
+    window.analyticsCustomRange.endDate = new Date(toInput.value);
+
     // Set end date to end of day
     window.analyticsCustomRange.endDate.setHours(23, 59, 59, 999);
 
-    const fromStr = window.analyticsCustomRange.startDate.toISOString().split('T')[0];
-    const toStr = window.analyticsCustomRange.endDate.toISOString().split('T')[0];
-    console.log(`[Analytics] Applying filters - Store: ${selectedStore}, Date: ${fromStr} to ${toStr}`);
+    console.log(`[Analytics] Applying filters - Store: ${selectedStore}, Date: ${fromInput.value} to ${toInput.value}`);
 
     // Run the query with custom period
     renderAnalyticsWithData('custom', selectedStore, selectedLocation);
@@ -1118,11 +902,13 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
     const dashboard = document.querySelector('.dashboard');
 
-    // Get current date values from state or use defaults
+    // Get current date values from inputs or use defaults
+    const fromInput = document.getElementById('analytics-date-from');
+    const toInput = document.getElementById('analytics-date-to');
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    let fromDateStr = window.analyticsCustomRange.startDate ? window.analyticsCustomRange.startDate.toISOString().split('T')[0] : todayStr;
-    let toDateStr = window.analyticsCustomRange.endDate ? window.analyticsCustomRange.endDate.toISOString().split('T')[0] : todayStr;
+    let fromDateStr = fromInput?.value || todayStr;
+    let toDateStr = toInput?.value || todayStr;
 
     // Show loading state with filters preserved
     dashboard.innerHTML = `
@@ -1191,10 +977,13 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             }
         }
 
-        // Use smart fetch that chooses REST for short periods, Bulk for long periods
-        const fetchFn = typeof fetchSalesAnalyticsSmart === 'function' ? fetchSalesAnalyticsSmart : fetchSalesAnalyticsBulk;
-        console.log('[Analytics] Starting fetch with smart method selection...');
-        const salesData = await fetchFn(selectedStore, selectedLocation, period, (progress, text) => {
+        // Cancel any existing bulk operation before starting a new one
+        console.log('[Analytics] Cancelling any existing bulk operation...');
+        await cancelBulkOperation(selectedStore);
+
+        // Use GraphQL Bulk Operations API for unlimited order fetching (no 2500 cap)
+        console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
+        const salesData = await fetchSalesAnalyticsBulk(selectedStore, selectedLocation, period, (progress, text) => {
             // Check if this request is still valid before updating progress
             if (thisRequestId !== analyticsRequestId) return;
 
@@ -1342,10 +1131,9 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                     <div class="filter-group">
                         <label class="filter-label">Date Range</label>
                         <div class="date-range-inputs">
-                            <button onclick="openAirlineCalendar()" class="date-range-btn" id="date-range-display">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>${formatDateDisplay(fromDateStr)} → ${formatDateDisplay(toDateStr)}</span>
-                            </button>
+                            <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input">
+                            <span class="date-separator">→</span>
+                            <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input">
                             <button onclick="applyAnalyticsFilters()" class="btn-primary apply-btn">
                                 <i class="fas fa-play"></i> Apply
                             </button>
@@ -2877,265 +2665,4 @@ document.addEventListener('mousedown', function(e) {
         }
     }
 });
-
-// =============================================================================
-// AIRLINE-STYLE CALENDAR (Single calendar for selecting date range)
-// =============================================================================
-
-// Calendar state
-let airlineCalendarState = {
-    isOpen: false,
-    viewMonth: new Date().getMonth(),
-    viewYear: new Date().getFullYear(),
-    selectionStep: 'start', // 'start' or 'end'
-    tempStartDate: null,
-    tempEndDate: null
-};
-
-// Format date for display
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return 'Select';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-// Update the date range button display
-function updateDateRangeDisplay() {
-    const btn = document.getElementById('date-range-display');
-    if (!btn) return;
-
-    const startDate = window.analyticsCustomRange.startDate;
-    const endDate = window.analyticsCustomRange.endDate;
-
-    const startStr = startDate ? startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select';
-    const endStr = endDate ? endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select';
-
-    btn.innerHTML = `<i class="fas fa-calendar-alt"></i><span>${startStr} → ${endStr}</span>`;
-}
-
-// Open airline-style calendar
-function openAirlineCalendar() {
-    airlineCalendarState.isOpen = true;
-    airlineCalendarState.selectionStep = 'start';
-    airlineCalendarState.tempStartDate = window.analyticsCustomRange.startDate ? new Date(window.analyticsCustomRange.startDate) : null;
-    airlineCalendarState.tempEndDate = window.analyticsCustomRange.endDate ? new Date(window.analyticsCustomRange.endDate) : null;
-
-    // Set view to current selection or today
-    const viewDate = airlineCalendarState.tempStartDate || new Date();
-    airlineCalendarState.viewMonth = viewDate.getMonth();
-    airlineCalendarState.viewYear = viewDate.getFullYear();
-
-    renderAirlineCalendar();
-}
-
-// Render the airline calendar popup
-function renderAirlineCalendar() {
-    // Remove existing
-    const existing = document.getElementById('airline-calendar-overlay');
-    if (existing) existing.remove();
-
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-    const year = airlineCalendarState.viewYear;
-    const month = airlineCalendarState.viewMonth;
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const startDate = airlineCalendarState.tempStartDate;
-    const endDate = airlineCalendarState.tempEndDate;
-
-    // Build days HTML
-    let daysHtml = '';
-
-    // Empty cells
-    for (let i = 0; i < firstDay; i++) {
-        daysHtml += '<div class="airline-calendar-day empty"></div>';
-    }
-
-    // Days
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        date.setHours(0, 0, 0, 0);
-
-        const isToday = date.getTime() === today.getTime();
-        const isFuture = date > today;
-        const isStart = startDate && date.getTime() === startDate.getTime();
-        const isEnd = endDate && date.getTime() === endDate.getTime();
-        const isInRange = startDate && endDate && date > startDate && date < endDate;
-
-        let classes = ['airline-calendar-day'];
-        if (isToday) classes.push('today');
-        if (isFuture) classes.push('disabled');
-        if (isStart) classes.push('range-start', 'selected');
-        if (isEnd) classes.push('range-end', 'selected');
-        if (isStart && isEnd) classes.push('range-start', 'range-end');
-        if (isInRange) classes.push('in-range');
-
-        const clickHandler = isFuture ? '' : `onclick="selectAirlineDate(${year}, ${month}, ${day})"`;
-
-        daysHtml += `<div class="${classes.join(' ')}" ${clickHandler}>${day}</div>`;
-    }
-
-    // Selection display
-    const startDisplay = startDate ? startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
-    const endDisplay = endDate ? endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
-    const stepText = airlineCalendarState.selectionStep === 'start' ? 'Select start date' : 'Select end date';
-
-    const overlay = document.createElement('div');
-    overlay.id = 'airline-calendar-overlay';
-    overlay.className = 'airline-calendar-overlay';
-    overlay.onclick = (e) => { if (e.target === overlay) closeAirlineCalendar(); };
-
-    overlay.innerHTML = `
-        <div class="airline-calendar-popup">
-            <div class="airline-calendar-header">
-                <div>
-                    <div class="airline-calendar-title">${monthNames[month]} ${year}</div>
-                    <div class="airline-calendar-subtitle">${stepText}</div>
-                </div>
-                <div class="airline-calendar-nav">
-                    <button onclick="navigateAirlineCalendar(-1)"><i class="fas fa-chevron-left"></i></button>
-                    <button onclick="navigateAirlineCalendar(1)"><i class="fas fa-chevron-right"></i></button>
-                </div>
-            </div>
-
-            <div class="airline-calendar-weekdays">
-                ${dayNames.map(d => `<div class="airline-calendar-weekday">${d}</div>`).join('')}
-            </div>
-
-            <div class="airline-calendar-days">
-                ${daysHtml}
-            </div>
-
-            <div class="airline-calendar-selection">
-                <div class="airline-calendar-selection-item" style="border-right: 1px solid var(--border-color);">
-                    <div class="airline-calendar-selection-label">From</div>
-                    <div class="airline-calendar-selection-date" style="color: ${startDate ? '#6366f1' : 'var(--text-muted)'};">${startDisplay}</div>
-                </div>
-                <div class="airline-calendar-selection-item">
-                    <div class="airline-calendar-selection-label">To</div>
-                    <div class="airline-calendar-selection-date" style="color: ${endDate ? '#10b981' : 'var(--text-muted)'};">${endDisplay}</div>
-                </div>
-            </div>
-
-            <div class="airline-calendar-actions">
-                <button class="btn-secondary" onclick="setAirlineQuickRange('today')">Today</button>
-                <button class="btn-secondary" onclick="setAirlineQuickRange('week')">This Week</button>
-                <button class="btn-secondary" onclick="setAirlineQuickRange('month')">30 Days</button>
-                <button class="btn-primary" onclick="applyAirlineCalendar()" ${!startDate || !endDate ? 'disabled style="opacity:0.5;"' : ''}>
-                    <i class="fas fa-check"></i> Apply
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(overlay);
-}
-
-// Navigate months
-function navigateAirlineCalendar(direction) {
-    airlineCalendarState.viewMonth += direction;
-    if (airlineCalendarState.viewMonth > 11) {
-        airlineCalendarState.viewMonth = 0;
-        airlineCalendarState.viewYear++;
-    } else if (airlineCalendarState.viewMonth < 0) {
-        airlineCalendarState.viewMonth = 11;
-        airlineCalendarState.viewYear--;
-    }
-    renderAirlineCalendar();
-}
-
-// Select a date
-function selectAirlineDate(year, month, day) {
-    const selectedDate = new Date(year, month, day);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    if (airlineCalendarState.selectionStep === 'start') {
-        airlineCalendarState.tempStartDate = selectedDate;
-        airlineCalendarState.tempEndDate = null;
-        airlineCalendarState.selectionStep = 'end';
-    } else {
-        // If selected date is before start, swap them
-        if (selectedDate < airlineCalendarState.tempStartDate) {
-            airlineCalendarState.tempEndDate = airlineCalendarState.tempStartDate;
-            airlineCalendarState.tempStartDate = selectedDate;
-        } else {
-            airlineCalendarState.tempEndDate = selectedDate;
-        }
-        airlineCalendarState.selectionStep = 'start';
-    }
-
-    renderAirlineCalendar();
-}
-
-// Quick range selection
-function setAirlineQuickRange(range) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let startDate, endDate;
-
-    switch(range) {
-        case 'today':
-            startDate = new Date(today);
-            endDate = new Date(today);
-            break;
-        case 'week':
-            startDate = new Date(today);
-            startDate.setDate(today.getDate() - today.getDay());
-            endDate = new Date(today);
-            break;
-        case 'month':
-            startDate = new Date(today);
-            startDate.setDate(today.getDate() - 30);
-            endDate = new Date(today);
-            break;
-    }
-
-    airlineCalendarState.tempStartDate = startDate;
-    airlineCalendarState.tempEndDate = endDate;
-    airlineCalendarState.selectionStep = 'start';
-
-    renderAirlineCalendar();
-}
-
-// Apply selection and close
-function applyAirlineCalendar() {
-    if (!airlineCalendarState.tempStartDate || !airlineCalendarState.tempEndDate) {
-        return;
-    }
-
-    window.analyticsCustomRange.startDate = airlineCalendarState.tempStartDate;
-    window.analyticsCustomRange.endDate = airlineCalendarState.tempEndDate;
-
-    updateDateRangeDisplay();
-    closeAirlineCalendar();
-}
-
-// Close calendar
-function closeAirlineCalendar() {
-    airlineCalendarState.isOpen = false;
-    const overlay = document.getElementById('airline-calendar-overlay');
-    if (overlay) overlay.remove();
-}
-
-// =============================================================================
-// EXPORT FUNCTIONS TO WINDOW
-// =============================================================================
-// These functions need to be accessible from script.js navigation system
-
-window.renderAnalyticsPage = renderAnalyticsPage;
-window.renderAnalyticsContent = renderAnalyticsContent;
-window.handleStoreChipClick = handleStoreChipClick;
-window.handleStoreChange = handleStoreChange;
-window.handleLocationChange = handleLocationChange;
-window.applyAnalyticsFilters = applyAnalyticsFilters;
-window.setAnalyticsPreset = setAnalyticsPreset;
-window.openAirlineCalendar = openAirlineCalendar;
-window.toggleExportDropdown = toggleExportDropdown;
-window.exportToPDF = exportToPDF;
-window.exportToExcel = exportToExcel;
 

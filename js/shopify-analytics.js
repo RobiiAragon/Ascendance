@@ -41,158 +41,6 @@ const API_VERSION = '2024-01';
 const locationCache = {};
 
 // =============================================================================
-// LOCAL CACHE SYSTEM
-// =============================================================================
-// Caches API responses in localStorage to reduce API calls and improve performance.
-// Each cache entry has a TTL (Time-To-Live) after which it's considered stale.
-// =============================================================================
-
-const CACHE_CONFIG = {
-    TTL: {
-        analytics: 5 * 60 * 1000,      // 5 minutes for analytics
-        analyticsBulk: 10 * 60 * 1000, // 10 minutes for bulk analytics
-        inventory: 15 * 60 * 1000,     // 15 minutes for inventory
-        locations: 60 * 60 * 1000      // 1 hour for locations
-    },
-    PREFIX: 'shopify_cache_',
-    MAX_ENTRIES: 50
-};
-
-// In-flight request deduplication
-const pendingRequests = new Map();
-
-/**
- * Generate a cache key from parameters
- */
-function generateCacheKey(type, params = {}) {
-    const paramStr = Object.entries(params)
-        .filter(([_, v]) => v !== null && v !== undefined)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => `${k}=${v}`)
-        .join('_');
-    return `${CACHE_CONFIG.PREFIX}${type}_${paramStr}`;
-}
-
-/**
- * Get data from cache if valid
- */
-function getFromCache(key) {
-    try {
-        const cached = localStorage.getItem(key);
-        if (!cached) return null;
-
-        const { data, timestamp, ttl } = JSON.parse(cached);
-        const age = Date.now() - timestamp;
-
-        if (age > ttl) {
-            localStorage.removeItem(key);
-            console.log(`⏰ [CACHE] Expired: ${key}`);
-            return null;
-        }
-
-        console.log(`✅ [CACHE] Hit: ${key} (age: ${Math.round(age / 1000)}s)`);
-        return { data, age, fromCache: true };
-    } catch (e) {
-        console.warn('[CACHE] Error reading:', e.message);
-        return null;
-    }
-}
-
-/**
- * Save data to cache
- */
-function saveToCache(key, data, ttl) {
-    try {
-        // Clean old entries if too many
-        cleanOldCacheEntries();
-
-        const entry = { data, timestamp: Date.now(), ttl };
-        localStorage.setItem(key, JSON.stringify(entry));
-        console.log(`💾 [CACHE] Saved: ${key} (ttl: ${Math.round(ttl / 1000)}s)`);
-    } catch (e) {
-        console.warn('[CACHE] Failed to save:', e.message);
-        // If storage is full, clear old entries and retry
-        if (e.name === 'QuotaExceededError') {
-            clearOldestCacheEntries(10);
-            try {
-                localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), ttl }));
-            } catch (e2) {
-                console.error('[CACHE] Still failed after cleanup:', e2.message);
-            }
-        }
-    }
-}
-
-/**
- * Clean old cache entries to prevent localStorage bloat
- */
-function cleanOldCacheEntries() {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
-    if (keys.length <= CACHE_CONFIG.MAX_ENTRIES) return;
-
-    // Get entries with timestamps and sort by age
-    const entries = keys.map(key => {
-        try {
-            const { timestamp } = JSON.parse(localStorage.getItem(key) || '{}');
-            return { key, timestamp: timestamp || 0 };
-        } catch {
-            return { key, timestamp: 0 };
-        }
-    }).sort((a, b) => a.timestamp - b.timestamp);
-
-    // Remove oldest entries
-    const toRemove = entries.slice(0, entries.length - CACHE_CONFIG.MAX_ENTRIES);
-    toRemove.forEach(({ key }) => {
-        localStorage.removeItem(key);
-        console.log(`🗑️ [CACHE] Cleaned old entry: ${key}`);
-    });
-}
-
-/**
- * Clear oldest N cache entries
- */
-function clearOldestCacheEntries(count) {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
-    const entries = keys.map(key => {
-        try {
-            const { timestamp } = JSON.parse(localStorage.getItem(key) || '{}');
-            return { key, timestamp: timestamp || 0 };
-        } catch {
-            return { key, timestamp: 0 };
-        }
-    }).sort((a, b) => a.timestamp - b.timestamp);
-
-    entries.slice(0, count).forEach(({ key }) => localStorage.removeItem(key));
-}
-
-/**
- * Clear all analytics cache
- */
-function clearAllCache() {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
-    keys.forEach(k => localStorage.removeItem(k));
-    console.log(`🗑️ [CACHE] Cleared ${keys.length} entries`);
-    return keys.length;
-}
-
-/**
- * Deduplicate concurrent requests - returns existing promise if same request is in-flight
- */
-function deduplicateRequest(key, requestFn) {
-    if (pendingRequests.has(key)) {
-        console.log(`🔄 [DEDUP] Reusing in-flight request: ${key}`);
-        return pendingRequests.get(key);
-    }
-
-    const promise = requestFn().finally(() => {
-        pendingRequests.delete(key);
-    });
-
-    pendingRequests.set(key, promise);
-    return promise;
-}
-
-// =============================================================================
 // GRAPHQL BULK OPERATIONS
 // =============================================================================
 //
@@ -354,7 +202,7 @@ async function cancelBulkOperation(storeKey = 'vsu') {
     try {
         console.log('🛑 [BULK CANCEL] Cancelling bulk operation for:', storeConfig.name);
 
-        const response = await fetchWithProxy(graphqlUrl, {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -411,11 +259,6 @@ async function cancelBulkOperation(storeKey = 'vsu') {
 async function startBulkOrdersExport(startDate, endDate, storeConfig) {
     console.log('📦 [BULK START] Starting bulk export for:', { startDate, endDate, store: storeConfig.name });
 
-    // ALWAYS cancel any existing bulk operation first
-    // Shopify only allows ONE bulk operation at a time per store
-    console.log('🛑 [BULK START] Cancelling any existing operation first...');
-    await cancelBulkOperation(storeConfig.key);
-
     const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
     const innerQuery = buildBulkOrdersQuery(startDate, endDate);
     console.log('📝 [BULK START] GraphQL query built for date range');
@@ -438,7 +281,7 @@ async function startBulkOrdersExport(startDate, endDate, storeConfig) {
     `;
 
     try {
-        const response = await fetchWithProxy(graphqlUrl, {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -505,7 +348,7 @@ async function pollBulkOperation(storeConfig, onProgress = null, maxAttempts = 3
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-            const response = await fetchWithProxy(graphqlUrl, {
+            const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
                 method: 'POST',
                 headers: {
                     'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -599,12 +442,7 @@ async function downloadAndParseBulkData(url, onProgress = null) {
             const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
             console.log(`📥 [BULK DOWNLOAD] Trying proxy: ${proxy || '(direct)'}`);
 
-            // Add timeout to prevent hanging forever
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-
-            const response = await fetch(fetchUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
+            const response = await fetch(fetchUrl);
 
             if (!response.ok) {
                 console.warn(`⚠️ [BULK DOWNLOAD] Proxy failed (${response.status}): ${proxy || '(direct)'}`);
@@ -617,13 +455,8 @@ async function downloadAndParseBulkData(url, onProgress = null) {
             break;
 
         } catch (proxyError) {
-            if (proxyError.name === 'AbortError') {
-                console.warn(`⏱️ [BULK DOWNLOAD] Timeout after 60s: ${proxy || '(direct)'}`);
-                lastError = new Error('Download timeout - trying next proxy');
-            } else {
-                console.warn(`⚠️ [BULK DOWNLOAD] Proxy error: ${proxy || '(direct)'}`, proxyError.message);
-                lastError = proxyError;
-            }
+            console.warn(`⚠️ [BULK DOWNLOAD] Proxy error: ${proxy || '(direct)'}`, proxyError.message);
+            lastError = proxyError;
         }
     }
 
@@ -996,226 +829,112 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
     }
 
     const dateRange = getDateRange(period, customRange);
+    console.log('📅 [BULK] Date range:', dateRange);
 
-    // Check localStorage cache first
-    const cacheKey = generateCacheKey('bulk', {
-        store: storeKey,
-        location: locationId,
-        period,
-        since: customRange?.startDate || dateRange.since,
-        until: customRange?.endDate || dateRange.until
+    if (onProgress) {
+        onProgress(5, 'Starting bulk export...');
+    }
+
+    // Step 1: Start bulk operation
+    console.log('📦 [BULK] Step 1: Starting bulk export...');
+    await startBulkOrdersExport(dateRange.since, dateRange.until, storeConfig);
+
+    if (onProgress) {
+        onProgress(10, 'Bulk operation queued...');
+    }
+
+    // Step 2: Poll until completion
+    console.log('⏳ [BULK] Step 2: Polling for completion...');
+    const completedOp = await pollBulkOperation(storeConfig, onProgress);
+    console.log('✅ [BULK] Poll completed:', completedOp);
+
+    if (!completedOp.url) {
+        // No data returned (empty result)
+        console.log('📭 Bulk operation completed but no data URL - likely no orders in range');
+        return {
+            summary: {
+                totalSales: '0.00',
+                netSales: '0.00',
+                totalTax: '0.00',
+                totalCecetTax: '0.00',
+                totalSalesTax: '0.00',
+                totalOrders: 0,
+                avgOrderValue: '0.00',
+                currency: 'USD'
+            },
+            daily: {},
+            hourly: {},
+            monthly: {},
+            recentOrders: [],
+            storeInfo: {
+                key: storeKey,
+                name: storeConfig.name,
+                shortName: storeConfig.shortName,
+                locationId: null
+            },
+            dateRange: {
+                period,
+                since: dateRange.since,
+                until: dateRange.until
+            }
+        };
+    }
+
+    // Step 3: Download and parse NDJSON
+    console.log('📥 [BULK] Step 3: Downloading and parsing NDJSON from:', completedOp.url);
+    const bulkOrders = await downloadAndParseBulkData(completedOp.url, onProgress);
+    console.log(`📊 [BULK] Downloaded ${bulkOrders.length} orders (NO 2500 LIMIT!)`);
+
+    if (onProgress) {
+        onProgress(90, 'Processing analytics...');
+    }
+
+    // Step 4: Transform to analytics format (with location filtering if specified)
+    console.log('🔄 [BULK] Step 4: Transforming data to analytics format...');
+    if (locationId) {
+        console.log(`📍 [BULK] Filtering orders by location ID: ${locationId}`);
+    }
+    const analytics = transformBulkDataToAnalytics(bulkOrders, locationId);
+    console.log('✅ [BULK] Analytics complete:', {
+        totalOrders: analytics.summary.totalOrders,
+        totalSales: analytics.summary.totalSales,
+        totalTax: analytics.summary.totalTax,
+        locationFiltered: !!locationId
     });
 
-    const cached = getFromCache(cacheKey);
-    if (cached) {
-        console.log('📦 [BULK] Returning cached data from localStorage');
-        if (onProgress) onProgress(100, 'Loaded from cache!');
-        return cached.data;
+    // Add store and date info
+    analytics.storeInfo = {
+        key: storeKey,
+        name: storeConfig.name,
+        shortName: storeConfig.shortName,
+        locationId: locationId || null
+    };
+
+    analytics.dateRange = {
+        period,
+        since: dateRange.since,
+        until: dateRange.until
+    };
+
+    if (onProgress) {
+        onProgress(100, 'Complete!');
     }
 
-    // Try Firebase Function cache for standard periods (synced automatically every 6 hours)
-    // Use cache for standard periods even if customRange is provided (it's often passed for date display)
-    if (['today', 'week', 'month', 'quarter', 'year'].includes(period)) {
-        try {
-            console.log(`🔥 [CACHE API] Checking cached data for ${storeKey}_${period}...`);
-            if (onProgress) onProgress(5, 'Checking cached data...');
-
-            const cacheUrl = `https://us-central1-ascendance-b3e52.cloudfunctions.net/getCachedAnalytics?store=${storeKey}&period=${period}`;
-            const cacheResponse = await fetch(cacheUrl);
-
-            if (cacheResponse.ok) {
-                const cacheData = await cacheResponse.json();
-
-                // Firebase function returns data directly (not wrapped in {success, data})
-                // Check if we have valid analytics data by looking for summary
-                if (cacheData.summary && cacheData.fromCache) {
-                    // Calculate cache age from syncedAt timestamp
-                    let cacheAgeMinutes = 0;
-                    if (cacheData.syncedAt) {
-                        const syncTime = new Date(cacheData.syncedAt).getTime();
-                        cacheAgeMinutes = Math.round((Date.now() - syncTime) / (1000 * 60));
-                    }
-
-                    const maxAge = period === 'today' ? 30 : 120; // 30 min for today, 2 hours for others
-
-                    if (cacheAgeMinutes < maxAge) {
-                        console.log(`✅ [CACHE API] Cache hit! Age: ${cacheAgeMinutes} minutes (synced: ${cacheData.syncedAt})`);
-                        if (onProgress) onProgress(100, 'Loaded from cache!');
-                        // Save to localStorage for even faster subsequent loads
-                        saveToCache(cacheKey, cacheData, CACHE_CONFIG.TTL.analyticsBulk);
-                        return cacheData;
-                    } else {
-                        console.log(`⏰ [CACHE API] Cache too old (${cacheAgeMinutes} min), fetching fresh data...`);
-                    }
-                } else {
-                    console.log(`⚠️ [CACHE API] Invalid cache response structure:`, Object.keys(cacheData));
-                }
-            } else {
-                console.log(`⚠️ [CACHE API] Cache request failed: ${cacheResponse.status}`);
-            }
-        } catch (e) {
-            console.warn('⚠️ [CACHE API] Cache check failed:', e.message);
-        }
-    }
-
-    // Deduplicate concurrent requests
-    return deduplicateRequest(cacheKey, async () => {
-        console.log('📅 [BULK] Date range:', dateRange);
-
-        if (onProgress) {
-            onProgress(5, 'Starting bulk export...');
-        }
-
-        // Step 1: Start bulk operation
-        console.log('📦 [BULK] Step 1: Starting bulk export...');
-        await startBulkOrdersExport(dateRange.since, dateRange.until, storeConfig);
-
-        if (onProgress) {
-            onProgress(10, 'Bulk operation queued...');
-        }
-
-        // Step 2: Poll until completion
-        console.log('⏳ [BULK] Step 2: Polling for completion...');
-        const completedOp = await pollBulkOperation(storeConfig, onProgress);
-        console.log('✅ [BULK] Poll completed:', completedOp);
-
-        if (!completedOp.url) {
-            // No data returned (empty result)
-            console.log('📭 Bulk operation completed but no data URL - likely no orders in range');
-            const emptyResult = {
-                summary: {
-                    totalSales: '0.00',
-                    netSales: '0.00',
-                    totalTax: '0.00',
-                    totalCecetTax: '0.00',
-                    totalSalesTax: '0.00',
-                    totalOrders: 0,
-                    avgOrderValue: '0.00',
-                    currency: 'USD'
-                },
-                daily: {},
-                hourly: {},
-                monthly: {},
-                recentOrders: [],
-                storeInfo: {
-                    key: storeKey,
-                    name: storeConfig.name,
-                    shortName: storeConfig.shortName,
-                    locationId: null
-                },
-                dateRange: {
-                    period,
-                    since: dateRange.since,
-                    until: dateRange.until
-                }
-            };
-            // Cache empty results too (shorter TTL)
-            saveToCache(cacheKey, emptyResult, CACHE_CONFIG.TTL.analytics);
-            return emptyResult;
-        }
-
-        // Step 3: Download and parse NDJSON
-        console.log('📥 [BULK] Step 3: Downloading and parsing NDJSON from:', completedOp.url);
-        const bulkOrders = await downloadAndParseBulkData(completedOp.url, onProgress);
-        console.log(`📊 [BULK] Downloaded ${bulkOrders.length} orders (NO 2500 LIMIT!)`);
-
-        if (onProgress) {
-            onProgress(90, 'Processing analytics...');
-        }
-
-        // Step 4: Transform to analytics format (with location filtering if specified)
-        console.log('🔄 [BULK] Step 4: Transforming data to analytics format...');
-        if (locationId) {
-            console.log(`📍 [BULK] Filtering orders by location ID: ${locationId}`);
-        }
-        const analytics = transformBulkDataToAnalytics(bulkOrders, locationId);
-        console.log('✅ [BULK] Analytics complete:', {
-            totalOrders: analytics.summary.totalOrders,
-            totalSales: analytics.summary.totalSales,
-            totalTax: analytics.summary.totalTax,
-            locationFiltered: !!locationId
-        });
-
-        // Add store and date info
-        analytics.storeInfo = {
-            key: storeKey,
-            name: storeConfig.name,
-            shortName: storeConfig.shortName,
-            locationId: locationId || null
-        };
-
-        analytics.dateRange = {
-            period,
-            since: dateRange.since,
-            until: dateRange.until
-        };
-
-        if (onProgress) {
-            onProgress(100, 'Complete!');
-        }
-
-        // Save to cache before returning
-        saveToCache(cacheKey, analytics, CACHE_CONFIG.TTL.analyticsBulk);
-
-        return analytics;
-    }); // End deduplicateRequest
+    return analytics;
 }
 
-// CORS Proxy Configuration - multiple proxies for fallback
-const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
-    'https://cors-anywhere.herokuapp.com/'
-];
-let currentProxyIndex = 0;
-const CORS_PROXY = CORS_PROXIES[0]; // Default proxy
+// CORS Proxy Configuration
+const CORS_PROXY = 'https://corsproxy.io/?';
 
 /**
- * Try fetching with multiple CORS proxies
- */
-async function fetchWithProxy(url, options = {}) {
-    let lastError = null;
-
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-        const proxyIndex = (currentProxyIndex + i) % CORS_PROXIES.length;
-        const proxy = CORS_PROXIES[proxyIndex];
-        const proxyUrl = proxy + encodeURIComponent(url);
-
-        try {
-            const response = await fetch(proxyUrl, options);
-
-            if (response.ok) {
-                // Remember this working proxy for next time
-                currentProxyIndex = proxyIndex;
-                return response;
-            }
-
-            if (response.status === 403 || response.status === 429) {
-                console.warn(`⚠️ Proxy ${proxy} returned ${response.status}, trying next...`);
-                lastError = new Error(`Proxy error: ${response.status}`);
-                continue;
-            }
-
-            // For other errors, return the response to let caller handle
-            return response;
-        } catch (error) {
-            console.warn(`⚠️ Proxy ${proxy} failed:`, error.message);
-            lastError = error;
-        }
-    }
-
-    throw lastError || new Error('All CORS proxies failed');
-}
-
-/**
- * Fetch data from Shopify API with CORS proxy fallback
+ * Fetch data from Shopify API with CORS proxy
  */
 async function fetchShopifyAPI(endpoint, params = {}, storeConfig) {
     const queryString = new URLSearchParams(params).toString();
     const url = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/${endpoint}${queryString ? '?' + queryString : ''}`;
 
     try {
-        const response = await fetchWithProxy(url, {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(url), {
             method: 'GET',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken
@@ -1231,26 +950,6 @@ async function fetchShopifyAPI(endpoint, params = {}, storeConfig) {
         console.error('Shopify API request failed:', error);
         throw error;
     }
-}
-
-/**
- * Fetch GraphQL with CORS proxy fallback
- */
-async function fetchGraphQLWithProxy(graphqlUrl, query, variables, storeConfig) {
-    const response = await fetchWithProxy(graphqlUrl, {
-        method: 'POST',
-        headers: {
-            'X-Shopify-Access-Token': storeConfig.accessToken,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query, variables })
-    });
-
-    if (!response.ok) {
-        throw new Error(`GraphQL request failed: ${response.status}`);
-    }
-
-    return await response.json();
 }
 
 /**
@@ -1281,7 +980,8 @@ async function fetchOrderTaxDetailsGraphQL(orderIds, storeConfig) {
     `;
 
     try {
-        const response = await fetchWithProxy(graphqlUrl, {
+
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -1540,9 +1240,8 @@ function getDateRange(period, customRange = null) {
             break;
 
         case 'month':
-            // Last 30 days rolling (full month of sales)
-            since = new Date(now);
-            since.setDate(now.getDate() - 30);
+            // This month: from 1st of current month to now
+            since = new Date(now.getFullYear(), now.getMonth(), 1);
             since.setHours(0, 0, 0, 0);
             until = new Date();
             break;
@@ -1732,60 +1431,38 @@ async function fetchSalesAnalytics(storeKey = 'vsu', locationId = null, period =
 
     const dateRange = getDateRange(period, customRange);
 
-    // Check cache first
-    const cacheKey = generateCacheKey('analytics', {
-        store: storeKey,
-        location: locationId,
-        period,
-        since: customRange?.startDate || dateRange.since,
-        until: customRange?.endDate || dateRange.until
-    });
-
-    const cached = getFromCache(cacheKey);
-    if (cached) {
-        console.log('📦 [REST] Returning cached data');
-        if (onProgress) onProgress(100, 'Loaded from cache!');
-        return cached.data;
+    if (onProgress) {
+        onProgress(10, 'Connecting to Shopify...');
     }
 
-    // Deduplicate concurrent requests
-    return deduplicateRequest(cacheKey, async () => {
-        if (onProgress) {
-            onProgress(10, 'Connecting to Shopify...');
-        }
+    const orders = await fetchAllOrders(dateRange.since, dateRange.until, storeConfig, locationId, onProgress);
 
-        const orders = await fetchAllOrders(dateRange.since, dateRange.until, storeConfig, locationId, onProgress);
+    if (onProgress) {
+        onProgress(92, 'Fetching tax details...');
+    }
 
-        if (onProgress) {
-            onProgress(92, 'Fetching tax details...');
-        }
+    const analytics = await processOrdersData(orders, storeConfig);
 
-        const analytics = await processOrdersData(orders, storeConfig);
+    // Add store info to analytics
+    analytics.storeInfo = {
+        key: storeKey,
+        name: storeConfig.name,
+        shortName: storeConfig.shortName,
+        locationId: locationId
+    };
 
-        // Add store info to analytics
-        analytics.storeInfo = {
-            key: storeKey,
-            name: storeConfig.name,
-            shortName: storeConfig.shortName,
-            locationId: locationId
-        };
+    // Add date range info to analytics
+    analytics.dateRange = {
+        period: period,
+        since: dateRange.since,
+        until: dateRange.until
+    };
 
-        // Add date range info to analytics
-        analytics.dateRange = {
-            period: period,
-            since: dateRange.since,
-            until: dateRange.until
-        };
+    if (onProgress) {
+        onProgress(100, 'Complete!');
+    }
 
-        if (onProgress) {
-            onProgress(100, 'Complete!');
-        }
-
-        // Save to cache before returning
-        saveToCache(cacheKey, analytics, CACHE_CONFIG.TTL.analytics);
-
-        return analytics;
-    }); // End deduplicateRequest
+    return analytics;
 }
 
 /**
@@ -1873,7 +1550,7 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
     `;
 
     try {
-        const response = await fetchWithProxy(graphqlUrl, {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -1956,7 +1633,7 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
     try {
         // Get locations
         console.log(`📍 [Inventory] Fetching locations for ${storeConfig.name}...`);
-        const locResponse = await fetchWithProxy(graphqlUrl, {
+        const locResponse = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -2029,7 +1706,7 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
         `;
 
         console.log(`📦 [Inventory] Fetching products with inventory levels for ${storeConfig.name}...`);
-        const prodResponse = await fetchWithProxy(graphqlUrl, {
+        const prodResponse = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -2191,41 +1868,5 @@ async function fetchAllStoresInventory(onProgress = null) {
 function getStoresConfig() {
     return STORES_CONFIG;
 }
-
-/**
- * Force refresh analytics by clearing cache for specific store/period
- */
-function forceRefreshAnalytics(storeKey = null, period = null) {
-    const keys = Object.keys(localStorage).filter(k => {
-        if (!k.startsWith(CACHE_CONFIG.PREFIX)) return false;
-        if (storeKey && !k.includes(`store=${storeKey}`)) return false;
-        if (period && !k.includes(`period=${period}`)) return false;
-        return true;
-    });
-    keys.forEach(k => localStorage.removeItem(k));
-    console.log(`🔄 [CACHE] Force refreshed ${keys.length} entries`);
-    return keys.length;
-}
-
-/**
- * Smart fetch - Uses Bulk Operations with caching.
- * REST API doesn't work because CORS proxies block the X-Shopify-Access-Token header.
- * GraphQL works because it sends credentials in POST body.
- */
-async function fetchSalesAnalyticsSmart(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null) {
-    console.log(`📊 [SMART] Using Bulk Operations (GraphQL) - period: ${period}`);
-    return fetchSalesAnalyticsBulk(storeKey, locationId, period, onProgress, customRange);
-}
-
-// Expose functions globally for use in other scripts
-window.fetchSalesAnalyticsBulk = fetchSalesAnalyticsBulk;
-window.fetchSalesAnalytics = fetchSalesAnalytics;
-window.fetchSalesAnalyticsSmart = fetchSalesAnalyticsSmart;
-window.fetchStoreInventory = fetchStoreInventory;
-window.fetchAllStoresInventory = fetchAllStoresInventory;
-window.getStoresConfig = getStoresConfig;
-window.clearAllCache = clearAllCache;
-window.forceRefreshAnalytics = forceRefreshAnalytics;
-window.STORES_CONFIG = STORES_CONFIG;
 
 
