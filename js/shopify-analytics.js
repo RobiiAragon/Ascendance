@@ -997,7 +997,7 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
 
     const dateRange = getDateRange(period, customRange);
 
-    // Check cache first
+    // Check localStorage cache first
     const cacheKey = generateCacheKey('bulk', {
         store: storeKey,
         location: locationId,
@@ -1008,9 +1008,39 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
 
     const cached = getFromCache(cacheKey);
     if (cached) {
-        console.log('📦 [BULK] Returning cached data');
+        console.log('📦 [BULK] Returning cached data from localStorage');
         if (onProgress) onProgress(100, 'Loaded from cache!');
         return cached.data;
+    }
+
+    // Try Firestore cache for standard periods (synced automatically every 6 hours)
+    if (!customRange && ['today', 'week', 'month', 'quarter', 'year'].includes(period)) {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                const docId = `${storeKey}_${period}`;
+                console.log(`🔥 [FIRESTORE] Checking cache: ${docId}`);
+                if (onProgress) onProgress(5, 'Checking Firestore cache...');
+
+                const doc = await firebase.firestore().collection('shopify_analytics_cache').doc(docId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const cacheAge = Date.now() - (data.timestamp?.toMillis() || 0);
+                    const maxAge = period === 'today' ? 30 * 60 * 1000 : 2 * 60 * 60 * 1000; // 30 min for today, 2 hours for others
+
+                    if (cacheAge < maxAge && data.analytics) {
+                        console.log(`✅ [FIRESTORE] Cache hit! Age: ${Math.round(cacheAge / 60000)} minutes`);
+                        if (onProgress) onProgress(100, 'Loaded from Firestore cache!');
+                        // Also save to localStorage for faster subsequent loads
+                        saveToCache(cacheKey, data.analytics, CACHE_CONFIG.TTL.analyticsBulk);
+                        return data.analytics;
+                    } else {
+                        console.log(`⏰ [FIRESTORE] Cache expired (${Math.round(cacheAge / 60000)} min old)`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [FIRESTORE] Cache check failed:', e.message);
+        }
     }
 
     // Deduplicate concurrent requests
@@ -2163,52 +2193,13 @@ function forceRefreshAnalytics(storeKey = null, period = null) {
 }
 
 /**
- * Smart fetch that chooses REST for short periods (faster) and Bulk for long periods
- * - Calculates actual date range to determine best method
- * - REST API: for ranges <= 14 days (faster, no bulk overhead)
- * - Bulk Operations: for ranges > 14 days (handles large datasets)
+ * Smart fetch - Uses Bulk Operations with caching.
+ * REST API doesn't work because CORS proxies block the X-Shopify-Access-Token header.
+ * GraphQL works because it sends credentials in POST body.
  */
 async function fetchSalesAnalyticsSmart(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null) {
-    // Calculate actual number of days in the range
-    let daysDiff = 30; // Default to assuming month
-
-    if (customRange && customRange.startDate && customRange.endDate) {
-        // Custom range - calculate actual days
-        const start = new Date(customRange.startDate);
-        const end = new Date(customRange.endDate);
-        daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        console.log(`📅 [SMART] Custom range: ${daysDiff} days`);
-    } else {
-        // Standard periods
-        switch (period) {
-            case 'today':
-                daysDiff = 1;
-                break;
-            case 'week':
-                daysDiff = 7;
-                break;
-            case 'month':
-                daysDiff = 30;
-                break;
-            case 'quarter':
-                daysDiff = 90;
-                break;
-            case 'year':
-                daysDiff = 365;
-                break;
-        }
-    }
-
-    // Use REST API for short ranges (14 days or less), Bulk for longer
-    const useRestApi = daysDiff <= 14;
-
-    if (useRestApi) {
-        console.log(`📊 [SMART] Using REST API for ${daysDiff} days (faster for short ranges)`);
-        return fetchSalesAnalytics(storeKey, locationId, period, onProgress, customRange);
-    } else {
-        console.log(`📊 [SMART] Using Bulk Operations for ${daysDiff} days (better for large datasets)`);
-        return fetchSalesAnalyticsBulk(storeKey, locationId, period, onProgress, customRange);
-    }
+    console.log(`📊 [SMART] Using Bulk Operations (GraphQL) - period: ${period}`);
+    return fetchSalesAnalyticsBulk(storeKey, locationId, period, onProgress, customRange);
 }
 
 // Expose functions globally for use in other scripts

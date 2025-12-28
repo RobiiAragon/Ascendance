@@ -1191,13 +1191,10 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             }
         }
 
-        // Cancel any existing bulk operation before starting a new one
-        console.log('[Analytics] Cancelling any existing bulk operation...');
-        await cancelBulkOperation(selectedStore);
-
-        // Use GraphQL Bulk Operations API for unlimited order fetching (no 2500 cap)
-        console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
-        const salesData = await fetchSalesAnalyticsBulk(selectedStore, selectedLocation, period, (progress, text) => {
+        // Use smart fetch that chooses REST for short periods, Bulk for long periods
+        const fetchFn = typeof fetchSalesAnalyticsSmart === 'function' ? fetchSalesAnalyticsSmart : fetchSalesAnalyticsBulk;
+        console.log('[Analytics] Starting fetch with smart method selection...');
+        const salesData = await fetchFn(selectedStore, selectedLocation, period, (progress, text) => {
             // Check if this request is still valid before updating progress
             if (thisRequestId !== analyticsRequestId) return;
 
