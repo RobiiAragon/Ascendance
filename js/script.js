@@ -3542,10 +3542,8 @@
                 </div>
             `;
 
-            // Automatically load data when page renders (if not already loading)
-            if (!analyticsData.isLoading && !analyticsData.data) {
-                setTimeout(() => loadAnalyticsData(), 500);
-            }
+            // NOTE: Auto-load disabled - user must click Apply button
+            // The renderAnalyticsPage in api-client.js is now the primary entry point
         }
 
         // Analytics Calendar Functions
@@ -3609,9 +3607,9 @@
             const container = document.getElementById('analytics-calendar-container');
             if (container) container.style.display = 'none';
 
-            // Re-render analytics with new period and load data
+            // Re-render analytics with new period (don't auto-load)
             renderAnalytics();
-            loadAnalyticsData();
+            // NOTE: Auto-load removed - user must click Apply
         };
 
         // Handle period selection from dropdown
@@ -3663,7 +3661,7 @@
                     subtitleEl.textContent = `${formatDate(analyticsDateRange.startDate)} - ${formatDate(analyticsDateRange.endDate)}`;
                 }
 
-                loadAnalyticsData();
+                // NOTE: Auto-load removed - user must click Apply
             }
         };
 
@@ -3756,9 +3754,9 @@
                 periodSelect.value = period;
             }
 
-            // Auto-load data
+            // Log selection (don't auto-load - user must click Apply)
             console.log(`📅 [QUICK SELECT] ${range} -> period: ${period}, dates: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
-            loadAnalyticsData();
+            // NOTE: Auto-load removed - user must click Apply
         };
 
         // Custom Calendar Popup State
@@ -4103,9 +4101,9 @@
             const container = document.getElementById('analytics-calendar-container');
             if (container) container.style.display = 'none';
 
-            // Re-render analytics and load data
+            // Re-render analytics (don't auto-load - user must click Apply)
             renderAnalytics();
-            loadAnalyticsData();
+            // NOTE: Auto-load removed - user must click Apply
         };
 
         // Close calendar when clicking outside
