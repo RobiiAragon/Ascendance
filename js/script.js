@@ -38274,6 +38274,52 @@ let glabsColWidths = {};
 let glabsRowHeights = {};
 let glabsCellStyles = {};
 
+// Month navigation state
+let glabsCurrentMonth = new Date().getMonth();
+let glabsCurrentYear = new Date().getFullYear();
+
+// Get month key for storage
+function glabsGetMonthKey() {
+    return `${glabsCurrentYear}-${String(glabsCurrentMonth + 1).padStart(2, '0')}`;
+}
+
+// Get month display name
+function glabsGetMonthName() {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${months[glabsCurrentMonth]} ${glabsCurrentYear}`;
+}
+
+// Navigate to previous month
+function glabsPrevMonth() {
+    glabsCurrentMonth--;
+    if (glabsCurrentMonth < 0) {
+        glabsCurrentMonth = 11;
+        glabsCurrentYear--;
+    }
+    glabsLoadDataForMonth();
+    renderGLabs();
+}
+
+// Navigate to next month
+function glabsNextMonth() {
+    glabsCurrentMonth++;
+    if (glabsCurrentMonth > 11) {
+        glabsCurrentMonth = 0;
+        glabsCurrentYear++;
+    }
+    glabsLoadDataForMonth();
+    renderGLabs();
+}
+
+// Go to current month
+function glabsGoToCurrentMonth() {
+    glabsCurrentMonth = new Date().getMonth();
+    glabsCurrentYear = new Date().getFullYear();
+    glabsLoadDataForMonth();
+    renderGLabs();
+}
+
 // Initialize G-Labs data structure
 function glabsInitSheet(sheetName) {
     if (!glabsSheets[sheetName]) {
@@ -38292,9 +38338,15 @@ function glabsInitSheet(sheetName) {
     }
 }
 
-// Load G-Labs from localStorage
+// Load G-Labs from localStorage for current month
 function glabsLoadData() {
-    const saved = localStorage.getItem('glabs_sheets');
+    glabsLoadDataForMonth();
+}
+
+// Load data for specific month
+function glabsLoadDataForMonth() {
+    const monthKey = glabsGetMonthKey();
+    const saved = localStorage.getItem(`glabs_month_${monthKey}`);
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
@@ -38302,19 +38354,36 @@ function glabsLoadData() {
             glabsCurrentSheet = parsed.currentSheet || 'Sheet 1';
         } catch (e) {
             console.error('Error loading G-Labs:', e);
+            glabsSheets = {};
         }
+    } else {
+        glabsSheets = {};
     }
     if (Object.keys(glabsSheets).length === 0) {
         glabsInitSheet('Sheet 1');
     }
 }
 
-// Save G-Labs to localStorage
+// Save G-Labs to localStorage for current month
 function glabsSaveData() {
-    localStorage.setItem('glabs_sheets', JSON.stringify({
+    const monthKey = glabsGetMonthKey();
+    localStorage.setItem(`glabs_month_${monthKey}`, JSON.stringify({
         sheets: glabsSheets,
         currentSheet: glabsCurrentSheet
     }));
+}
+
+// Get list of all months that have data
+function glabsGetSavedMonths() {
+    const months = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('glabs_month_')) {
+            const monthKey = key.replace('glabs_month_', '');
+            months.push(monthKey);
+        }
+    }
+    return months.sort().reverse();
 }
 
 // Multi-selection state
@@ -38357,6 +38426,23 @@ function renderGLabs() {
                     </h2>
                     <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Professional spreadsheet for data crunching</p>
                 </div>
+
+                <!-- Month Navigation -->
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button onclick="glabsPrevMonth()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div style="text-align: center; min-width: 150px;">
+                        <span style="font-size: 18px; font-weight: 600;">${glabsGetMonthName()}</span>
+                    </div>
+                    <button onclick="glabsNextMonth()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button onclick="glabsGoToCurrentMonth()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                </div>
+
                 <div style="display: flex; gap: 10px;">
                     <button onclick="glabsExportCSV()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
                         <i class="fas fa-download"></i> Export CSV
