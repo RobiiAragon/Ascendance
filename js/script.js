@@ -38644,11 +38644,18 @@ function glabsFormatValue(value, format) {
     }
 }
 
+// Track drag state
+let glabsIsDragging = false;
+
 // Start multi-cell selection
 function glabsStartSelection(event, row, col) {
     if (event.button === 2) return; // Ignore right click
 
+    // Check if clicking on an input (already editing)
+    if (event.target.tagName === 'INPUT') return;
+
     glabsIsSelecting = true;
+    glabsIsDragging = false;
     glabsSelectionStart = { row, col };
     glabsSelectionEnd = { row, col };
     glabsSelectedCells = [{ row, col }];
@@ -38671,14 +38678,16 @@ function glabsStartSelection(event, row, col) {
 
     const sheet = glabsSheets[glabsCurrentSheet];
     document.getElementById('glabs-formula-bar').value = sheet.data[row]?.[col] || '';
-
-    // Single click to edit
-    glabsEditCell(td, row, col);
 }
 
 // Update selection while dragging
 function glabsUpdateSelection(event, row, col) {
     if (!glabsIsSelecting) return;
+
+    // Mark as dragging if moved to different cell
+    if (glabsSelectionStart && (glabsSelectionStart.row !== row || glabsSelectionStart.col !== col)) {
+        glabsIsDragging = true;
+    }
 
     glabsSelectionEnd = { row, col };
 
@@ -38715,7 +38724,13 @@ function glabsUpdateSelection(event, row, col) {
 
 // End selection
 function glabsEndSelection() {
+    // If it was just a click (no drag), start editing
+    if (glabsIsSelecting && !glabsIsDragging && glabsSelectedCell) {
+        const { row, col, element } = glabsSelectedCell;
+        glabsEditCell(element, row, col);
+    }
     glabsIsSelecting = false;
+    glabsIsDragging = false;
 }
 
 // Update stats for selected cells
