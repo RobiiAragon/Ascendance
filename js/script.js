@@ -38265,102 +38265,212 @@ async function deleteLease(leaseId) {
 // =============================================================================
 
 // G-Labs state
-let glabsData = [];
-let glabsRows = 20;
-let glabsCols = 10;
+let glabsSheets = {};
+let glabsCurrentSheet = 'Sheet 1';
+let glabsRows = 30;
+let glabsCols = 12;
 let glabsSelectedCell = null;
+let glabsColWidths = {};
+let glabsRowHeights = {};
+let glabsCellStyles = {};
+
+// Initialize G-Labs data structure
+function glabsInitSheet(sheetName) {
+    if (!glabsSheets[sheetName]) {
+        glabsSheets[sheetName] = {
+            data: [],
+            colWidths: {},
+            rowHeights: {},
+            cellStyles: {}
+        };
+        for (let i = 0; i < glabsRows; i++) {
+            glabsSheets[sheetName].data[i] = [];
+            for (let j = 0; j < glabsCols; j++) {
+                glabsSheets[sheetName].data[i][j] = '';
+            }
+        }
+    }
+}
+
+// Load G-Labs from localStorage
+function glabsLoadData() {
+    const saved = localStorage.getItem('glabs_sheets');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            glabsSheets = parsed.sheets || {};
+            glabsCurrentSheet = parsed.currentSheet || 'Sheet 1';
+        } catch (e) {
+            console.error('Error loading G-Labs:', e);
+        }
+    }
+    if (Object.keys(glabsSheets).length === 0) {
+        glabsInitSheet('Sheet 1');
+    }
+}
+
+// Save G-Labs to localStorage
+function glabsSaveData() {
+    localStorage.setItem('glabs_sheets', JSON.stringify({
+        sheets: glabsSheets,
+        currentSheet: glabsCurrentSheet
+    }));
+}
 
 function renderGLabs() {
     const dashboard = document.querySelector('.dashboard');
 
-    // Initialize empty data if needed
-    if (glabsData.length === 0) {
-        for (let i = 0; i < glabsRows; i++) {
-            glabsData[i] = [];
-            for (let j = 0; j < glabsCols; j++) {
-                glabsData[i][j] = '';
-            }
-        }
-    }
+    // Load data
+    glabsLoadData();
 
-    // Load saved data from localStorage
-    const savedData = localStorage.getItem('glabs_data');
-    if (savedData) {
-        try {
-            glabsData = JSON.parse(savedData);
-            glabsRows = glabsData.length;
-            glabsCols = glabsData[0]?.length || 10;
-        } catch (e) {
-            console.error('Error loading G-Labs data:', e);
-        }
-    }
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const glabsData = sheet.data;
+    const actualRows = glabsData.length || glabsRows;
+    const actualCols = glabsData[0]?.length || glabsCols;
 
     // Column letters
     const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+    // Sheet tabs HTML
+    const sheetTabs = Object.keys(glabsSheets).map(name => `
+        <button class="glabs-sheet-tab ${name === glabsCurrentSheet ? 'active' : ''}"
+                onclick="glabsSwitchSheet('${name}')"
+                ondblclick="glabsRenameSheet('${name}')">
+            ${name}
+            ${Object.keys(glabsSheets).length > 1 ? `<span class="glabs-tab-close" onclick="event.stopPropagation(); glabsDeleteSheet('${name}')">&times;</span>` : ''}
+        </button>
+    `).join('');
+
     dashboard.innerHTML = `
-        <div class="page-header">
-            <div class="page-header-left">
-                <h2 class="section-title"><i class="fas fa-flask"></i> G-Labs</h2>
-                <p class="section-subtitle">Quick spreadsheet for crunching numbers</p>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <button class="btn-secondary" onclick="glabsAddRow()">
-                    <i class="fas fa-plus"></i> Add Row
-                </button>
-                <button class="btn-secondary" onclick="glabsAddColumn()">
-                    <i class="fas fa-columns"></i> Add Column
-                </button>
-                <button class="btn-secondary" onclick="glabsClearAll()">
-                    <i class="fas fa-trash"></i> Clear All
-                </button>
-                <button class="btn-primary" onclick="glabsExportCSV()">
-                    <i class="fas fa-download"></i> Export CSV
-                </button>
+        <!-- Header con gradiente bonito -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 24px 32px; margin-bottom: 20px; color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-flask"></i> G-Labs One
+                    </h2>
+                    <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Spreadsheet profesional para crunching de datos</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="glabsExportCSV()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                    <button onclick="glabsClearAll()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Formula Bar -->
-        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
-            <span id="glabs-cell-ref" style="font-family: monospace; font-weight: 600; color: var(--accent-primary); min-width: 40px;">A1</span>
-            <input type="text" id="glabs-formula-bar" placeholder="Enter value or formula (e.g., =SUM(A1:A5), =A1+B1)"
-                style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: var(--text-primary); font-family: 'Outfit', monospace; font-size: 14px;"
+        <!-- Toolbar -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <!-- Cell Reference -->
+            <span id="glabs-cell-ref" style="font-family: monospace; font-weight: 700; color: var(--accent-primary); min-width: 45px; font-size: 15px; background: var(--bg-tertiary); padding: 6px 12px; border-radius: 6px;">A1</span>
+
+            <!-- Formula Bar -->
+            <input type="text" id="glabs-formula-bar" placeholder="Escribe valor, texto o fórmula (=SUM, =AVG, =A1+B1...)"
+                style="flex: 1; min-width: 200px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: var(--text-primary); font-family: 'Outfit', sans-serif; font-size: 14px;"
                 onkeydown="if(event.key === 'Enter') glabsApplyFormula()">
-            <button class="btn-primary" onclick="glabsApplyFormula()" style="padding: 8px 16px;">
-                <i class="fas fa-check"></i>
-            </button>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <!-- Color Picker -->
+                <div style="position: relative;">
+                    <button id="glabs-color-btn" onclick="glabsToggleColorPicker()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-primary);">
+                        <i class="fas fa-fill-drip"></i>
+                        <span id="glabs-color-preview" style="width: 16px; height: 16px; border-radius: 3px; background: #ffffff; border: 1px solid var(--border-color);"></span>
+                    </button>
+                    <div id="glabs-color-picker" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;">
+                            ${['#ffffff', '#f3f4f6', '#fef3c7', '#fce7f3', '#dbeafe', '#d1fae5',
+                               '#fbbf24', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6',
+                               '#10b981', '#14b8a6', '#06b6d4', '#6366f1', '#a855f7', '#d946ef',
+                               '#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db'].map(color => `
+                                <button onclick="glabsSetCellColor('${color}')"
+                                    style="width: 28px; height: 28px; border-radius: 4px; background: ${color}; border: 1px solid var(--border-color); cursor: pointer;"
+                                    title="${color}"></button>
+                            `).join('')}
+                        </div>
+                        <button onclick="glabsSetCellColor('')" style="margin-top: 8px; width: 100%; padding: 6px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-primary); font-size: 12px;">
+                            <i class="fas fa-times"></i> Sin color
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Text Color -->
+                <div style="position: relative;">
+                    <button onclick="glabsToggleTextColorPicker()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-primary);">
+                        <i class="fas fa-font"></i>
+                        <span id="glabs-text-color-preview" style="width: 16px; height: 16px; border-radius: 3px; background: #000000; border: 1px solid var(--border-color);"></span>
+                    </button>
+                    <div id="glabs-text-color-picker" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;">
+                            ${['#000000', '#374151', '#6b7280', '#9ca3af', '#d1d5db', '#ffffff',
+                               '#dc2626', '#ea580c', '#d97706', '#65a30d', '#059669', '#0891b2',
+                               '#2563eb', '#7c3aed', '#c026d3', '#db2777', '#e11d48', '#f43f5e'].map(color => `
+                                <button onclick="glabsSetTextColor('${color}')"
+                                    style="width: 28px; height: 28px; border-radius: 4px; background: ${color}; border: 1px solid var(--border-color); cursor: pointer;"
+                                    title="${color}"></button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column Width -->
+                <select id="glabs-col-width" onchange="glabsSetColumnWidth(this.value)" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; color: var(--text-primary); font-size: 13px; cursor: pointer;">
+                    <option value="">Ancho Col</option>
+                    <option value="60">Narrow</option>
+                    <option value="100">Normal</option>
+                    <option value="150">Wide</option>
+                    <option value="200">Extra Wide</option>
+                </select>
+
+                <!-- Row/Column Actions -->
+                <button onclick="glabsAddRow()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-primary); font-size: 13px;">
+                    <i class="fas fa-plus"></i> Fila
+                </button>
+                <button onclick="glabsAddColumn()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-primary); font-size: 13px;">
+                    <i class="fas fa-plus"></i> Col
+                </button>
+            </div>
         </div>
 
         <!-- Spreadsheet Grid -->
         <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
-            <div style="overflow-x: auto;">
+            <div style="overflow-x: auto; max-height: 60vh;">
                 <table id="glabs-table" style="width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif;">
-                    <thead>
+                    <thead style="position: sticky; top: 0; z-index: 10;">
                         <tr style="background: var(--bg-tertiary);">
-                            <th style="width: 50px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px;"></th>
-                            ${Array.from({length: glabsCols}, (_, i) => `
-                                <th style="min-width: 100px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center;">
+                            <th style="width: 50px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; position: sticky; left: 0; background: var(--bg-tertiary); z-index: 11;"></th>
+                            ${Array.from({length: actualCols}, (_, i) => {
+                                const width = sheet.colWidths?.[i] || 100;
+                                return `
+                                <th style="min-width: ${width}px; width: ${width}px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center; position: relative;" data-col="${i}">
                                     ${colLetters[i] || 'Z' + (i - 25)}
+                                    <div class="glabs-resize-handle" onmousedown="glabsStartResize(event, ${i})" style="position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent;"></div>
                                 </th>
-                            `).join('')}
+                            `}).join('')}
                         </tr>
                     </thead>
                     <tbody>
-                        ${Array.from({length: glabsRows}, (_, rowIdx) => `
+                        ${Array.from({length: actualRows}, (_, rowIdx) => `
                             <tr>
-                                <td style="padding: 8px 10px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center;">
+                                <td style="padding: 8px 10px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center; position: sticky; left: 0; z-index: 5;">
                                     ${rowIdx + 1}
                                 </td>
-                                ${Array.from({length: glabsCols}, (_, colIdx) => {
+                                ${Array.from({length: actualCols}, (_, colIdx) => {
                                     const cellId = `${colLetters[colIdx]}${rowIdx + 1}`;
                                     const value = glabsData[rowIdx]?.[colIdx] || '';
                                     const displayValue = glabsEvaluateCell(value, rowIdx, colIdx);
+                                    const cellStyle = sheet.cellStyles?.[`${rowIdx}-${colIdx}`] || {};
+                                    const bgColor = cellStyle.bg || '';
+                                    const textColor = cellStyle.color || '';
+                                    const width = sheet.colWidths?.[colIdx] || 100;
                                     return `
                                         <td class="glabs-cell" data-row="${rowIdx}" data-col="${colIdx}" data-cell="${cellId}"
                                             onclick="glabsSelectCell(this, ${rowIdx}, ${colIdx})"
                                             ondblclick="glabsEditCell(this, ${rowIdx}, ${colIdx})"
-                                            style="padding: 0; border: 1px solid var(--border-color); cursor: pointer; position: relative;">
-                                            <div class="glabs-cell-content" style="padding: 8px 10px; min-height: 20px; font-size: 13px; color: var(--text-primary);">
+                                            style="padding: 0; border: 1px solid var(--border-color); cursor: pointer; position: relative; min-width: ${width}px; ${bgColor ? 'background: ' + bgColor + ';' : ''}">
+                                            <div class="glabs-cell-content" style="padding: 8px 10px; min-height: 24px; font-size: 13px; ${textColor ? 'color: ' + textColor + ';' : 'color: var(--text-primary);'} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 ${displayValue}
                                             </div>
                                         </td>
@@ -38371,38 +38481,33 @@ function renderGLabs() {
                     </tbody>
                 </table>
             </div>
+
+            <!-- Sheet Tabs -->
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-tertiary); border-top: 1px solid var(--border-color);">
+                ${sheetTabs}
+                <button onclick="glabsAddSheet()" style="background: transparent; border: 1px dashed var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--text-muted); font-size: 12px;">
+                    <i class="fas fa-plus"></i> Nueva Hoja
+                </button>
+            </div>
         </div>
 
         <!-- Quick Stats -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 20px;">
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Selected Sum</div>
-                <div id="glabs-sum" style="font-size: 1.25rem; font-weight: 600; color: var(--accent-primary);">-</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px;">
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Sum</div>
+                <div id="glabs-sum" style="font-size: 1.1rem; font-weight: 600; color: var(--accent-primary);">-</div>
             </div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Selected Avg</div>
-                <div id="glabs-avg" style="font-size: 1.25rem; font-weight: 600; color: #10b981;">-</div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Average</div>
+                <div id="glabs-avg" style="font-size: 1.1rem; font-weight: 600; color: #10b981;">-</div>
             </div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Cell Count</div>
-                <div id="glabs-count" style="font-size: 1.25rem; font-weight: 600; color: #f59e0b;">-</div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Count</div>
+                <div id="glabs-count" style="font-size: 1.1rem; font-weight: 600; color: #f59e0b;">-</div>
             </div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Auto-Saved</div>
-                <div id="glabs-saved" style="font-size: 1.25rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-check-circle" style="color: #10b981;"></i></div>
-            </div>
-        </div>
-
-        <!-- Help Section -->
-        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-top: 20px;">
-            <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 14px;"><i class="fas fa-info-circle" style="color: var(--accent-primary);"></i> Quick Formulas</h4>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-muted);">
-                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=SUM(A1:A10)</code>
-                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=AVG(B1:B5)</code>
-                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=A1+B1*2</code>
-                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=MAX(C1:C10)</code>
-                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=MIN(D1:D10)</code>
-                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=COUNT(A1:A10)</code>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Status</div>
+                <div id="glabs-saved" style="font-size: 1.1rem; font-weight: 600; color: #10b981;"><i class="fas fa-check-circle"></i> Saved</div>
             </div>
         </div>
 
@@ -38411,9 +38516,9 @@ function renderGLabs() {
                 background: var(--bg-hover) !important;
             }
             .glabs-cell.selected {
-                outline: 2px solid var(--accent-primary);
+                outline: 2px solid var(--accent-primary) !important;
                 outline-offset: -2px;
-                background: rgba(96, 165, 250, 0.1);
+                background: rgba(96, 165, 250, 0.15) !important;
             }
             .glabs-cell input {
                 width: 100%;
@@ -38421,9 +38526,45 @@ function renderGLabs() {
                 border: none;
                 background: white;
                 padding: 8px 10px;
-                font-family: 'Outfit', monospace;
+                font-family: 'Outfit', sans-serif;
                 font-size: 13px;
                 outline: none;
+                color: #000;
+            }
+            .glabs-sheet-tab {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                padding: 6px 14px;
+                border-radius: 6px 6px 0 0;
+                cursor: pointer;
+                color: var(--text-muted);
+                font-size: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.2s;
+            }
+            .glabs-sheet-tab:hover {
+                background: var(--bg-secondary);
+                color: var(--text-primary);
+            }
+            .glabs-sheet-tab.active {
+                background: var(--bg-secondary);
+                color: var(--accent-primary);
+                border-bottom-color: var(--bg-secondary);
+                font-weight: 600;
+            }
+            .glabs-tab-close {
+                font-size: 14px;
+                opacity: 0.5;
+                margin-left: 4px;
+            }
+            .glabs-tab-close:hover {
+                opacity: 1;
+                color: #ef4444;
+            }
+            .glabs-resize-handle:hover {
+                background: var(--accent-primary) !important;
             }
         </style>
     `;
@@ -38442,10 +38583,15 @@ function glabsSelectCell(td, row, col) {
     const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const cellRef = `${colLetters[col]}${row + 1}`;
     document.getElementById('glabs-cell-ref').textContent = cellRef;
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const glabsData = sheet.data;
     document.getElementById('glabs-formula-bar').value = glabsData[row]?.[col] || '';
 
     // Update quick stats for selected cell
-    const value = parseFloat(glabsEvaluateCell(glabsData[row]?.[col] || '', row, col));
+    const rawValue = glabsData[row]?.[col] || '';
+    const displayValue = glabsEvaluateCell(rawValue, row, col);
+    const value = parseFloat(String(displayValue).replace(/,/g, ''));
     if (!isNaN(value)) {
         document.getElementById('glabs-sum').textContent = value.toLocaleString();
         document.getElementById('glabs-avg').textContent = value.toLocaleString();
@@ -38453,21 +38599,35 @@ function glabsSelectCell(td, row, col) {
     } else {
         document.getElementById('glabs-sum').textContent = '-';
         document.getElementById('glabs-avg').textContent = '-';
-        document.getElementById('glabs-count').textContent = '-';
+        document.getElementById('glabs-count').textContent = rawValue ? '1' : '-';
     }
 }
 
 // Edit a cell (double-click)
 function glabsEditCell(td, row, col) {
-    const currentValue = glabsData[row]?.[col] || '';
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const currentValue = sheet.data[row]?.[col] || '';
     const contentDiv = td.querySelector('.glabs-cell-content');
 
-    contentDiv.innerHTML = `<input type="text" value="${currentValue}"
-        onblur="glabsSaveCell(this, ${row}, ${col})"
-        onkeydown="if(event.key === 'Enter') { glabsSaveCell(this, ${row}, ${col}); } else if(event.key === 'Tab') { event.preventDefault(); glabsSaveCell(this, ${row}, ${col}); glabsMoveNext(${row}, ${col}, event.shiftKey); }"
-        autofocus>`;
+    // Use a safer way to handle the value with special characters
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.onblur = function() { glabsSaveCell(this, row, col); };
+    input.onkeydown = function(event) {
+        if (event.key === 'Enter') {
+            glabsSaveCell(this, row, col);
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            glabsSaveCell(this, row, col);
+            glabsMoveNext(row, col, event.shiftKey);
+        } else if (event.key === 'Escape') {
+            renderGLabs();
+        }
+    };
 
-    const input = contentDiv.querySelector('input');
+    contentDiv.innerHTML = '';
+    contentDiv.appendChild(input);
     input.focus();
     input.select();
 }
@@ -38475,40 +38635,209 @@ function glabsEditCell(td, row, col) {
 // Save cell value
 function glabsSaveCell(input, row, col) {
     const value = input.value;
+    const sheet = glabsSheets[glabsCurrentSheet];
 
     // Ensure row exists
-    if (!glabsData[row]) {
-        glabsData[row] = [];
+    if (!sheet.data[row]) {
+        sheet.data[row] = [];
     }
 
-    glabsData[row][col] = value;
+    sheet.data[row][col] = value;
 
     // Save to localStorage
-    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+    glabsSaveData();
 
     // Re-render the cell
     const displayValue = glabsEvaluateCell(value, row, col);
-    input.parentElement.innerHTML = displayValue;
+    const cellStyle = sheet.cellStyles?.[`${row}-${col}`] || {};
+    const textColor = cellStyle.color || '';
+    input.parentElement.innerHTML = `<span style="${textColor ? 'color: ' + textColor + ';' : ''}">${displayValue}</span>`;
 
     // Show saved indicator
-    document.getElementById('glabs-saved').innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> Saved';
-    setTimeout(() => {
-        const savedEl = document.getElementById('glabs-saved');
-        if (savedEl) savedEl.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i>';
-    }, 1500);
+    document.getElementById('glabs-saved').innerHTML = '<i class="fas fa-check-circle"></i> Saved';
 }
 
 // Move to next cell
 function glabsMoveNext(row, col, backwards) {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const actualCols = sheet.data[0]?.length || glabsCols;
     const nextCol = backwards ? col - 1 : col + 1;
     const nextRow = row;
 
-    if (nextCol >= 0 && nextCol < glabsCols) {
+    if (nextCol >= 0 && nextCol < actualCols) {
         const nextCell = document.querySelector(`.glabs-cell[data-row="${nextRow}"][data-col="${nextCol}"]`);
         if (nextCell) {
             glabsSelectCell(nextCell, nextRow, nextCol);
             glabsEditCell(nextCell, nextRow, nextCol);
         }
+    }
+}
+
+// Toggle color picker
+function glabsToggleColorPicker() {
+    const picker = document.getElementById('glabs-color-picker');
+    const textPicker = document.getElementById('glabs-text-color-picker');
+    if (textPicker) textPicker.style.display = 'none';
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+// Toggle text color picker
+function glabsToggleTextColorPicker() {
+    const picker = document.getElementById('glabs-text-color-picker');
+    const bgPicker = document.getElementById('glabs-color-picker');
+    if (bgPicker) bgPicker.style.display = 'none';
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+// Set cell background color
+function glabsSetCellColor(color) {
+    if (!glabsSelectedCell) return;
+
+    const { row, col, element } = glabsSelectedCell;
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    if (!sheet.cellStyles) sheet.cellStyles = {};
+    if (!sheet.cellStyles[`${row}-${col}`]) sheet.cellStyles[`${row}-${col}`] = {};
+
+    sheet.cellStyles[`${row}-${col}`].bg = color;
+
+    if (color) {
+        element.style.background = color;
+    } else {
+        element.style.background = '';
+    }
+
+    glabsSaveData();
+    document.getElementById('glabs-color-picker').style.display = 'none';
+    document.getElementById('glabs-color-preview').style.background = color || '#ffffff';
+}
+
+// Set cell text color
+function glabsSetTextColor(color) {
+    if (!glabsSelectedCell) return;
+
+    const { row, col, element } = glabsSelectedCell;
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    if (!sheet.cellStyles) sheet.cellStyles = {};
+    if (!sheet.cellStyles[`${row}-${col}`]) sheet.cellStyles[`${row}-${col}`] = {};
+
+    sheet.cellStyles[`${row}-${col}`].color = color;
+
+    const contentDiv = element.querySelector('.glabs-cell-content');
+    if (contentDiv) {
+        contentDiv.style.color = color || '';
+    }
+
+    glabsSaveData();
+    document.getElementById('glabs-text-color-picker').style.display = 'none';
+    document.getElementById('glabs-text-color-preview').style.background = color || '#000000';
+}
+
+// Set column width
+function glabsSetColumnWidth(width) {
+    if (!glabsSelectedCell || !width) return;
+
+    const { col } = glabsSelectedCell;
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    if (!sheet.colWidths) sheet.colWidths = {};
+    sheet.colWidths[col] = parseInt(width);
+
+    glabsSaveData();
+    renderGLabs();
+}
+
+// Column resize functionality
+let glabsResizing = null;
+
+function glabsStartResize(event, colIndex) {
+    event.preventDefault();
+    glabsResizing = { col: colIndex, startX: event.clientX };
+
+    document.addEventListener('mousemove', glabsDoResize);
+    document.addEventListener('mouseup', glabsStopResize);
+}
+
+function glabsDoResize(event) {
+    if (!glabsResizing) return;
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const currentWidth = sheet.colWidths?.[glabsResizing.col] || 100;
+    const diff = event.clientX - glabsResizing.startX;
+    const newWidth = Math.max(40, currentWidth + diff);
+
+    // Update all cells in this column
+    const cells = document.querySelectorAll(`th[data-col="${glabsResizing.col}"], td[data-col="${glabsResizing.col}"]`);
+    cells.forEach(cell => {
+        cell.style.minWidth = newWidth + 'px';
+        cell.style.width = newWidth + 'px';
+    });
+
+    glabsResizing.startX = event.clientX;
+    if (!sheet.colWidths) sheet.colWidths = {};
+    sheet.colWidths[glabsResizing.col] = newWidth;
+}
+
+function glabsStopResize() {
+    if (glabsResizing) {
+        glabsSaveData();
+        glabsResizing = null;
+    }
+    document.removeEventListener('mousemove', glabsDoResize);
+    document.removeEventListener('mouseup', glabsStopResize);
+}
+
+// Sheet management
+function glabsAddSheet() {
+    const sheetCount = Object.keys(glabsSheets).length + 1;
+    let newName = `Sheet ${sheetCount}`;
+
+    // Find unique name
+    while (glabsSheets[newName]) {
+        newName = `Sheet ${sheetCount + Math.floor(Math.random() * 100)}`;
+    }
+
+    glabsInitSheet(newName);
+    glabsCurrentSheet = newName;
+    glabsSaveData();
+    renderGLabs();
+}
+
+function glabsSwitchSheet(name) {
+    if (glabsSheets[name]) {
+        glabsCurrentSheet = name;
+        glabsSaveData();
+        renderGLabs();
+    }
+}
+
+function glabsRenameSheet(oldName) {
+    const newName = prompt('Nuevo nombre de la hoja:', oldName);
+    if (newName && newName !== oldName && !glabsSheets[newName]) {
+        glabsSheets[newName] = glabsSheets[oldName];
+        delete glabsSheets[oldName];
+        if (glabsCurrentSheet === oldName) {
+            glabsCurrentSheet = newName;
+        }
+        glabsSaveData();
+        renderGLabs();
+    }
+}
+
+function glabsDeleteSheet(name) {
+    if (Object.keys(glabsSheets).length <= 1) {
+        alert('No puedes eliminar la única hoja.');
+        return;
+    }
+
+    if (confirm(`¿Eliminar la hoja "${name}"?`)) {
+        delete glabsSheets[name];
+        if (glabsCurrentSheet === name) {
+            glabsCurrentSheet = Object.keys(glabsSheets)[0];
+        }
+        glabsSaveData();
+        renderGLabs();
     }
 }
 
@@ -38519,6 +38848,8 @@ function glabsEvaluateCell(value, row, col) {
     if (!value.startsWith('=')) return value;
 
     try {
+        const sheet = glabsSheets[glabsCurrentSheet];
+        const glabsData = sheet?.data || [];
         const formula = value.substring(1).toUpperCase();
 
         // Parse cell references like A1, B2, etc.
@@ -38644,68 +38975,83 @@ function glabsApplyFormula() {
 
     const { row, col, element } = glabsSelectedCell;
     const value = document.getElementById('glabs-formula-bar').value;
+    const sheet = glabsSheets[glabsCurrentSheet];
 
-    if (!glabsData[row]) glabsData[row] = [];
-    glabsData[row][col] = value;
+    if (!sheet.data[row]) sheet.data[row] = [];
+    sheet.data[row][col] = value;
 
     // Save to localStorage
-    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+    glabsSaveData();
 
     // Update display
     const displayValue = glabsEvaluateCell(value, row, col);
-    element.querySelector('.glabs-cell-content').innerHTML = displayValue;
+    const cellStyle = sheet.cellStyles?.[`${row}-${col}`] || {};
+    const textColor = cellStyle.color || '';
+    element.querySelector('.glabs-cell-content').innerHTML = `<span style="${textColor ? 'color: ' + textColor + ';' : ''}">${displayValue}</span>`;
 
     // Update quick stats
-    const numValue = parseFloat(displayValue.replace(/,/g, ''));
+    const numValue = parseFloat(String(displayValue).replace(/,/g, ''));
     if (!isNaN(numValue)) {
         document.getElementById('glabs-sum').textContent = numValue.toLocaleString();
         document.getElementById('glabs-avg').textContent = numValue.toLocaleString();
         document.getElementById('glabs-count').textContent = '1';
     }
+
+    document.getElementById('glabs-saved').innerHTML = '<i class="fas fa-check-circle"></i> Saved';
 }
 
 // Add row
 function glabsAddRow() {
-    glabsRows++;
-    glabsData.push(Array(glabsCols).fill(''));
-    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const currentCols = sheet.data[0]?.length || glabsCols;
+    sheet.data.push(Array(currentCols).fill(''));
+    glabsSaveData();
     renderGLabs();
 }
 
 // Add column
 function glabsAddColumn() {
-    if (glabsCols >= 26) return; // Max 26 columns (A-Z)
-    glabsCols++;
-    glabsData.forEach(row => row.push(''));
-    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const currentCols = sheet.data[0]?.length || glabsCols;
+    if (currentCols >= 26) return; // Max 26 columns (A-Z)
+    sheet.data.forEach(row => row.push(''));
+    glabsSaveData();
     renderGLabs();
 }
 
 // Clear all data
 function glabsClearAll() {
-    if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) return;
+    if (!confirm('¿Seguro que quieres borrar todos los datos de esta hoja? No se puede deshacer.')) return;
 
-    glabsData = [];
-    for (let i = 0; i < glabsRows; i++) {
-        glabsData[i] = Array(glabsCols).fill('');
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const rows = sheet.data.length || glabsRows;
+    const cols = sheet.data[0]?.length || glabsCols;
+
+    sheet.data = [];
+    for (let i = 0; i < rows; i++) {
+        sheet.data[i] = Array(cols).fill('');
     }
-    localStorage.removeItem('glabs_data');
+    sheet.cellStyles = {};
+    glabsSaveData();
     renderGLabs();
 }
 
 // Export to CSV
 function glabsExportCSV() {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const glabsData = sheet.data;
     const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numCols = glabsData[0]?.length || glabsCols;
     let csv = '';
 
     // Header row
-    csv += ',' + Array.from({length: glabsCols}, (_, i) => colLetters[i]).join(',') + '\n';
+    csv += ',' + Array.from({length: numCols}, (_, i) => colLetters[i]).join(',') + '\n';
 
     // Data rows
     glabsData.forEach((row, idx) => {
         const rowData = [idx + 1];
-        for (let c = 0; c < glabsCols; c++) {
-            const val = glabsEvaluateCell(row[c] || '', idx, c);
+        for (let c = 0; c < numCols; c++) {
+            const val = String(glabsEvaluateCell(row[c] || '', idx, c));
             // Escape commas and quotes
             if (val.includes(',') || val.includes('"')) {
                 rowData.push(`"${val.replace(/"/g, '""')}"`);
@@ -38721,7 +39067,7 @@ function glabsExportCSV() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `glabs_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `glabs_${glabsCurrentSheet.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 }
