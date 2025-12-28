@@ -614,7 +614,13 @@ exports.getCachedAnalytics = functions.https.onRequest(async (req, res) => {
 
         const data = doc.data();
         data.fromCache = true;
-        data.cacheAge = Date.now() - data.syncedAt;
+        // Calculate cache age in minutes from syncedAt ISO string
+        if (data.syncedAt) {
+            const syncTime = new Date(data.syncedAt).getTime();
+            data.cacheAge = Math.round((Date.now() - syncTime) / (1000 * 60)); // in minutes
+        } else {
+            data.cacheAge = 999; // Unknown age, treat as old
+        }
 
         res.json(data);
     } catch (error) {

@@ -1014,7 +1014,8 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
     }
 
     // Try Firebase Function cache for standard periods (synced automatically every 6 hours)
-    if (!customRange && ['today', 'week', 'month', 'quarter', 'year'].includes(period)) {
+    // Use cache for standard periods even if customRange is provided (it's often passed for date display)
+    if (['today', 'week', 'month', 'quarter', 'year'].includes(period)) {
         try {
             console.log(`🔥 [CACHE API] Checking cached data for ${storeKey}_${period}...`);
             if (onProgress) onProgress(5, 'Checking cached data...');
@@ -1025,20 +1026,32 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
             if (cacheResponse.ok) {
                 const cacheData = await cacheResponse.json();
 
-                if (cacheData.success && cacheData.data) {
-                    const cacheAge = cacheData.cacheAge || 0; // in minutes
+                // Firebase function returns data directly (not wrapped in {success, data})
+                // Check if we have valid analytics data by looking for summary
+                if (cacheData.summary && cacheData.fromCache) {
+                    // Calculate cache age from syncedAt timestamp
+                    let cacheAgeMinutes = 0;
+                    if (cacheData.syncedAt) {
+                        const syncTime = new Date(cacheData.syncedAt).getTime();
+                        cacheAgeMinutes = Math.round((Date.now() - syncTime) / (1000 * 60));
+                    }
+
                     const maxAge = period === 'today' ? 30 : 120; // 30 min for today, 2 hours for others
 
-                    if (cacheAge < maxAge) {
-                        console.log(`✅ [CACHE API] Cache hit! Age: ${cacheAge} minutes`);
+                    if (cacheAgeMinutes < maxAge) {
+                        console.log(`✅ [CACHE API] Cache hit! Age: ${cacheAgeMinutes} minutes (synced: ${cacheData.syncedAt})`);
                         if (onProgress) onProgress(100, 'Loaded from cache!');
                         // Save to localStorage for even faster subsequent loads
-                        saveToCache(cacheKey, cacheData.data, CACHE_CONFIG.TTL.analyticsBulk);
-                        return cacheData.data;
+                        saveToCache(cacheKey, cacheData, CACHE_CONFIG.TTL.analyticsBulk);
+                        return cacheData;
                     } else {
-                        console.log(`⏰ [CACHE API] Cache too old (${cacheAge} min), fetching fresh data...`);
+                        console.log(`⏰ [CACHE API] Cache too old (${cacheAgeMinutes} min), fetching fresh data...`);
                     }
+                } else {
+                    console.log(`⚠️ [CACHE API] Invalid cache response structure:`, Object.keys(cacheData));
                 }
+            } else {
+                console.log(`⚠️ [CACHE API] Cache request failed: ${cacheResponse.status}`);
             }
         } catch (e) {
             console.warn('⚠️ [CACHE API] Cache check failed:', e.message);
