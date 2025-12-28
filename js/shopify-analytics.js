@@ -1013,33 +1013,35 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
         return cached.data;
     }
 
-    // Try Firestore cache for standard periods (synced automatically every 6 hours)
+    // Try Firebase Function cache for standard periods (synced automatically every 6 hours)
     if (!customRange && ['today', 'week', 'month', 'quarter', 'year'].includes(period)) {
         try {
-            if (typeof firebase !== 'undefined' && firebase.firestore) {
-                const docId = `${storeKey}_${period}`;
-                console.log(`🔥 [FIRESTORE] Checking cache: ${docId}`);
-                if (onProgress) onProgress(5, 'Checking Firestore cache...');
+            console.log(`🔥 [CACHE API] Checking cached data for ${storeKey}_${period}...`);
+            if (onProgress) onProgress(5, 'Checking cached data...');
 
-                const doc = await firebase.firestore().collection('shopify_analytics_cache').doc(docId).get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    const cacheAge = Date.now() - (data.timestamp?.toMillis() || 0);
-                    const maxAge = period === 'today' ? 30 * 60 * 1000 : 2 * 60 * 60 * 1000; // 30 min for today, 2 hours for others
+            const cacheUrl = `https://us-central1-ascendance-b3e52.cloudfunctions.net/getCachedAnalytics?store=${storeKey}&period=${period}`;
+            const cacheResponse = await fetch(cacheUrl);
 
-                    if (cacheAge < maxAge && data.analytics) {
-                        console.log(`✅ [FIRESTORE] Cache hit! Age: ${Math.round(cacheAge / 60000)} minutes`);
-                        if (onProgress) onProgress(100, 'Loaded from Firestore cache!');
-                        // Also save to localStorage for faster subsequent loads
-                        saveToCache(cacheKey, data.analytics, CACHE_CONFIG.TTL.analyticsBulk);
-                        return data.analytics;
+            if (cacheResponse.ok) {
+                const cacheData = await cacheResponse.json();
+
+                if (cacheData.success && cacheData.data) {
+                    const cacheAge = cacheData.cacheAge || 0; // in minutes
+                    const maxAge = period === 'today' ? 30 : 120; // 30 min for today, 2 hours for others
+
+                    if (cacheAge < maxAge) {
+                        console.log(`✅ [CACHE API] Cache hit! Age: ${cacheAge} minutes`);
+                        if (onProgress) onProgress(100, 'Loaded from cache!');
+                        // Save to localStorage for even faster subsequent loads
+                        saveToCache(cacheKey, cacheData.data, CACHE_CONFIG.TTL.analyticsBulk);
+                        return cacheData.data;
                     } else {
-                        console.log(`⏰ [FIRESTORE] Cache expired (${Math.round(cacheAge / 60000)} min old)`);
+                        console.log(`⏰ [CACHE API] Cache too old (${cacheAge} min), fetching fresh data...`);
                     }
                 }
             }
         } catch (e) {
-            console.warn('⚠️ [FIRESTORE] Cache check failed:', e.message);
+            console.warn('⚠️ [CACHE API] Cache check failed:', e.message);
         }
     }
 
