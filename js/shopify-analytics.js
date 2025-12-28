@@ -259,6 +259,11 @@ async function cancelBulkOperation(storeKey = 'vsu') {
 async function startBulkOrdersExport(startDate, endDate, storeConfig) {
     console.log('📦 [BULK START] Starting bulk export for:', { startDate, endDate, store: storeConfig.name });
 
+    // ALWAYS cancel any existing bulk operation first
+    // Shopify only allows ONE bulk operation at a time per store
+    console.log('🛑 [BULK START] Cancelling any existing operation first...');
+    await cancelBulkOperation(storeConfig);
+
     const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
     const innerQuery = buildBulkOrdersQuery(startDate, endDate);
     console.log('📝 [BULK START] GraphQL query built for date range');
