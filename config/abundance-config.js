@@ -199,7 +199,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications']
+        pages: ['celesteai', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs']
     },
     'manager': {
         // Action Permissions
@@ -213,7 +213,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications']
+        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs']
     },
     'employee': {
         // Action Permissions
@@ -227,7 +227,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['celesteai', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics', 'labels', 'treasury']
+        pages: ['celesteai', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs']
     }
 };
 
