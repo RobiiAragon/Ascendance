@@ -8986,7 +8986,10 @@ window.viewChecklistHistory = async function() {
         function getWeekStart(date) {
             const d = new Date(date);
             const day = d.getDay();
-            const diff = d.getDate() - day;
+            // Adjust so week starts on Monday (day 1) instead of Sunday (day 0)
+            // If today is Sunday (0), go back 6 days to Monday
+            // Otherwise, go back (day - 1) days to Monday
+            const diff = d.getDate() - (day === 0 ? 6 : day - 1);
             return new Date(d.setDate(diff));
         }
 
