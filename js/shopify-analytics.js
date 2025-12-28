@@ -990,4 +990,15 @@ function getStoresConfig() {
     return STORES_CONFIG;
 }
 
+// =============================================================================
+// EXPORT FUNCTIONS TO WINDOW (for use by api-client.js)
+// =============================================================================
+window.cancelBulkOperation = cancelBulkOperation;
+window.fetchSalesAnalytics = fetchSalesAnalytics;
+window.fetchSalesAnalyticsBulk = fetchSalesAnalytics; // Alias - same function
+window.fetchStoreLocations = fetchStoreLocations;
+window.fetchStoreInventory = fetchStoreInventory;
+window.fetchAllStoresInventory = fetchAllStoresInventory;
+window.getStoresConfig = getStoresConfig;
+window.STORES_CONFIG = STORES_CONFIG;
 
