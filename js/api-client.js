@@ -9,375 +9,6 @@ const API_CONFIG = {
     internalKey: 'abundance1189'
 };
 
-/**
- * Inject Analytics page styles into document head (called once)
- * This ensures styles persist across re-renders
- */
-function injectAnalyticsStyles() {
-    // Check if styles already injected
-    if (document.getElementById('analytics-page-styles')) {
-        return;
-    }
-
-    const styleElement = document.createElement('style');
-    styleElement.id = 'analytics-page-styles';
-    styleElement.textContent = `
-        /* Analytics Filters Responsive Styles */
-        .analytics-filters-grid {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 24px;
-            align-items: end;
-        }
-
-        .filter-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .analytics-presets {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .analytics-presets .preset-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-family: 'Outfit', sans-serif;
-            transition: all 0.2s;
-        }
-
-        .analytics-presets .preset-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-        }
-
-        .analytics-presets .preset-btn.active {
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-            color: white;
-        }
-
-        .store-chips {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .store-chip {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 14px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-family: 'Outfit', sans-serif;
-            transition: all 0.2s;
-        }
-
-        .store-chip:hover {
-            background: var(--bg-hover);
-        }
-
-        .store-chip.selected {
-            background: #1e3a5f;
-            border-color: var(--accent-primary);
-            color: #60a5fa;
-        }
-
-        .store-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .location-select {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-family: 'Outfit', sans-serif;
-            cursor: pointer;
-        }
-
-        .date-range-inputs {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .analytics-date-input {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        .date-separator {
-            color: var(--text-muted);
-        }
-
-        .apply-btn {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            padding: 10px 24px;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        /* Summary Cards Responsive */
-        .summary-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        /* Tablet Responsive (max-width: 1024px) */
-        @media (max-width: 1024px) {
-            .analytics-filters-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .date-range-inputs {
-                flex-wrap: wrap;
-            }
-
-            .analytics-date-input {
-                flex: 1;
-                min-width: 130px;
-            }
-
-            .apply-btn {
-                width: 100%;
-                margin-top: 8px;
-            }
-        }
-
-        /* Mobile Responsive (max-width: 768px) */
-        @media (max-width: 768px) {
-            .analytics-filters-card {
-                padding: 16px;
-                margin: 12px 0;
-            }
-
-            .analytics-presets {
-                gap: 6px;
-            }
-
-            .analytics-presets .preset-btn {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-
-            .store-chip {
-                padding: 6px 10px;
-                font-size: 12px;
-            }
-
-            .summary-cards-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-
-            .summary-card {
-                padding: 16px !important;
-            }
-
-            .summary-card .value,
-            .summary-card > div:nth-child(2) {
-                font-size: 1.25rem !important;
-            }
-
-            .date-range-inputs {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .date-separator {
-                display: none;
-            }
-
-            .analytics-date-input {
-                width: 100%;
-            }
-        }
-
-        /* Small Mobile (max-width: 480px) */
-        @media (max-width: 480px) {
-            .summary-cards-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .analytics-presets .preset-btn {
-                padding: 6px 10px;
-                font-size: 11px;
-            }
-        }
-
-        /* Sales Chart Header Styles */
-        .sales-chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .chart-header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .chart-header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .chart-type-label {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .chart-type-select {
-            padding: 8px 16px;
-            font-family: 'Outfit', sans-serif;
-            font-weight: 500;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .chart-type-select:hover {
-            border-color: var(--accent-primary);
-        }
-
-        /* Transactions Table Responsive */
-        .transactions-table-wrapper {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .transactions-table {
-            min-width: 600px;
-        }
-
-        @media (max-width: 768px) {
-            .sales-chart-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .chart-header-right {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .chart-type-label {
-                font-size: 12px;
-            }
-
-            .chart-type-select {
-                flex: 1;
-                max-width: 150px;
-            }
-
-            /* Transactions table mobile adjustments */
-            .transactions-table th,
-            .transactions-table td {
-                padding: 10px 8px !important;
-                font-size: 12px !important;
-            }
-
-            .transactions-table .order-number {
-                font-size: 11px !important;
-            }
-
-            /* Hide less important columns on mobile */
-            .transactions-table .hide-mobile {
-                display: none;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .chart-header-right {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .chart-type-label {
-                margin-bottom: 4px;
-            }
-
-            .chart-type-select {
-                max-width: none;
-                width: 100%;
-            }
-        }
-
-        /* Page Header Responsive */
-        @media (max-width: 768px) {
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start !important;
-                gap: 16px;
-            }
-
-            .page-header-left .section-title {
-                font-size: 1.5rem;
-            }
-
-            .page-header-left .section-subtitle {
-                font-size: 13px;
-            }
-        }
-
-        /* Shopify Connect Banner Responsive */
-        @media (max-width: 768px) {
-            .shopify-connect {
-                flex-direction: column;
-                text-align: center;
-                gap: 16px;
-                padding: 20px !important;
-            }
-
-            .shopify-connect .btn-primary {
-                width: 100%;
-            }
-        }
-    `;
-
-    document.head.appendChild(styleElement);
-    console.log('[Analytics] Styles injected into document head');
-}
-
 // API Helper Function for GET requests
 async function fetchAPI(endpoint) {
     try {
@@ -432,25 +63,6 @@ let currentAnalyticsPage = false;
 // Cancel any pending analytics request by incrementing the request ID
 function cancelAnalyticsRequest() {
     analyticsRequestId++;
-}
-
-// Run analytics query - called when user clicks "Run Query" button
-function runAnalyticsQuery() {
-    const periodSelect = document.getElementById('period-select');
-    const period = periodSelect ? periodSelect.value : 'month';
-
-    // Validate custom range if selected
-    if (period === 'custom') {
-        const { startDate, endDate } = window.analyticsCustomRange || {};
-        if (!startDate || !endDate) {
-            showToast('Please select a custom date range first', 'error');
-            toggleAnalyticsCalendarPopup();
-            return;
-        }
-    }
-
-    console.log(`[Analytics] Running query - Store: ${selectedStore}, Period: ${period}`);
-    renderAnalyticsWithData(period, selectedStore, selectedLocation);
 }
 
 // Check if we're still on the analytics page
@@ -630,253 +242,8 @@ function updateStoreSelectorState() {
     }
 }
 
-// Render Analytics Page without auto-running query (user must click "Apply")
-async function renderAnalyticsPage(period = 'month') {
-    console.log('[Analytics] Rendering page - waiting for user to click "Apply"');
-
-    // Inject styles into document head (persists across re-renders)
-    injectAnalyticsStyles();
-
-    // Initialize VSU locations if needed
-    await initializeVSULocations();
-
-    const dashboard = document.querySelector('.dashboard');
-
-    // Build custom date text if applicable
-    let customDateText = 'Pick dates';
-    if (period === 'custom' && window.analyticsCustomRange?.startDate && window.analyticsCustomRange?.endDate) {
-        const formatDate = (date) => date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-        customDateText = `${formatDate(window.analyticsCustomRange.startDate)} → ${formatDate(window.analyticsCustomRange.endDate)}`;
-    }
-
-    // Get date values for inputs
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    let fromDateStr = todayStr;
-    let toDateStr = todayStr;
-
-    if (period === 'custom' && window.analyticsCustomRange?.startDate && window.analyticsCustomRange?.endDate) {
-        fromDateStr = window.analyticsCustomRange.startDate.toISOString().split('T')[0];
-        toDateStr = window.analyticsCustomRange.endDate.toISOString().split('T')[0];
-    } else if (period === 'week') {
-        const weekStart = new Date(today);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        fromDateStr = weekStart.toISOString().split('T')[0];
-    } else if (period === 'month') {
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        fromDateStr = monthStart.toISOString().split('T')[0];
-    } else if (period === 'year') {
-        const yearStart = new Date(today.getFullYear(), 0, 1);
-        fromDateStr = yearStart.toISOString().split('T')[0];
-    }
-
-    // Render page with new sales-report.html inspired layout
-    dashboard.innerHTML = `
-        <div class="page-header" style="margin-bottom: 0;">
-            <div class="page-header-left">
-                <h2 class="section-title">Sales & Analytics</h2>
-                <p class="section-subtitle">Select filters and click "Apply" to load data</p>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <div style="position: relative;">
-                    <button class="btn-primary" onclick="toggleExportDropdown()" id="exportBtn">
-                        <i class="fas fa-download"></i> Export
-                        <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
-                    </button>
-                    <div id="exportDropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 160px; z-index: 1000;">
-                        <button onclick="exportToPDF()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 8px 8px 0 0; transition: background 0.2s;">
-                            <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
-                            Export as PDF
-                        </button>
-                        <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
-                            <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i>
-                            Export as Excel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filters Section - Responsive Layout -->
-        <div class="analytics-filters-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid var(--border-color);">
-            <div class="analytics-filters-grid">
-                <!-- Quick Select Presets -->
-                <div class="filter-group">
-                    <label class="filter-label">Quick Select</label>
-                    <div class="analytics-presets">
-                        <button class="preset-btn ${period === 'today' ? 'active' : ''}" onclick="setAnalyticsPreset('today')">Today</button>
-                        <button class="preset-btn ${period === 'yesterday' ? 'active' : ''}" onclick="setAnalyticsPreset('yesterday')">Yesterday</button>
-                        <button class="preset-btn ${period === 'week' ? 'active' : ''}" onclick="setAnalyticsPreset('week')">This Week</button>
-                        <button class="preset-btn ${period === 'month' ? 'active' : ''}" onclick="setAnalyticsPreset('month')">This Month</button>
-                        <button class="preset-btn ${period === 'year' ? 'active' : ''}" onclick="setAnalyticsPreset('year')">This Year</button>
-                        <button class="preset-btn ${period === 'custom' ? 'active' : ''}" onclick="setAnalyticsPreset('custom')">Custom</button>
-                    </div>
-                </div>
-
-                <!-- Store Selection -->
-                <div class="filter-group">
-                    <label class="filter-label">Store</label>
-                    <div class="store-chips">
-                        <div class="store-chip ${selectedStore === 'vsu' ? 'selected' : ''}" onclick="handleStoreChipClick('vsu')">
-                            <span class="store-dot" style="background: #8b5cf6;"></span>
-                            VSU
-                        </div>
-                        <div class="store-chip ${selectedStore === 'loyalvaper' ? 'selected' : ''}" onclick="handleStoreChipClick('loyalvaper')">
-                            <span class="store-dot" style="background: #10b981;"></span>
-                            Loyal Vaper
-                        </div>
-                        <div class="store-chip ${selectedStore === 'miramarwine' ? 'selected' : ''}" onclick="handleStoreChipClick('miramarwine')">
-                            <span class="store-dot" style="background: #f59e0b;"></span>
-                            Miramar Wine
-                        </div>
-                        ${selectedStore === 'vsu' && vsuLocations.length > 0 ? `
-                        <select id="location-select" onchange="handleLocationChange(this.value)" class="location-select">
-                            <option value="">All Locations</option>
-                            ${vsuLocations.map(loc => `<option value="${loc.id}" ${selectedLocation == loc.id ? 'selected' : ''}>${loc.name}</option>`).join('')}
-                        </select>
-                        ` : ''}
-                    </div>
-                </div>
-
-                <!-- Date Range & Apply -->
-                <div class="filter-group">
-                    <label class="filter-label">Date Range</label>
-                    <div class="date-range-inputs">
-                        <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input">
-                        <span class="date-separator">→</span>
-                        <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input">
-                        <button onclick="applyAnalyticsFilters()" class="btn-primary apply-btn">
-                            <i class="fas fa-play"></i> Apply
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="analytics-content">
-            <div style="display: flex; justify-content: center; align-items: center; min-height: 400px;">
-                <div style="text-align: center; max-width: 500px;">
-                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
-                        <i class="fas fa-chart-line" style="font-size: 32px; color: white;"></i>
-                    </div>
-                    <h3 style="color: var(--text-primary); margin-bottom: 12px; font-size: 20px;">Ready to Load Analytics</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 14px; line-height: 1.6;">
-                        Select a <strong>store</strong> and <strong>date range</strong> above, then click the
-                        <span style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
-                            <i class="fas fa-play"></i> Apply
-                        </span> button to fetch analytics data.
-                    </p>
-                    <p style="color: var(--text-muted); font-size: 12px;">
-                        <i class="fas fa-info-circle"></i> Using GraphQL Bulk Operations - no order limits!
-                    </p>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Handle store chip click
-function handleStoreChipClick(storeKey) {
-    selectedStore = storeKey;
-    selectedLocation = null;
-
-    // Cancel any in-progress operation
-    cancelAnalyticsRequest();
-    cancelBulkOperation(storeKey);
-
-    // Re-render page to update chip states
-    const periodSelect = document.querySelector('.preset-btn.active');
-    let period = 'month';
-    if (periodSelect) {
-        const text = periodSelect.textContent.trim().toLowerCase();
-        if (text === 'today') period = 'today';
-        else if (text === 'yesterday') period = 'yesterday';
-        else if (text === 'this week') period = 'week';
-        else if (text === 'this month') period = 'month';
-        else if (text === 'this year') period = 'year';
-        else if (text === 'custom') period = 'custom';
-    }
-
-    renderAnalyticsPage(period);
-    console.log(`[Analytics] Store changed to: ${storeKey} - Click "Apply" to load data`);
-}
-
-// Set analytics preset (quick select)
-function setAnalyticsPreset(preset) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let fromDate = new Date(today);
-    let toDate = new Date(today);
-
-    switch(preset) {
-        case 'today':
-            break;
-        case 'yesterday':
-            fromDate.setDate(fromDate.getDate() - 1);
-            toDate.setDate(toDate.getDate() - 1);
-            break;
-        case 'week':
-            fromDate.setDate(fromDate.getDate() - fromDate.getDay());
-            break;
-        case 'month':
-            fromDate.setDate(1);
-            break;
-        case 'year':
-            fromDate.setMonth(0, 1);
-            break;
-        case 'custom':
-            // Just update UI, don't change dates
-            break;
-    }
-
-    // Update date inputs
-    const fromInput = document.getElementById('analytics-date-from');
-    const toInput = document.getElementById('analytics-date-to');
-
-    if (fromInput && toInput && preset !== 'custom') {
-        fromInput.value = fromDate.toISOString().split('T')[0];
-        toInput.value = toDate.toISOString().split('T')[0];
-    }
-
-    // Update custom range state
-    if (preset !== 'custom') {
-        window.analyticsCustomRange.startDate = fromDate;
-        window.analyticsCustomRange.endDate = toDate;
-    }
-
-    // Re-render to update button states
-    renderAnalyticsPage(preset);
-}
-
-// Apply analytics filters (run query)
-function applyAnalyticsFilters() {
-    const fromInput = document.getElementById('analytics-date-from');
-    const toInput = document.getElementById('analytics-date-to');
-
-    if (!fromInput || !toInput || !fromInput.value || !toInput.value) {
-        showToast('Please select a date range', 'error');
-        return;
-    }
-
-    // Update custom range
-    window.analyticsCustomRange.startDate = new Date(fromInput.value);
-    window.analyticsCustomRange.endDate = new Date(toInput.value);
-
-    // Set end date to end of day
-    window.analyticsCustomRange.endDate.setHours(23, 59, 59, 999);
-
-    console.log(`[Analytics] Applying filters - Store: ${selectedStore}, Date: ${fromInput.value} to ${toInput.value}`);
-
-    // Run the query with custom period
-    renderAnalyticsWithData('custom', selectedStore, selectedLocation);
-}
-
 // Render Analytics Page with Real Data
 async function renderAnalyticsWithData(period = 'month', storeKey = null, locationId = null) {
-    // Ensure styles are injected (idempotent - won't duplicate)
-    injectAnalyticsStyles();
-
     // Cancel any previous pending request and get a new request ID
     cancelAnalyticsRequest();
     const thisRequestId = analyticsRequestId;
@@ -902,67 +269,52 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
     const dashboard = document.querySelector('.dashboard');
 
-    // Get current date values from inputs or use defaults
-    const fromInput = document.getElementById('analytics-date-from');
-    const toInput = document.getElementById('analytics-date-to');
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    let fromDateStr = fromInput?.value || todayStr;
-    let toDateStr = toInput?.value || todayStr;
+    // Check if store selector already exists
+    let storeSelectorExists = document.getElementById('store-selector-container');
 
-    // Show loading state with filters preserved
-    dashboard.innerHTML = `
-        <div class="page-header" style="margin-bottom: 0;">
-            <div class="page-header-left">
-                <h2 class="section-title">Sales & Analytics</h2>
-                <p class="section-subtitle">Loading data from Shopify...</p>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <div style="position: relative;">
-                    <button class="btn-primary" onclick="toggleExportDropdown()" id="exportBtn" disabled style="opacity: 0.5;">
-                        <i class="fas fa-download"></i> Export
-                        <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
-                    </button>
+    if (!storeSelectorExists) {
+        // First render - create everything
+        dashboard.innerHTML = `
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h2 class="section-title">Sales & Analytics</h2>
+                    <p class="section-subtitle">Loading data from Shopify...</p>
                 </div>
             </div>
-        </div>
 
-        <!-- Filters Section - Keep visible during loading -->
-        <div class="analytics-filters-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid var(--border-color); opacity: 0.7; pointer-events: none;">
-            <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: end;">
-                <div class="filter-group">
-                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Quick Select</label>
-                    <div class="analytics-presets" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="preset-btn" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; font-size: 13px;">Loading...</button>
-                    </div>
-                </div>
-                <div class="filter-group">
-                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Store</label>
-                    <div class="store-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <div class="store-chip" style="background: #1e3a5f; border: 1px solid var(--accent-primary); color: #60a5fa; padding: 8px 14px; border-radius: 20px; font-size: 13px;">${selectedStore.toUpperCase()}</div>
-                    </div>
-                </div>
-                <div class="filter-group">
-                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block;">Date Range</label>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="color: var(--text-muted);">${fromDateStr} → ${toDateStr}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+            ${renderStoreSelector()}
 
-        <div id="analytics-content">
-            <div style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
-                <div style="text-align: center;">
-                    <div style="width: 48px; height: 48px; border: 4px solid var(--border-color); border-top: 4px solid var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
-                    <p style="color: var(--text-muted);" id="analytics-loading-text">Fetching analytics data...</p>
-                    <div style="background: var(--bg-tertiary); border-radius: 10px; height: 30px; width: 300px; margin: 20px auto; overflow: hidden;">
-                        <div id="analytics-progress-bar" style="background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9em;"></div>
+            <div id="analytics-content">
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
+                    <div style="text-align: center;">
+                        <div style="width: 48px; height: 48px; border: 4px solid var(--border-color); border-top: 4px solid var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                        <p style="color: var(--text-muted);" id="analytics-loading-text">Fetching analytics data...</p>
+                        <div style="background: var(--bg-tertiary); border-radius: 10px; height: 30px; width: 300px; margin: 20px auto; overflow: hidden;">
+                            <div id="analytics-progress-bar" style="background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9em;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        // Store selector exists - just update its state and show loading in content area
+        updateStoreSelectorState();
+
+        const contentArea = document.getElementById('analytics-content');
+        if (contentArea) {
+            contentArea.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
+                    <div style="text-align: center;">
+                        <div style="width: 48px; height: 48px; border: 4px solid var(--border-color); border-top: 4px solid var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                        <p style="color: var(--text-muted);" id="analytics-loading-text">Fetching analytics data...</p>
+                        <div style="background: var(--bg-tertiary); border-radius: 10px; height: 30px; width: 300px; margin: 20px auto; overflow: hidden;">
+                            <div id="analytics-progress-bar" style="background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9em;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
 
     try {
         // Build custom range if period is 'custom'
@@ -977,13 +329,8 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             }
         }
 
-        // Cancel any existing bulk operation before starting a new one
-        console.log('[Analytics] Cancelling any existing bulk operation...');
-        await cancelBulkOperation(selectedStore);
-
-        // Use GraphQL Bulk Operations API for unlimited order fetching (no 2500 cap)
-        console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
-        const salesData = await fetchSalesAnalyticsBulk(selectedStore, selectedLocation, period, (progress, text) => {
+        // Use the new frontend Shopify API with selected store and location
+        const salesData = await fetchSalesAnalytics(selectedStore, selectedLocation, period, (progress, text) => {
             // Check if this request is still valid before updating progress
             if (thisRequestId !== analyticsRequestId) return;
 
@@ -1040,197 +387,233 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             ? `${formatDateDisplay(window.analyticsCustomRange.startDate)} → ${formatDateDisplay(window.analyticsCustomRange.endDate)}`
             : 'Select date range';
 
-        // Get cash and card totals from API response (pre-computed from paymentGatewayNames)
-        const cashTotal = parseFloat(salesData.summary.totalCashSales || 0);
-        const cardTotal = parseFloat(salesData.summary.totalCardSales || 0);
-        const cashOrders = salesData.summary.totalCashOrders || 0;
-        const cardOrders = salesData.summary.totalCardOrders || 0;
-        const totalPayments = cashTotal + cardTotal;
-        const cashPercent = totalPayments > 0 ? ((cashTotal / totalPayments) * 100).toFixed(1) : '0';
-        const cardPercent = totalPayments > 0 ? ((cardTotal / totalPayments) * 100).toFixed(1) : '0';
-
-        // Calculate days in period for orders/day avg
-        const daysInPeriod = Object.keys(salesData.daily).length || 1;
-        const ordersPerDay = (salesData.summary.totalOrders / daysInPeriod).toFixed(1);
-
-        // Get date range for display
-        const dateFrom = window.analyticsCustomRange?.startDate || new Date();
-        const dateTo = window.analyticsCustomRange?.endDate || new Date();
-        const fromDateStr = dateFrom.toISOString().split('T')[0];
-        const toDateStr = dateTo.toISOString().split('T')[0];
-
-        // Render full page with new layout
-        dashboard.innerHTML = `
-            <div class="page-header" style="margin-bottom: 0;">
-                <div class="page-header-left">
-                    <h2 class="section-title">Sales & Analytics</h2>
-                    <p class="section-subtitle">Live data from ${salesData.storeInfo.name}</p>
-                </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="position: relative;">
-                        <button class="btn-primary" onclick="toggleExportDropdown()" id="exportBtn">
-                            <i class="fas fa-download"></i> Export
-                            <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
-                        </button>
-                        <div id="exportDropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 160px; z-index: 1000;">
-                            <button onclick="exportToPDF()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 8px 8px 0 0; transition: background 0.2s;">
-                                <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
-                                Export as PDF
-                            </button>
-                            <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
-                                <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i>
-                                Export as Excel
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        // Update page header with controls
+        const pageHeaderHTML = `
+            <div class="page-header-left">
+                <h2 class="section-title">Sales & Analytics</h2>
+                <p class="section-subtitle">Live data from Shopify</p>
             </div>
-
-            <!-- Filters Section - Responsive Layout -->
-            <div class="analytics-filters-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid var(--border-color);">
-                <div class="analytics-filters-grid">
-                    <!-- Quick Select Presets -->
-                    <div class="filter-group">
-                        <label class="filter-label">Quick Select</label>
-                        <div class="analytics-presets">
-                            <button class="preset-btn" onclick="setAnalyticsPreset('today')">Today</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('yesterday')">Yesterday</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('week')">This Week</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('month')">This Month</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('year')">This Year</button>
-                            <button class="preset-btn active">Custom</button>
-                        </div>
-                    </div>
-
-                    <!-- Store Selection -->
-                    <div class="filter-group">
-                        <label class="filter-label">Store</label>
-                        <div class="store-chips">
-                            <div class="store-chip ${selectedStore === 'vsu' ? 'selected' : ''}" onclick="handleStoreChipClick('vsu')">
-                                <span class="store-dot" style="background: #8b5cf6;"></span>
-                                VSU
-                            </div>
-                            <div class="store-chip ${selectedStore === 'loyalvaper' ? 'selected' : ''}" onclick="handleStoreChipClick('loyalvaper')">
-                                <span class="store-dot" style="background: #10b981;"></span>
-                                Loyal Vaper
-                            </div>
-                            <div class="store-chip ${selectedStore === 'miramarwine' ? 'selected' : ''}" onclick="handleStoreChipClick('miramarwine')">
-                                <span class="store-dot" style="background: #f59e0b;"></span>
-                                Miramar Wine
-                            </div>
-                            ${selectedStore === 'vsu' && vsuLocations.length > 0 ? `
-                            <select id="location-select" onchange="handleLocationChange(this.value)" class="location-select">
-                                <option value="">All Locations</option>
-                                ${vsuLocations.map(loc => `<option value="${loc.id}" ${selectedLocation == loc.id ? 'selected' : ''}>${loc.name}</option>`).join('')}
-                            </select>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Date Range & Apply -->
-                    <div class="filter-group">
-                        <label class="filter-label">Date Range</label>
-                        <div class="date-range-inputs">
-                            <input type="date" id="analytics-date-from" value="${fromDateStr}" class="analytics-date-input">
-                            <span class="date-separator">→</span>
-                            <input type="date" id="analytics-date-to" value="${toDateStr}" class="analytics-date-input">
-                            <button onclick="applyAnalyticsFilters()" class="btn-primary apply-btn">
-                                <i class="fas fa-play"></i> Apply
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="analytics-content">
-                <!-- Summary Cards Grid - Inspired by sales-report.html -->
-                <div class="summary-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Total Orders</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">${salesData.summary.totalOrders}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${ordersPerDay} orders/day avg</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Gross Sales</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">${formatCurrency(salesData.summary.totalSales)}</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">CECET Tax (12.5%)</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">${formatCurrency(salesData.summary.totalCecetTax || 0)}</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">CA Tax (7.5%)</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">${formatCurrency(salesData.summary.totalSalesTax || 0)}</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Total Taxes</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: #ef4444;">${formatCurrency(salesData.summary.totalTax)}</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Net Sales</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: #10b981;">${formatCurrency(salesData.summary.netSales || (parseFloat(salesData.summary.totalSales) - parseFloat(salesData.summary.totalTax)))}</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Cash</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: #86efac;">${formatCurrency(cashTotal)}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${cashOrders} orders (${cashPercent}%)</div>
-                    </div>
-                    <div class="summary-card" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Card</div>
-                        <div style="font-size: 1.5rem; font-weight: 600; color: #93c5fd;">${formatCurrency(cardTotal)}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${cardOrders} orders (${cardPercent}%)</div>
-                    </div>
-                </div>
-
-                <!-- Sales Chart -->
-                <div class="card" style="margin-top: 24px;">
-                    <div class="card-header sales-chart-header">
-                        <div class="chart-header-left">
-                            <h3 class="card-title"><i class="fas fa-chart-line"></i> Sales Chart</h3>
-                        </div>
-                        <div class="chart-header-right">
-                            <span class="chart-type-label">View sales aggregated:</span>
-                            <select id="chartTypeSelect" onchange="updateChartView()" class="chart-type-select">
-                                <option value="daily">By Day</option>
-                                <option value="hourly">By Hour</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div style="height: 300px; position: relative;">
-                            <canvas id="salesChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sales Transactions Table - Inspired by sales-report.html -->
-                <div class="card" style="margin-top: 24px; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
-                        <h3 class="card-title" style="font-size: 1rem; font-weight: 600;"><i class="fas fa-receipt"></i> Sales Transactions</h3>
-                        <span style="font-size: 13px; color: var(--text-muted);">${salesData.summary.totalOrders} transactions</span>
-                    </div>
-                    <div class="card-body" style="padding: 0; max-height: 600px; overflow-y: auto;">
-                        <div id="sales-transactions-container">
-                            ${renderSalesTransactionsTable(salesData.recentOrders || [])}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Connected Status -->
-                <div class="shopify-connect" style="background: linear-gradient(135deg, var(--success), #2ecc71); margin-top: 24px;">
-                    <div class="shopify-icon"><i class="fab fa-shopify"></i></div>
-                    <div class="shopify-text">
-                        <h4 style="color: white;">Connected to Shopify</h4>
-                        <p style="color: rgba(255,255,255,0.8);">
-                            Showing live data from <strong>${salesData.storeInfo.name}</strong>
-                            ${selectedLocation && vsuLocations.length > 0 ? ` - ${vsuLocations.find(l => l.id == selectedLocation)?.name || 'Location'}` : ''}
-                            (${salesData.summary.totalOrders} orders loaded via GraphQL Bulk Operations)
-                        </p>
-                    </div>
-                    <button class="btn-primary" onclick="applyAnalyticsFilters()" style="background: white; color: var(--success);">
-                        <i class="fas fa-sync-alt"></i> Refresh Data
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <select id="period-select" onchange="handlePeriodChange(this.value)" class="btn-secondary" style="padding: 10px 16px; font-family: 'Outfit', sans-serif; font-weight: 500;">
+                    <option value="today" ${period === 'today' ? 'selected' : ''}>Today</option>
+                    <option value="week" ${period === 'week' ? 'selected' : ''}>This Week</option>
+                    <option value="month" ${period === 'month' ? 'selected' : ''}>This Month</option>
+                    <option value="year" ${period === 'year' ? 'selected' : ''}>This Year</option>
+                    <option value="custom" ${period === 'custom' ? 'selected' : ''}>Custom Range</option>
+                </select>
+                <div style="position: relative;" id="custom-calendar-wrapper">
+                    <button class="btn-secondary" onclick="toggleAnalyticsCalendarPopup()" id="calendar-btn" style="display: ${period === 'custom' ? 'inline-flex' : 'none'}; align-items: center; gap: 8px; padding: 10px 16px;">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span id="calendar-btn-text">${period === 'custom' && window.analyticsCustomRange?.startDate ? customDateText : 'Pick dates'}</span>
                     </button>
+                    <div id="analytics-calendar-popup" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; z-index: 1000;">
+                        <div style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 2px 10px rgba(0,0,0,0.1); padding: 20px; min-width: 560px; border: 1px solid #e5e7eb;">
+                            <div style="text-align: center; padding: 12px 16px; background: linear-gradient(135deg, var(--accent-primary) 0%, #818cf8 100%); border-radius: 10px; margin-bottom: 20px;">
+                                <span id="selected-range-display" style="color: white; font-size: 14px; font-weight: 600;">${customDateText}</span>
+                            </div>
+                            <div style="display: flex; gap: 24px;">
+                                <div id="calendar-month-1" style="flex: 1; min-width: 240px;"></div>
+                                <div id="calendar-month-2" style="flex: 1; min-width: 240px;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                <button class="btn-secondary" onclick="event.stopPropagation(); clearAnalyticsCustomRange()" style="padding: 10px 20px;">Clear</button>
+                                <button class="btn-primary" onclick="event.stopPropagation(); applyAnalyticsCustomRange()" style="padding: 10px 24px;">Apply</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <button class="btn-secondary" onclick="renderAnalyticsWithData('${period}')">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <div style="position: relative;">
+                    <button class="btn-primary" onclick="toggleExportDropdown()" id="exportBtn">
+                        <i class="fas fa-download"></i> Export
+                        <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
+                    </button>
+                    <div id="exportDropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 160px; z-index: 1000;">
+                        <button onclick="exportToPDF()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 8px 8px 0 0; transition: background 0.2s;">
+                            <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
+                            Export as PDF
+                        </button>
+                        <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
+                            <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i>
+                            Export as Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Check if page structure exists
+        let pageHeader = document.querySelector('.page-header');
+        if (pageHeader) {
+            pageHeader.innerHTML = pageHeaderHTML;
+        }
+
+        // Update store selector state
+        updateStoreSelectorState();
+
+        // Get or create content area
+        let contentArea = document.getElementById('analytics-content');
+        if (!contentArea) {
+            // Create full page structure
+            dashboard.innerHTML = `
+                <div class="page-header">${pageHeaderHTML}</div>
+                ${renderStoreSelector()}
+                <div id="analytics-content"></div>
+            `;
+            contentArea = document.getElementById('analytics-content');
+        }
+
+        // Render analytics content
+        contentArea.innerHTML = `
+
+            <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -20px; padding: 0 20px;">
+                <div class="analytics-grid" style="min-width: 1000px;">
+                    <div class="analytics-card revenue">
+                    <div class="analytics-card-header">
+                        <h3>Total Sales</h3>
+                        <span class="trend up"><i class="fas fa-check-circle"></i> Live</span>
+                    </div>
+                    <div class="analytics-value">${formatCurrency(salesData.summary.totalSales)}</div>
+                    <div class="analytics-comparison">
+                        <span>Net Sales: ${formatCurrency(salesData.summary.netSales || (parseFloat(salesData.summary.totalSales) - parseFloat(salesData.summary.totalTax)))}</span>
+                    </div>
+                    <div class="analytics-chart">
+                        ${chartBars || '<div class="chart-bar active" style="height: 100%;"></div>'}
+                    </div>
+                </div>
+
+                <div class="analytics-card orders">
+                    <div class="analytics-card-header">
+                        <h3>Total Orders</h3>
+                        <span class="trend up"><i class="fas fa-check-circle"></i> Live</span>
+                    </div>
+                    <div class="analytics-value">${salesData.summary.totalOrders}</div>
+                    <div class="analytics-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Tax Collected</span>
+                            <span class="breakdown-value">${formatCurrency(salesData.summary.totalTax)}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Currency</span>
+                            <span class="breakdown-value">${salesData.summary.currency}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-card aov">
+                    <div class="analytics-card-header">
+                        <h3>Avg. Order Value</h3>
+                        <span class="trend up"><i class="fas fa-calculator"></i></span>
+                    </div>
+                    <div class="analytics-value">${formatCurrency(avgOrderValue)}</div>
+                    <div class="analytics-comparison">
+                        <span>Based on ${salesData.summary.totalOrders} orders</span>
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <div class="analytics-card-header">
+                        <h3>Total Tax</h3>
+                        <span class="trend up"><i class="fas fa-receipt"></i></span>
+                    </div>
+                    <div class="analytics-value">${formatCurrency(salesData.summary.totalTax)}</div>
+                    <div class="analytics-comparison">
+                        <span>${((parseFloat(salesData.summary.totalTax) / parseFloat(salesData.summary.totalSales)) * 100).toFixed(1)}% of sales</span>
+                    </div>
+                    ${parseFloat(salesData.summary.totalCecetTax || 0) > 0 || parseFloat(salesData.summary.totalSalesTax || 0) > 0 ? `
+                    <div class="analytics-breakdown" style="margin-top: 12px;">
+                        ${parseFloat(salesData.summary.totalCecetTax || 0) > 0 ? `
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">CECET Tax</span>
+                            <span class="breakdown-value">${formatCurrency(salesData.summary.totalCecetTax)}</span>
+                        </div>
+                        ` : ''}
+                        ${parseFloat(salesData.summary.totalSalesTax || 0) > 0 ? `
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Sales Tax</span>
+                            <span class="breakdown-value">${formatCurrency(salesData.summary.totalSalesTax)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+
+                </div>
+            </div>
+
+            <!-- Sales Chart -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 class="card-title"><i class="fas fa-chart-line"></i> Sales Chart</h3>
+                    <select id="chartTypeSelect" onchange="updateChartView()" class="btn-secondary" style="padding: 8px 16px; font-family: 'Outfit', sans-serif; font-weight: 500;">
+                        <option value="daily">By Day</option>
+                        <option value="hourly">By Hour</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Breakdown -->
+            <div class="analytics-stores">
+                <h3 class="section-subtitle-alt">Daily Sales Breakdown</h3>
+                <div class="store-bars">
+                    ${dailyDataArray.slice(-10).map(day => {
+                        const formattedDate = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const hasCecetTax = day.cecetTax > 0;
+                        const hasSalesTax = day.salesTax > 0;
+                        const hasTaxBreakdown = hasCecetTax || hasSalesTax;
+
+                        return `
+                        <div class="store-bar-item" style="margin-bottom: 12px;">
+                            <div class="store-bar-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span style="font-weight: 500;">${formattedDate}</span>
+                                    <span style="font-size: 12px; color: var(--text-muted);">
+                                        ${day.orders} orders • Tax: ${formatCurrency(day.tax)}
+                                        ${hasTaxBreakdown ? ` (${hasCecetTax ? 'CECET: ' + formatCurrency(day.cecetTax) : ''}${hasCecetTax && hasSalesTax ? ' • ' : ''}${hasSalesTax ? 'Sales: ' + formatCurrency(day.salesTax) : ''})` : ''}
+                                    </span>
+                                </div>
+                                <span style="font-weight: 600;">${formatCurrency(day.sales)}</span>
+                            </div>
+                            <div class="store-bar-track">
+                                <div class="store-bar-fill miramar" style="width: ${(day.sales / maxSales) * 100}%;"></div>
+                            </div>
+                        </div>
+                    `}).join('')}
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Recent Orders</h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="recent-orders-container">
+                        ${renderAnalyticsOrdersTable(salesData.recentOrders || [])}
+                    </div>
+                </div>
+            </div>
+
+            <div class="shopify-connect" style="background: linear-gradient(135deg, var(--success), #2ecc71); margin-top: 24px;">
+                <div class="shopify-icon"><i class="fab fa-shopify"></i></div>
+                <div class="shopify-text">
+                    <h4 style="color: white;">Connected to Shopify</h4>
+                    <p style="color: rgba(255,255,255,0.8);">
+                        Showing live data from <strong>${salesData.storeInfo.name}</strong>
+                        ${selectedLocation && vsuLocations.length > 0 ? ` - ${vsuLocations.find(l => l.id == selectedLocation)?.name || 'Location'}` : ''}
+                        (${salesData.summary.totalOrders} orders loaded)
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="renderAnalyticsWithData('${period}')" style="background: white; color: var(--success);">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
             </div>
         `;
 
@@ -1593,212 +976,7 @@ function updateChartView() {
 }
 
 // =============================================================================
-// Sales Transactions Table with Date Grouping & Expandable Rows
-// =============================================================================
-
-/**
- * Render Sales Transactions table with date grouping (like sales-report.html)
- * Groups orders by date with subtotals, expandable rows for product details
- */
-function renderSalesTransactionsTable(orders) {
-    console.log('[renderSalesTransactionsTable] Starting with', orders?.length, 'orders');
-
-    if (!orders || !Array.isArray(orders) || orders.length === 0) {
-        return `
-            <div style="padding: 48px; text-align: center; color: var(--text-muted);">
-                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                <p>No transactions found for this period</p>
-            </div>
-        `;
-    }
-
-    // Sort orders by date (newest first)
-    const sortedOrders = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // Group orders by date
-    const ordersByDate = {};
-    sortedOrders.forEach(order => {
-        const dateKey = new Date(order.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        if (!ordersByDate[dateKey]) {
-            ordersByDate[dateKey] = [];
-        }
-        ordersByDate[dateKey].push(order);
-    });
-
-    let tableHTML = `
-        <div class="transactions-table-wrapper">
-        <table class="transactions-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-            <thead>
-                <tr style="background: var(--bg-tertiary); position: sticky; top: 0; z-index: 10;">
-                    <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; width: 30px;"></th>
-                    <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Time</th>
-                    <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Order #</th>
-                    <th class="hide-mobile" style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Customer</th>
-                    <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Payment</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Gross</th>
-                    <th class="hide-mobile" style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CECET 12.5%</th>
-                    <th class="hide-mobile" style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CA Tax 7.5%</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Tax</th>
-                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Net</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    // Render each date group
-    Object.entries(ordersByDate).forEach(([dateKey, dateOrders]) => {
-        // Calculate date subtotals
-        const dateTotals = dateOrders.reduce((acc, order) => {
-            acc.gross += parseFloat(order.total) || 0;
-            acc.cecetTax += parseFloat(order.cecetTax) || 0;
-            acc.salesTax += parseFloat(order.salesTax) || 0;
-            acc.totalTax += (parseFloat(order.cecetTax) || 0) + (parseFloat(order.salesTax) || 0);
-            return acc;
-        }, { gross: 0, cecetTax: 0, salesTax: 0, totalTax: 0 });
-        dateTotals.netSales = dateTotals.gross - dateTotals.totalTax;
-
-        // Date group header
-        tableHTML += `
-            <tr style="background: var(--bg-tertiary);">
-                <td colspan="10" style="padding: 10px 16px; font-weight: 600; color: #60a5fa; border-bottom: 1px solid var(--border-color);">
-                    <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i> ${dateKey}
-                </td>
-            </tr>
-        `;
-
-        // Render each order in the date group
-        dateOrders.forEach(order => {
-            const orderTime = new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            const hasLineItems = order.lineItems && order.lineItems.length > 0;
-            const itemCount = hasLineItems ? order.lineItems.length : 0;
-            const orderTotal = parseFloat(order.total) || 0;
-            const orderCecetTax = parseFloat(order.cecetTax) || 0;
-            const orderSalesTax = parseFloat(order.salesTax) || 0;
-            const orderTotalTax = orderCecetTax + orderSalesTax;
-            const orderNetSales = orderTotal - orderTotalTax;
-
-            // Use isCashPayment from API (based on paymentGatewayNames)
-            const isCash = order.isCashPayment === true;
-            const paymentBadge = isCash
-                ? '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: #1e3a1e; color: #86efac;"><i class="fas fa-money-bill-wave"></i> Cash</span>'
-                : '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: #1e2a4a; color: #93c5fd;"><i class="fas fa-credit-card"></i> Card</span>';
-
-            // Order row (clickable to expand)
-            tableHTML += `
-                <tr onclick="toggleTransactionDetails('txn-${order.id}')" style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 14px 16px; text-align: center;">
-                        <i class="fas fa-chevron-right txn-chevron" id="chevron-txn-${order.id}" style="color: var(--text-muted); transition: transform 0.2s; font-size: 11px;"></i>
-                    </td>
-                    <td style="padding: 14px 16px;">${orderTime}</td>
-                    <td class="order-number" style="padding: 14px 16px;">
-                        <strong>${order.name || 'N/A'}</strong>
-                        ${hasLineItems ? `<span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">(${itemCount} item${itemCount !== 1 ? 's' : ''})</span>` : ''}
-                    </td>
-                    <td class="hide-mobile" style="padding: 14px 16px; color: var(--text-secondary);">${order.customer || 'Guest'}</td>
-                    <td style="padding: 14px 16px;">${paymentBadge}</td>
-                    <td style="padding: 14px 16px; text-align: right;">${formatCurrency(orderTotal)}</td>
-                    <td class="hide-mobile" style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${orderCecetTax > 0 ? formatCurrency(orderCecetTax) : '-'}</td>
-                    <td class="hide-mobile" style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${orderSalesTax > 0 ? formatCurrency(orderSalesTax) : '-'}</td>
-                    <td style="padding: 14px 16px; text-align: right; color: #ef4444;">${formatCurrency(orderTotalTax)}</td>
-                    <td style="padding: 14px 16px; text-align: right; font-weight: 600; color: #10b981;">${formatCurrency(orderNetSales)}</td>
-                </tr>
-            `;
-
-            // Expandable details row with product breakdown
-            let lineItemsHTML = '';
-            if (hasLineItems) {
-                lineItemsHTML = order.lineItems.map(item => `
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 10px 12px; color: var(--text-primary);">${item.name || 'Unknown'}</td>
-                        <td style="padding: 10px 12px; color: var(--text-muted); font-family: monospace; font-size: 12px;">${item.sku || '-'}</td>
-                        <td style="padding: 10px 12px; text-align: center; color: var(--text-secondary);">${item.quantity || 0}</td>
-                        <td style="padding: 10px 12px; text-align: right; color: var(--text-secondary);">${formatCurrency(item.price || 0)}</td>
-                        <td style="padding: 10px 12px; text-align: right; font-weight: 500; color: var(--text-primary);">${formatCurrency((item.price || 0) * (item.quantity || 0))}</td>
-                    </tr>
-                `).join('');
-            } else {
-                lineItemsHTML = `
-                    <tr>
-                        <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">
-                            <i class="fas fa-box-open" style="margin-right: 8px;"></i>
-                            No line items available for this order
-                        </td>
-                    </tr>
-                `;
-            }
-
-            tableHTML += `
-                <tr id="txn-${order.id}" style="display: none;">
-                    <td colspan="10" style="padding: 0; background: var(--bg-tertiary);">
-                        <div style="padding: 16px 24px 16px 48px;">
-                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px; font-size: 13px;">
-                                <i class="fas fa-box" style="margin-right: 8px; color: var(--accent-primary);"></i>
-                                Products in Order ${order.name}
-                            </div>
-                            <table style="width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <thead>
-                                    <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
-                                        <th style="text-align: left; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase;">Product</th>
-                                        <th style="text-align: left; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase;">SKU</th>
-                                        <th style="text-align: center; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase;">Qty</th>
-                                        <th style="text-align: right; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase;">Unit Price</th>
-                                        <th style="text-align: right; padding: 10px 12px; color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase;">Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${lineItemsHTML}
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        // Date subtotal row (responsive - hide CECET and CA Tax on mobile)
-        tableHTML += `
-            <tr style="background: var(--bg-hover);">
-                <td colspan="5" class="subtotal-label" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color);">
-                    Subtotal (${dateOrders.length} orders)
-                </td>
-                <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color);">${formatCurrency(dateTotals.gross)}</td>
-                <td class="hide-mobile" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">${dateTotals.cecetTax > 0 ? formatCurrency(dateTotals.cecetTax) : '-'}</td>
-                <td class="hide-mobile" style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">${dateTotals.salesTax > 0 ? formatCurrency(dateTotals.salesTax) : '-'}</td>
-                <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: #ef4444;">${formatCurrency(dateTotals.totalTax)}</td>
-                <td style="padding: 10px 16px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border-color); color: #10b981;">${formatCurrency(dateTotals.netSales)}</td>
-            </tr>
-        `;
-    });
-
-    tableHTML += `
-            </tbody>
-        </table>
-        </div>
-    `;
-
-    return tableHTML;
-}
-
-/**
- * Toggle transaction details expansion
- */
-function toggleTransactionDetails(rowId) {
-    const detailsRow = document.getElementById(rowId);
-    const chevron = document.getElementById(`chevron-${rowId}`);
-
-    if (!detailsRow || !chevron) return;
-
-    if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
-        detailsRow.style.display = 'table-row';
-        chevron.style.transform = 'rotate(90deg)';
-    } else {
-        detailsRow.style.display = 'none';
-        chevron.style.transform = 'rotate(0deg)';
-    }
-}
-
-// =============================================================================
-// Recent Orders Table with Expandable Rows & Pagination (Legacy)
+// Recent Orders Table with Expandable Rows & Pagination
 // =============================================================================
 
 /**
@@ -2336,29 +1514,23 @@ function handleStoreChange(storeKey) {
     selectedStore = storeKey;
     selectedLocation = null; // Reset location when changing stores
 
-    // Update UI to show selected store (toggle active class)
-    document.querySelectorAll('.store-toggle-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const activeBtn = document.getElementById(`store-btn-${storeKey}`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-    }
+    // Get current period
+    const periodSelect = document.getElementById('period-select');
+    const period = periodSelect ? periodSelect.value : 'month';
 
-    // Cancel any in-progress bulk operation when changing stores
-    cancelAnalyticsRequest();
-    cancelBulkOperation(storeKey);
-
-    console.log(`[Analytics] Store changed to: ${storeKey} - Click "Run Query" to load data`);
+    // Reload analytics with new store
+    renderAnalyticsWithData(period, storeKey, null);
 }
 
 function handleLocationChange(locationId) {
     selectedLocation = locationId === '' ? null : locationId;
 
-    // Cancel any in-progress bulk operation when changing location
-    cancelAnalyticsRequest();
+    // Get current period
+    const periodSelect = document.getElementById('period-select');
+    const period = periodSelect ? periodSelect.value : 'month';
 
-    console.log(`[Analytics] Location changed to: ${locationId || 'All Locations'} - Click "Run Query" to load data`);
+    // Reload analytics with new location
+    renderAnalyticsWithData(period, selectedStore, selectedLocation);
 }
 
 // =============================================================================
@@ -2388,9 +1560,6 @@ function handleLocationChange(locationId) {
 function handlePeriodChange(value) {
     const calendarBtn = document.getElementById('calendar-btn');
 
-    // Cancel any in-progress bulk operation when changing period
-    cancelAnalyticsRequest();
-
     if (value === 'custom') {
         // Show calendar button
         if (calendarBtn) {
@@ -2409,8 +1578,8 @@ function handlePeriodChange(value) {
         if (popup) {
             popup.style.display = 'none';
         }
-        // Do NOT auto-fetch - user must click "Run Query" button
-        console.log(`[Analytics] Period changed to: ${value} - Click "Run Query" to load data`);
+        // Fetch data with selected period
+        renderAnalyticsWithData(value);
     }
 }
 
@@ -2630,7 +1799,7 @@ function clearAnalyticsCustomRange() {
     if (btnText) btnText.textContent = 'Pick dates';
 }
 
-// Apply custom range (just save selection, don't fetch data)
+// Apply custom range and fetch data
 function applyAnalyticsCustomRange() {
     const { startDate, endDate } = window.analyticsCustomRange;
 
@@ -2648,8 +1817,8 @@ function applyAnalyticsCustomRange() {
     const formatDate = (date) => date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
     if (btnText) btnText.textContent = `${formatDate(startDate)} → ${formatDate(endDate)}`;
 
-    // Do NOT auto-fetch - user must click "Run Query" button
-    console.log(`[Analytics] Custom range set: ${formatDate(startDate)} → ${formatDate(endDate)} - Click "Run Query" to load data`);
+    // Fetch data with custom range
+    renderAnalyticsWithData('custom');
 }
 
 // Close popup when clicking outside
