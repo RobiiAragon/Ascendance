@@ -1386,6 +1386,9 @@
                 case 'leases':
                     renderLeases();
                     break;
+                case 'glabs':
+                    renderGLabs();
+                    break;
                 default:
                     render404(page);
             }
@@ -38256,4 +38259,470 @@ async function deleteLease(leaseId) {
         console.log(`✅ Migration complete! Updated ${totalUpdated} records to VSU Admin`);
     }
 })();
+
+// =============================================================================
+// G-LABS MODULE - Simple Spreadsheet for Number Crunching
+// =============================================================================
+
+// G-Labs state
+let glabsData = [];
+let glabsRows = 20;
+let glabsCols = 10;
+let glabsSelectedCell = null;
+
+function renderGLabs() {
+    const dashboard = document.querySelector('.dashboard');
+
+    // Initialize empty data if needed
+    if (glabsData.length === 0) {
+        for (let i = 0; i < glabsRows; i++) {
+            glabsData[i] = [];
+            for (let j = 0; j < glabsCols; j++) {
+                glabsData[i][j] = '';
+            }
+        }
+    }
+
+    // Load saved data from localStorage
+    const savedData = localStorage.getItem('glabs_data');
+    if (savedData) {
+        try {
+            glabsData = JSON.parse(savedData);
+            glabsRows = glabsData.length;
+            glabsCols = glabsData[0]?.length || 10;
+        } catch (e) {
+            console.error('Error loading G-Labs data:', e);
+        }
+    }
+
+    // Column letters
+    const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    dashboard.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-left">
+                <h2 class="section-title"><i class="fas fa-flask"></i> G-Labs</h2>
+                <p class="section-subtitle">Quick spreadsheet for crunching numbers</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button class="btn-secondary" onclick="glabsAddRow()">
+                    <i class="fas fa-plus"></i> Add Row
+                </button>
+                <button class="btn-secondary" onclick="glabsAddColumn()">
+                    <i class="fas fa-columns"></i> Add Column
+                </button>
+                <button class="btn-secondary" onclick="glabsClearAll()">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+                <button class="btn-primary" onclick="glabsExportCSV()">
+                    <i class="fas fa-download"></i> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Formula Bar -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+            <span id="glabs-cell-ref" style="font-family: monospace; font-weight: 600; color: var(--accent-primary); min-width: 40px;">A1</span>
+            <input type="text" id="glabs-formula-bar" placeholder="Enter value or formula (e.g., =SUM(A1:A5), =A1+B1)"
+                style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: var(--text-primary); font-family: 'Outfit', monospace; font-size: 14px;"
+                onkeydown="if(event.key === 'Enter') glabsApplyFormula()">
+            <button class="btn-primary" onclick="glabsApplyFormula()" style="padding: 8px 16px;">
+                <i class="fas fa-check"></i>
+            </button>
+        </div>
+
+        <!-- Spreadsheet Grid -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
+            <div style="overflow-x: auto;">
+                <table id="glabs-table" style="width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif;">
+                    <thead>
+                        <tr style="background: var(--bg-tertiary);">
+                            <th style="width: 50px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px;"></th>
+                            ${Array.from({length: glabsCols}, (_, i) => `
+                                <th style="min-width: 100px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center;">
+                                    ${colLetters[i] || 'Z' + (i - 25)}
+                                </th>
+                            `).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Array.from({length: glabsRows}, (_, rowIdx) => `
+                            <tr>
+                                <td style="padding: 8px 10px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center;">
+                                    ${rowIdx + 1}
+                                </td>
+                                ${Array.from({length: glabsCols}, (_, colIdx) => {
+                                    const cellId = `${colLetters[colIdx]}${rowIdx + 1}`;
+                                    const value = glabsData[rowIdx]?.[colIdx] || '';
+                                    const displayValue = glabsEvaluateCell(value, rowIdx, colIdx);
+                                    return `
+                                        <td class="glabs-cell" data-row="${rowIdx}" data-col="${colIdx}" data-cell="${cellId}"
+                                            onclick="glabsSelectCell(this, ${rowIdx}, ${colIdx})"
+                                            ondblclick="glabsEditCell(this, ${rowIdx}, ${colIdx})"
+                                            style="padding: 0; border: 1px solid var(--border-color); cursor: pointer; position: relative;">
+                                            <div class="glabs-cell-content" style="padding: 8px 10px; min-height: 20px; font-size: 13px; color: var(--text-primary);">
+                                                ${displayValue}
+                                            </div>
+                                        </td>
+                                    `;
+                                }).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 20px;">
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Selected Sum</div>
+                <div id="glabs-sum" style="font-size: 1.25rem; font-weight: 600; color: var(--accent-primary);">-</div>
+            </div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Selected Avg</div>
+                <div id="glabs-avg" style="font-size: 1.25rem; font-weight: 600; color: #10b981;">-</div>
+            </div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Cell Count</div>
+                <div id="glabs-count" style="font-size: 1.25rem; font-weight: 600; color: #f59e0b;">-</div>
+            </div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Auto-Saved</div>
+                <div id="glabs-saved" style="font-size: 1.25rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-check-circle" style="color: #10b981;"></i></div>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-top: 20px;">
+            <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 14px;"><i class="fas fa-info-circle" style="color: var(--accent-primary);"></i> Quick Formulas</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-muted);">
+                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=SUM(A1:A10)</code>
+                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=AVG(B1:B5)</code>
+                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=A1+B1*2</code>
+                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=MAX(C1:C10)</code>
+                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=MIN(D1:D10)</code>
+                <code style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">=COUNT(A1:A10)</code>
+            </div>
+        </div>
+
+        <style>
+            .glabs-cell:hover {
+                background: var(--bg-hover) !important;
+            }
+            .glabs-cell.selected {
+                outline: 2px solid var(--accent-primary);
+                outline-offset: -2px;
+                background: rgba(96, 165, 250, 0.1);
+            }
+            .glabs-cell input {
+                width: 100%;
+                height: 100%;
+                border: none;
+                background: white;
+                padding: 8px 10px;
+                font-family: 'Outfit', monospace;
+                font-size: 13px;
+                outline: none;
+            }
+        </style>
+    `;
+}
+
+// Select a cell
+function glabsSelectCell(td, row, col) {
+    // Remove previous selection
+    document.querySelectorAll('.glabs-cell.selected').forEach(el => el.classList.remove('selected'));
+
+    // Select new cell
+    td.classList.add('selected');
+    glabsSelectedCell = { row, col, element: td };
+
+    // Update formula bar
+    const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const cellRef = `${colLetters[col]}${row + 1}`;
+    document.getElementById('glabs-cell-ref').textContent = cellRef;
+    document.getElementById('glabs-formula-bar').value = glabsData[row]?.[col] || '';
+
+    // Update quick stats for selected cell
+    const value = parseFloat(glabsEvaluateCell(glabsData[row]?.[col] || '', row, col));
+    if (!isNaN(value)) {
+        document.getElementById('glabs-sum').textContent = value.toLocaleString();
+        document.getElementById('glabs-avg').textContent = value.toLocaleString();
+        document.getElementById('glabs-count').textContent = '1';
+    } else {
+        document.getElementById('glabs-sum').textContent = '-';
+        document.getElementById('glabs-avg').textContent = '-';
+        document.getElementById('glabs-count').textContent = '-';
+    }
+}
+
+// Edit a cell (double-click)
+function glabsEditCell(td, row, col) {
+    const currentValue = glabsData[row]?.[col] || '';
+    const contentDiv = td.querySelector('.glabs-cell-content');
+
+    contentDiv.innerHTML = `<input type="text" value="${currentValue}"
+        onblur="glabsSaveCell(this, ${row}, ${col})"
+        onkeydown="if(event.key === 'Enter') { glabsSaveCell(this, ${row}, ${col}); } else if(event.key === 'Tab') { event.preventDefault(); glabsSaveCell(this, ${row}, ${col}); glabsMoveNext(${row}, ${col}, event.shiftKey); }"
+        autofocus>`;
+
+    const input = contentDiv.querySelector('input');
+    input.focus();
+    input.select();
+}
+
+// Save cell value
+function glabsSaveCell(input, row, col) {
+    const value = input.value;
+
+    // Ensure row exists
+    if (!glabsData[row]) {
+        glabsData[row] = [];
+    }
+
+    glabsData[row][col] = value;
+
+    // Save to localStorage
+    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+
+    // Re-render the cell
+    const displayValue = glabsEvaluateCell(value, row, col);
+    input.parentElement.innerHTML = displayValue;
+
+    // Show saved indicator
+    document.getElementById('glabs-saved').innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> Saved';
+    setTimeout(() => {
+        const savedEl = document.getElementById('glabs-saved');
+        if (savedEl) savedEl.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i>';
+    }, 1500);
+}
+
+// Move to next cell
+function glabsMoveNext(row, col, backwards) {
+    const nextCol = backwards ? col - 1 : col + 1;
+    const nextRow = row;
+
+    if (nextCol >= 0 && nextCol < glabsCols) {
+        const nextCell = document.querySelector(`.glabs-cell[data-row="${nextRow}"][data-col="${nextCol}"]`);
+        if (nextCell) {
+            glabsSelectCell(nextCell, nextRow, nextCol);
+            glabsEditCell(nextCell, nextRow, nextCol);
+        }
+    }
+}
+
+// Evaluate cell value (handle formulas)
+function glabsEvaluateCell(value, row, col) {
+    if (!value || typeof value !== 'string') return value || '';
+
+    if (!value.startsWith('=')) return value;
+
+    try {
+        const formula = value.substring(1).toUpperCase();
+
+        // Parse cell references like A1, B2, etc.
+        const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        // Handle SUM(A1:A10)
+        const sumMatch = formula.match(/SUM\(([A-Z])(\d+):([A-Z])(\d+)\)/);
+        if (sumMatch) {
+            const [_, startCol, startRow, endCol, endRow] = sumMatch;
+            let sum = 0;
+            const sc = colLetters.indexOf(startCol);
+            const ec = colLetters.indexOf(endCol);
+            const sr = parseInt(startRow) - 1;
+            const er = parseInt(endRow) - 1;
+
+            for (let r = sr; r <= er; r++) {
+                for (let c = sc; c <= ec; c++) {
+                    const val = parseFloat(glabsData[r]?.[c] || 0);
+                    if (!isNaN(val)) sum += val;
+                }
+            }
+            return sum.toLocaleString();
+        }
+
+        // Handle AVG(A1:A10)
+        const avgMatch = formula.match(/AVG\(([A-Z])(\d+):([A-Z])(\d+)\)/);
+        if (avgMatch) {
+            const [_, startCol, startRow, endCol, endRow] = avgMatch;
+            let sum = 0, count = 0;
+            const sc = colLetters.indexOf(startCol);
+            const ec = colLetters.indexOf(endCol);
+            const sr = parseInt(startRow) - 1;
+            const er = parseInt(endRow) - 1;
+
+            for (let r = sr; r <= er; r++) {
+                for (let c = sc; c <= ec; c++) {
+                    const val = parseFloat(glabsData[r]?.[c] || 0);
+                    if (!isNaN(val)) { sum += val; count++; }
+                }
+            }
+            return count > 0 ? (sum / count).toLocaleString(undefined, {maximumFractionDigits: 2}) : '0';
+        }
+
+        // Handle MAX(A1:A10)
+        const maxMatch = formula.match(/MAX\(([A-Z])(\d+):([A-Z])(\d+)\)/);
+        if (maxMatch) {
+            const [_, startCol, startRow, endCol, endRow] = maxMatch;
+            let max = -Infinity;
+            const sc = colLetters.indexOf(startCol);
+            const ec = colLetters.indexOf(endCol);
+            const sr = parseInt(startRow) - 1;
+            const er = parseInt(endRow) - 1;
+
+            for (let r = sr; r <= er; r++) {
+                for (let c = sc; c <= ec; c++) {
+                    const val = parseFloat(glabsData[r]?.[c] || 0);
+                    if (!isNaN(val) && val > max) max = val;
+                }
+            }
+            return max === -Infinity ? '0' : max.toLocaleString();
+        }
+
+        // Handle MIN(A1:A10)
+        const minMatch = formula.match(/MIN\(([A-Z])(\d+):([A-Z])(\d+)\)/);
+        if (minMatch) {
+            const [_, startCol, startRow, endCol, endRow] = minMatch;
+            let min = Infinity;
+            const sc = colLetters.indexOf(startCol);
+            const ec = colLetters.indexOf(endCol);
+            const sr = parseInt(startRow) - 1;
+            const er = parseInt(endRow) - 1;
+
+            for (let r = sr; r <= er; r++) {
+                for (let c = sc; c <= ec; c++) {
+                    const val = parseFloat(glabsData[r]?.[c] || 0);
+                    if (!isNaN(val) && val < min) min = val;
+                }
+            }
+            return min === Infinity ? '0' : min.toLocaleString();
+        }
+
+        // Handle COUNT(A1:A10)
+        const countMatch = formula.match(/COUNT\(([A-Z])(\d+):([A-Z])(\d+)\)/);
+        if (countMatch) {
+            const [_, startCol, startRow, endCol, endRow] = countMatch;
+            let count = 0;
+            const sc = colLetters.indexOf(startCol);
+            const ec = colLetters.indexOf(endCol);
+            const sr = parseInt(startRow) - 1;
+            const er = parseInt(endRow) - 1;
+
+            for (let r = sr; r <= er; r++) {
+                for (let c = sc; c <= ec; c++) {
+                    const val = parseFloat(glabsData[r]?.[c]);
+                    if (!isNaN(val)) count++;
+                }
+            }
+            return count.toString();
+        }
+
+        // Handle simple math with cell references (A1+B1, A1*2, etc.)
+        let evalFormula = formula;
+        const cellRefs = formula.match(/[A-Z]\d+/g) || [];
+        cellRefs.forEach(ref => {
+            const c = colLetters.indexOf(ref[0]);
+            const r = parseInt(ref.substring(1)) - 1;
+            const val = parseFloat(glabsData[r]?.[c] || 0);
+            evalFormula = evalFormula.replace(ref, isNaN(val) ? '0' : val);
+        });
+
+        // Safe eval for math only
+        const result = Function('"use strict"; return (' + evalFormula + ')')();
+        return typeof result === 'number' ? result.toLocaleString(undefined, {maximumFractionDigits: 2}) : result;
+
+    } catch (e) {
+        return '#ERROR';
+    }
+}
+
+// Apply formula from formula bar
+function glabsApplyFormula() {
+    if (!glabsSelectedCell) return;
+
+    const { row, col, element } = glabsSelectedCell;
+    const value = document.getElementById('glabs-formula-bar').value;
+
+    if (!glabsData[row]) glabsData[row] = [];
+    glabsData[row][col] = value;
+
+    // Save to localStorage
+    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+
+    // Update display
+    const displayValue = glabsEvaluateCell(value, row, col);
+    element.querySelector('.glabs-cell-content').innerHTML = displayValue;
+
+    // Update quick stats
+    const numValue = parseFloat(displayValue.replace(/,/g, ''));
+    if (!isNaN(numValue)) {
+        document.getElementById('glabs-sum').textContent = numValue.toLocaleString();
+        document.getElementById('glabs-avg').textContent = numValue.toLocaleString();
+        document.getElementById('glabs-count').textContent = '1';
+    }
+}
+
+// Add row
+function glabsAddRow() {
+    glabsRows++;
+    glabsData.push(Array(glabsCols).fill(''));
+    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+    renderGLabs();
+}
+
+// Add column
+function glabsAddColumn() {
+    if (glabsCols >= 26) return; // Max 26 columns (A-Z)
+    glabsCols++;
+    glabsData.forEach(row => row.push(''));
+    localStorage.setItem('glabs_data', JSON.stringify(glabsData));
+    renderGLabs();
+}
+
+// Clear all data
+function glabsClearAll() {
+    if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) return;
+
+    glabsData = [];
+    for (let i = 0; i < glabsRows; i++) {
+        glabsData[i] = Array(glabsCols).fill('');
+    }
+    localStorage.removeItem('glabs_data');
+    renderGLabs();
+}
+
+// Export to CSV
+function glabsExportCSV() {
+    const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let csv = '';
+
+    // Header row
+    csv += ',' + Array.from({length: glabsCols}, (_, i) => colLetters[i]).join(',') + '\n';
+
+    // Data rows
+    glabsData.forEach((row, idx) => {
+        const rowData = [idx + 1];
+        for (let c = 0; c < glabsCols; c++) {
+            const val = glabsEvaluateCell(row[c] || '', idx, c);
+            // Escape commas and quotes
+            if (val.includes(',') || val.includes('"')) {
+                rowData.push(`"${val.replace(/"/g, '""')}"`);
+            } else {
+                rowData.push(val);
+            }
+        }
+        csv += rowData.join(',') + '\n';
+    });
+
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `glabs_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
