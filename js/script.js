@@ -2904,9 +2904,9 @@
             updateAnalyticsLoadingState(true, 'Starting bulk export...');
 
             try {
-                // Build custom range if period is 'custom'
+                // Always build custom range from selected dates for smart fetch to calculate days
                 let customRange = null;
-                if (analyticsDateRange.period === 'custom' && analyticsDateRange.startDate && analyticsDateRange.endDate) {
+                if (analyticsDateRange.startDate && analyticsDateRange.endDate) {
                     customRange = {
                         startDate: analyticsDateRange.startDate,
                         endDate: analyticsDateRange.endDate

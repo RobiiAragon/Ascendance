@@ -354,7 +354,7 @@ async function cancelBulkOperation(storeKey = 'vsu') {
     try {
         console.log('🛑 [BULK CANCEL] Cancelling bulk operation for:', storeConfig.name);
 
-        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        const response = await fetchWithProxy(graphqlUrl, {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -438,7 +438,7 @@ async function startBulkOrdersExport(startDate, endDate, storeConfig) {
     `;
 
     try {
-        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        const response = await fetchWithProxy(graphqlUrl, {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -505,7 +505,7 @@ async function pollBulkOperation(storeConfig, onProgress = null, maxAttempts = 3
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-            const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            const response = await fetchWithProxy(graphqlUrl, {
                 method: 'POST',
                 headers: {
                     'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -1116,18 +1116,61 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
     }); // End deduplicateRequest
 }
 
-// CORS Proxy Configuration
-const CORS_PROXY = 'https://corsproxy.io/?';
+// CORS Proxy Configuration - multiple proxies for fallback
+const CORS_PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://cors-anywhere.herokuapp.com/'
+];
+let currentProxyIndex = 0;
+const CORS_PROXY = CORS_PROXIES[0]; // Default proxy
 
 /**
- * Fetch data from Shopify API with CORS proxy
+ * Try fetching with multiple CORS proxies
+ */
+async function fetchWithProxy(url, options = {}) {
+    let lastError = null;
+
+    for (let i = 0; i < CORS_PROXIES.length; i++) {
+        const proxyIndex = (currentProxyIndex + i) % CORS_PROXIES.length;
+        const proxy = CORS_PROXIES[proxyIndex];
+        const proxyUrl = proxy + encodeURIComponent(url);
+
+        try {
+            const response = await fetch(proxyUrl, options);
+
+            if (response.ok) {
+                // Remember this working proxy for next time
+                currentProxyIndex = proxyIndex;
+                return response;
+            }
+
+            if (response.status === 403 || response.status === 429) {
+                console.warn(`⚠️ Proxy ${proxy} returned ${response.status}, trying next...`);
+                lastError = new Error(`Proxy error: ${response.status}`);
+                continue;
+            }
+
+            // For other errors, return the response to let caller handle
+            return response;
+        } catch (error) {
+            console.warn(`⚠️ Proxy ${proxy} failed:`, error.message);
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error('All CORS proxies failed');
+}
+
+/**
+ * Fetch data from Shopify API with CORS proxy fallback
  */
 async function fetchShopifyAPI(endpoint, params = {}, storeConfig) {
     const queryString = new URLSearchParams(params).toString();
     const url = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/${endpoint}${queryString ? '?' + queryString : ''}`;
 
     try {
-        const response = await fetch(CORS_PROXY + encodeURIComponent(url), {
+        const response = await fetchWithProxy(url, {
             method: 'GET',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken
@@ -1143,6 +1186,26 @@ async function fetchShopifyAPI(endpoint, params = {}, storeConfig) {
         console.error('Shopify API request failed:', error);
         throw error;
     }
+}
+
+/**
+ * Fetch GraphQL with CORS proxy fallback
+ */
+async function fetchGraphQLWithProxy(graphqlUrl, query, variables, storeConfig) {
+    const response = await fetchWithProxy(graphqlUrl, {
+        method: 'POST',
+        headers: {
+            'X-Shopify-Access-Token': storeConfig.accessToken,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query, variables })
+    });
+
+    if (!response.ok) {
+        throw new Error(`GraphQL request failed: ${response.status}`);
+    }
+
+    return await response.json();
 }
 
 /**
@@ -1173,8 +1236,7 @@ async function fetchOrderTaxDetailsGraphQL(orderIds, storeConfig) {
     `;
 
     try {
-
-        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        const response = await fetchWithProxy(graphqlUrl, {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -1766,7 +1828,7 @@ async function fetchStoreInventory(storeKey = 'vsu', limit = 100) {
     `;
 
     try {
-        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        const response = await fetchWithProxy(graphqlUrl, {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -1849,7 +1911,7 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
     try {
         // Get locations
         console.log(`📍 [Inventory] Fetching locations for ${storeConfig.name}...`);
-        const locResponse = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        const locResponse = await fetchWithProxy(graphqlUrl, {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -1922,7 +1984,7 @@ async function fetchStoreInventoryWithLocations(storeConfig, storeKey, limit = 1
         `;
 
         console.log(`📦 [Inventory] Fetching products with inventory levels for ${storeConfig.name}...`);
-        const prodResponse = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        const prodResponse = await fetchWithProxy(graphqlUrl, {
             method: 'POST',
             headers: {
                 'X-Shopify-Access-Token': storeConfig.accessToken,
@@ -2102,18 +2164,49 @@ function forceRefreshAnalytics(storeKey = null, period = null) {
 
 /**
  * Smart fetch that chooses REST for short periods (faster) and Bulk for long periods
- * - today, week: uses REST API (faster for small datasets)
- * - month, quarter, year, custom: uses Bulk Operations (handles large datasets)
+ * - Calculates actual date range to determine best method
+ * - REST API: for ranges <= 14 days (faster, no bulk overhead)
+ * - Bulk Operations: for ranges > 14 days (handles large datasets)
  */
 async function fetchSalesAnalyticsSmart(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null) {
-    // For short periods, REST is faster (no bulk operation overhead)
-    const useRestApi = ['today', 'week'].includes(period);
+    // Calculate actual number of days in the range
+    let daysDiff = 30; // Default to assuming month
+
+    if (customRange && customRange.startDate && customRange.endDate) {
+        // Custom range - calculate actual days
+        const start = new Date(customRange.startDate);
+        const end = new Date(customRange.endDate);
+        daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        console.log(`📅 [SMART] Custom range: ${daysDiff} days`);
+    } else {
+        // Standard periods
+        switch (period) {
+            case 'today':
+                daysDiff = 1;
+                break;
+            case 'week':
+                daysDiff = 7;
+                break;
+            case 'month':
+                daysDiff = 30;
+                break;
+            case 'quarter':
+                daysDiff = 90;
+                break;
+            case 'year':
+                daysDiff = 365;
+                break;
+        }
+    }
+
+    // Use REST API for short ranges (14 days or less), Bulk for longer
+    const useRestApi = daysDiff <= 14;
 
     if (useRestApi) {
-        console.log(`📊 [SMART] Using REST API for period: ${period} (faster for short ranges)`);
+        console.log(`📊 [SMART] Using REST API for ${daysDiff} days (faster for short ranges)`);
         return fetchSalesAnalytics(storeKey, locationId, period, onProgress, customRange);
     } else {
-        console.log(`📊 [SMART] Using Bulk Operations for period: ${period} (better for large datasets)`);
+        console.log(`📊 [SMART] Using Bulk Operations for ${daysDiff} days (better for large datasets)`);
         return fetchSalesAnalyticsBulk(storeKey, locationId, period, onProgress, customRange);
     }
 }
