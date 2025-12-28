@@ -3122,3 +3122,20 @@ function closeAirlineCalendar() {
     if (overlay) overlay.remove();
 }
 
+// =============================================================================
+// EXPORT FUNCTIONS TO WINDOW
+// =============================================================================
+// These functions need to be accessible from script.js navigation system
+
+window.renderAnalyticsPage = renderAnalyticsPage;
+window.renderAnalyticsContent = renderAnalyticsContent;
+window.handleStoreChipClick = handleStoreChipClick;
+window.handleStoreChange = handleStoreChange;
+window.handleLocationChange = handleLocationChange;
+window.applyAnalyticsFilters = applyAnalyticsFilters;
+window.setAnalyticsPreset = setAnalyticsPreset;
+window.openAirlineCalendar = openAirlineCalendar;
+window.toggleExportDropdown = toggleExportDropdown;
+window.exportToPDF = exportToPDF;
+window.exportToExcel = exportToExcel;
+
