@@ -1954,10 +1954,12 @@
             if (!container) return;
 
             try {
-                // Check if fetchSalesAnalytics is available
-                const fetchFn = typeof fetchSalesAnalyticsBulk === 'function'
-                    ? fetchSalesAnalyticsBulk
-                    : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null);
+                // Check if analytics fetch functions are available
+                const fetchFn = typeof fetchSalesAnalyticsSmart === 'function'
+                    ? fetchSalesAnalyticsSmart
+                    : (typeof fetchSalesAnalyticsBulk === 'function'
+                        ? fetchSalesAnalyticsBulk
+                        : (typeof fetchSalesAnalytics === 'function' ? fetchSalesAnalytics : null));
 
                 if (!fetchFn) {
                     console.warn('[Dashboard] No sales analytics function available');
@@ -2176,8 +2178,8 @@
                 // Weekly goal (configurable)
                 const weeklyGoal = 50000; // $50,000 weekly goal
 
-                if (typeof fetchSalesAnalyticsBulk === 'function' || typeof fetchSalesAnalytics === 'function') {
-                    const fetchFn = typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk : fetchSalesAnalytics;
+                if (typeof fetchSalesAnalyticsSmart === 'function' || typeof fetchSalesAnalyticsBulk === 'function' || typeof fetchSalesAnalytics === 'function') {
+                    const fetchFn = typeof fetchSalesAnalyticsSmart === 'function' ? fetchSalesAnalyticsSmart : (typeof fetchSalesAnalyticsBulk === 'function' ? fetchSalesAnalyticsBulk : fetchSalesAnalytics);
                     const salesData = await fetchFn('vsu', null, 'week');
 
                     if (salesData?.summary) {
@@ -2916,10 +2918,13 @@
                     updateAnalyticsLoadingState(true, message, percent);
                 };
 
-                // Fetch data using bulk operations from shopify-analytics.js
-                const data = await fetchSalesAnalyticsBulk(
+                // Fetch data using smart method (REST for short periods, Bulk for long)
+                const fetchFn = typeof fetchSalesAnalyticsSmart === 'function'
+                    ? fetchSalesAnalyticsSmart
+                    : fetchSalesAnalyticsBulk;
+                const data = await fetchFn(
                     analyticsData.storeKey,
-                    null, // locationId - not supported in bulk
+                    null, // locationId
                     analyticsDateRange.period,
                     onProgress,
                     customRange

@@ -414,7 +414,7 @@ async function startBulkOrdersExport(startDate, endDate, storeConfig) {
     // ALWAYS cancel any existing bulk operation first
     // Shopify only allows ONE bulk operation at a time per store
     console.log('🛑 [BULK START] Cancelling any existing operation first...');
-    await cancelBulkOperation(storeConfig);
+    await cancelBulkOperation(storeConfig.key);
 
     const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
     const innerQuery = buildBulkOrdersQuery(startDate, endDate);
@@ -2100,9 +2100,28 @@ function forceRefreshAnalytics(storeKey = null, period = null) {
     return keys.length;
 }
 
+/**
+ * Smart fetch that chooses REST for short periods (faster) and Bulk for long periods
+ * - today, week: uses REST API (faster for small datasets)
+ * - month, quarter, year, custom: uses Bulk Operations (handles large datasets)
+ */
+async function fetchSalesAnalyticsSmart(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null) {
+    // For short periods, REST is faster (no bulk operation overhead)
+    const useRestApi = ['today', 'week'].includes(period);
+
+    if (useRestApi) {
+        console.log(`📊 [SMART] Using REST API for period: ${period} (faster for short ranges)`);
+        return fetchSalesAnalytics(storeKey, locationId, period, onProgress, customRange);
+    } else {
+        console.log(`📊 [SMART] Using Bulk Operations for period: ${period} (better for large datasets)`);
+        return fetchSalesAnalyticsBulk(storeKey, locationId, period, onProgress, customRange);
+    }
+}
+
 // Expose functions globally for use in other scripts
 window.fetchSalesAnalyticsBulk = fetchSalesAnalyticsBulk;
 window.fetchSalesAnalytics = fetchSalesAnalytics;
+window.fetchSalesAnalyticsSmart = fetchSalesAnalyticsSmart;
 window.fetchStoreInventory = fetchStoreInventory;
 window.fetchAllStoresInventory = fetchAllStoresInventory;
 window.getStoresConfig = getStoresConfig;
