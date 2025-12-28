@@ -3083,12 +3083,11 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
-                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
-                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
-                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
-                        <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
-                            <i class="fas fa-play"></i> Apply
-                        </button>
+                        <button onclick="setQuickDateRange('today')" class="btn-secondary ${analyticsDateRange.period === 'today' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
+                        <button onclick="setQuickDateRange('yesterday')" class="btn-secondary ${analyticsDateRange.period === 'custom' && analyticsDateRange.startDate?.toDateString() === new Date(new Date().setDate(new Date().getDate()-1)).toDateString() ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Yesterday</button>
+                        <button onclick="setQuickDateRange('week')" class="btn-secondary ${analyticsDateRange.period === 'week' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
+                        <button onclick="setQuickDateRange('month')" class="btn-secondary ${analyticsDateRange.period === 'month' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
+                        <button onclick="setQuickDateRange('year')" class="btn-secondary ${analyticsDateRange.period === 'year' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Year</button>
                     </div>
                 </div>
 
@@ -3341,12 +3340,11 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap;">
-                        <button onclick="setQuickDateRange('today')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
-                        <button onclick="setQuickDateRange('week')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
-                        <button onclick="setQuickDateRange('month')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
-                        <button onclick="loadAnalyticsData()" class="btn-primary" style="padding: 10px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669);">
-                            <i class="fas fa-play"></i> Apply
-                        </button>
+                        <button onclick="setQuickDateRange('today')" class="btn-secondary ${analyticsDateRange.period === 'today' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Today</button>
+                        <button onclick="setQuickDateRange('yesterday')" class="btn-secondary" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">Yesterday</button>
+                        <button onclick="setQuickDateRange('week')" class="btn-secondary ${analyticsDateRange.period === 'week' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Week</button>
+                        <button onclick="setQuickDateRange('month')" class="btn-secondary ${analyticsDateRange.period === 'month' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Month</button>
+                        <button onclick="setQuickDateRange('year')" class="btn-secondary ${analyticsDateRange.period === 'year' ? 'active' : ''}" style="padding: 10px 14px; border-radius: 10px; font-size: 12px;">This Year</button>
                     </div>
                 </div>
 
@@ -3694,27 +3692,44 @@
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             let startDate, endDate;
+            let period = range; // Map range to period for API
 
             switch(range) {
                 case 'today':
                     startDate = new Date(today);
                     endDate = new Date(today);
+                    period = 'today';
+                    break;
+                case 'yesterday':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 1);
+                    endDate = new Date(startDate);
+                    period = 'custom'; // Yesterday uses custom range
                     break;
                 case 'week':
                     startDate = new Date(today);
                     startDate.setDate(today.getDate() - today.getDay());
                     endDate = new Date(today);
+                    period = 'week';
                     break;
                 case 'month':
                     startDate = new Date(today.getFullYear(), today.getMonth(), 1);
                     endDate = new Date(today);
+                    period = 'month';
+                    break;
+                case 'year':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    endDate = new Date(today);
+                    period = 'year';
                     break;
                 default:
                     return;
             }
 
+            // Update state
             analyticsDateRange.startDate = startDate;
             analyticsDateRange.endDate = endDate;
+            analyticsDateRange.period = period;
 
             // Update the input fields
             const startInput = document.getElementById('analytics-start-date');
@@ -3734,6 +3749,16 @@
             const endBtn = document.getElementById('analytics-end-btn');
             if (startBtn) startBtn.innerHTML = `<i class="fas fa-calendar" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-primary); font-size: 14px;"></i>${startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
             if (endBtn) endBtn.innerHTML = `<i class="fas fa-calendar-check" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;"></i>${endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+
+            // Update dropdown if exists
+            const periodSelect = document.getElementById('analytics-period-select');
+            if (periodSelect) {
+                periodSelect.value = period;
+            }
+
+            // Auto-load data
+            console.log(`📅 [QUICK SELECT] ${range} -> period: ${period}, dates: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+            loadAnalyticsData();
         };
 
         // Custom Calendar Popup State
