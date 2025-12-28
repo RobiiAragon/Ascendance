@@ -41,6 +41,158 @@ const API_VERSION = '2024-01';
 const locationCache = {};
 
 // =============================================================================
+// LOCAL CACHE SYSTEM
+// =============================================================================
+// Caches API responses in localStorage to reduce API calls and improve performance.
+// Each cache entry has a TTL (Time-To-Live) after which it's considered stale.
+// =============================================================================
+
+const CACHE_CONFIG = {
+    TTL: {
+        analytics: 5 * 60 * 1000,      // 5 minutes for analytics
+        analyticsBulk: 10 * 60 * 1000, // 10 minutes for bulk analytics
+        inventory: 15 * 60 * 1000,     // 15 minutes for inventory
+        locations: 60 * 60 * 1000      // 1 hour for locations
+    },
+    PREFIX: 'shopify_cache_',
+    MAX_ENTRIES: 50
+};
+
+// In-flight request deduplication
+const pendingRequests = new Map();
+
+/**
+ * Generate a cache key from parameters
+ */
+function generateCacheKey(type, params = {}) {
+    const paramStr = Object.entries(params)
+        .filter(([_, v]) => v !== null && v !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('_');
+    return `${CACHE_CONFIG.PREFIX}${type}_${paramStr}`;
+}
+
+/**
+ * Get data from cache if valid
+ */
+function getFromCache(key) {
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+
+        const { data, timestamp, ttl } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+
+        if (age > ttl) {
+            localStorage.removeItem(key);
+            console.log(`⏰ [CACHE] Expired: ${key}`);
+            return null;
+        }
+
+        console.log(`✅ [CACHE] Hit: ${key} (age: ${Math.round(age / 1000)}s)`);
+        return { data, age, fromCache: true };
+    } catch (e) {
+        console.warn('[CACHE] Error reading:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Save data to cache
+ */
+function saveToCache(key, data, ttl) {
+    try {
+        // Clean old entries if too many
+        cleanOldCacheEntries();
+
+        const entry = { data, timestamp: Date.now(), ttl };
+        localStorage.setItem(key, JSON.stringify(entry));
+        console.log(`💾 [CACHE] Saved: ${key} (ttl: ${Math.round(ttl / 1000)}s)`);
+    } catch (e) {
+        console.warn('[CACHE] Failed to save:', e.message);
+        // If storage is full, clear old entries and retry
+        if (e.name === 'QuotaExceededError') {
+            clearOldestCacheEntries(10);
+            try {
+                localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), ttl }));
+            } catch (e2) {
+                console.error('[CACHE] Still failed after cleanup:', e2.message);
+            }
+        }
+    }
+}
+
+/**
+ * Clean old cache entries to prevent localStorage bloat
+ */
+function cleanOldCacheEntries() {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+    if (keys.length <= CACHE_CONFIG.MAX_ENTRIES) return;
+
+    // Get entries with timestamps and sort by age
+    const entries = keys.map(key => {
+        try {
+            const { timestamp } = JSON.parse(localStorage.getItem(key) || '{}');
+            return { key, timestamp: timestamp || 0 };
+        } catch {
+            return { key, timestamp: 0 };
+        }
+    }).sort((a, b) => a.timestamp - b.timestamp);
+
+    // Remove oldest entries
+    const toRemove = entries.slice(0, entries.length - CACHE_CONFIG.MAX_ENTRIES);
+    toRemove.forEach(({ key }) => {
+        localStorage.removeItem(key);
+        console.log(`🗑️ [CACHE] Cleaned old entry: ${key}`);
+    });
+}
+
+/**
+ * Clear oldest N cache entries
+ */
+function clearOldestCacheEntries(count) {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+    const entries = keys.map(key => {
+        try {
+            const { timestamp } = JSON.parse(localStorage.getItem(key) || '{}');
+            return { key, timestamp: timestamp || 0 };
+        } catch {
+            return { key, timestamp: 0 };
+        }
+    }).sort((a, b) => a.timestamp - b.timestamp);
+
+    entries.slice(0, count).forEach(({ key }) => localStorage.removeItem(key));
+}
+
+/**
+ * Clear all analytics cache
+ */
+function clearAllCache() {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
+    keys.forEach(k => localStorage.removeItem(k));
+    console.log(`🗑️ [CACHE] Cleared ${keys.length} entries`);
+    return keys.length;
+}
+
+/**
+ * Deduplicate concurrent requests - returns existing promise if same request is in-flight
+ */
+function deduplicateRequest(key, requestFn) {
+    if (pendingRequests.has(key)) {
+        console.log(`🔄 [DEDUP] Reusing in-flight request: ${key}`);
+        return pendingRequests.get(key);
+    }
+
+    const promise = requestFn().finally(() => {
+        pendingRequests.delete(key);
+    });
+
+    pendingRequests.set(key, promise);
+    return promise;
+}
+
+// =============================================================================
 // GRAPHQL BULK OPERATIONS
 // =============================================================================
 //
@@ -844,98 +996,124 @@ async function fetchSalesAnalyticsBulk(storeKey = 'vsu', locationId = null, peri
     }
 
     const dateRange = getDateRange(period, customRange);
-    console.log('📅 [BULK] Date range:', dateRange);
 
-    if (onProgress) {
-        onProgress(5, 'Starting bulk export...');
-    }
-
-    // Step 1: Start bulk operation
-    console.log('📦 [BULK] Step 1: Starting bulk export...');
-    await startBulkOrdersExport(dateRange.since, dateRange.until, storeConfig);
-
-    if (onProgress) {
-        onProgress(10, 'Bulk operation queued...');
-    }
-
-    // Step 2: Poll until completion
-    console.log('⏳ [BULK] Step 2: Polling for completion...');
-    const completedOp = await pollBulkOperation(storeConfig, onProgress);
-    console.log('✅ [BULK] Poll completed:', completedOp);
-
-    if (!completedOp.url) {
-        // No data returned (empty result)
-        console.log('📭 Bulk operation completed but no data URL - likely no orders in range');
-        return {
-            summary: {
-                totalSales: '0.00',
-                netSales: '0.00',
-                totalTax: '0.00',
-                totalCecetTax: '0.00',
-                totalSalesTax: '0.00',
-                totalOrders: 0,
-                avgOrderValue: '0.00',
-                currency: 'USD'
-            },
-            daily: {},
-            hourly: {},
-            monthly: {},
-            recentOrders: [],
-            storeInfo: {
-                key: storeKey,
-                name: storeConfig.name,
-                shortName: storeConfig.shortName,
-                locationId: null
-            },
-            dateRange: {
-                period,
-                since: dateRange.since,
-                until: dateRange.until
-            }
-        };
-    }
-
-    // Step 3: Download and parse NDJSON
-    console.log('📥 [BULK] Step 3: Downloading and parsing NDJSON from:', completedOp.url);
-    const bulkOrders = await downloadAndParseBulkData(completedOp.url, onProgress);
-    console.log(`📊 [BULK] Downloaded ${bulkOrders.length} orders (NO 2500 LIMIT!)`);
-
-    if (onProgress) {
-        onProgress(90, 'Processing analytics...');
-    }
-
-    // Step 4: Transform to analytics format (with location filtering if specified)
-    console.log('🔄 [BULK] Step 4: Transforming data to analytics format...');
-    if (locationId) {
-        console.log(`📍 [BULK] Filtering orders by location ID: ${locationId}`);
-    }
-    const analytics = transformBulkDataToAnalytics(bulkOrders, locationId);
-    console.log('✅ [BULK] Analytics complete:', {
-        totalOrders: analytics.summary.totalOrders,
-        totalSales: analytics.summary.totalSales,
-        totalTax: analytics.summary.totalTax,
-        locationFiltered: !!locationId
+    // Check cache first
+    const cacheKey = generateCacheKey('bulk', {
+        store: storeKey,
+        location: locationId,
+        period,
+        since: customRange?.startDate || dateRange.since,
+        until: customRange?.endDate || dateRange.until
     });
 
-    // Add store and date info
-    analytics.storeInfo = {
-        key: storeKey,
-        name: storeConfig.name,
-        shortName: storeConfig.shortName,
-        locationId: locationId || null
-    };
-
-    analytics.dateRange = {
-        period,
-        since: dateRange.since,
-        until: dateRange.until
-    };
-
-    if (onProgress) {
-        onProgress(100, 'Complete!');
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+        console.log('📦 [BULK] Returning cached data');
+        if (onProgress) onProgress(100, 'Loaded from cache!');
+        return cached.data;
     }
 
-    return analytics;
+    // Deduplicate concurrent requests
+    return deduplicateRequest(cacheKey, async () => {
+        console.log('📅 [BULK] Date range:', dateRange);
+
+        if (onProgress) {
+            onProgress(5, 'Starting bulk export...');
+        }
+
+        // Step 1: Start bulk operation
+        console.log('📦 [BULK] Step 1: Starting bulk export...');
+        await startBulkOrdersExport(dateRange.since, dateRange.until, storeConfig);
+
+        if (onProgress) {
+            onProgress(10, 'Bulk operation queued...');
+        }
+
+        // Step 2: Poll until completion
+        console.log('⏳ [BULK] Step 2: Polling for completion...');
+        const completedOp = await pollBulkOperation(storeConfig, onProgress);
+        console.log('✅ [BULK] Poll completed:', completedOp);
+
+        if (!completedOp.url) {
+            // No data returned (empty result)
+            console.log('📭 Bulk operation completed but no data URL - likely no orders in range');
+            const emptyResult = {
+                summary: {
+                    totalSales: '0.00',
+                    netSales: '0.00',
+                    totalTax: '0.00',
+                    totalCecetTax: '0.00',
+                    totalSalesTax: '0.00',
+                    totalOrders: 0,
+                    avgOrderValue: '0.00',
+                    currency: 'USD'
+                },
+                daily: {},
+                hourly: {},
+                monthly: {},
+                recentOrders: [],
+                storeInfo: {
+                    key: storeKey,
+                    name: storeConfig.name,
+                    shortName: storeConfig.shortName,
+                    locationId: null
+                },
+                dateRange: {
+                    period,
+                    since: dateRange.since,
+                    until: dateRange.until
+                }
+            };
+            // Cache empty results too (shorter TTL)
+            saveToCache(cacheKey, emptyResult, CACHE_CONFIG.TTL.analytics);
+            return emptyResult;
+        }
+
+        // Step 3: Download and parse NDJSON
+        console.log('📥 [BULK] Step 3: Downloading and parsing NDJSON from:', completedOp.url);
+        const bulkOrders = await downloadAndParseBulkData(completedOp.url, onProgress);
+        console.log(`📊 [BULK] Downloaded ${bulkOrders.length} orders (NO 2500 LIMIT!)`);
+
+        if (onProgress) {
+            onProgress(90, 'Processing analytics...');
+        }
+
+        // Step 4: Transform to analytics format (with location filtering if specified)
+        console.log('🔄 [BULK] Step 4: Transforming data to analytics format...');
+        if (locationId) {
+            console.log(`📍 [BULK] Filtering orders by location ID: ${locationId}`);
+        }
+        const analytics = transformBulkDataToAnalytics(bulkOrders, locationId);
+        console.log('✅ [BULK] Analytics complete:', {
+            totalOrders: analytics.summary.totalOrders,
+            totalSales: analytics.summary.totalSales,
+            totalTax: analytics.summary.totalTax,
+            locationFiltered: !!locationId
+        });
+
+        // Add store and date info
+        analytics.storeInfo = {
+            key: storeKey,
+            name: storeConfig.name,
+            shortName: storeConfig.shortName,
+            locationId: locationId || null
+        };
+
+        analytics.dateRange = {
+            period,
+            since: dateRange.since,
+            until: dateRange.until
+        };
+
+        if (onProgress) {
+            onProgress(100, 'Complete!');
+        }
+
+        // Save to cache before returning
+        saveToCache(cacheKey, analytics, CACHE_CONFIG.TTL.analyticsBulk);
+
+        return analytics;
+    }); // End deduplicateRequest
 }
 
 // CORS Proxy Configuration
@@ -1447,38 +1625,60 @@ async function fetchSalesAnalytics(storeKey = 'vsu', locationId = null, period =
 
     const dateRange = getDateRange(period, customRange);
 
-    if (onProgress) {
-        onProgress(10, 'Connecting to Shopify...');
+    // Check cache first
+    const cacheKey = generateCacheKey('analytics', {
+        store: storeKey,
+        location: locationId,
+        period,
+        since: customRange?.startDate || dateRange.since,
+        until: customRange?.endDate || dateRange.until
+    });
+
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+        console.log('📦 [REST] Returning cached data');
+        if (onProgress) onProgress(100, 'Loaded from cache!');
+        return cached.data;
     }
 
-    const orders = await fetchAllOrders(dateRange.since, dateRange.until, storeConfig, locationId, onProgress);
+    // Deduplicate concurrent requests
+    return deduplicateRequest(cacheKey, async () => {
+        if (onProgress) {
+            onProgress(10, 'Connecting to Shopify...');
+        }
 
-    if (onProgress) {
-        onProgress(92, 'Fetching tax details...');
-    }
+        const orders = await fetchAllOrders(dateRange.since, dateRange.until, storeConfig, locationId, onProgress);
 
-    const analytics = await processOrdersData(orders, storeConfig);
+        if (onProgress) {
+            onProgress(92, 'Fetching tax details...');
+        }
 
-    // Add store info to analytics
-    analytics.storeInfo = {
-        key: storeKey,
-        name: storeConfig.name,
-        shortName: storeConfig.shortName,
-        locationId: locationId
-    };
+        const analytics = await processOrdersData(orders, storeConfig);
 
-    // Add date range info to analytics
-    analytics.dateRange = {
-        period: period,
-        since: dateRange.since,
-        until: dateRange.until
-    };
+        // Add store info to analytics
+        analytics.storeInfo = {
+            key: storeKey,
+            name: storeConfig.name,
+            shortName: storeConfig.shortName,
+            locationId: locationId
+        };
 
-    if (onProgress) {
-        onProgress(100, 'Complete!');
-    }
+        // Add date range info to analytics
+        analytics.dateRange = {
+            period: period,
+            since: dateRange.since,
+            until: dateRange.until
+        };
 
-    return analytics;
+        if (onProgress) {
+            onProgress(100, 'Complete!');
+        }
+
+        // Save to cache before returning
+        saveToCache(cacheKey, analytics, CACHE_CONFIG.TTL.analytics);
+
+        return analytics;
+    }); // End deduplicateRequest
 }
 
 /**
@@ -1884,5 +2084,30 @@ async function fetchAllStoresInventory(onProgress = null) {
 function getStoresConfig() {
     return STORES_CONFIG;
 }
+
+/**
+ * Force refresh analytics by clearing cache for specific store/period
+ */
+function forceRefreshAnalytics(storeKey = null, period = null) {
+    const keys = Object.keys(localStorage).filter(k => {
+        if (!k.startsWith(CACHE_CONFIG.PREFIX)) return false;
+        if (storeKey && !k.includes(`store=${storeKey}`)) return false;
+        if (period && !k.includes(`period=${period}`)) return false;
+        return true;
+    });
+    keys.forEach(k => localStorage.removeItem(k));
+    console.log(`🔄 [CACHE] Force refreshed ${keys.length} entries`);
+    return keys.length;
+}
+
+// Expose functions globally for use in other scripts
+window.fetchSalesAnalyticsBulk = fetchSalesAnalyticsBulk;
+window.fetchSalesAnalytics = fetchSalesAnalytics;
+window.fetchStoreInventory = fetchStoreInventory;
+window.fetchAllStoresInventory = fetchAllStoresInventory;
+window.getStoresConfig = getStoresConfig;
+window.clearAllCache = clearAllCache;
+window.forceRefreshAnalytics = forceRefreshAnalytics;
+window.STORES_CONFIG = STORES_CONFIG;
 
 
