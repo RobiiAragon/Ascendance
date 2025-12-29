@@ -39271,6 +39271,13 @@ function glabsEvaluateCell(value, row, col) {
         // Parse cell references like A1, B2, etc.
         const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+        // Helper to clean formatted values (remove $, %, commas)
+        function cleanVal(rawVal) {
+            if (!rawVal) return 0;
+            const cleaned = String(rawVal).replace(/[$,%]/g, '').replace(/,/g, '');
+            return parseFloat(cleaned) || 0;
+        }
+
         // Handle SUM(A1:A10)
         const sumMatch = formula.match(/SUM\(([A-Z])(\d+):([A-Z])(\d+)\)/);
         if (sumMatch) {
@@ -39283,8 +39290,7 @@ function glabsEvaluateCell(value, row, col) {
 
             for (let r = sr; r <= er; r++) {
                 for (let c = sc; c <= ec; c++) {
-                    const val = parseFloat(glabsData[r]?.[c] || 0);
-                    if (!isNaN(val)) sum += val;
+                    sum += cleanVal(glabsData[r]?.[c]);
                 }
             }
             return sum.toLocaleString();
@@ -39302,8 +39308,8 @@ function glabsEvaluateCell(value, row, col) {
 
             for (let r = sr; r <= er; r++) {
                 for (let c = sc; c <= ec; c++) {
-                    const val = parseFloat(glabsData[r]?.[c] || 0);
-                    if (!isNaN(val)) { sum += val; count++; }
+                    const val = cleanVal(glabsData[r]?.[c]);
+                    if (val !== 0 || glabsData[r]?.[c]) { sum += val; count++; }
                 }
             }
             return count > 0 ? (sum / count).toLocaleString(undefined, {maximumFractionDigits: 2}) : '0';
@@ -39321,8 +39327,8 @@ function glabsEvaluateCell(value, row, col) {
 
             for (let r = sr; r <= er; r++) {
                 for (let c = sc; c <= ec; c++) {
-                    const val = parseFloat(glabsData[r]?.[c] || 0);
-                    if (!isNaN(val) && val > max) max = val;
+                    const val = cleanVal(glabsData[r]?.[c]);
+                    if (val > max) max = val;
                 }
             }
             return max === -Infinity ? '0' : max.toLocaleString();
@@ -39340,8 +39346,10 @@ function glabsEvaluateCell(value, row, col) {
 
             for (let r = sr; r <= er; r++) {
                 for (let c = sc; c <= ec; c++) {
-                    const val = parseFloat(glabsData[r]?.[c] || 0);
-                    if (!isNaN(val) && val < min) min = val;
+                    if (glabsData[r]?.[c]) {
+                        const val = cleanVal(glabsData[r]?.[c]);
+                        if (val < min) min = val;
+                    }
                 }
             }
             return min === Infinity ? '0' : min.toLocaleString();
@@ -39359,11 +39367,28 @@ function glabsEvaluateCell(value, row, col) {
 
             for (let r = sr; r <= er; r++) {
                 for (let c = sc; c <= ec; c++) {
-                    const val = parseFloat(glabsData[r]?.[c]);
-                    if (!isNaN(val)) count++;
+                    if (glabsData[r]?.[c]) count++;
                 }
             }
             return count.toString();
+        }
+
+        // Handle simple range without function (D1:D4) - auto SUM
+        const rangeMatch = formula.match(/^([A-Z])(\d+):([A-Z])(\d+)$/);
+        if (rangeMatch) {
+            const [_, startCol, startRow, endCol, endRow] = rangeMatch;
+            let sum = 0;
+            const sc = colLetters.indexOf(startCol);
+            const ec = colLetters.indexOf(endCol);
+            const sr = parseInt(startRow) - 1;
+            const er = parseInt(endRow) - 1;
+
+            for (let r = sr; r <= er; r++) {
+                for (let c = sc; c <= ec; c++) {
+                    sum += cleanVal(glabsData[r]?.[c]);
+                }
+            }
+            return sum.toLocaleString(undefined, {maximumFractionDigits: 2});
         }
 
         // Handle simple math with cell references (A1+B1, A1*2, etc.)
@@ -39372,8 +39397,8 @@ function glabsEvaluateCell(value, row, col) {
         cellRefs.forEach(ref => {
             const c = colLetters.indexOf(ref[0]);
             const r = parseInt(ref.substring(1)) - 1;
-            const val = parseFloat(glabsData[r]?.[c] || 0);
-            evalFormula = evalFormula.replace(ref, isNaN(val) ? '0' : val);
+            const val = cleanVal(glabsData[r]?.[c]);
+            evalFormula = evalFormula.replace(ref, val);
         });
 
         // Safe eval for math only
