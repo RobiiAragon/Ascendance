@@ -38573,6 +38573,30 @@ function glabsKeyboardHandler(e) {
             glabsNavigate('down');
             e.preventDefault();
         }
+        // Handle Escape in formula bar - cancel editing
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            document.getElementById('glabs-formula-bar').blur();
+            renderGLabs();
+        }
+        return;
+    }
+
+    // F2 = Edit cell directly
+    if (e.key === 'F2' && glabsSelectedCell) {
+        e.preventDefault();
+        glabsEditCellDirectly(glabsSelectedCell.row, glabsSelectedCell.col, glabsSelectedCell.element);
+        return;
+    }
+
+    // Escape = Cancel selection or deselect
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        glabsSelectedCell = null;
+        glabsSelectionStart = null;
+        glabsSelectionEnd = null;
+        glabsSelectedCells = [];
+        renderGLabs();
         return;
     }
 
@@ -38612,6 +38636,13 @@ function glabsKeyboardHandler(e) {
         return;
     }
 
+    // Ctrl/Cmd + F = Find (future feature)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        // TODO: Implement find
+        return;
+    }
+
     // Delete or Backspace = Clear content
     if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -38634,24 +38665,62 @@ function glabsKeyboardHandler(e) {
         return;
     }
 
-    // Enter = Move down or start editing
+    // Enter = Edit cell or move down
     if (e.key === 'Enter') {
         e.preventDefault();
         if (glabsSelectedCell) {
-            glabsNavigate('down');
+            // Edit cell on Enter
+            glabsEditCellDirectly(glabsSelectedCell.row, glabsSelectedCell.col, glabsSelectedCell.element);
         }
         return;
     }
 
-    // Start typing to edit cell (if alphanumeric key pressed)
+    // Start typing to edit cell (if alphanumeric key pressed) - replaces content
     if (glabsSelectedCell && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-        const formulaBar = document.getElementById('glabs-formula-bar');
-        if (formulaBar) {
-            formulaBar.value = e.key;
-            formulaBar.focus();
-            // Move cursor to end
-            formulaBar.setSelectionRange(1, 1);
+        e.preventDefault();
+        glabsEditCellDirectly(glabsSelectedCell.row, glabsSelectedCell.col, glabsSelectedCell.element, e.key);
+    }
+}
+
+// Edit cell directly (in-cell editing)
+function glabsEditCellDirectly(row, col, element, initialValue = null) {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const contentDiv = element.querySelector('.glabs-cell-content');
+    if (!contentDiv) return;
+
+    const currentValue = initialValue !== null ? initialValue : (sheet.data[row]?.[col] || '');
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'glabs-cell-editor';
+    input.value = currentValue;
+    input.style.cssText = 'width: 100%; height: 100%; border: none; background: white; padding: 4px 8px; font-size: 13px; outline: none; box-sizing: border-box;';
+
+    input.onblur = () => glabsSaveCell(input, row, col);
+    input.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            glabsSaveCell(input, row, col);
+            glabsNavigate('down');
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            glabsSaveCell(input, row, col);
+            glabsNavigate(event.shiftKey ? 'left' : 'right');
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            renderGLabs(); // Cancel without saving
         }
+    };
+
+    contentDiv.innerHTML = '';
+    contentDiv.appendChild(input);
+    input.focus();
+
+    // If initial value was passed (user started typing), put cursor at end
+    if (initialValue !== null) {
+        input.setSelectionRange(input.value.length, input.value.length);
+    } else {
+        input.select();
     }
 }
 
@@ -38824,6 +38893,10 @@ function renderGLabs() {
             <div class="glabs-ctx-item" onclick="glabsFormatBold()"><i class="fas fa-bold" style="width: 20px;"></i> Bold</div>
             <div class="glabs-ctx-item" onclick="glabsFormatItalic()"><i class="fas fa-italic" style="width: 20px;"></i> Italic</div>
             <div style="border-top: 1px solid var(--border-color); margin: 6px 0;"></div>
+            <div class="glabs-ctx-item" onclick="glabsAlignLeft()"><i class="fas fa-align-left" style="width: 20px;"></i> Align Left</div>
+            <div class="glabs-ctx-item" onclick="glabsAlignCenter()"><i class="fas fa-align-center" style="width: 20px;"></i> Align Center</div>
+            <div class="glabs-ctx-item" onclick="glabsAlignRight()"><i class="fas fa-align-right" style="width: 20px;"></i> Align Right</div>
+            <div style="border-top: 1px solid var(--border-color); margin: 6px 0;"></div>
             <div class="glabs-ctx-item" onclick="glabsClearFormat()"><i class="fas fa-eraser" style="width: 20px;"></i> Clear Format</div>
             <div class="glabs-ctx-item" onclick="glabsDeleteCellContent()"><i class="fas fa-trash" style="width: 20px;"></i> Delete Content</div>
         </div>
@@ -38834,13 +38907,13 @@ function renderGLabs() {
                 <table id="glabs-table" style="width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif; user-select: none;">
                     <thead style="position: sticky; top: 0; z-index: 10;">
                         <tr style="background: var(--bg-tertiary);">
-                            <th style="width: 50px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; position: sticky; left: 0; background: var(--bg-tertiary); z-index: 11;"></th>
+                            <th onclick="glabsSelectAll()" style="width: 50px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; position: sticky; left: 0; background: var(--bg-tertiary); z-index: 11; cursor: pointer;" title="Select All"></th>
                             ${Array.from({length: actualCols}, (_, i) => {
                                 const width = sheet.colWidths?.[i] || 100;
                                 return `
-                                <th style="min-width: ${width}px; width: ${width}px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center; position: relative;" data-col="${i}">
+                                <th onclick="glabsSelectColumn(${i})" style="min-width: ${width}px; width: ${width}px; padding: 10px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center; position: relative; cursor: pointer;" data-col="${i}" title="Click to select column ${colLetters[i]}">
                                     ${colLetters[i] || 'Z' + (i - 25)}
-                                    <div class="glabs-resize-handle" onmousedown="glabsStartResize(event, ${i})" style="position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent;"></div>
+                                    <div class="glabs-resize-handle" onmousedown="event.stopPropagation(); glabsStartResize(event, ${i})" style="position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent;"></div>
                                 </th>
                             `}).join('')}
                         </tr>
@@ -38848,7 +38921,7 @@ function renderGLabs() {
                     <tbody>
                         ${Array.from({length: actualRows}, (_, rowIdx) => `
                             <tr>
-                                <td style="padding: 8px 10px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center; position: sticky; left: 0; z-index: 5;">
+                                <td onclick="glabsSelectRow(${rowIdx})" style="padding: 8px 10px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; font-size: 12px; text-align: center; position: sticky; left: 0; z-index: 5; cursor: pointer;" title="Click to select row ${rowIdx + 1}">
                                     ${rowIdx + 1}
                                 </td>
                                 ${Array.from({length: actualCols}, (_, colIdx) => {
@@ -38860,16 +38933,19 @@ function renderGLabs() {
                                     const textColor = cellStyle.color || '';
                                     const bold = cellStyle.bold ? 'font-weight: 700;' : '';
                                     const italic = cellStyle.italic ? 'font-style: italic;' : '';
+                                    const align = cellStyle.align || 'left';
                                     const width = sheet.colWidths?.[colIdx] || 100;
                                     return `
                                         <td class="glabs-cell" data-row="${rowIdx}" data-col="${colIdx}" data-cell="${cellId}"
                                             onmousedown="glabsStartSelection(event, ${rowIdx}, ${colIdx})"
                                             onmouseover="glabsUpdateSelection(event, ${rowIdx}, ${colIdx})"
+                                            ondblclick="glabsEditCellDirectly(${rowIdx}, ${colIdx}, this)"
                                             oncontextmenu="glabsShowContextMenu(event, ${rowIdx}, ${colIdx})"
                                             style="padding: 0; border: 1px solid var(--border-color); cursor: cell; position: relative; min-width: ${width}px; ${bgColor ? 'background: ' + bgColor + ';' : ''}">
-                                            <div class="glabs-cell-content" style="padding: 8px 10px; min-height: 24px; font-size: 13px; ${textColor ? 'color: ' + textColor + ';' : 'color: var(--text-primary);'} ${bold} ${italic} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            <div class="glabs-cell-content" style="padding: 8px 10px; min-height: 24px; font-size: 13px; text-align: ${align}; ${textColor ? 'color: ' + textColor + ';' : 'color: var(--text-primary);'} ${bold} ${italic} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 ${displayValue}
                                             </div>
+                                            <div class="glabs-autofill-handle" onmousedown="event.stopPropagation(); glabsStartAutofill(event, ${rowIdx}, ${colIdx})" style="display: none; position: absolute; right: -3px; bottom: -3px; width: 8px; height: 8px; background: var(--accent-primary); border: 1px solid white; cursor: crosshair; z-index: 5;"></div>
                                         </td>
                                     `;
                                 }).join('')}
@@ -39104,13 +39180,59 @@ function glabsUpdateSelection(event, row, col) {
 
 // End selection
 function glabsEndSelection() {
-    // If it was just a click (no drag), start editing
-    if (glabsIsSelecting && !glabsIsDragging && glabsSelectedCell) {
-        const { row, col, element } = glabsSelectedCell;
-        glabsEditCell(element, row, col);
-    }
     glabsIsSelecting = false;
     glabsIsDragging = false;
+
+    // Show autofill handle on selected cell
+    glabsShowAutofillHandle();
+}
+
+// Show autofill handle on the last selected cell
+function glabsShowAutofillHandle() {
+    // Hide all autofill handles first
+    document.querySelectorAll('.glabs-autofill-handle').forEach(h => h.style.display = 'none');
+
+    // Show handle on the last selected cell
+    if (glabsSelectedCell) {
+        const cell = document.querySelector(`[data-row="${glabsSelectedCell.row}"][data-col="${glabsSelectedCell.col}"]`);
+        if (cell) {
+            const handle = cell.querySelector('.glabs-autofill-handle');
+            if (handle) handle.style.display = 'block';
+        }
+    }
+}
+
+// Select a specific cell (helper function)
+function glabsSelectCell(row, col, element) {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    // Clear previous selection
+    document.querySelectorAll('.glabs-cell').forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        cell.style.outline = '';
+        cell.style.background = sheet.cellStyles?.[`${r}-${c}`]?.bg || '';
+    });
+
+    // Set new selection
+    glabsSelectedCell = { row, col, element };
+    glabsSelectionStart = { row, col };
+    glabsSelectionEnd = { row, col };
+    glabsSelectedCells = [{ row, col }];
+
+    // Highlight the cell
+    element.style.outline = '2px solid var(--accent-primary)';
+
+    // Update formula bar
+    const cellRef = `${colLetters[col]}${row + 1}`;
+    document.getElementById('glabs-cell-ref').textContent = cellRef;
+
+    const value = sheet.data[row]?.[col] || '';
+    document.getElementById('glabs-formula-bar').value = value;
+
+    // Show autofill handle
+    glabsShowAutofillHandle();
 }
 
 // Update stats for selected cells
@@ -39186,6 +39308,244 @@ function glabsFormatNumber() { glabsApplyFormat('number'); }
 function glabsFormatDecimal() { glabsApplyFormat('decimal'); }
 function glabsFormatBold() { glabsApplyFormat(null, 'bold', true); }
 function glabsFormatItalic() { glabsApplyFormat(null, 'italic', true); }
+function glabsAlignLeft() { glabsApplyFormat(null, 'align', 'left'); }
+function glabsAlignCenter() { glabsApplyFormat(null, 'align', 'center'); }
+function glabsAlignRight() { glabsApplyFormat(null, 'align', 'right'); }
+
+// Select entire row
+function glabsSelectRow(rowIdx) {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const cols = sheet.data[0]?.length || glabsCols;
+
+    glabsSelectionStart = { row: rowIdx, col: 0 };
+    glabsSelectionEnd = { row: rowIdx, col: cols - 1 };
+    glabsSelectedCells = [];
+
+    for (let c = 0; c < cols; c++) {
+        glabsSelectedCells.push({ row: rowIdx, col: c });
+    }
+
+    // Highlight cells
+    document.querySelectorAll('.glabs-cell').forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        if (r === rowIdx) {
+            cell.style.outline = '2px solid var(--accent-primary)';
+            cell.style.background = 'rgba(99, 102, 241, 0.1)';
+        } else {
+            cell.style.outline = '';
+            cell.style.background = sheet.cellStyles?.[`${r}-${cell.dataset.col}`]?.bg || '';
+        }
+    });
+
+    // Set first cell as selected for formula bar
+    const firstCell = document.querySelector(`[data-row="${rowIdx}"][data-col="0"]`);
+    if (firstCell) glabsSelectCell(rowIdx, 0, firstCell);
+
+    document.getElementById('glabs-cell-ref').textContent = `${rowIdx + 1}:${rowIdx + 1}`;
+}
+
+// Select entire column
+function glabsSelectColumn(colIdx) {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const rows = sheet.data.length || glabsRows;
+    const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    glabsSelectionStart = { row: 0, col: colIdx };
+    glabsSelectionEnd = { row: rows - 1, col: colIdx };
+    glabsSelectedCells = [];
+
+    for (let r = 0; r < rows; r++) {
+        glabsSelectedCells.push({ row: r, col: colIdx });
+    }
+
+    // Highlight cells
+    document.querySelectorAll('.glabs-cell').forEach(cell => {
+        const c = parseInt(cell.dataset.col);
+        const r = parseInt(cell.dataset.row);
+        if (c === colIdx) {
+            cell.style.outline = '2px solid var(--accent-primary)';
+            cell.style.background = 'rgba(99, 102, 241, 0.1)';
+        } else {
+            cell.style.outline = '';
+            cell.style.background = sheet.cellStyles?.[`${r}-${c}`]?.bg || '';
+        }
+    });
+
+    // Set first cell as selected for formula bar
+    const firstCell = document.querySelector(`[data-row="0"][data-col="${colIdx}"]`);
+    if (firstCell) glabsSelectCell(0, colIdx, firstCell);
+
+    document.getElementById('glabs-cell-ref').textContent = `${colLetters[colIdx]}:${colLetters[colIdx]}`;
+}
+
+// Select all cells
+function glabsSelectAll() {
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const rows = sheet.data.length || glabsRows;
+    const cols = sheet.data[0]?.length || glabsCols;
+
+    glabsSelectionStart = { row: 0, col: 0 };
+    glabsSelectionEnd = { row: rows - 1, col: cols - 1 };
+    glabsSelectedCells = [];
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            glabsSelectedCells.push({ row: r, col: c });
+        }
+    }
+
+    // Highlight all cells
+    document.querySelectorAll('.glabs-cell').forEach(cell => {
+        cell.style.outline = '2px solid var(--accent-primary)';
+        cell.style.background = 'rgba(99, 102, 241, 0.1)';
+    });
+
+    document.getElementById('glabs-cell-ref').textContent = 'All';
+}
+
+// Autofill state
+let glabsAutofillStart = null;
+let glabsAutofillEnd = null;
+let glabsIsAutofilling = false;
+
+// Start autofill
+function glabsStartAutofill(event, row, col) {
+    event.preventDefault();
+    glabsIsAutofilling = true;
+    glabsAutofillStart = { row, col };
+    glabsAutofillEnd = { row, col };
+
+    document.addEventListener('mousemove', glabsAutofillMove);
+    document.addEventListener('mouseup', glabsAutofillFinish);
+}
+
+function glabsAutofillMove(event) {
+    if (!glabsIsAutofilling) return;
+
+    const cell = document.elementFromPoint(event.clientX, event.clientY);
+    if (cell && cell.classList.contains('glabs-cell')) {
+        glabsAutofillEnd = {
+            row: parseInt(cell.dataset.row),
+            col: parseInt(cell.dataset.col)
+        };
+
+        // Highlight autofill range
+        document.querySelectorAll('.glabs-cell').forEach(c => {
+            const r = parseInt(c.dataset.row);
+            const col = parseInt(c.dataset.col);
+            const inRange = isInAutofillRange(r, col);
+            if (inRange) {
+                c.style.outline = '2px dashed var(--accent-primary)';
+            } else {
+                c.style.outline = '';
+            }
+        });
+    }
+}
+
+function isInAutofillRange(row, col) {
+    if (!glabsAutofillStart || !glabsAutofillEnd) return false;
+
+    const startRow = glabsAutofillStart.row;
+    const startCol = glabsAutofillStart.col;
+    const endRow = glabsAutofillEnd.row;
+    const endCol = glabsAutofillEnd.col;
+
+    // Autofill either horizontally or vertically
+    if (startCol === endCol) {
+        // Vertical autofill
+        const minRow = Math.min(startRow, endRow);
+        const maxRow = Math.max(startRow, endRow);
+        return col === startCol && row >= minRow && row <= maxRow;
+    } else if (startRow === endRow) {
+        // Horizontal autofill
+        const minCol = Math.min(startCol, endCol);
+        const maxCol = Math.max(startCol, endCol);
+        return row === startRow && col >= minCol && col <= maxCol;
+    }
+    return false;
+}
+
+function glabsAutofillFinish() {
+    if (!glabsIsAutofilling) return;
+
+    document.removeEventListener('mousemove', glabsAutofillMove);
+    document.removeEventListener('mouseup', glabsAutofillFinish);
+
+    glabsIsAutofilling = false;
+
+    if (!glabsAutofillStart || !glabsAutofillEnd) return;
+    if (glabsAutofillStart.row === glabsAutofillEnd.row && glabsAutofillStart.col === glabsAutofillEnd.col) return;
+
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const sourceValue = sheet.data[glabsAutofillStart.row]?.[glabsAutofillStart.col] || '';
+    const sourceStyle = sheet.cellStyles?.[`${glabsAutofillStart.row}-${glabsAutofillStart.col}`] || {};
+
+    // Detect if value is a number for incrementing
+    const numMatch = sourceValue.match(/^(\D*)(\d+)(\D*)$/);
+    let baseText = '';
+    let baseNum = null;
+    let suffix = '';
+
+    if (numMatch) {
+        baseText = numMatch[1];
+        baseNum = parseInt(numMatch[2]);
+        suffix = numMatch[3];
+    }
+
+    const startRow = glabsAutofillStart.row;
+    const startCol = glabsAutofillStart.col;
+    const endRow = glabsAutofillEnd.row;
+    const endCol = glabsAutofillEnd.col;
+
+    if (!sheet.cellStyles) sheet.cellStyles = {};
+
+    if (startCol === endCol) {
+        // Vertical autofill
+        const minRow = Math.min(startRow, endRow);
+        const maxRow = Math.max(startRow, endRow);
+        const direction = endRow > startRow ? 1 : -1;
+
+        for (let r = minRow; r <= maxRow; r++) {
+            if (r === startRow) continue;
+            if (!sheet.data[r]) sheet.data[r] = [];
+
+            const offset = (r - startRow) * direction;
+            if (baseNum !== null) {
+                sheet.data[r][startCol] = baseText + (baseNum + offset) + suffix;
+            } else {
+                sheet.data[r][startCol] = sourceValue;
+            }
+            sheet.cellStyles[`${r}-${startCol}`] = { ...sourceStyle };
+        }
+    } else if (startRow === endRow) {
+        // Horizontal autofill
+        const minCol = Math.min(startCol, endCol);
+        const maxCol = Math.max(startCol, endCol);
+        const direction = endCol > startCol ? 1 : -1;
+
+        for (let c = minCol; c <= maxCol; c++) {
+            if (c === startCol) continue;
+            if (!sheet.data[startRow]) sheet.data[startRow] = [];
+
+            const offset = (c - startCol) * direction;
+            if (baseNum !== null) {
+                sheet.data[startRow][c] = baseText + (baseNum + offset) + suffix;
+            } else {
+                sheet.data[startRow][c] = sourceValue;
+            }
+            sheet.cellStyles[`${startRow}-${c}`] = { ...sourceStyle };
+        }
+    }
+
+    glabsAutofillStart = null;
+    glabsAutofillEnd = null;
+
+    glabsSaveData();
+    renderGLabs();
+}
 
 function glabsClearFormat() {
     const sheet = glabsSheets[glabsCurrentSheet];
