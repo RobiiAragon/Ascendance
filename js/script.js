@@ -38891,29 +38891,45 @@ function renderGLabs() {
         </div>
 
         <!-- Selection Stats Bar -->
-        <div style="display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Sum:</span>
-                <span id="glabs-sum" style="font-size: 14px; font-weight: 600; color: var(--accent-primary);">-</span>
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 12px; overflow: hidden;">
+            <div style="display: flex; align-items: stretch; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 100px; padding: 12px 16px; border-right: 1px solid var(--border-color); text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Sum</div>
+                    <div id="glabs-sum" style="font-size: 18px; font-weight: 700; color: var(--accent-primary);">-</div>
+                </div>
+                <div style="flex: 1; min-width: 100px; padding: 12px 16px; border-right: 1px solid var(--border-color); text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Average</div>
+                    <div id="glabs-avg" style="font-size: 18px; font-weight: 700; color: #10b981;">-</div>
+                </div>
+                <div style="flex: 1; min-width: 100px; padding: 12px 16px; border-right: 1px solid var(--border-color); text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Min</div>
+                    <div id="glabs-min" style="font-size: 18px; font-weight: 700; color: #f59e0b;">-</div>
+                </div>
+                <div style="flex: 1; min-width: 100px; padding: 12px 16px; border-right: 1px solid var(--border-color); text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Max</div>
+                    <div id="glabs-max" style="font-size: 18px; font-weight: 700; color: #ef4444;">-</div>
+                </div>
+                <div style="flex: 1; min-width: 100px; padding: 12px 16px; border-right: 1px solid var(--border-color); text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Count</div>
+                    <div id="glabs-count" style="font-size: 18px; font-weight: 700; color: #8b5cf6;">-</div>
+                </div>
+                <div style="flex: 1.5; min-width: 150px; padding: 12px 16px; text-align: center; background: var(--bg-tertiary);">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Selection</div>
+                    <div id="glabs-selection-range" style="font-size: 14px; font-weight: 600; color: var(--text-primary);">-</div>
+                </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Avg:</span>
-                <span id="glabs-avg" style="font-size: 14px; font-weight: 600; color: #10b981;">-</span>
+            <div id="glabs-formula-suggestion" style="display: none; padding: 8px 16px; background: var(--bg-tertiary); border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <span style="margin-right: 8px;"><i class="fas fa-lightbulb" style="color: #f59e0b;"></i> Tip:</span>
+                <span id="glabs-formula-text">Select cells to see formula suggestions</span>
+                <button id="glabs-insert-formula-btn" onclick="glabsInsertSuggestedFormula()" style="margin-left: 12px; padding: 4px 12px; background: var(--accent-primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: none;">
+                    <i class="fas fa-plus"></i> Insert
+                </button>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Min:</span>
-                <span id="glabs-min" style="font-size: 14px; font-weight: 600; color: #f59e0b;">-</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Max:</span>
-                <span id="glabs-max" style="font-size: 14px; font-weight: 600; color: #ef4444;">-</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Count:</span>
-                <span id="glabs-count" style="font-size: 14px; font-weight: 600; color: #8b5cf6;">-</span>
-            </div>
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
-                <span id="glabs-saved" style="font-size: 12px; color: #10b981;"><i class="fas fa-check-circle"></i> Saved</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%); border-top: 1px solid var(--border-color);">
+                <span id="glabs-saved" style="font-size: 11px; color: #10b981;"><i class="fas fa-check-circle"></i> Auto-saved</span>
+                <span style="font-size: 11px; color: var(--text-muted);">
+                    <i class="fas fa-keyboard"></i> Ctrl+Z Undo | Ctrl+F Find | Arrow keys Navigate
+                </span>
             </div>
         </div>
 
@@ -39299,6 +39315,9 @@ function glabsSelectCell(row, col, element) {
     glabsShowAutofillHandle();
 }
 
+// Store suggested formula for insertion
+let glabsSuggestedFormula = '';
+
 // Update stats for selected cells
 function glabsUpdateSelectionStats() {
     const sheet = glabsSheets[glabsCurrentSheet];
@@ -39325,6 +39344,67 @@ function glabsUpdateSelectionStats() {
     document.getElementById('glabs-min').textContent = numCount > 0 ? min.toLocaleString() : '-';
     document.getElementById('glabs-max').textContent = numCount > 0 ? max.toLocaleString() : '-';
     document.getElementById('glabs-count').textContent = count > 0 ? count : '-';
+
+    // Update selection range display
+    const colLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const selectionEl = document.getElementById('glabs-selection-range');
+    const formulaSuggestion = document.getElementById('glabs-formula-suggestion');
+    const formulaText = document.getElementById('glabs-formula-text');
+    const insertBtn = document.getElementById('glabs-insert-formula-btn');
+
+    if (glabsSelectedCells.length === 0) {
+        selectionEl.textContent = '-';
+        formulaSuggestion.style.display = 'none';
+    } else if (glabsSelectedCells.length === 1) {
+        const cell = glabsSelectedCells[0];
+        selectionEl.textContent = `${colLetters[cell.col] || 'Z'}${cell.row + 1}`;
+        formulaSuggestion.style.display = 'none';
+    } else {
+        // Find range bounds
+        const rows = glabsSelectedCells.map(c => c.row);
+        const cols = glabsSelectedCells.map(c => c.col);
+        const minRow = Math.min(...rows);
+        const maxRow = Math.max(...rows);
+        const minCol = Math.min(...cols);
+        const maxCol = Math.max(...cols);
+
+        const startCell = `${colLetters[minCol] || 'Z'}${minRow + 1}`;
+        const endCell = `${colLetters[maxCol] || 'Z'}${maxRow + 1}`;
+        selectionEl.textContent = `${startCell}:${endCell}`;
+
+        // Show formula suggestion if numeric values
+        if (numCount > 1) {
+            glabsSuggestedFormula = `=SUM(${startCell}:${endCell})`;
+            formulaText.innerHTML = `To sum these cells, use: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; color: var(--accent-primary);">${glabsSuggestedFormula}</code>`;
+            formulaSuggestion.style.display = 'block';
+            insertBtn.style.display = 'inline-block';
+        } else {
+            formulaSuggestion.style.display = 'none';
+        }
+    }
+}
+
+// Insert suggested formula into selected cell
+function glabsInsertSuggestedFormula() {
+    if (!glabsSuggestedFormula || !glabsSelectedCell) return;
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const { row, col } = glabsSelectedCell;
+
+    // Save state for undo
+    glabsSaveState();
+
+    // Insert formula
+    sheet.data[row][col] = glabsSuggestedFormula;
+
+    // Update display
+    glabsSaveData();
+    renderGLabs();
+
+    // Select the cell with formula
+    setTimeout(() => {
+        glabsSelectCell(row, col);
+    }, 50);
 }
 
 // Show context menu
