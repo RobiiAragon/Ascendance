@@ -38267,8 +38267,8 @@ async function deleteLease(leaseId) {
 // G-Labs state
 let glabsSheets = {};
 let glabsCurrentSheet = 'Sheet 1';
-let glabsRows = 30;
-let glabsCols = 12;
+let glabsRows = 15;
+let glabsCols = 10;
 let glabsSelectedCell = null;
 let glabsColWidths = {};
 let glabsRowHeights = {};
@@ -38947,7 +38947,7 @@ function renderGLabs() {
 
         <!-- Spreadsheet Grid -->
         <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
-            <div id="glabs-grid-container" style="overflow-x: auto; max-height: 60vh;" onmouseup="glabsEndSelection()">
+            <div id="glabs-grid-container" style="overflow: auto; max-height: 55vh;" onmouseup="glabsEndSelection()">
                 <table id="glabs-table" style="width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif; user-select: none;">
                     <thead style="position: sticky; top: 0; z-index: 10;">
                         <tr style="background: var(--bg-tertiary);">
