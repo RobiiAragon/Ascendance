@@ -2562,6 +2562,22 @@
                             <span><i class="fas fa-envelope"></i> ${emp.authEmail}</span>
                             <span><i class="fas fa-phone"></i> ${emp.phone}</span>
                         </div>
+                        ${emp.certifications && emp.certifications.length > 0 ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+                                <i class="fas fa-certificate" style="color: #f59e0b;"></i> Certifications (${emp.certifications.length})
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                ${emp.certifications.slice(0, 3).map(cert => {
+                                    const isExpired = cert.expirationDate && new Date(cert.expirationDate) < new Date();
+                                    const isExpiringSoon = cert.expirationDate && !isExpired && new Date(cert.expirationDate) < new Date(Date.now() + 30*24*60*60*1000);
+                                    const color = isExpired ? '#ef4444' : isExpiringSoon ? '#f59e0b' : '#10b981';
+                                    return `<span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: ${color}20; color: ${color}; font-weight: 500; white-space: nowrap;">${cert.name.length > 15 ? cert.name.substring(0, 15) + '...' : cert.name}</span>`;
+                                }).join('')}
+                                ${emp.certifications.length > 3 ? `<span style="font-size: 10px; padding: 3px 6px; color: var(--text-muted);">+${emp.certifications.length - 3} more</span>` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                     <div class="employee-card-footer">
                         <button class="btn-icon" onclick="event.stopPropagation(); viewEmployeePaperwork('${empId}')" title="View Documents"><i class="fas fa-file-pdf"></i></button>
