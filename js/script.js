@@ -7494,20 +7494,37 @@ window.viewChecklistHistory = async function() {
                 </div>
 
                 <!-- Simple Stats -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px;">
-                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 28px; font-weight: 700; color: var(--accent-primary);">${allRequests.length}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Total Requests</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 14px 12px; text-align: center; border: 1px solid var(--border-color);">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">${allRequests.length}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Total</div>
                     </div>
-                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 28px; font-weight: 700; color: #f59e0b;">${allRequests.filter(r => r.priority === 'high').length}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">High Priority</div>
+                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 14px 12px; text-align: center; border: 1px solid var(--border-color);">
+                        <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">${allRequests.filter(r => r.priority === 'high').length}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">High Priority</div>
                     </div>
-                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 28px; font-weight: 700; color: #10b981;">${allRequests.reduce((sum, r) => sum + (r.quantity || 0), 0)}</div>
-                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Total Units</div>
+                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 14px 12px; text-align: center; border: 1px solid var(--border-color);">
+                        <div style="font-size: 24px; font-weight: 700; color: #10b981;">${allRequests.reduce((sum, r) => sum + (r.quantity || 0), 0)}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Total Units</div>
                     </div>
                 </div>
+
+                <!-- Purchased progress -->
+                ${allRequests.length > 0 ? `
+                <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 13px; color: var(--text-secondary);"><i class="fas fa-shopping-cart" style="color: #10b981; margin-right: 6px;"></i>Purchased: <strong>${allRequests.filter(r => r.purchased).length}</strong> / ${allRequests.length}</span>
+                        ${allRequests.filter(r => r.purchased).length > 0 ? `
+                            <button onclick="clearPurchasedRequests()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; padding: 4px 8px;">
+                                <i class="fas fa-broom"></i> Clear done
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                        <div style="height: 100%; width: ${allRequests.length > 0 ? (allRequests.filter(r => r.purchased).length / allRequests.length * 100) : 0}%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 3px; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+                ` : ''}
 
                 <!-- Requests List -->
                 <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
@@ -7523,47 +7540,49 @@ window.viewChecklistHistory = async function() {
                             <p style="font-size: 13px; margin-top: 8px;">Click "New Request" to add a product request</p>
                         </div>
                     ` : `
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background: var(--bg-tertiary);">
-                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Product</th>
-                                    <th style="padding: 12px 16px; text-align: center; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Qty</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Store</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Priority</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Date</th>
-                                    <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${allRequests.map(request => {
-                                    const priorityColor = request.priority === 'high' ? '#ef4444' : request.priority === 'medium' ? '#f59e0b' : '#10b981';
-                                    return `
-                                        <tr style="border-bottom: 1px solid var(--border-color);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                                            <td style="padding: 14px 16px;">
-                                                <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${request.productName}</div>
-                                                ${request.notes ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${request.notes.substring(0, 50)}${request.notes.length > 50 ? '...' : ''}</div>` : ''}
-                                            </td>
-                                            <td style="padding: 14px 16px; text-align: center;">
-                                                <span style="font-weight: 700; font-size: 16px; color: var(--accent-primary);">${request.quantity}</span>
-                                            </td>
-                                            <td style="padding: 14px 16px; font-size: 13px; color: var(--text-secondary);">${request.store || '-'}</td>
-                                            <td style="padding: 14px 16px;">
-                                                <span style="background: ${priorityColor}20; color: ${priorityColor}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${request.priority}</span>
-                                            </td>
-                                            <td style="padding: 14px 16px; font-size: 13px; color: var(--text-muted);">${formatDate(request.requestDate)}</td>
-                                            <td style="padding: 14px 16px; text-align: right;">
-                                                <button onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; margin-right: 4px;" onmouseover="this.style.color='var(--accent-primary)'" onmouseout="this.style.color='var(--text-muted)'" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
+                        <!-- Mobile-friendly card list -->
+                        <div class="product-requests-list" style="display: flex; flex-direction: column;">
+                            ${allRequests.map(request => {
+                                const priorityColor = request.priority === 'high' ? '#ef4444' : request.priority === 'medium' ? '#f59e0b' : '#10b981';
+                                const isPurchased = request.purchased || false;
+                                const rowBg = isPurchased ? 'linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' : 'transparent';
+                                const rowBorder = isPurchased ? '2px solid #10b981' : '1px solid var(--border-color)';
+                                return `
+                                    <div class="request-row" id="request-row-${request.firestoreId || request.id}" style="display: flex; align-items: center; padding: 12px 16px; border-bottom: ${rowBorder}; background: ${rowBg}; gap: 12px; transition: all 0.3s ease;">
+                                        <!-- Checkbox palomita -->
+                                        <div onclick="toggleRequestPurchased('${request.firestoreId || request.id}')" style="cursor: pointer; min-width: 32px; height: 32px; border-radius: 8px; border: 2px solid ${isPurchased ? '#10b981' : 'var(--border-color)'}; background: ${isPurchased ? '#10b981' : 'transparent'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                                            ${isPurchased ? '<i class="fas fa-check" style="color: white; font-size: 14px;"></i>' : ''}
+                                        </div>
+
+                                        <!-- Product info -->
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-weight: 600; color: ${isPurchased ? '#10b981' : 'var(--text-primary)'}; font-size: 14px; ${isPurchased ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${request.productName}</div>
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
+                                                <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-store" style="margin-right: 4px;"></i>${request.store || '-'}</span>
+                                                ${request.notes ? `<span style="font-size: 11px; color: var(--text-muted);">• ${request.notes.substring(0, 30)}${request.notes.length > 30 ? '...' : ''}</span>` : ''}
+                                            </div>
+                                        </div>
+
+                                        <!-- Quantity -->
+                                        <div style="text-align: center; min-width: 40px;">
+                                            <div style="font-weight: 700; font-size: 18px; color: ${isPurchased ? '#10b981' : 'var(--accent-primary)'};">${request.quantity}</div>
+                                        </div>
+
+                                        <!-- Priority badge -->
+                                        <div>
+                                            <span style="background: ${priorityColor}20; color: ${priorityColor}; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase;">${request.priority}</span>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div style="display: flex; gap: 4px;">
+                                            <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     `}
                 </div>
             `;
@@ -8738,6 +8757,71 @@ window.viewChecklistHistory = async function() {
                 }
             }
         }
+
+        // Clear all purchased requests
+        window.clearPurchasedRequests = function() {
+            const purchasedCount = restockRequests.filter(r => r.purchased).length;
+            if (purchasedCount === 0) return;
+
+            showConfirmModal({
+                title: 'Clear Purchased Items',
+                message: `Delete ${purchasedCount} purchased item${purchasedCount > 1 ? 's' : ''} from the list?`,
+                confirmText: 'Clear',
+                type: 'danger',
+                onConfirm: async () => {
+                    const purchasedIds = restockRequests.filter(r => r.purchased).map(r => r.firestoreId || r.id);
+
+                    // Delete from Firebase
+                    if (firebaseRestockRequestsManager.isInitialized) {
+                        for (const id of purchasedIds) {
+                            try {
+                                await firebaseRestockRequestsManager.deleteRestockRequest(id);
+                            } catch (e) {
+                                console.error('Error deleting:', e);
+                            }
+                        }
+                    }
+
+                    // Remove from local array
+                    restockRequests = restockRequests.filter(r => !r.purchased);
+                    renderRestockRequests();
+                    showNotification(`${purchasedCount} items cleared`, 'success');
+                }
+            });
+        };
+
+        // Toggle purchased status for a request (palomita)
+        window.toggleRequestPurchased = async function(requestId) {
+            const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
+            if (!request) return;
+
+            // Toggle the purchased status
+            request.purchased = !request.purchased;
+
+            // Update the row visually immediately
+            const row = document.getElementById(`request-row-${requestId}`);
+            if (row) {
+                if (request.purchased) {
+                    row.style.background = 'linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))';
+                    row.style.borderBottom = '2px solid #10b981';
+                } else {
+                    row.style.background = 'transparent';
+                    row.style.borderBottom = '1px solid var(--border-color)';
+                }
+            }
+
+            // Save to Firebase
+            if (firebaseRestockRequestsManager.isInitialized) {
+                try {
+                    await firebaseRestockRequestsManager.updateRestockRequest(requestId, { purchased: request.purchased });
+                } catch (error) {
+                    console.error('Error updating purchased status:', error);
+                }
+            }
+
+            // Re-render to update all visuals
+            renderRestockRequests();
+        };
 
         function deleteRestockRequest(requestId) {
             const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
