@@ -39384,18 +39384,35 @@ function glabsUpdateSelectionStats() {
     }
 }
 
-// Insert suggested formula into selected cell
+// Insert suggested formula into cell below selection
 function glabsInsertSuggestedFormula() {
-    if (!glabsSuggestedFormula || !glabsSelectedCell) return;
+    if (!glabsSuggestedFormula || glabsSelectedCells.length === 0) {
+        console.log('No formula or selection');
+        return;
+    }
 
     const sheet = glabsSheets[glabsCurrentSheet];
-    const { row, col } = glabsSelectedCell;
+
+    // Find the bottom of the selection to insert below
+    const rows = glabsSelectedCells.map(c => c.row);
+    const cols = glabsSelectedCells.map(c => c.col);
+    const maxRow = Math.max(...rows);
+    const minCol = Math.min(...cols);
+
+    // Target cell is one row below the selection, in the first column of selection
+    const targetRow = maxRow + 1;
+    const targetCol = minCol;
+
+    // Ensure row exists
+    while (sheet.data.length <= targetRow) {
+        sheet.data.push(Array(glabsCols).fill(''));
+    }
 
     // Save state for undo
     glabsSaveState();
 
     // Insert formula
-    sheet.data[row][col] = glabsSuggestedFormula;
+    sheet.data[targetRow][targetCol] = glabsSuggestedFormula;
 
     // Update display
     glabsSaveData();
@@ -39403,7 +39420,7 @@ function glabsInsertSuggestedFormula() {
 
     // Select the cell with formula
     setTimeout(() => {
-        glabsSelectCell(row, col);
+        glabsSelectCell(targetRow, targetCol);
     }, 50);
 }
 
