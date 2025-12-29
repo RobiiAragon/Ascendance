@@ -38563,7 +38563,7 @@ function glabsNavigate(direction) {
 // Keyboard event handler for G-Labs
 function glabsKeyboardHandler(e) {
     // Check if we're in G-Labs module
-    if (!document.querySelector('.glabs-spreadsheet')) return;
+    if (!document.getElementById('glabs-table')) return;
 
     // Don't intercept if typing in formula bar or cell editor
     if (e.target.id === 'glabs-formula-bar' || e.target.classList.contains('glabs-cell-editor')) {
