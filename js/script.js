@@ -38890,6 +38890,33 @@ function renderGLabs() {
             </div>
         </div>
 
+        <!-- Selection Stats Bar -->
+        <div style="display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Sum:</span>
+                <span id="glabs-sum" style="font-size: 14px; font-weight: 600; color: var(--accent-primary);">-</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Avg:</span>
+                <span id="glabs-avg" style="font-size: 14px; font-weight: 600; color: #10b981;">-</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Min:</span>
+                <span id="glabs-min" style="font-size: 14px; font-weight: 600; color: #f59e0b;">-</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Max:</span>
+                <span id="glabs-max" style="font-size: 14px; font-weight: 600; color: #ef4444;">-</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Count:</span>
+                <span id="glabs-count" style="font-size: 14px; font-weight: 600; color: #8b5cf6;">-</span>
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <span id="glabs-saved" style="font-size: 12px; color: #10b981;"><i class="fas fa-check-circle"></i> Saved</span>
+            </div>
+        </div>
+
         <!-- Find Dialog -->
         <div id="glabs-find-dialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; z-index: 1001; box-shadow: 0 8px 32px rgba(0,0,0,0.2); min-width: 350px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -39020,25 +39047,6 @@ function renderGLabs() {
             </div>
         </div>
 
-        <!-- Quick Stats -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px;">
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
-                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Sum</div>
-                <div id="glabs-sum" style="font-size: 1.1rem; font-weight: 600; color: var(--accent-primary);">-</div>
-            </div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
-                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Average</div>
-                <div id="glabs-avg" style="font-size: 1.1rem; font-weight: 600; color: #10b981;">-</div>
-            </div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
-                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Count</div>
-                <div id="glabs-count" style="font-size: 1.1rem; font-weight: 600; color: #f59e0b;">-</div>
-            </div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
-                <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px;">Status</div>
-                <div id="glabs-saved" style="font-size: 1.1rem; font-weight: 600; color: #10b981;"><i class="fas fa-check-circle"></i> Saved</div>
-            </div>
-        </div>
 
         <style>
             .glabs-cell:hover {
@@ -39295,6 +39303,8 @@ function glabsSelectCell(row, col, element) {
 function glabsUpdateSelectionStats() {
     const sheet = glabsSheets[glabsCurrentSheet];
     let sum = 0, count = 0, numCount = 0;
+    let min = Infinity, max = -Infinity;
+    let numbers = [];
 
     glabsSelectedCells.forEach(({ row, col }) => {
         const value = sheet.data[row]?.[col] || '';
@@ -39303,12 +39313,17 @@ function glabsUpdateSelectionStats() {
         if (!isNaN(num)) {
             sum += num;
             numCount++;
+            numbers.push(num);
+            if (num < min) min = num;
+            if (num > max) max = num;
         }
         if (value) count++;
     });
 
     document.getElementById('glabs-sum').textContent = numCount > 0 ? sum.toLocaleString() : '-';
     document.getElementById('glabs-avg').textContent = numCount > 0 ? (sum / numCount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
+    document.getElementById('glabs-min').textContent = numCount > 0 ? min.toLocaleString() : '-';
+    document.getElementById('glabs-max').textContent = numCount > 0 ? max.toLocaleString() : '-';
     document.getElementById('glabs-count').textContent = count > 0 ? count : '-';
 }
 
