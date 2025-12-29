@@ -38636,10 +38636,10 @@ function glabsKeyboardHandler(e) {
         return;
     }
 
-    // Ctrl/Cmd + F = Find (future feature)
+    // Ctrl/Cmd + F = Find
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        // TODO: Implement find
+        glabsShowFindDialog();
         return;
     }
 
@@ -38685,6 +38685,13 @@ function glabsKeyboardHandler(e) {
 // Edit cell directly (in-cell editing)
 function glabsEditCellDirectly(row, col, element, initialValue = null) {
     const sheet = glabsSheets[glabsCurrentSheet];
+
+    // Find element if not provided or invalid
+    if (!element || !element.querySelector) {
+        element = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    }
+    if (!element) return;
+
     const contentDiv = element.querySelector('.glabs-cell-content');
     if (!contentDiv) return;
 
@@ -38883,6 +38890,28 @@ function renderGLabs() {
             </div>
         </div>
 
+        <!-- Find Dialog -->
+        <div id="glabs-find-dialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; z-index: 1001; box-shadow: 0 8px 32px rgba(0,0,0,0.2); min-width: 350px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--text-primary); font-size: 16px;"><i class="fas fa-search"></i> Find & Replace</h3>
+                <button onclick="glabsCloseFindDialog()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px;">&times;</button>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Find:</label>
+                <input type="text" id="glabs-find-input" placeholder="Search text..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 14px; box-sizing: border-box;" onkeydown="if(event.key === 'Enter') glabsFindNext()">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Replace with:</label>
+                <input type="text" id="glabs-replace-input" placeholder="Replace text..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button onclick="glabsFindNext()" style="flex: 1; padding: 10px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Find Next</button>
+                <button onclick="glabsReplace()" style="flex: 1; padding: 10px 16px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 13px;">Replace</button>
+                <button onclick="glabsReplaceAll()" style="flex: 1; padding: 10px 16px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 13px;">Replace All</button>
+            </div>
+            <div id="glabs-find-status" style="margin-top: 12px; color: var(--text-muted); font-size: 12px; text-align: center;"></div>
+        </div>
+
         <!-- Context Menu -->
         <div id="glabs-context-menu" style="display: none; position: fixed; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 180px;">
             <div class="glabs-ctx-item" onclick="glabsFormatCurrency()"><i class="fas fa-dollar-sign" style="width: 20px;"></i> Currency ($)</div>
@@ -38896,6 +38925,21 @@ function renderGLabs() {
             <div class="glabs-ctx-item" onclick="glabsAlignLeft()"><i class="fas fa-align-left" style="width: 20px;"></i> Align Left</div>
             <div class="glabs-ctx-item" onclick="glabsAlignCenter()"><i class="fas fa-align-center" style="width: 20px;"></i> Align Center</div>
             <div class="glabs-ctx-item" onclick="glabsAlignRight()"><i class="fas fa-align-right" style="width: 20px;"></i> Align Right</div>
+            <div style="border-top: 1px solid var(--border-color); margin: 6px 0;"></div>
+            <div class="glabs-ctx-item" onclick="glabsSortAZ()"><i class="fas fa-sort-alpha-down" style="width: 20px;"></i> Sort A → Z</div>
+            <div class="glabs-ctx-item" onclick="glabsSortZA()"><i class="fas fa-sort-alpha-up" style="width: 20px;"></i> Sort Z → A</div>
+            <div class="glabs-ctx-item" onclick="glabsSortNumAsc()"><i class="fas fa-sort-numeric-down" style="width: 20px;"></i> Sort Small → Large</div>
+            <div class="glabs-ctx-item" onclick="glabsSortNumDesc()"><i class="fas fa-sort-numeric-up" style="width: 20px;"></i> Sort Large → Small</div>
+            <div style="border-top: 1px solid var(--border-color); margin: 6px 0;"></div>
+            <div class="glabs-ctx-item" onclick="glabsInsertRowAbove()"><i class="fas fa-arrow-up" style="width: 20px;"></i> Insert Row Above</div>
+            <div class="glabs-ctx-item" onclick="glabsInsertRowBelow()"><i class="fas fa-arrow-down" style="width: 20px;"></i> Insert Row Below</div>
+            <div class="glabs-ctx-item" onclick="glabsInsertColLeft()"><i class="fas fa-arrow-left" style="width: 20px;"></i> Insert Column Left</div>
+            <div class="glabs-ctx-item" onclick="glabsInsertColRight()"><i class="fas fa-arrow-right" style="width: 20px;"></i> Insert Column Right</div>
+            <div style="border-top: 1px solid var(--border-color); margin: 6px 0;"></div>
+            <div class="glabs-ctx-item" onclick="glabsDeleteRow()"><i class="fas fa-minus" style="width: 20px;"></i> Delete Row</div>
+            <div class="glabs-ctx-item" onclick="glabsDeleteCol()"><i class="fas fa-minus" style="width: 20px;"></i> Delete Column</div>
+            <div class="glabs-ctx-item" onclick="glabsMergeCells()"><i class="fas fa-compress-alt" style="width: 20px;"></i> Merge Cells</div>
+            <div class="glabs-ctx-item" onclick="glabsUnmergeCells()"><i class="fas fa-expand-alt" style="width: 20px;"></i> Unmerge Cells</div>
             <div style="border-top: 1px solid var(--border-color); margin: 6px 0;"></div>
             <div class="glabs-ctx-item" onclick="glabsClearFormat()"><i class="fas fa-eraser" style="width: 20px;"></i> Clear Format</div>
             <div class="glabs-ctx-item" onclick="glabsDeleteCellContent()"><i class="fas fa-trash" style="width: 20px;"></i> Delete Content</div>
@@ -38925,6 +38969,11 @@ function renderGLabs() {
                                     ${rowIdx + 1}
                                 </td>
                                 ${Array.from({length: actualCols}, (_, colIdx) => {
+                                    // Check if this cell is part of a merge (but not the main cell)
+                                    if (glabsIsMergedSlave(rowIdx, colIdx, sheet)) {
+                                        return ''; // Don't render slave cells
+                                    }
+
                                     const cellId = `${colLetters[colIdx]}${rowIdx + 1}`;
                                     const value = glabsData[rowIdx]?.[colIdx] || '';
                                     const cellStyle = sheet.cellStyles?.[`${rowIdx}-${colIdx}`] || {};
@@ -38935,8 +38984,15 @@ function renderGLabs() {
                                     const italic = cellStyle.italic ? 'font-style: italic;' : '';
                                     const align = cellStyle.align || 'left';
                                     const width = sheet.colWidths?.[colIdx] || 100;
+
+                                    // Check if this cell is the start of a merge
+                                    const merge = glabsGetMerge(rowIdx, colIdx, sheet);
+                                    const colspan = merge ? (merge.endCol - merge.startCol + 1) : 1;
+                                    const rowspan = merge ? (merge.endRow - merge.startRow + 1) : 1;
+                                    const mergeAttr = merge ? `colspan="${colspan}" rowspan="${rowspan}"` : '';
+
                                     return `
-                                        <td class="glabs-cell" data-row="${rowIdx}" data-col="${colIdx}" data-cell="${cellId}"
+                                        <td class="glabs-cell ${merge ? 'glabs-merged' : ''}" data-row="${rowIdx}" data-col="${colIdx}" data-cell="${cellId}" ${mergeAttr}
                                             onmousedown="glabsStartSelection(event, ${rowIdx}, ${colIdx})"
                                             onmouseover="glabsUpdateSelection(event, ${rowIdx}, ${colIdx})"
                                             ondblclick="glabsEditCellDirectly(${rowIdx}, ${colIdx}, this)"
@@ -39544,6 +39600,588 @@ function glabsAutofillFinish() {
     glabsAutofillEnd = null;
 
     glabsSaveData();
+    renderGLabs();
+}
+
+// ==================== SORT FUNCTIONS ====================
+
+// Sort column A-Z (alphabetically)
+function glabsSortAZ() {
+    if (!glabsSelectedCell) return;
+    glabsSortColumn(glabsSelectedCell.col, 'az');
+}
+
+// Sort column Z-A (alphabetically descending)
+function glabsSortZA() {
+    if (!glabsSelectedCell) return;
+    glabsSortColumn(glabsSelectedCell.col, 'za');
+}
+
+// Sort column numerically ascending
+function glabsSortNumAsc() {
+    if (!glabsSelectedCell) return;
+    glabsSortColumn(glabsSelectedCell.col, 'numasc');
+}
+
+// Sort column numerically descending
+function glabsSortNumDesc() {
+    if (!glabsSelectedCell) return;
+    glabsSortColumn(glabsSelectedCell.col, 'numdesc');
+}
+
+// Generic sort function
+function glabsSortColumn(colIdx, sortType) {
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const data = sheet.data;
+
+    // Get all rows with their original indices
+    const rows = data.map((row, idx) => ({ row, idx, styles: {} }));
+
+    // Store styles for each row
+    rows.forEach((item, rowIdx) => {
+        const numCols = item.row?.length || 0;
+        for (let c = 0; c < numCols; c++) {
+            const styleKey = `${rowIdx}-${c}`;
+            if (sheet.cellStyles?.[styleKey]) {
+                item.styles[c] = { ...sheet.cellStyles[styleKey] };
+            }
+        }
+    });
+
+    // Sort based on the specified column
+    rows.sort((a, b) => {
+        const valA = a.row?.[colIdx] || '';
+        const valB = b.row?.[colIdx] || '';
+
+        // Clean values for comparison
+        const cleanA = String(valA).replace(/[$,%]/g, '').replace(/,/g, '');
+        const cleanB = String(valB).replace(/[$,%]/g, '').replace(/,/g, '');
+
+        if (sortType === 'az') {
+            return String(valA).localeCompare(String(valB));
+        } else if (sortType === 'za') {
+            return String(valB).localeCompare(String(valA));
+        } else if (sortType === 'numasc') {
+            const numA = parseFloat(cleanA) || 0;
+            const numB = parseFloat(cleanB) || 0;
+            return numA - numB;
+        } else if (sortType === 'numdesc') {
+            const numA = parseFloat(cleanA) || 0;
+            const numB = parseFloat(cleanB) || 0;
+            return numB - numA;
+        }
+        return 0;
+    });
+
+    // Rebuild data and styles
+    sheet.data = rows.map(item => item.row);
+    sheet.cellStyles = {};
+
+    rows.forEach((item, newRowIdx) => {
+        Object.keys(item.styles).forEach(colKey => {
+            sheet.cellStyles[`${newRowIdx}-${colKey}`] = item.styles[colKey];
+        });
+    });
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// ==================== INSERT/DELETE FUNCTIONS ====================
+
+// Insert row above selected row
+function glabsInsertRowAbove() {
+    if (!glabsSelectedCell) return;
+    glabsInsertRow(glabsSelectedCell.row);
+}
+
+// Insert row below selected row
+function glabsInsertRowBelow() {
+    if (!glabsSelectedCell) return;
+    glabsInsertRow(glabsSelectedCell.row + 1);
+}
+
+// Insert row at index
+function glabsInsertRow(atIndex) {
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const numCols = sheet.data[0]?.length || glabsCols;
+
+    // Create new empty row
+    const newRow = Array(numCols).fill('');
+
+    // Insert the row
+    sheet.data.splice(atIndex, 0, newRow);
+
+    // Shift cell styles down
+    const newStyles = {};
+    Object.keys(sheet.cellStyles || {}).forEach(key => {
+        const [r, c] = key.split('-').map(Number);
+        if (r >= atIndex) {
+            newStyles[`${r + 1}-${c}`] = sheet.cellStyles[key];
+        } else {
+            newStyles[key] = sheet.cellStyles[key];
+        }
+    });
+    sheet.cellStyles = newStyles;
+
+    // Shift merged cells
+    if (sheet.mergedCells) {
+        sheet.mergedCells = sheet.mergedCells.map(merge => {
+            if (merge.startRow >= atIndex) {
+                return { ...merge, startRow: merge.startRow + 1, endRow: merge.endRow + 1 };
+            } else if (merge.endRow >= atIndex) {
+                return { ...merge, endRow: merge.endRow + 1 };
+            }
+            return merge;
+        });
+    }
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// Insert column left of selected column
+function glabsInsertColLeft() {
+    if (!glabsSelectedCell) return;
+    glabsInsertCol(glabsSelectedCell.col);
+}
+
+// Insert column right of selected column
+function glabsInsertColRight() {
+    if (!glabsSelectedCell) return;
+    glabsInsertCol(glabsSelectedCell.col + 1);
+}
+
+// Insert column at index
+function glabsInsertCol(atIndex) {
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    // Insert empty cell in each row
+    sheet.data.forEach(row => {
+        if (row) row.splice(atIndex, 0, '');
+    });
+
+    // Shift cell styles right
+    const newStyles = {};
+    Object.keys(sheet.cellStyles || {}).forEach(key => {
+        const [r, c] = key.split('-').map(Number);
+        if (c >= atIndex) {
+            newStyles[`${r}-${c + 1}`] = sheet.cellStyles[key];
+        } else {
+            newStyles[key] = sheet.cellStyles[key];
+        }
+    });
+    sheet.cellStyles = newStyles;
+
+    // Shift column widths
+    const newWidths = {};
+    Object.keys(sheet.colWidths || {}).forEach(key => {
+        const c = parseInt(key);
+        if (c >= atIndex) {
+            newWidths[c + 1] = sheet.colWidths[key];
+        } else {
+            newWidths[c] = sheet.colWidths[key];
+        }
+    });
+    sheet.colWidths = newWidths;
+
+    // Shift merged cells
+    if (sheet.mergedCells) {
+        sheet.mergedCells = sheet.mergedCells.map(merge => {
+            if (merge.startCol >= atIndex) {
+                return { ...merge, startCol: merge.startCol + 1, endCol: merge.endCol + 1 };
+            } else if (merge.endCol >= atIndex) {
+                return { ...merge, endCol: merge.endCol + 1 };
+            }
+            return merge;
+        });
+    }
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// Delete selected row
+function glabsDeleteRow() {
+    if (!glabsSelectedCell) return;
+
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const rowIdx = glabsSelectedCell.row;
+
+    // Remove the row
+    sheet.data.splice(rowIdx, 1);
+
+    // Ensure at least one row exists
+    if (sheet.data.length === 0) {
+        sheet.data.push(Array(glabsCols).fill(''));
+    }
+
+    // Shift cell styles up
+    const newStyles = {};
+    Object.keys(sheet.cellStyles || {}).forEach(key => {
+        const [r, c] = key.split('-').map(Number);
+        if (r > rowIdx) {
+            newStyles[`${r - 1}-${c}`] = sheet.cellStyles[key];
+        } else if (r < rowIdx) {
+            newStyles[key] = sheet.cellStyles[key];
+        }
+        // Skip styles for deleted row
+    });
+    sheet.cellStyles = newStyles;
+
+    // Update merged cells
+    if (sheet.mergedCells) {
+        sheet.mergedCells = sheet.mergedCells
+            .filter(merge => !(merge.startRow <= rowIdx && merge.endRow >= rowIdx))
+            .map(merge => {
+                if (merge.startRow > rowIdx) {
+                    return { ...merge, startRow: merge.startRow - 1, endRow: merge.endRow - 1 };
+                }
+                return merge;
+            });
+    }
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// Delete selected column
+function glabsDeleteCol() {
+    if (!glabsSelectedCell) return;
+
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const colIdx = glabsSelectedCell.col;
+
+    // Remove cell from each row
+    sheet.data.forEach(row => {
+        if (row && row.length > colIdx) {
+            row.splice(colIdx, 1);
+        }
+    });
+
+    // Ensure at least one column exists
+    if (sheet.data[0]?.length === 0) {
+        sheet.data.forEach(row => row.push(''));
+    }
+
+    // Shift cell styles left
+    const newStyles = {};
+    Object.keys(sheet.cellStyles || {}).forEach(key => {
+        const [r, c] = key.split('-').map(Number);
+        if (c > colIdx) {
+            newStyles[`${r}-${c - 1}`] = sheet.cellStyles[key];
+        } else if (c < colIdx) {
+            newStyles[key] = sheet.cellStyles[key];
+        }
+    });
+    sheet.cellStyles = newStyles;
+
+    // Shift column widths
+    const newWidths = {};
+    Object.keys(sheet.colWidths || {}).forEach(key => {
+        const c = parseInt(key);
+        if (c > colIdx) {
+            newWidths[c - 1] = sheet.colWidths[key];
+        } else if (c < colIdx) {
+            newWidths[c] = sheet.colWidths[key];
+        }
+    });
+    sheet.colWidths = newWidths;
+
+    // Update merged cells
+    if (sheet.mergedCells) {
+        sheet.mergedCells = sheet.mergedCells
+            .filter(merge => !(merge.startCol <= colIdx && merge.endCol >= colIdx))
+            .map(merge => {
+                if (merge.startCol > colIdx) {
+                    return { ...merge, startCol: merge.startCol - 1, endCol: merge.endCol - 1 };
+                }
+                return merge;
+            });
+    }
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// ==================== MERGE CELLS FUNCTIONS ====================
+
+// Merge selected cells
+function glabsMergeCells() {
+    if (!glabsSelectionStart || !glabsSelectionEnd) return;
+    if (glabsSelectionStart.row === glabsSelectionEnd.row && glabsSelectionStart.col === glabsSelectionEnd.col) return;
+
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    if (!sheet.mergedCells) sheet.mergedCells = [];
+
+    const startRow = Math.min(glabsSelectionStart.row, glabsSelectionEnd.row);
+    const endRow = Math.max(glabsSelectionStart.row, glabsSelectionEnd.row);
+    const startCol = Math.min(glabsSelectionStart.col, glabsSelectionEnd.col);
+    const endCol = Math.max(glabsSelectionStart.col, glabsSelectionEnd.col);
+
+    // Check if any cell in the range is already merged
+    const hasOverlap = sheet.mergedCells.some(merge => {
+        return !(merge.endRow < startRow || merge.startRow > endRow ||
+                 merge.endCol < startCol || merge.startCol > endCol);
+    });
+
+    if (hasOverlap) {
+        alert('Cannot merge: Some cells are already merged');
+        glabsHideContextMenu();
+        return;
+    }
+
+    // Keep value of first cell, clear others
+    const firstValue = sheet.data[startRow]?.[startCol] || '';
+    for (let r = startRow; r <= endRow; r++) {
+        for (let c = startCol; c <= endCol; c++) {
+            if (r === startRow && c === startCol) continue;
+            if (sheet.data[r]) sheet.data[r][c] = '';
+        }
+    }
+
+    // Add merge record
+    sheet.mergedCells.push({ startRow, endRow, startCol, endCol });
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// Unmerge cells
+function glabsUnmergeCells() {
+    if (!glabsSelectedCell) return;
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    if (!sheet.mergedCells) return;
+
+    const { row, col } = glabsSelectedCell;
+
+    // Find merge that contains this cell
+    const mergeIdx = sheet.mergedCells.findIndex(merge => {
+        return row >= merge.startRow && row <= merge.endRow &&
+               col >= merge.startCol && col <= merge.endCol;
+    });
+
+    if (mergeIdx === -1) return;
+
+    glabsSaveUndoState();
+
+    // Remove the merge
+    sheet.mergedCells.splice(mergeIdx, 1);
+
+    glabsSaveData();
+    glabsHideContextMenu();
+    renderGLabs();
+}
+
+// Check if cell is part of a merge (but not the main cell)
+function glabsIsMergedSlave(row, col, sheet) {
+    if (!sheet.mergedCells) return false;
+
+    return sheet.mergedCells.some(merge => {
+        if (row === merge.startRow && col === merge.startCol) return false; // Main cell
+        return row >= merge.startRow && row <= merge.endRow &&
+               col >= merge.startCol && col <= merge.endCol;
+    });
+}
+
+// Get merge info for a cell
+function glabsGetMerge(row, col, sheet) {
+    if (!sheet.mergedCells) return null;
+
+    return sheet.mergedCells.find(merge => {
+        return row === merge.startRow && col === merge.startCol;
+    });
+}
+
+// ==================== FIND & REPLACE FUNCTIONS ====================
+
+let glabsFindIndex = -1;
+let glabsFindResults = [];
+
+// Show find dialog
+function glabsShowFindDialog() {
+    const dialog = document.getElementById('glabs-find-dialog');
+    dialog.style.display = 'block';
+    document.getElementById('glabs-find-input').focus();
+    document.getElementById('glabs-find-status').textContent = '';
+}
+
+// Close find dialog
+function glabsCloseFindDialog() {
+    document.getElementById('glabs-find-dialog').style.display = 'none';
+    glabsFindIndex = -1;
+    glabsFindResults = [];
+
+    // Clear highlights
+    document.querySelectorAll('.glabs-cell').forEach(cell => {
+        cell.classList.remove('glabs-find-highlight');
+    });
+}
+
+// Find all matches
+function glabsFindAll(searchText) {
+    if (!searchText) return [];
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const results = [];
+    const searchLower = searchText.toLowerCase();
+
+    sheet.data.forEach((row, rowIdx) => {
+        if (!row) return;
+        row.forEach((cell, colIdx) => {
+            if (cell && String(cell).toLowerCase().includes(searchLower)) {
+                results.push({ row: rowIdx, col: colIdx });
+            }
+        });
+    });
+
+    return results;
+}
+
+// Find next match
+function glabsFindNext() {
+    const searchText = document.getElementById('glabs-find-input').value;
+    if (!searchText) {
+        document.getElementById('glabs-find-status').textContent = 'Enter text to search';
+        return;
+    }
+
+    glabsFindResults = glabsFindAll(searchText);
+
+    if (glabsFindResults.length === 0) {
+        document.getElementById('glabs-find-status').textContent = 'No matches found';
+        return;
+    }
+
+    // Move to next result
+    glabsFindIndex = (glabsFindIndex + 1) % glabsFindResults.length;
+
+    const match = glabsFindResults[glabsFindIndex];
+
+    // Clear previous highlights
+    document.querySelectorAll('.glabs-cell').forEach(cell => {
+        cell.style.background = '';
+    });
+
+    // Highlight all matches lightly
+    glabsFindResults.forEach(({ row, col }) => {
+        const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (cell) cell.style.background = 'rgba(255, 193, 7, 0.2)';
+    });
+
+    // Highlight current match
+    const currentCell = document.querySelector(`[data-row="${match.row}"][data-col="${match.col}"]`);
+    if (currentCell) {
+        currentCell.style.background = 'rgba(255, 193, 7, 0.5)';
+        currentCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Select the cell
+        glabsSelectCell(match.row, match.col, currentCell);
+    }
+
+    document.getElementById('glabs-find-status').textContent =
+        `${glabsFindIndex + 1} of ${glabsFindResults.length} matches`;
+}
+
+// Replace current match
+function glabsReplace() {
+    if (glabsFindResults.length === 0 || glabsFindIndex < 0) {
+        glabsFindNext();
+        return;
+    }
+
+    const searchText = document.getElementById('glabs-find-input').value;
+    const replaceText = document.getElementById('glabs-replace-input').value;
+
+    if (!searchText) return;
+
+    glabsSaveUndoState();
+
+    const match = glabsFindResults[glabsFindIndex];
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    // Replace in the cell
+    const currentValue = sheet.data[match.row]?.[match.col] || '';
+    const newValue = currentValue.replace(new RegExp(searchText, 'gi'), replaceText);
+
+    if (!sheet.data[match.row]) sheet.data[match.row] = [];
+    sheet.data[match.row][match.col] = newValue;
+
+    glabsSaveData();
+
+    // Remove this match from results
+    glabsFindResults.splice(glabsFindIndex, 1);
+
+    // Adjust index
+    if (glabsFindIndex >= glabsFindResults.length) {
+        glabsFindIndex = 0;
+    }
+
+    // Find next or update status
+    if (glabsFindResults.length > 0) {
+        glabsFindIndex--; // Will be incremented in findNext
+        glabsFindNext();
+    } else {
+        document.getElementById('glabs-find-status').textContent = 'All matches replaced';
+        renderGLabs();
+    }
+}
+
+// Replace all matches
+function glabsReplaceAll() {
+    const searchText = document.getElementById('glabs-find-input').value;
+    const replaceText = document.getElementById('glabs-replace-input').value;
+
+    if (!searchText) {
+        document.getElementById('glabs-find-status').textContent = 'Enter text to search';
+        return;
+    }
+
+    const results = glabsFindAll(searchText);
+
+    if (results.length === 0) {
+        document.getElementById('glabs-find-status').textContent = 'No matches found';
+        return;
+    }
+
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    let count = 0;
+
+    results.forEach(({ row, col }) => {
+        const currentValue = sheet.data[row]?.[col] || '';
+        const newValue = currentValue.replace(new RegExp(searchText, 'gi'), replaceText);
+
+        if (!sheet.data[row]) sheet.data[row] = [];
+        sheet.data[row][col] = newValue;
+        count++;
+    });
+
+    glabsSaveData();
+    glabsFindResults = [];
+    glabsFindIndex = -1;
+
+    document.getElementById('glabs-find-status').textContent = `Replaced ${count} matches`;
     renderGLabs();
 }
 
