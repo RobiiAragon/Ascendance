@@ -38274,6 +38274,14 @@ let glabsColWidths = {};
 let glabsRowHeights = {};
 let glabsCellStyles = {};
 
+// Undo/Redo history
+let glabsUndoStack = [];
+let glabsRedoStack = [];
+let glabsMaxHistory = 50;
+
+// Clipboard
+let glabsClipboard = null;
+
 // Month navigation state
 let glabsCurrentMonth = new Date().getMonth();
 let glabsCurrentYear = new Date().getFullYear();
@@ -38373,6 +38381,280 @@ function glabsSaveData() {
     }));
 }
 
+// Save state for undo
+function glabsSaveUndoState() {
+    const state = JSON.stringify({
+        sheets: glabsSheets,
+        currentSheet: glabsCurrentSheet
+    });
+    glabsUndoStack.push(state);
+    if (glabsUndoStack.length > glabsMaxHistory) {
+        glabsUndoStack.shift();
+    }
+    // Clear redo stack when new action is performed
+    glabsRedoStack = [];
+}
+
+// Undo last action
+function glabsUndo() {
+    if (glabsUndoStack.length === 0) return;
+
+    // Save current state to redo stack
+    const currentState = JSON.stringify({
+        sheets: glabsSheets,
+        currentSheet: glabsCurrentSheet
+    });
+    glabsRedoStack.push(currentState);
+
+    // Restore previous state
+    const prevState = JSON.parse(glabsUndoStack.pop());
+    glabsSheets = prevState.sheets;
+    glabsCurrentSheet = prevState.currentSheet;
+
+    glabsSaveData();
+    renderGLabs();
+}
+
+// Redo last undone action
+function glabsRedo() {
+    if (glabsRedoStack.length === 0) return;
+
+    // Save current state to undo stack
+    const currentState = JSON.stringify({
+        sheets: glabsSheets,
+        currentSheet: glabsCurrentSheet
+    });
+    glabsUndoStack.push(currentState);
+
+    // Restore redo state
+    const redoState = JSON.parse(glabsRedoStack.pop());
+    glabsSheets = redoState.sheets;
+    glabsCurrentSheet = redoState.currentSheet;
+
+    glabsSaveData();
+    renderGLabs();
+}
+
+// Copy selected cells
+function glabsCopy() {
+    if (!glabsSelectedCell && (!glabsSelectionStart || !glabsSelectionEnd)) return;
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    if (glabsSelectionStart && glabsSelectionEnd) {
+        // Copy range
+        const startRow = Math.min(glabsSelectionStart.row, glabsSelectionEnd.row);
+        const endRow = Math.max(glabsSelectionStart.row, glabsSelectionEnd.row);
+        const startCol = Math.min(glabsSelectionStart.col, glabsSelectionEnd.col);
+        const endCol = Math.max(glabsSelectionStart.col, glabsSelectionEnd.col);
+
+        glabsClipboard = {
+            type: 'range',
+            data: [],
+            styles: []
+        };
+
+        for (let r = startRow; r <= endRow; r++) {
+            const rowData = [];
+            const rowStyles = [];
+            for (let c = startCol; c <= endCol; c++) {
+                rowData.push(sheet.data[r]?.[c] || '');
+                rowStyles.push(sheet.cellStyles?.[`${r}-${c}`] || {});
+            }
+            glabsClipboard.data.push(rowData);
+            glabsClipboard.styles.push(rowStyles);
+        }
+    } else if (glabsSelectedCell) {
+        // Copy single cell
+        const { row, col } = glabsSelectedCell;
+        glabsClipboard = {
+            type: 'single',
+            data: sheet.data[row]?.[col] || '',
+            style: sheet.cellStyles?.[`${row}-${col}`] || {}
+        };
+    }
+}
+
+// Paste clipboard content
+function glabsPaste() {
+    if (!glabsClipboard || !glabsSelectedCell) return;
+
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const { row, col } = glabsSelectedCell;
+
+    if (!sheet.cellStyles) sheet.cellStyles = {};
+
+    if (glabsClipboard.type === 'single') {
+        if (!sheet.data[row]) sheet.data[row] = [];
+        sheet.data[row][col] = glabsClipboard.data;
+        sheet.cellStyles[`${row}-${col}`] = { ...glabsClipboard.style };
+    } else if (glabsClipboard.type === 'range') {
+        for (let r = 0; r < glabsClipboard.data.length; r++) {
+            for (let c = 0; c < glabsClipboard.data[r].length; c++) {
+                const targetRow = row + r;
+                const targetCol = col + c;
+                if (!sheet.data[targetRow]) sheet.data[targetRow] = [];
+                sheet.data[targetRow][targetCol] = glabsClipboard.data[r][c];
+                sheet.cellStyles[`${targetRow}-${targetCol}`] = { ...glabsClipboard.styles[r][c] };
+            }
+        }
+    }
+
+    glabsSaveData();
+    renderGLabs();
+}
+
+// Delete content of selected cells
+function glabsDeleteContent() {
+    glabsSaveUndoState();
+
+    const sheet = glabsSheets[glabsCurrentSheet];
+
+    if (glabsSelectionStart && glabsSelectionEnd) {
+        // Delete range
+        const startRow = Math.min(glabsSelectionStart.row, glabsSelectionEnd.row);
+        const endRow = Math.max(glabsSelectionStart.row, glabsSelectionEnd.row);
+        const startCol = Math.min(glabsSelectionStart.col, glabsSelectionEnd.col);
+        const endCol = Math.max(glabsSelectionStart.col, glabsSelectionEnd.col);
+
+        for (let r = startRow; r <= endRow; r++) {
+            for (let c = startCol; c <= endCol; c++) {
+                if (sheet.data[r]) sheet.data[r][c] = '';
+            }
+        }
+    } else if (glabsSelectedCell) {
+        // Delete single cell
+        const { row, col } = glabsSelectedCell;
+        if (sheet.data[row]) sheet.data[row][col] = '';
+    }
+
+    glabsSaveData();
+    renderGLabs();
+}
+
+// Navigate with arrow keys
+function glabsNavigate(direction) {
+    if (!glabsSelectedCell) return;
+
+    const { row, col } = glabsSelectedCell;
+    const sheet = glabsSheets[glabsCurrentSheet];
+    const maxRow = sheet.data.length || glabsRows;
+    const maxCol = sheet.data[0]?.length || glabsCols;
+
+    let newRow = row;
+    let newCol = col;
+
+    switch (direction) {
+        case 'up': newRow = Math.max(0, row - 1); break;
+        case 'down': newRow = Math.min(maxRow - 1, row + 1); break;
+        case 'left': newCol = Math.max(0, col - 1); break;
+        case 'right': newCol = Math.min(maxCol - 1, col + 1); break;
+    }
+
+    // Find and click the new cell
+    const newCell = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
+    if (newCell) {
+        glabsSelectCell(newRow, newCol, newCell);
+    }
+}
+
+// Keyboard event handler for G-Labs
+function glabsKeyboardHandler(e) {
+    // Check if we're in G-Labs module
+    if (!document.querySelector('.glabs-spreadsheet')) return;
+
+    // Don't intercept if typing in formula bar or cell editor
+    if (e.target.id === 'glabs-formula-bar' || e.target.classList.contains('glabs-cell-editor')) {
+        // Handle Enter in formula bar
+        if (e.key === 'Enter' && e.target.id === 'glabs-formula-bar') {
+            glabsApplyFormula();
+            glabsNavigate('down');
+            e.preventDefault();
+        }
+        return;
+    }
+
+    // Ctrl/Cmd + Z = Undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        glabsUndo();
+        return;
+    }
+
+    // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        glabsRedo();
+        return;
+    }
+
+    // Ctrl/Cmd + C = Copy
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        glabsCopy();
+        return;
+    }
+
+    // Ctrl/Cmd + V = Paste
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        glabsPaste();
+        return;
+    }
+
+    // Ctrl/Cmd + X = Cut
+    if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+        e.preventDefault();
+        glabsCopy();
+        glabsDeleteContent();
+        return;
+    }
+
+    // Delete or Backspace = Clear content
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        glabsDeleteContent();
+        return;
+    }
+
+    // Arrow keys = Navigate
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const dir = e.key.replace('Arrow', '').toLowerCase();
+        glabsNavigate(dir);
+        return;
+    }
+
+    // Tab = Move right
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        glabsNavigate(e.shiftKey ? 'left' : 'right');
+        return;
+    }
+
+    // Enter = Move down or start editing
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (glabsSelectedCell) {
+            glabsNavigate('down');
+        }
+        return;
+    }
+
+    // Start typing to edit cell (if alphanumeric key pressed)
+    if (glabsSelectedCell && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        const formulaBar = document.getElementById('glabs-formula-bar');
+        if (formulaBar) {
+            formulaBar.value = e.key;
+            formulaBar.focus();
+            // Move cursor to end
+            formulaBar.setSelectionRange(1, 1);
+        }
+    }
+}
+
 // Get list of all months that have data
 function glabsGetSavedMonths() {
     const months = [];
@@ -38394,6 +38676,12 @@ let glabsSelectedCells = [];
 
 function renderGLabs() {
     const dashboard = document.querySelector('.dashboard');
+
+    // Register keyboard handler (only once)
+    if (!window.glabsKeyboardRegistered) {
+        document.addEventListener('keydown', glabsKeyboardHandler);
+        window.glabsKeyboardRegistered = true;
+    }
 
     // Load data
     glabsLoadData();
@@ -38875,6 +39163,8 @@ function glabsHideContextMenu() {
 
 // Format functions
 function glabsApplyFormat(formatType, styleKey, styleValue) {
+    glabsSaveUndoState();
+
     const sheet = glabsSheets[glabsCurrentSheet];
     if (!sheet.cellStyles) sheet.cellStyles = {};
 
@@ -38982,6 +39272,9 @@ function glabsSaveCell(input, row, col) {
     const value = input.value;
     const sheet = glabsSheets[glabsCurrentSheet];
 
+    // Save undo state before modifying
+    glabsSaveUndoState();
+
     // Ensure row exists
     if (!sheet.data[row]) {
         sheet.data[row] = [];
@@ -39045,6 +39338,8 @@ function glabsToggleTextColorPicker() {
 function glabsSetCellColor(color) {
     if (!glabsSelectedCell) return;
 
+    glabsSaveUndoState();
+
     const { row, col, element } = glabsSelectedCell;
     const sheet = glabsSheets[glabsCurrentSheet];
 
@@ -39067,6 +39362,8 @@ function glabsSetCellColor(color) {
 // Set cell text color
 function glabsSetTextColor(color) {
     if (!glabsSelectedCell) return;
+
+    glabsSaveUndoState();
 
     const { row, col, element } = glabsSelectedCell;
     const sheet = glabsSheets[glabsCurrentSheet];
@@ -39413,6 +39710,8 @@ function glabsEvaluateCell(value, row, col) {
 // Apply formula from formula bar
 function glabsApplyFormula() {
     if (!glabsSelectedCell) return;
+
+    glabsSaveUndoState();
 
     const { row, col, element } = glabsSelectedCell;
     const value = document.getElementById('glabs-formula-bar').value;
