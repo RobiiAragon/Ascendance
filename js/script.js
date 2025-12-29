@@ -15211,16 +15211,40 @@ window.viewChecklistHistory = async function() {
             setTimeout(() => modal.classList.add('active'), 10);
         }
 
+        // Handle camera capture for invoice
+        function handleInvoiceCameraCapture(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const preview = document.getElementById('invoice-preview');
+                const pdfPreview = document.getElementById('invoice-pdf-preview');
+
+                // Show image preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 8px;">`;
+                    if (pdfPreview) pdfPreview.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         // OpenAI API for Invoice Image Analysis
         async function scanInvoiceWithAI() {
+            // Check both file input and camera input
             const fileInput = document.getElementById('invoice-photo');
+            const cameraInput = document.getElementById('invoice-camera');
 
-            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
-                alert('Please upload an invoice image or PDF first.');
-                return;
+            let file = null;
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                file = fileInput.files[0];
+            } else if (cameraInput && cameraInput.files && cameraInput.files[0]) {
+                file = cameraInput.files[0];
             }
 
-            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please upload an invoice image or take a photo first.');
+                return;
+            }
             const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
             if (isPdf) {
@@ -24550,11 +24574,15 @@ Return ONLY the JSON object, no additional text.`
                                         <button type="button" class="btn-secondary" onclick="document.getElementById('invoice-photo').click()" style="margin: 0;">
                                             <i class="fas fa-upload"></i> Upload File
                                         </button>
+                                        <input type="file" id="invoice-camera" accept="image/*" capture="environment" style="display: none;" onchange="handleInvoiceCameraCapture(this)">
+                                        <button type="button" class="btn-secondary" onclick="document.getElementById('invoice-camera').click()" style="margin: 0; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;">
+                                            <i class="fas fa-camera"></i> Take Photo
+                                        </button>
                                         <button type="button" id="ai-scan-btn" class="btn-secondary" onclick="scanInvoiceWithAI()" style="margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
                                             <i class="fas fa-magic"></i> Scan with AI
                                         </button>
                                     </div>
-                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Upload a photo or PDF, then click "Scan with AI" to auto-fill fields</p>
+                                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 12px;">Take a photo or upload a file, then click "Scan with AI" to auto-fill</p>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -26253,6 +26281,47 @@ Return ONLY the JSON object, no additional text.`,
                                 <span>Allergies: ${emp.allergies}</span>
                             </div>
                         </div>
+                        <!-- Certifications Section -->
+                        <div class="form-divider"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 class="form-section-title" style="margin: 0;"><i class="fas fa-certificate" style="color: #f59e0b; margin-right: 8px;"></i>Certifications</h3>
+                            <button class="btn-secondary" onclick="openAddCertificationModal('${emp.id}')" style="padding: 6px 12px; font-size: 12px;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        ${emp.certifications && emp.certifications.length > 0 ? `
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${emp.certifications.map((cert, index) => {
+                                const isExpired = cert.expirationDate && new Date(cert.expirationDate) < new Date();
+                                const isExpiringSoon = cert.expirationDate && !isExpired && new Date(cert.expirationDate) < new Date(Date.now() + 30*24*60*60*1000);
+                                const statusColor = isExpired ? '#ef4444' : isExpiringSoon ? '#f59e0b' : '#10b981';
+                                const statusText = isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Valid';
+                                return `
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); border-left: 3px solid ${statusColor};">
+                                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                        <i class="fas fa-award" style="color: ${statusColor}; font-size: 20px;"></i>
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${cert.name}</div>
+                                            <div style="font-size: 12px; color: var(--text-muted);">
+                                                ${cert.issuedBy || 'N/A'} • ${cert.expirationDate ? 'Expires: ' + formatDate(cert.expirationDate) : 'No expiration'}
+                                                <span style="margin-left: 8px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: ${statusColor}20; color: ${statusColor};">${statusText}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        ${cert.fileURL ? `<button class="btn-icon" onclick="window.open('${cert.fileURL}', '_blank')" title="View Certificate"><i class="fas fa-eye"></i></button>` : ''}
+                                        <button class="btn-icon danger" onclick="deleteCertification('${emp.id}', ${index})" title="Delete"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            `;}).join('')}
+                        </div>
+                        ` : `
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
+                            <i class="fas fa-certificate" style="font-size: 24px; opacity: 0.3; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; font-size: 13px;">No certifications added yet</p>
+                        </div>
+                        `}
+
                         ${emp.paperwork && emp.paperwork.length > 0 ? `
                         <div class="form-divider"></div>
                         <h3 class="form-section-title">Employee Paperwork</h3>
@@ -26284,6 +26353,208 @@ Return ONLY the JSON object, no additional text.`,
                 </div>
             `;
             modal.classList.add('active');
+        }
+
+        // Certification Management Functions
+        function openAddCertificationModal(employeeId) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-certificate" style="color: #f59e0b;"></i> Add Certification</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Certification Name *</label>
+                        <input type="text" class="form-input" id="cert-name" placeholder="e.g., Alcohol Sales License, Food Handler's Permit">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Issued By</label>
+                            <input type="text" class="form-input" id="cert-issued-by" placeholder="e.g., State of California, ABC Board">
+                        </div>
+                        <div class="form-group">
+                            <label>Issue Date</label>
+                            <input type="date" class="form-input" id="cert-issue-date">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Expiration Date</label>
+                            <input type="date" class="form-input" id="cert-expiration-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Certificate Number</label>
+                            <input type="text" class="form-input" id="cert-number" placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Upload Certificate (Optional)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="file" id="cert-file" accept="image/*,.pdf" style="display: none;" onchange="previewCertFile(this)">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('cert-file').click()">
+                                <i class="fas fa-upload"></i> Upload File
+                            </button>
+                            <input type="file" id="cert-camera" accept="image/*" capture="environment" style="display: none;" onchange="previewCertFile(this)">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('cert-camera').click()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;">
+                                <i class="fas fa-camera"></i> Take Photo
+                            </button>
+                        </div>
+                        <div id="cert-file-preview" style="margin-top: 12px;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="viewEmployee('${employeeId}')">Cancel</button>
+                    <button class="btn-primary" onclick="saveCertification('${employeeId}')">
+                        <i class="fas fa-save"></i> Save Certification
+                    </button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        function previewCertFile(input) {
+            const preview = document.getElementById('cert-file-preview');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const isImage = file.type.startsWith('image/');
+
+                if (isImage) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                                <img src="${e.target.result}" style="max-width: 80px; max-height: 80px; border-radius: 6px; object-fit: cover;">
+                                <div>
+                                    <div style="font-weight: 500; color: var(--text-primary);">${file.name}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">${(file.size / 1024).toFixed(1)} KB</div>
+                                </div>
+                            </div>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444;"></i>
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-primary);">${file.name}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">${(file.size / 1024).toFixed(1)} KB</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function saveCertification(employeeId) {
+            const name = document.getElementById('cert-name').value.trim();
+            const issuedBy = document.getElementById('cert-issued-by').value.trim();
+            const issueDate = document.getElementById('cert-issue-date').value;
+            const expirationDate = document.getElementById('cert-expiration-date').value;
+            const certNumber = document.getElementById('cert-number').value.trim();
+            const fileInput = document.getElementById('cert-file');
+            const cameraInput = document.getElementById('cert-camera');
+
+            if (!name) {
+                alert('Please enter a certification name');
+                return;
+            }
+
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                let fileURL = null;
+
+                // Upload file if provided
+                const file = (fileInput && fileInput.files[0]) || (cameraInput && cameraInput.files[0]);
+                if (file) {
+                    // Convert to base64
+                    const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+
+                    // Initialize storage helper if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
+                    const uploadResult = await firebaseStorageHelper.uploadImage(
+                        base64,
+                        'employees/certifications',
+                        employeeId + '_' + Date.now()
+                    );
+
+                    if (uploadResult && uploadResult.url) {
+                        fileURL = uploadResult.url;
+                    }
+                }
+
+                // Create certification object
+                const certification = {
+                    name,
+                    issuedBy: issuedBy || null,
+                    issueDate: issueDate || null,
+                    expirationDate: expirationDate || null,
+                    certNumber: certNumber || null,
+                    fileURL,
+                    addedAt: new Date().toISOString()
+                };
+
+                // Find employee and add certification
+                const emp = employees.find(e => e.id === employeeId);
+                if (emp) {
+                    if (!emp.certifications) emp.certifications = [];
+                    emp.certifications.push(certification);
+
+                    // Save to Firebase
+                    if (firebaseEmployeeManager.isInitialized) {
+                        await firebaseEmployeeManager.updateEmployee(employeeId, {
+                            certifications: emp.certifications
+                        });
+                    }
+                }
+
+                // Refresh the employee view
+                viewEmployee(employeeId);
+
+            } catch (error) {
+                console.error('Error saving certification:', error);
+                alert('Error saving certification: ' + error.message);
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        async function deleteCertification(employeeId, certIndex) {
+            if (!confirm('Are you sure you want to delete this certification?')) return;
+
+            try {
+                const emp = employees.find(e => e.id === employeeId);
+                if (emp && emp.certifications) {
+                    emp.certifications.splice(certIndex, 1);
+
+                    // Save to Firebase
+                    if (firebaseEmployeeManager.isInitialized) {
+                        await firebaseEmployeeManager.updateEmployee(employeeId, {
+                            certifications: emp.certifications
+                        });
+                    }
+
+                    // Refresh the employee view
+                    viewEmployee(employeeId);
+                }
+            } catch (error) {
+                console.error('Error deleting certification:', error);
+                alert('Error deleting certification: ' + error.message);
+            }
         }
 
         /**
