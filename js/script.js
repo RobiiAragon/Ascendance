@@ -8497,61 +8497,34 @@ window.viewChecklistHistory = async function() {
             showToast('Exported approved requests to CSV', 'success');
         }
 
-        // Call AI for restock analysis (uses same API as Celeste)
+        // Call AI for restock analysis (uses OpenAI GPT-4)
         async function callRestockAI(prompt) {
-            // Try Anthropic Claude first
-            const anthropicKey = celesteFirebaseSettings?.anthropic_api_key || 'sk-ant-api03-09Q7EwKig5XiQ20t2bvOAluPYPxDgu5-8_N5cI25_8A1rPc44QkeVIBedrx2faxeddBUg-_8pTFgAA';
+            const openaiKey = celesteFirebaseSettings?.openai_api_key || getOpenAIKey();
 
-            try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': anthropicKey,
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-dangerous-direct-browser-access': 'true'
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 500,
-                        messages: [{ role: 'user', content: prompt }]
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.content[0].text;
-                }
-            } catch (error) {
-                console.warn('Anthropic API failed:', error);
+            if (!openaiKey) {
+                throw new Error('OpenAI API key not configured');
             }
 
-            // Fallback to OpenAI
-            const openaiKey = celesteFirebaseSettings?.openai_api_key || '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';
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    max_tokens: 500,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
 
-            try {
-                const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.openai.com/v1/chat/completions'), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${openaiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4',
-                        max_tokens: 500,
-                        messages: [{ role: 'user', content: prompt }]
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.choices[0].message.content;
-                }
-            } catch (error) {
-                console.warn('OpenAI API failed:', error);
+            if (response.ok) {
+                const data = await response.json();
+                return data.choices[0].message.content;
             }
 
-            throw new Error('All AI providers failed');
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'OpenAI API failed');
         }
 
         // AI Assistant for Requests Tab - helps prioritize and analyze pending requests
@@ -35108,7 +35081,7 @@ window.renderProjectAnalytics = function() {
 
     // Module list with descriptions and navigation
     const modules = [
-        { name: 'Celeste AI', icon: 'fa-stars', status: 'active', page: 'celesteai', description: 'AI-powered assistant', fullDescription: 'Intelligent AI assistant powered by Anthropic Claude for business insights, data analysis, and natural language queries.', features: ['Natural language', 'Business insights', 'Data analysis', 'Context awareness'], version: '2.0', linesOfCode: 1850 },
+        { name: 'Celeste AI', icon: 'fa-stars', status: 'active', page: 'celesteai', description: 'AI-powered assistant', fullDescription: 'Intelligent AI assistant powered by OpenAI GPT-4 for business insights, data analysis, and natural language queries.', features: ['Natural language', 'Business insights', 'Data analysis', 'Context awareness'], version: '2.0', linesOfCode: 1850 },
         { name: 'Dashboard', icon: 'fa-th-large', status: 'active', page: 'dashboard', description: 'Overview & KPIs', fullDescription: 'Central command center displaying real-time KPIs, quick stats, and business overview across all store locations.', features: ['Real-time metrics', 'Quick navigation', 'Store overview', 'Activity feed'], version: '2.5', linesOfCode: 950 },
         { name: 'Employees', icon: 'fa-users', status: 'active', page: 'employees', description: 'Staff management & profiles', fullDescription: 'Complete employee management system with profiles, photos, emergency contacts, and role assignments.', features: ['Profile photos', 'Camera capture', 'Role management', 'Emergency contacts'], version: '3.5', linesOfCode: 1400 },
         { name: 'Schedule', icon: 'fa-calendar-alt', status: 'active', page: 'schedule', description: 'Shift scheduling system', fullDescription: 'Visual drag-and-drop scheduling system for managing employee shifts across multiple stores.', features: ['Drag & drop', 'Multi-store view', 'Conflict detection', 'Export to PDF'], version: '1.8', linesOfCode: 1100 },
@@ -35224,40 +35197,22 @@ window.renderProjectAnalytics = function() {
             </div>
         </div>
 
-        <!-- AI Providers Configuration -->
-        <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(139,92,246,0.3); background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(109,40,217,0.05));">
-            <div class="card-header" style="border-bottom: 1px solid rgba(139,92,246,0.2);">
+        <!-- AI Provider Configuration -->
+        <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(16,185,129,0.3); background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(5,150,105,0.05));">
+            <div class="card-header" style="border-bottom: 1px solid rgba(16,185,129,0.2);">
                 <h3 class="card-title" style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-brain" style="color: #8b5cf6;"></i> AI Providers Configuration
+                    <i class="fas fa-brain" style="color: #10b981;"></i> AI Provider Configuration
                 </h3>
-                <div id="celeste-api-status" style="padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(139,92,246,0.15); color: #8b5cf6;">
-                    ● Claude + OpenAI Ready
+                <div id="celeste-api-status" style="padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(16,185,129,0.15); color: #10b981;">
+                    ● OpenAI Ready
                 </div>
             </div>
             <div class="card-body">
                 <p style="margin: 0 0 16px; color: var(--text-secondary); font-size: 13px;">
-                    Celeste AI and all voice/image assistants use <strong>Anthropic Claude</strong> as the primary AI. If Claude is unavailable, the system automatically falls back to <strong>OpenAI GPT-4</strong>.
+                    Celeste AI and all voice/image assistants are powered by <strong>OpenAI GPT-4</strong>.
                 </p>
 
-                <!-- Primary Provider: Claude -->
-                <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(139,92,246,0.2);">
-                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-star" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-weight: 600; font-size: 14px;">Anthropic Claude</span>
-                            <span style="padding: 2px 8px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border-radius: 6px; font-size: 10px; font-weight: 600;">PRIMARY</span>
-                        </div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Claude 3.5 Sonnet - Pre-configured & Ready</div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></span>
-                        <span style="font-size: 12px; color: #10b981; font-weight: 500;">Connected</span>
-                    </div>
-                </div>
-
-                <!-- Fallback Provider: OpenAI -->
+                <!-- OpenAI Provider -->
                 <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid rgba(16,185,129,0.2);">
                     <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
@@ -35265,19 +35220,19 @@ window.renderProjectAnalytics = function() {
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-weight: 600; font-size: 14px;">OpenAI GPT-4</span>
-                            <span style="padding: 2px 8px; background: rgba(16,185,129,0.2); color: #10b981; border-radius: 6px; font-size: 10px; font-weight: 600;">FALLBACK</span>
+                            <span style="padding: 2px 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 6px; font-size: 10px; font-weight: 600;">ACTIVE</span>
                         </div>
-                        <div style="font-size: 12px; color: var(--text-muted);">GPT-4o - Auto-activates if Claude fails</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">GPT-4o - Vision & Text Processing</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
-                        <span style="font-size: 12px; color: #10b981; font-weight: 500;">Ready</span>
+                        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                        <span style="font-size: 12px; color: #10b981; font-weight: 500;">Connected</span>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-top: 16px;">
-                    <button onclick="openAIProvidersSettings()" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
-                        <i class="fas fa-key"></i> Configure API Keys
+                    <button onclick="openAIProvidersSettings()" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-key"></i> Configure API Key
                     </button>
                     <button onclick="testCelesteFromProjectAnalytics()" class="btn-secondary" style="padding: 10px 20px;">
                         <i class="fas fa-plug"></i> Test Connection
@@ -35571,7 +35526,7 @@ window.renderProjectAnalytics = function() {
                         <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
                             <div style="font-weight: 600; margin-bottom: 4px;">Day 5-6: AI Integration</div>
                             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 13-14, 2025</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Celeste AI assistant with Anthropic API, Project Analytics module, HR Applications system, and transfers module.</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Celeste AI assistant with OpenAI GPT-4, Project Analytics module, HR Applications system, and transfers module.</div>
                         </div>
                     </div>
 
@@ -36024,75 +35979,56 @@ function showAPISettingsToast(message, type = 'info') {
     }, 3000);
 }
 
-// Load API key from localStorage on init
+// Load OpenAI API key from localStorage on init
 (function loadSavedAPIKey() {
-    const savedKey = localStorage.getItem('anthropic_api_key');
-    if (savedKey && !window.ANTHROPIC_API_KEY) {
-        window.ANTHROPIC_API_KEY = savedKey;
+    const savedKey = localStorage.getItem('openai_api_key');
+    if (savedKey && !window.OPENAI_API_KEY) {
+        window.OPENAI_API_KEY = savedKey;
     }
 })();
 
-// Test Celeste connection from Project Analytics page - Detailed Debug Modal
+// Test Celeste connection from Project Analytics page - OpenAI Only
 window.testCelesteFromProjectAnalytics = async function() {
     const statusDiv = document.getElementById('celeste-api-status');
 
-    // Create detailed debug modal
+    // Create debug modal
     const debugModal = document.createElement('div');
     debugModal.id = 'api-debug-modal';
     debugModal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
     debugModal.onmousedown = (e) => { if (e.target === debugModal) debugModal.remove(); };
 
     debugModal.innerHTML = `
-        <div style="background: var(--bg-primary, #1a1a2e); border-radius: 20px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 32px; animation: modalSlideIn 0.3s ease;">
+        <div style="background: var(--bg-primary, #1a1a2e); border-radius: 20px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 32px; animation: modalSlideIn 0.3s ease;">
             <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
-                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-vial" style="color: white; font-size: 24px;"></i>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 20px; color: var(--text-primary, #fff);">AI API Connection Test</h3>
-                    <p style="margin: 4px 0 0; color: var(--text-muted, #888); font-size: 13px;">Testing Anthropic Claude (Primary) & OpenAI GPT-4 (Fallback)</p>
+                    <h3 style="margin: 0; font-size: 20px; color: var(--text-primary, #fff);">OpenAI Connection Test</h3>
+                    <p style="margin: 4px 0 0; color: var(--text-muted, #888); font-size: 13px;">Testing GPT-4o API Connection</p>
                 </div>
                 <button onclick="document.getElementById('api-debug-modal').remove()" style="margin-left: auto; background: none; border: none; color: var(--text-muted, #888); font-size: 20px; cursor: pointer; padding: 8px;">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
-            <div id="api-test-results" style="display: flex; flex-direction: column; gap: 16px;">
-                <!-- Anthropic Test Card -->
-                <div id="anthropic-test-card" style="background: var(--bg-secondary, #16162a); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color, #333);">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #d97706, #f59e0b); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: var(--text-primary, #fff);">Anthropic Claude</div>
-                            <div style="font-size: 12px; color: var(--text-muted, #888);">PRIMARY PROVIDER</div>
-                        </div>
-                        <div id="anthropic-status" style="padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(59,130,246,0.15); color: #3b82f6;">
-                            <i class="fas fa-spinner fa-spin"></i> Testing...
-                        </div>
-                    </div>
-                    <div id="anthropic-details" style="font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; color: var(--text-muted, #aaa); white-space: pre-wrap; word-break: break-all;">
-Initializing test...
-                    </div>
-                </div>
-
+            <div id="api-test-results">
                 <!-- OpenAI Test Card -->
                 <div id="openai-test-card" style="background: var(--bg-secondary, #16162a); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color, #333);">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                         <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-brain" style="color: white; font-size: 18px;"></i>
+                            <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
                         </div>
                         <div style="flex: 1;">
-                            <div style="font-weight: 600; color: var(--text-primary, #fff);">OpenAI GPT-4</div>
-                            <div style="font-size: 12px; color: var(--text-muted, #888);">FALLBACK PROVIDER</div>
+                            <div style="font-weight: 600; color: var(--text-primary, #fff);">OpenAI GPT-4o</div>
+                            <div style="font-size: 12px; color: var(--text-muted, #888);">AI PROVIDER</div>
                         </div>
-                        <div id="openai-status" style="padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(107,114,128,0.15); color: #6b7280;">
-                            <i class="fas fa-clock"></i> Pending
+                        <div id="openai-status" style="padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(59,130,246,0.15); color: #3b82f6;">
+                            <i class="fas fa-spinner fa-spin"></i> Testing...
                         </div>
                     </div>
-                    <div id="openai-details" style="font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; color: var(--text-muted, #aaa); white-space: pre-wrap; word-break: break-all;">
-Waiting for Anthropic test to complete...
+                    <div id="openai-details" style="font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; color: var(--text-muted, #aaa); white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto;">
+Initializing test...
                     </div>
                 </div>
             </div>
@@ -36110,8 +36046,8 @@ Waiting for Anthropic test to complete...
     const maskKey = (key) => key ? key.substring(0, 12) + '...' + key.substring(key.length - 6) : 'NOT SET';
 
     // Helper to update details
-    const updateDetails = (provider, text, append = true) => {
-        const el = document.getElementById(`${provider}-details`);
+    const updateDetails = (text, append = true) => {
+        const el = document.getElementById('openai-details');
         if (el) {
             el.textContent = append ? el.textContent + '\n' + text : text;
             el.scrollTop = el.scrollHeight;
@@ -36119,106 +36055,39 @@ Waiting for Anthropic test to complete...
     };
 
     // Helper to update status
-    const updateStatus = (provider, status, type) => {
-        const el = document.getElementById(`${provider}-status`);
+    const updateStatus = (status, type) => {
+        const el = document.getElementById('openai-status');
         if (el) {
             const styles = {
                 testing: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', icon: 'fa-spinner fa-spin', text: 'Testing...' },
                 success: { bg: 'rgba(16,185,129,0.15)', color: '#10b981', icon: 'fa-check-circle', text: status },
-                error: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', icon: 'fa-times-circle', text: status },
-                pending: { bg: 'rgba(107,114,128,0.15)', color: '#6b7280', icon: 'fa-clock', text: 'Pending' }
+                error: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', icon: 'fa-times-circle', text: status }
             };
-            const s = styles[type] || styles.pending;
+            const s = styles[type] || styles.testing;
             el.style.background = s.bg;
             el.style.color = s.color;
             el.innerHTML = `<i class="fas ${s.icon}"></i> ${s.text}`;
         }
     };
 
-    let anthropicSuccess = false;
     let openaiSuccess = false;
 
-    // ═══════════════════════════════════════════════════════════════
-    // TEST 1: ANTHROPIC CLAUDE (PRIMARY)
-    // ═══════════════════════════════════════════════════════════════
     try {
-        // Get API key from Firebase (cloud-only)
-        const anthropicKey = typeof window.getFirebaseAPIKey === 'function'
-            ? window.getFirebaseAPIKey('anthropic')
-            : (typeof DEFAULT_ANTHROPIC_API_KEY !== 'undefined' ? DEFAULT_ANTHROPIC_API_KEY : null);
+        const openaiKey = getOpenAIKey() || localStorage.getItem('openai_api_key');
 
-        updateDetails('anthropic', `[${new Date().toLocaleTimeString()}] Starting Anthropic Claude test...`, false);
-        updateDetails('anthropic', `📍 Endpoint: https://api.anthropic.com/v1/messages`);
-        updateDetails('anthropic', `🤖 Model: claude-3-5-sonnet-20241022`);
-        updateDetails('anthropic', `🔑 API Key: ${maskKey(anthropicKey)}`);
-
-        if (!anthropicKey) {
-            throw new Error('No Anthropic API key configured');
-        }
-
-        updateDetails('anthropic', `\n⏳ Sending request...`);
-        const startTime = performance.now();
-
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': anthropicKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 50,
-                messages: [{ role: 'user', content: 'Say "Hello from Claude!" in exactly those words.' }]
-            })
-        });
-
-        const latency = Math.round(performance.now() - startTime);
-        updateDetails('anthropic', `⚡ Response time: ${latency}ms`);
-        updateDetails('anthropic', `📊 HTTP Status: ${response.status} ${response.statusText}`);
-
-        const data = await response.json();
-
-        if (response.ok) {
-            const aiResponse = data.content?.[0]?.text || 'No text in response';
-            updateDetails('anthropic', `\n✅ SUCCESS!`);
-            updateDetails('anthropic', `💬 AI Response: "${aiResponse}"`);
-            updateDetails('anthropic', `📈 Tokens used: ${data.usage?.input_tokens || 0} in / ${data.usage?.output_tokens || 0} out`);
-            updateStatus('anthropic', `Connected (${latency}ms)`, 'success');
-            anthropicSuccess = true;
-        } else {
-            throw new Error(data.error?.message || `HTTP ${response.status}`);
-        }
-    } catch (error) {
-        updateDetails('anthropic', `\n❌ ERROR: ${error.message}`);
-        updateStatus('anthropic', 'Failed', 'error');
-        console.error('Anthropic test error:', error);
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // TEST 2: OPENAI GPT-4 (FALLBACK)
-    // ═══════════════════════════════════════════════════════════════
-    updateStatus('openai', 'Testing...', 'testing');
-
-    try {
-        const openaiKey = window.OPENAI_API_KEY || localStorage.getItem('openai_api_key') || (typeof DEFAULT_OPENAI_API_KEY !== 'undefined' ? DEFAULT_OPENAI_API_KEY : null);
-        const corsProxy = 'https://corsproxy.io/?';
-
-        updateDetails('openai', `[${new Date().toLocaleTimeString()}] Starting OpenAI GPT-4 test...`, false);
-        updateDetails('openai', `📍 Endpoint: ${corsProxy}https://api.openai.com/v1/chat/completions`);
-        updateDetails('openai', `🤖 Model: gpt-4o`);
-        updateDetails('openai', `🔑 API Key: ${maskKey(openaiKey)}`);
-        updateDetails('openai', `🔄 Using CORS Proxy: Yes (OpenAI requires it for browser)`);
+        updateDetails(`[${new Date().toLocaleTimeString()}] Starting OpenAI GPT-4o test...`, false);
+        updateDetails(`📍 Endpoint: https://api.openai.com/v1/chat/completions`);
+        updateDetails(`🤖 Model: gpt-4o`);
+        updateDetails(`🔑 API Key: ${maskKey(openaiKey)}`);
 
         if (!openaiKey) {
-            throw new Error('No OpenAI API key configured');
+            throw new Error('No OpenAI API key configured. Go to Project Analytics > Configure API Key');
         }
 
-        updateDetails('openai', `\n⏳ Sending request...`);
+        updateDetails(`\n⏳ Sending request...`);
         const startTime = performance.now();
 
-        const response = await fetch(corsProxy + 'https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -36232,48 +36101,42 @@ Waiting for Anthropic test to complete...
         });
 
         const latency = Math.round(performance.now() - startTime);
-        updateDetails('openai', `⚡ Response time: ${latency}ms`);
-        updateDetails('openai', `📊 HTTP Status: ${response.status} ${response.statusText}`);
+        updateDetails(`⚡ Response time: ${latency}ms`);
+        updateDetails(`📊 HTTP Status: ${response.status} ${response.statusText}`);
 
         const data = await response.json();
 
         if (response.ok) {
             const aiResponse = data.choices?.[0]?.message?.content || 'No text in response';
-            updateDetails('openai', `\n✅ SUCCESS!`);
-            updateDetails('openai', `💬 AI Response: "${aiResponse}"`);
-            updateDetails('openai', `📈 Tokens used: ${data.usage?.prompt_tokens || 0} in / ${data.usage?.completion_tokens || 0} out`);
-            updateStatus('openai', `Connected (${latency}ms)`, 'success');
+            updateDetails(`\n✅ SUCCESS!`);
+            updateDetails(`💬 AI Response: "${aiResponse}"`);
+            updateDetails(`📈 Tokens used: ${data.usage?.prompt_tokens || 0} in / ${data.usage?.completion_tokens || 0} out`);
+            updateStatus(`Connected (${latency}ms)`, 'success');
             openaiSuccess = true;
         } else {
             throw new Error(data.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
-        updateDetails('openai', `\n❌ ERROR: ${error.message}`);
-        updateStatus('openai', 'Failed', 'error');
+        updateDetails(`\n❌ ERROR: ${error.message}`);
+        updateStatus('Failed', 'error');
         console.error('OpenAI test error:', error);
     }
 
     // Update main status indicator
     if (statusDiv) {
-        if (anthropicSuccess) {
-            statusDiv.innerHTML = '● Connected (Claude)';
+        if (openaiSuccess) {
+            statusDiv.innerHTML = '● Connected';
             statusDiv.style.background = 'rgba(16,185,129,0.15)';
             statusDiv.style.color = '#10b981';
-        } else if (openaiSuccess) {
-            statusDiv.innerHTML = '● Connected (GPT-4 Fallback)';
-            statusDiv.style.background = 'rgba(245,158,11,0.15)';
-            statusDiv.style.color = '#f59e0b';
         } else {
-            statusDiv.innerHTML = '○ All Connections Failed';
+            statusDiv.innerHTML = '○ Connection Failed';
             statusDiv.style.background = 'rgba(239,68,68,0.15)';
             statusDiv.style.color = '#ef4444';
         }
     }
 
-    // Log summary to console
-    console.log('=== AI API TEST SUMMARY ===');
-    console.log('Anthropic Claude (Primary):', anthropicSuccess ? '✅ SUCCESS' : '❌ FAILED');
-    console.log('OpenAI GPT-4 (Fallback):', openaiSuccess ? '✅ SUCCESS' : '❌ FAILED');
+    console.log('=== OpenAI API TEST ===');
+    console.log('OpenAI GPT-4:', openaiSuccess ? '✅ SUCCESS' : '❌ FAILED');
 }
 
 // Animated counter function
@@ -36840,7 +36703,7 @@ window.clearOpenAIKey = function() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AI PROVIDERS SETTINGS MODAL (Primary: Claude, Fallback: OpenAI)
+// AI PROVIDER SETTINGS MODAL (OpenAI GPT-4)
 // Firebase Cloud Storage - No localStorage
 // ═══════════════════════════════════════════════════════════════
 window.openAIProvidersSettings = async function() {
@@ -36865,12 +36728,9 @@ window.openAIProvidersSettings = async function() {
     }
 
     // Get stored keys from Firebase (cloud-only)
-    const keys = typeof window.getFirebaseAPIKeys === 'function' ? window.getFirebaseAPIKeys() : { anthropic_api_key: '', openai_api_key: '', hasCustomAnthropicKey: false, hasCustomOpenAIKey: false };
-    const storedAnthropicKey = keys.anthropic_api_key || '';
+    const keys = typeof window.getFirebaseAPIKeys === 'function' ? window.getFirebaseAPIKeys() : { openai_api_key: '', hasCustomOpenAIKey: false };
     const storedOpenAIKey = keys.openai_api_key || '';
-    const maskedAnthropicKey = storedAnthropicKey ? '••••••••' + storedAnthropicKey.slice(-8) : '';
     const maskedOpenAIKey = storedOpenAIKey ? '••••••••' + storedOpenAIKey.slice(-8) : '';
-    const hasCustomAnthropicKey = keys.hasCustomAnthropicKey;
     const hasCustomOpenAIKey = keys.hasCustomOpenAIKey;
 
     // Remove loading modal
@@ -36883,9 +36743,9 @@ window.openAIProvidersSettings = async function() {
 
     modal.innerHTML = `
         <div style="background: var(--bg-primary); border-radius: 16px; max-width: 500px; width: 100%; overflow: hidden; animation: modalSlideIn 0.3s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
-            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(16,185,129,0.1));">
+            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1));">
                 <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-brain" style="color: #8b5cf6;"></i> AI Providers Configuration
+                    <i class="fas fa-brain" style="color: #10b981;"></i> AI Provider Configuration
                     <span style="padding: 2px 8px; background: rgba(59,130,246,0.2); color: #3b82f6; border-radius: 6px; font-size: 9px; font-weight: 600;">
                         <i class="fas fa-cloud"></i> CLOUD
                     </span>
@@ -36895,33 +36755,7 @@ window.openAIProvidersSettings = async function() {
                 </button>
             </div>
             <div style="padding: 24px;">
-                <!-- Primary: Anthropic Claude -->
-                <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid rgba(139,92,246,0.3);">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                        <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-star" style="color: white; font-size: 14px;"></i>
-                        </div>
-                        <div>
-                            <span style="font-weight: 600; font-size: 14px;">Anthropic Claude</span>
-                            <span style="padding: 2px 8px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border-radius: 6px; font-size: 9px; font-weight: 600; margin-left: 8px;">PRIMARY</span>
-                        </div>
-                    </div>
-                    <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Claude API Key</label>
-                    <div style="position: relative;">
-                        <input type="password" id="anthropic-api-key-input" placeholder="${hasCustomAnthropicKey ? maskedAnthropicKey : 'Using default key...'}"
-                            style="width: 100%; padding: 10px 40px 10px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 13px; font-family: monospace; box-sizing: border-box;"
-                            onfocus="this.placeholder='sk-ant-...'"
-                            onblur="if(!this.value) this.placeholder='${hasCustomAnthropicKey ? maskedAnthropicKey : 'Using default key...'}'">
-                        <button onclick="toggleAPIKeyVisibility('anthropic')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px;">
-                            <i id="anthropic-key-toggle-icon" class="fas fa-eye" style="color: var(--text-muted); font-size: 12px;"></i>
-                        </button>
-                    </div>
-                    <p style="margin: 6px 0 0 0; font-size: 10px; color: var(--text-muted);">
-                        <i class="fas fa-check-circle" style="color: #10b981;"></i> ${hasCustomAnthropicKey ? 'Custom key configured' : 'Default key pre-configured'}
-                    </p>
-                </div>
-
-                <!-- Fallback: OpenAI -->
+                <!-- OpenAI GPT-4 -->
                 <div style="margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid rgba(16,185,129,0.3);">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                         <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
@@ -36929,9 +36763,12 @@ window.openAIProvidersSettings = async function() {
                         </div>
                         <div>
                             <span style="font-weight: 600; font-size: 14px;">OpenAI GPT-4</span>
-                            <span style="padding: 2px 8px; background: rgba(16,185,129,0.2); color: #10b981; border-radius: 6px; font-size: 9px; font-weight: 600; margin-left: 8px;">FALLBACK</span>
+                            <span style="padding: 2px 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 6px; font-size: 9px; font-weight: 600; margin-left: 8px;">AI ENGINE</span>
                         </div>
                     </div>
+                    <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--text-secondary);">
+                        Powers all AI features including Celeste AI, voice assistants, invoice scanning, and smart analysis.
+                    </p>
                     <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">OpenAI API Key</label>
                     <div style="position: relative;">
                         <input type="password" id="openai-provider-api-key-input" placeholder="${hasCustomOpenAIKey ? maskedOpenAIKey : 'Using default key...'}"
@@ -36950,12 +36787,12 @@ window.openAIProvidersSettings = async function() {
                 <div style="padding: 12px; background: rgba(59,130,246,0.1); border-radius: 8px; margin-bottom: 16px;">
                     <p style="margin: 0; font-size: 11px; color: var(--text-secondary);">
                         <i class="fas fa-cloud" style="color: #3b82f6;"></i>
-                        API keys are securely stored in Firebase Cloud. Changes sync instantly across all devices.
+                        API key is securely stored in Firebase Cloud. Changes sync instantly across all devices.
                     </p>
                 </div>
 
                 <div style="display: flex; gap: 10px;">
-                    <button id="save-api-keys-btn" onclick="saveAIProviderKeys()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); border: none; color: white; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                    <button id="save-api-keys-btn" onclick="saveAIProviderKeys()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
                         <i class="fas fa-cloud-upload-alt"></i> Save to Cloud
                     </button>
                     <button onclick="resetAIProviderKeys()" style="padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border-color)'">
@@ -36969,40 +36806,28 @@ window.openAIProvidersSettings = async function() {
 }
 
 window.toggleAPIKeyVisibility = function(provider) {
-    const inputId = provider === 'anthropic' ? 'anthropic-api-key-input' : 'openai-provider-api-key-input';
-    const iconId = provider === 'anthropic' ? 'anthropic-key-toggle-icon' : 'openai-provider-key-toggle-icon';
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
+    const input = document.getElementById('openai-provider-api-key-input');
+    const icon = document.getElementById('openai-provider-key-toggle-icon');
+    if (input && icon) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
     }
 }
 
 window.saveAIProviderKeys = async function() {
-    const anthropicInput = document.getElementById('anthropic-api-key-input');
     const openaiInput = document.getElementById('openai-provider-api-key-input');
-    const anthropicKey = anthropicInput.value.trim();
-    const openaiKey = openaiInput.value.trim();
+    const openaiKey = openaiInput ? openaiInput.value.trim() : '';
     const saveBtn = document.getElementById('save-api-keys-btn');
 
     // Show saving state
     if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving to Cloud...';
-    }
-
-    // Validate Anthropic key format if provided
-    if (anthropicKey && !anthropicKey.startsWith('sk-ant-')) {
-        showNotification('Invalid Anthropic API key format (should start with sk-ant-)', 'error');
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save to Cloud';
-        }
-        return;
     }
 
     // Validate OpenAI key format if provided
@@ -37018,18 +36843,14 @@ window.saveAIProviderKeys = async function() {
     try {
         // Save to Firebase (cloud-only)
         if (typeof window.saveFirebaseAPIKeys === 'function') {
-            const keysToSave = {};
-            if (anthropicKey) keysToSave.anthropic_api_key = anthropicKey;
-            if (openaiKey) keysToSave.openai_api_key = openaiKey;
-
-            if (Object.keys(keysToSave).length > 0) {
+            if (openaiKey) {
                 const success = await window.saveFirebaseAPIKeys(
-                    anthropicKey || undefined,
-                    openaiKey || undefined
+                    undefined,  // Reserved for future use
+                    openaiKey
                 );
 
                 if (success) {
-                    showNotification('API keys saved to cloud successfully!', 'success');
+                    showNotification('API key saved to cloud successfully!', 'success');
                     document.getElementById('ai-providers-settings-modal').remove();
                 } else {
                     throw new Error('Firebase save returned false');
@@ -37045,7 +36866,7 @@ window.saveAIProviderKeys = async function() {
             throw new Error('Firebase API key functions not available');
         }
     } catch (error) {
-        console.error('Error saving API keys to Firebase:', error);
+        console.error('Error saving API key to Firebase:', error);
         showNotification('Failed to save to cloud. Please try again.', 'error');
         if (saveBtn) {
             saveBtn.disabled = false;
@@ -37055,7 +36876,7 @@ window.saveAIProviderKeys = async function() {
 }
 
 window.resetAIProviderKeys = async function() {
-    if (confirm('Reset both API keys to their default values in the cloud?')) {
+    if (confirm('Reset API key to its default value in the cloud?')) {
         try {
             if (typeof window.resetFirebaseAPIKeys === 'function') {
                 const success = await window.resetFirebaseAPIKeys();
@@ -37078,9 +36899,7 @@ window.resetAIProviderKeys = async function() {
 // ═══════════════════════════════════════════════════════════════
 // AI API KEY DEFAULTS (Shared across all AI features)
 // ═══════════════════════════════════════════════════════════════
-// PRIMARY: Anthropic Claude (used by Celeste AI and all voice assistants)
-const DEFAULT_ANTHROPIC_KEY = 'sk-ant-api03-09Q7EwKig5XiQ20t2bvOAluPYPxDgu5-8_N5cI25_8A1rPc44QkeVIBedrx2faxeddBUg-_8pTFgAA';
-// FALLBACK: OpenAI GPT-4 (used if Claude fails)
+// OpenAI GPT-4 (used by Celeste AI and all voice assistants)
 const DEFAULT_OPENAI_KEY = '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';
 
 // Initialize default API key in localStorage on app load
