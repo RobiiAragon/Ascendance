@@ -1852,11 +1852,17 @@
                     <!-- Low Stock Alerts -->
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h3>
+                            <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Low Stock</h3>
                             <button class="card-action" onclick="navigateTo('restock')">Restock</button>
                         </div>
-                        <div class="card-body">
-                            <div id="low-stock-container">
+                        <div class="card-body" style="padding-top: 8px;">
+                            <!-- Simple tabs -->
+                            <div style="display: flex; gap: 4px; margin-bottom: 10px;">
+                                <button onclick="setLowStockTab('all')" id="low-stock-tab-all" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--accent-primary); color: white; cursor: pointer;">All</button>
+                                <button onclick="setLowStockTab('critical')" id="low-stock-tab-critical" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer;">Critical</button>
+                                <button onclick="setLowStockTab('low')" id="low-stock-tab-low" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer;">Low</button>
+                            </div>
+                            <div id="low-stock-container" style="max-height: 160px; overflow-y: auto;">
                                 <div style="text-align: center; padding: 30px 20px;">
                                     <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
                                     <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
@@ -2225,49 +2231,62 @@
         }
 
         /**
-         * Load low stock alerts from inventory
+         * Load low stock alerts from inventory - Enhanced with tabs and filters
          */
+        // Store all low stock data globally for filtering
+        window.lowStockData = { all: [], currentTab: 'all', currentStore: 'all' };
+
         async function loadLowStockAlerts() {
             const container = document.getElementById('low-stock-container');
             if (!container) return;
 
             try {
-                // Try to fetch inventory from Shopify
+                // Fetch inventory from both stores
+                const allInventory = [];
+
                 if (typeof fetchStoreInventory === 'function') {
-                    const inventory = await fetchStoreInventory('vsu', 50);
-
-                    if (inventory && inventory.length > 0) {
-                        // Filter low stock items (less than 5 units)
-                        const lowStock = inventory.filter(item => {
-                            const qty = item.inventoryQuantity || item.quantity || 0;
-                            return qty > 0 && qty < 5;
-                        }).slice(0, 4);
-
-                        if (lowStock.length > 0) {
-                            container.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                    <span style="background: #ef444420; color: #ef4444; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">${lowStock.length} items low</span>
-                                </div>
-                                <div style="display: flex; flex-direction: column; gap: 6px;">
-                                    ${lowStock.map(item => `
-                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--bg-primary); border-radius: 6px;">
-                                            <span style="font-size: 12px; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || item.name}</span>
-                                            <span style="font-size: 11px; font-weight: 600; color: #ef4444; margin-left: 8px;">${item.inventoryQuantity || item.quantity} left</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            `;
-                            return;
+                    // Fetch from VSU
+                    try {
+                        const vsuInventory = await fetchStoreInventory('vsu', 100);
+                        if (vsuInventory && vsuInventory.length > 0) {
+                            vsuInventory.forEach(item => {
+                                item.store = 'vsu';
+                                item.storeName = 'VSU';
+                                allInventory.push(item);
+                            });
                         }
-                    }
+                    } catch (e) { console.log('VSU inventory fetch error:', e); }
+
+                    // Fetch from Miramar
+                    try {
+                        const miramarInventory = await fetchStoreInventory('miramar', 100);
+                        if (miramarInventory && miramarInventory.length > 0) {
+                            miramarInventory.forEach(item => {
+                                item.store = 'miramar';
+                                item.storeName = 'Miramar';
+                                allInventory.push(item);
+                            });
+                        }
+                    } catch (e) { console.log('Miramar inventory fetch error:', e); }
                 }
 
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
-                        <i class="fas fa-check-circle" style="font-size: 24px; color: #10b981; margin-bottom: 8px;"></i>
-                        <p style="font-size: 13px;">Stock levels OK</p>
-                    </div>
-                `;
+                // Filter items with low stock (less than 10 units)
+                const lowStock = allInventory.filter(item => {
+                    const qty = item.inventoryQuantity || item.quantity || 0;
+                    return qty >= 0 && qty < 10;
+                }).sort((a, b) => {
+                    // Sort by quantity (lowest first)
+                    const qtyA = a.inventoryQuantity || a.quantity || 0;
+                    const qtyB = b.inventoryQuantity || b.quantity || 0;
+                    return qtyA - qtyB;
+                });
+
+                // Store data globally
+                window.lowStockData.all = lowStock;
+
+                // Render with current filters
+                renderLowStockItems();
+
             } catch (error) {
                 console.error('[Dashboard] Error loading low stock:', error);
                 container.innerHTML = `
@@ -2277,6 +2296,141 @@
                     </div>
                 `;
             }
+        }
+
+        // Set active tab for low stock
+        window.setLowStockTab = function(tab) {
+            window.lowStockData.currentTab = tab;
+
+            // Update tab styles
+            document.querySelectorAll('.low-stock-tab').forEach(btn => {
+                const tabId = btn.id.replace('low-stock-tab-', '');
+                if (tabId === tab) {
+                    if (tab === 'critical') {
+                        btn.style.background = '#ef4444';
+                        btn.style.color = 'white';
+                    } else if (tab === 'low') {
+                        btn.style.background = '#f59e0b';
+                        btn.style.color = 'white';
+                    } else if (tab === 'warning') {
+                        btn.style.background = '#3b82f6';
+                        btn.style.color = 'white';
+                    } else {
+                        btn.style.background = 'var(--accent-primary)';
+                        btn.style.color = 'white';
+                    }
+                } else {
+                    btn.style.background = 'transparent';
+                    if (tabId === 'critical') btn.style.color = '#ef4444';
+                    else if (tabId === 'low') btn.style.color = '#f59e0b';
+                    else if (tabId === 'warning') btn.style.color = '#3b82f6';
+                    else btn.style.color = 'var(--text-secondary)';
+                }
+            });
+
+            renderLowStockItems();
+        };
+
+        // Filter by store
+        window.filterLowStock = function() {
+            const storeFilter = document.getElementById('low-stock-store-filter');
+            if (storeFilter) {
+                window.lowStockData.currentStore = storeFilter.value;
+            }
+            renderLowStockItems();
+        };
+
+        // Render low stock items based on current filters
+        function renderLowStockItems() {
+            const container = document.getElementById('low-stock-container');
+            if (!container) return;
+
+            const { all, currentTab, currentStore } = window.lowStockData;
+
+            // Filter by store
+            let filtered = currentStore === 'all' ? all : all.filter(item => item.store === currentStore);
+
+            // Filter by tab (stock level)
+            filtered = filtered.filter(item => {
+                const qty = item.inventoryQuantity || item.quantity || 0;
+                switch (currentTab) {
+                    case 'critical': return qty < 3;
+                    case 'low': return qty >= 3 && qty < 5;
+                    case 'warning': return qty >= 5 && qty < 10;
+                    default: return true; // 'all'
+                }
+            });
+
+            if (filtered.length === 0) {
+                const message = currentTab === 'all' ? 'Stock levels OK' : `No ${currentTab} stock items`;
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-check-circle" style="font-size: 24px; color: #10b981; margin-bottom: 8px;"></i>
+                        <p style="font-size: 13px;">${message}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get counts for badge
+            const criticalCount = all.filter(i => (i.inventoryQuantity || i.quantity || 0) < 3).length;
+            const lowCount = all.filter(i => { const q = i.inventoryQuantity || i.quantity || 0; return q >= 3 && q < 5; }).length;
+            const warningCount = all.filter(i => { const q = i.inventoryQuantity || i.quantity || 0; return q >= 5 && q < 10; }).length;
+
+            // Update tab counts
+            const criticalTab = document.getElementById('low-stock-tab-critical');
+            const lowTab = document.getElementById('low-stock-tab-low');
+            const warningTab = document.getElementById('low-stock-tab-warning');
+            const allTab = document.getElementById('low-stock-tab-all');
+
+            if (criticalTab) criticalTab.innerHTML = `Critical (${criticalCount})`;
+            if (lowTab) lowTab.innerHTML = `Low (${lowCount})`;
+            if (warningTab) warningTab.innerHTML = `Warning (${warningCount})`;
+            if (allTab) allTab.innerHTML = `All (${all.length})`;
+
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    ${filtered.slice(0, 15).map(item => {
+                        const qty = item.inventoryQuantity || item.quantity || 0;
+                        let statusColor, statusBg, statusIcon;
+
+                        if (qty < 3) {
+                            statusColor = '#ef4444';
+                            statusBg = '#ef444420';
+                            statusIcon = 'exclamation-circle';
+                        } else if (qty < 5) {
+                            statusColor = '#f59e0b';
+                            statusBg = '#f59e0b20';
+                            statusIcon = 'exclamation-triangle';
+                        } else {
+                            statusColor = '#3b82f6';
+                            statusBg = '#3b82f620';
+                            statusIcon = 'info-circle';
+                        }
+
+                        return `
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--bg-primary); border-radius: 6px; border-left: 3px solid ${statusColor};">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-size: 12px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || item.name}</div>
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                        <i class="fas fa-store" style="margin-right: 4px;"></i>${item.storeName}
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
+                                    <span style="font-size: 11px; font-weight: 600; color: ${statusColor}; background: ${statusBg}; padding: 3px 8px; border-radius: 4px;">
+                                        <i class="fas fa-${statusIcon}" style="margin-right: 4px;"></i>${qty} left
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                ${filtered.length > 15 ? `
+                    <div style="text-align: center; margin-top: 10px;">
+                        <span style="font-size: 11px; color: var(--text-muted);">+${filtered.length - 15} more items</span>
+                    </div>
+                ` : ''}
+            `;
         }
 
         /**
