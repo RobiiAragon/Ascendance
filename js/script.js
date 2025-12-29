@@ -38913,7 +38913,7 @@ function renderGLabs() {
         </div>
 
         <!-- Context Menu -->
-        <div id="glabs-context-menu" style="display: none; position: fixed; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 180px;">
+        <div id="glabs-context-menu" style="display: none; position: fixed; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 180px; max-height: 60vh; overflow-y: auto;">
             <div class="glabs-ctx-item" onclick="glabsFormatCurrency()"><i class="fas fa-dollar-sign" style="width: 20px;"></i> Currency ($)</div>
             <div class="glabs-ctx-item" onclick="glabsFormatPercent()"><i class="fas fa-percent" style="width: 20px;"></i> Percentage (%)</div>
             <div class="glabs-ctx-item" onclick="glabsFormatNumber()"><i class="fas fa-hashtag" style="width: 20px;"></i> Number (1,000)</div>
@@ -39329,8 +39329,28 @@ function glabsShowContextMenu(event, row, col) {
 
     const menu = document.getElementById('glabs-context-menu');
     menu.style.display = 'block';
-    menu.style.left = event.clientX + 'px';
-    menu.style.top = event.clientY + 'px';
+
+    // Position menu, ensuring it doesn't go off screen
+    const menuHeight = menu.offsetHeight || 400;
+    const menuWidth = menu.offsetWidth || 180;
+    const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
+
+    let left = event.clientX;
+    let top = event.clientY;
+
+    // Adjust if menu would go off right edge
+    if (left + menuWidth > windowWidth) {
+        left = windowWidth - menuWidth - 10;
+    }
+
+    // Adjust if menu would go off bottom edge
+    if (top + menuHeight > windowHeight) {
+        top = windowHeight - menuHeight - 10;
+    }
+
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
 }
 
 // Hide context menu
