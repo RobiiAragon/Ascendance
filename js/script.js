@@ -1185,7 +1185,7 @@
                 risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
                 projectanalytics: 'Project Analytics',
-                restock: 'Restock Requests',
+                restock: 'Product Requests',
                 supplies: 'Supplies',
                 dailychecklist: 'Daily Checklist',
                 labels: 'Barcode Labels',
@@ -7410,48 +7410,95 @@ window.viewChecklistHistory = async function() {
 
         async function renderRestockRequests() {
             const dashboard = document.querySelector('.dashboard');
+
+            // Get all requests sorted by date (newest first)
+            const allRequests = [...restockRequests].sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Inventory & Restock</h2>
-                        <p class="section-subtitle">Manage inventory and restock requests across all stores</p>
+                        <h2 class="section-title">Product Requests</h2>
+                        <p class="section-subtitle">Request products for store inventory</p>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn-secondary" onclick="refreshShopifyInventory()" title="Refresh from Shopify">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                        <button class="btn-primary floating-add-btn" onclick="openNewRestockRequestModal()">
-                            <i class="fas fa-plus"></i> Create Restock Request
-                        </button>
-                    </div>
-                </div>
-
-                <div class="restock-tabs" style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color);">
-                    <button onclick="switchRestockTab('inventory')" class="tab-btn ${currentRestockTab === 'inventory' ? 'active' : ''}" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid ${currentRestockTab === 'inventory' ? 'var(--accent-primary)' : 'transparent'}; color: ${currentRestockTab === 'inventory' ? 'var(--accent-primary)' : 'var(--text-secondary)'}; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: -2px; transition: all 0.2s;">
-                        <i class="fas fa-boxes"></i> Inventory
-                    </button>
-                    <button onclick="switchRestockTab('requests')" class="tab-btn ${currentRestockTab === 'requests' ? 'active' : ''}" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid ${currentRestockTab === 'requests' ? 'var(--accent-primary)' : 'transparent'}; color: ${currentRestockTab === 'requests' ? 'var(--accent-primary)' : 'var(--text-secondary)'}; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: -2px; transition: all 0.2s;">
-                        <i class="fas fa-list"></i> Requests <span style="background: var(--accent-gradient); color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${restockRequests.filter(r => r.status === 'pending').length}</span>
-                    </button>
-                    <button onclick="switchRestockTab('approved')" class="tab-btn ${currentRestockTab === 'approved' ? 'active' : ''}" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid ${currentRestockTab === 'approved' ? '#10b981' : 'transparent'}; color: ${currentRestockTab === 'approved' ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: -2px; transition: all 0.2s;">
-                        <i class="fas fa-check-circle"></i> Approved <span style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${restockRequests.filter(r => r.status === 'approved').length}</span>
+                    <button class="btn-primary" onclick="openNewRestockRequestModal()" style="padding: 12px 24px; border-radius: 10px;">
+                        <i class="fas fa-plus"></i> New Request
                     </button>
                 </div>
 
-                <div id="restock-tab-content">
-                    ${currentRestockTab === 'inventory' ? '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading inventory from Shopify...</p></div>' : currentRestockTab === 'approved' ? renderApprovedTab() : renderRequestsTab()}
+                <!-- Simple Stats -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border-color);">
+                        <div style="font-size: 28px; font-weight: 700; color: var(--accent-primary);">${allRequests.length}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Total Requests</div>
+                    </div>
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border-color);">
+                        <div style="font-size: 28px; font-weight: 700; color: #f59e0b;">${allRequests.filter(r => r.priority === 'high').length}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">High Priority</div>
+                    </div>
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border-color);">
+                        <div style="font-size: 28px; font-weight: 700; color: #10b981;">${allRequests.reduce((sum, r) => sum + (r.quantity || 0), 0)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Total Units</div>
+                    </div>
+                </div>
+
+                <!-- Requests List -->
+                <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: var(--text-primary);">All Requests</span>
+                        <span style="font-size: 13px; color: var(--text-muted);">${allRequests.length} items</span>
+                    </div>
+
+                    ${allRequests.length === 0 ? `
+                        <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+                            <i class="fas fa-box-open" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
+                            <p style="font-size: 15px; margin: 0;">No requests yet</p>
+                            <p style="font-size: 13px; margin-top: 8px;">Click "New Request" to add a product request</p>
+                        </div>
+                    ` : `
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-tertiary);">
+                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Product</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Qty</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Store</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Priority</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Date</th>
+                                    <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${allRequests.map(request => {
+                                    const priorityColor = request.priority === 'high' ? '#ef4444' : request.priority === 'medium' ? '#f59e0b' : '#10b981';
+                                    return `
+                                        <tr style="border-bottom: 1px solid var(--border-color);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                                            <td style="padding: 14px 16px;">
+                                                <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${request.productName}</div>
+                                                ${request.notes ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${request.notes.substring(0, 50)}${request.notes.length > 50 ? '...' : ''}</div>` : ''}
+                                            </td>
+                                            <td style="padding: 14px 16px; text-align: center;">
+                                                <span style="font-weight: 700; font-size: 16px; color: var(--accent-primary);">${request.quantity}</span>
+                                            </td>
+                                            <td style="padding: 14px 16px; font-size: 13px; color: var(--text-secondary);">${request.store || '-'}</td>
+                                            <td style="padding: 14px 16px;">
+                                                <span style="background: ${priorityColor}20; color: ${priorityColor}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${request.priority}</span>
+                                            </td>
+                                            <td style="padding: 14px 16px; font-size: 13px; color: var(--text-muted);">${formatDate(request.requestDate)}</td>
+                                            <td style="padding: 14px 16px; text-align: right;">
+                                                <button onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; margin-right: 4px;" onmouseover="this.style.color='var(--accent-primary)'" onmouseout="this.style.color='var(--text-muted)'" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    `}
                 </div>
             `;
-
-            // Load inventory from Shopify if on inventory tab
-            if (currentRestockTab === 'inventory') {
-                await loadShopifyInventory();
-                const tabContent = document.getElementById('restock-tab-content');
-                if (tabContent) {
-                    tabContent.innerHTML = renderInventoryTab();
-                    displayInventoryStockChart();
-                }
-            }
         }
 
         // Refresh inventory from Shopify
@@ -14042,9 +14089,17 @@ window.viewChecklistHistory = async function() {
                         <h2 class="section-title">Invoices & Payments</h2>
                         <p class="section-subtitle">Track and manage all your invoices and payments</p>
                     </div>
-                    <button class="btn-primary floating-add-btn" onclick="openModal('add-invoice')">
-                        <i class="fas fa-plus"></i> Add Invoice
-                    </button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="exportInvoicesToExcel()" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='white';" onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.color='#10b981';">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                        <button onclick="exportInvoicesToPDF()" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.1); color: #ef4444; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white';" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.color='#ef4444';">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button class="btn-primary floating-add-btn" onclick="openModal('add-invoice')">
+                            <i class="fas fa-plus"></i> Add Invoice
+                        </button>
+                    </div>
                 </div>
 
                 <!-- MAIN TABS NAVIGATION -->
@@ -15780,6 +15835,167 @@ Return ONLY the JSON object, no additional text.`
                 console.error('Error saving invoice changes:', error);
                 showNotification('Error saving invoice changes', 'error');
             }
+        }
+
+        // Export Invoices to Excel (CSV)
+        function exportInvoicesToExcel() {
+            const filteredInvoices = getFilteredInvoices();
+            if (filteredInvoices.length === 0) {
+                alert('No invoices to export');
+                return;
+            }
+
+            // Create CSV content
+            const headers = ['Invoice #', 'Vendor', 'Category', 'Store', 'Amount', 'Amount Paid', 'Balance', 'Status', 'Due Date', 'Paid Date', 'Notes'];
+            const rows = filteredInvoices.map(inv => [
+                inv.invoiceNumber || '-',
+                inv.vendor || '-',
+                inv.category || '-',
+                inv.store || '-',
+                inv.amount?.toFixed(2) || '0.00',
+                (inv.amountPaid || 0).toFixed(2),
+                (inv.amount - (inv.amountPaid || 0)).toFixed(2),
+                inv.status || '-',
+                inv.dueDate || '-',
+                inv.paidDate || '-',
+                (inv.notes || '').replace(/,/g, ';').replace(/\n/g, ' ')
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            // Add summary
+            const totalAmount = filteredInvoices.reduce((sum, i) => sum + i.amount, 0);
+            const totalPaid = filteredInvoices.reduce((sum, i) => sum + (i.amountPaid || 0), 0);
+            csv += '\n"TOTAL","","","","' + totalAmount.toFixed(2) + '","' + totalPaid.toFixed(2) + '","' + (totalAmount - totalPaid).toFixed(2) + '","","","",""';
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const date = new Date().toISOString().split('T')[0];
+            link.download = `invoices_${invoiceFilters.store || 'all'}_${date}.csv`;
+            link.click();
+        }
+
+        // Export Invoices to PDF
+        function exportInvoicesToPDF() {
+            const filteredInvoices = getFilteredInvoices();
+            if (filteredInvoices.length === 0) {
+                alert('No invoices to export');
+                return;
+            }
+
+            // Calculate totals
+            const totalAmount = filteredInvoices.reduce((sum, i) => sum + i.amount, 0);
+            const totalPaid = filteredInvoices.reduce((sum, i) => sum + (i.amountPaid || 0), 0);
+            const totalPending = totalAmount - totalPaid;
+
+            // Create printable HTML
+            const printContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Invoices Report</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1f2937; }
+                        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #6366f1; padding-bottom: 20px; }
+                        .header h1 { font-size: 28px; color: #1f2937; margin-bottom: 8px; }
+                        .header p { color: #6b7280; font-size: 14px; }
+                        .summary { display: flex; justify-content: space-around; margin-bottom: 30px; background: #f3f4f6; padding: 20px; border-radius: 8px; }
+                        .summary-item { text-align: center; }
+                        .summary-item .label { font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
+                        .summary-item .value { font-size: 24px; font-weight: bold; }
+                        .summary-item .value.green { color: #10b981; }
+                        .summary-item .value.red { color: #ef4444; }
+                        .summary-item .value.blue { color: #6366f1; }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                        th { background: #6366f1; color: white; padding: 12px 8px; text-align: left; font-weight: 600; }
+                        td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+                        tr:nth-child(even) { background: #f9fafb; }
+                        .status { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+                        .status.paid { background: #d1fae5; color: #065f46; }
+                        .status.pending { background: #fef3c7; color: #92400e; }
+                        .status.overdue { background: #fee2e2; color: #991b1b; }
+                        .status.partial { background: #dbeafe; color: #1e40af; }
+                        .footer { margin-top: 30px; text-align: center; color: #9ca3af; font-size: 11px; }
+                        .amount { text-align: right; font-family: monospace; }
+                        @media print { body { padding: 20px; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Invoices Report</h1>
+                        <p>${invoiceFilters.store && invoiceFilters.store !== 'all' ? invoiceFilters.store + ' - ' : ''}Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+
+                    <div class="summary">
+                        <div class="summary-item">
+                            <div class="label">Total Invoices</div>
+                            <div class="value blue">${filteredInvoices.length}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="label">Total Amount</div>
+                            <div class="value">$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="label">Total Paid</div>
+                            <div class="value green">$${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="label">Balance Due</div>
+                            <div class="value red">$${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Vendor</th>
+                                <th>Category</th>
+                                <th>Store</th>
+                                <th style="text-align: right;">Amount</th>
+                                <th style="text-align: right;">Paid</th>
+                                <th style="text-align: right;">Balance</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredInvoices.map(inv => `
+                                <tr>
+                                    <td>${inv.invoiceNumber || '-'}</td>
+                                    <td>${inv.vendor || '-'}</td>
+                                    <td>${inv.category || '-'}</td>
+                                    <td>${inv.store || '-'}</td>
+                                    <td class="amount">$${inv.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}</td>
+                                    <td class="amount">$${(inv.amountPaid || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    <td class="amount">$${(inv.amount - (inv.amountPaid || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    <td><span class="status ${inv.status}">${inv.status}</span></td>
+                                    <td>${inv.dueDate || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="footer">
+                        <p>Ascendance - Invoice Management System</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // Open print window
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.onload = function() {
+                printWindow.print();
+            };
         }
 
         // Load invoices from Firebase
@@ -24412,88 +24628,29 @@ Return ONLY the JSON object, no additional text.`
                 case 'new-restock-request':
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-box"></i> New Restock Request</h2>
+                            <h2><i class="fas fa-box"></i> New Product Request</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Item Type *</label>
-                                    <select class="form-input" id="new-restock-item-type">
-                                        <option value="product">Product</option>
-                                        <option value="supply">Supply</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Product/Supply Name *</label>
-                                    <input type="text" class="form-input" id="new-restock-product" placeholder="Enter name...">
-                                </div>
+                            <div class="form-group">
+                                <label>Product Name *</label>
+                                <input type="text" class="form-input" id="new-restock-product" placeholder="Enter product name...">
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Brand</label>
-                                    <select class="form-input" id="new-restock-brand" onchange="toggleCustomBrandInput()">
-                                        <option value="">Select brand...</option>
-                                        <option value="Elf Bar">Elf Bar</option>
-                                        <option value="Lost Mary">Lost Mary</option>
-                                        <option value="Funky Republic">Funky Republic</option>
-                                        <option value="Puff Bar">Puff Bar</option>
-                                        <option value="JUUL">JUUL</option>
-                                        <option value="SMOK">SMOK</option>
-                                        <option value="Vuse">Vuse</option>
-                                        <option value="Hyde">Hyde</option>
-                                        <option value="Breeze">Breeze</option>
-                                        <option value="Geek Bar">Geek Bar</option>
-                                        <option value="RAZ">RAZ</option>
-                                        <option value="Orion">Orion</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                    <input type="text" class="form-input" id="new-restock-custom-brand" placeholder="Enter custom brand name..." style="display: none; margin-top: 8px;">
+                                    <label>Quantity *</label>
+                                    <input type="number" class="form-input" id="new-restock-quantity" placeholder="0" min="1">
                                 </div>
                                 <div class="form-group">
-                                    <label>Flavor/Variant</label>
-                                    <select class="form-input" id="new-restock-flavor">
-                                        <option value="">Select flavor...</option>
-                                        <option value="Strawberry">Strawberry</option>
-                                        <option value="Watermelon">Watermelon</option>
-                                        <option value="Blue Razz">Blue Razz</option>
-                                        <option value="Mango">Mango</option>
-                                        <option value="Grape">Grape</option>
-                                        <option value="Mint">Mint</option>
-                                        <option value="Menthol">Menthol</option>
-                                        <option value="Tobacco">Tobacco</option>
-                                        <option value="Mixed Berry">Mixed Berry</option>
-                                        <option value="Peach">Peach</option>
-                                        <option value="Lemon">Lemon</option>
-                                        <option value="Apple">Apple</option>
-                                        <option value="Cherry">Cherry</option>
-                                        <option value="Pineapple">Pineapple</option>
-                                        <option value="Cotton Candy">Cotton Candy</option>
-                                        <option value="Vanilla">Vanilla</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Quantity Requested *</label>
-                                    <input type="number" class="form-input" id="new-restock-quantity" placeholder="Enter quantity...">
-                                </div>
-                                <div class="form-group">
-                                    <label>Priority *</label>
+                                    <label>Priority</label>
                                     <select class="form-input" id="new-restock-priority">
-                                        <option value="">Select priority...</option>
                                         <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
+                                        <option value="medium" selected>Medium</option>
                                         <option value="high">High</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>Date *</label>
-                                    <input type="date" class="form-input" id="new-restock-date" value="${new Date().toISOString().split('T')[0]}">
-                                </div>
                                 <div class="form-group">
                                     <label>Store *</label>
                                     <select class="form-input" id="new-restock-store">
@@ -24506,106 +24663,43 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
-                                    <label>Requested By *</label>
+                                    <label>Requested By</label>
                                     <select class="form-input" id="new-restock-requested-by">
                                         <option value="">Select employee...</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                        <input type="checkbox" id="new-restock-customer-request" style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
-                                        <span>Customer Request</span>
-                                    </label>
-                                    <input type="text" class="form-input" id="new-restock-customer-info" placeholder="Customer name or info..." disabled style="background: var(--bg-hover);">
-                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Notes (Optional)</label>
-                                <textarea class="form-input" id="new-restock-notes" rows="3" placeholder="Add any additional notes..."></textarea>
+                                <textarea class="form-input" id="new-restock-notes" rows="2" placeholder="Any additional details..."></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="submitNewRestockRequest()">Submit Request</button>
+                            <button class="btn-primary" onclick="submitNewRestockRequest()">Add Request</button>
                         </div>
                     `;
                     break;
                 case 'edit-restock-request':
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-edit"></i> Edit Restock Request</h2>
+                            <h2><i class="fas fa-edit"></i> Edit Request</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Item Type *</label>
-                                    <select class="form-input" id="edit-restock-item-type">
-                                        <option value="product">Product</option>
-                                        <option value="supply">Supply</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Product/Supply Name *</label>
-                                    <input type="text" class="form-input" id="edit-restock-product" placeholder="Enter name...">
-                                </div>
+                            <div class="form-group">
+                                <label>Product Name *</label>
+                                <input type="text" class="form-input" id="edit-restock-product" placeholder="Enter product name...">
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Brand</label>
-                                    <select class="form-input" id="edit-restock-brand">
-                                        <option value="">Select brand...</option>
-                                        <option value="Elf Bar">Elf Bar</option>
-                                        <option value="Lost Mary">Lost Mary</option>
-                                        <option value="Funky Republic">Funky Republic</option>
-                                        <option value="Puff Bar">Puff Bar</option>
-                                        <option value="JUUL">JUUL</option>
-                                        <option value="SMOK">SMOK</option>
-                                        <option value="Vuse">Vuse</option>
-                                        <option value="Hyde">Hyde</option>
-                                        <option value="Breeze">Breeze</option>
-                                        <option value="Geek Bar">Geek Bar</option>
-                                        <option value="RAZ">RAZ</option>
-                                        <option value="Orion">Orion</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                    <label>Quantity *</label>
+                                    <input type="number" class="form-input" id="edit-restock-quantity" placeholder="0" min="1">
                                 </div>
                                 <div class="form-group">
-                                    <label>Flavor/Variant</label>
-                                    <select class="form-input" id="edit-restock-flavor">
-                                        <option value="">Select flavor...</option>
-                                        <option value="Strawberry">Strawberry</option>
-                                        <option value="Watermelon">Watermelon</option>
-                                        <option value="Blue Razz">Blue Razz</option>
-                                        <option value="Mango">Mango</option>
-                                        <option value="Grape">Grape</option>
-                                        <option value="Mint">Mint</option>
-                                        <option value="Menthol">Menthol</option>
-                                        <option value="Tobacco">Tobacco</option>
-                                        <option value="Mixed Berry">Mixed Berry</option>
-                                        <option value="Peach">Peach</option>
-                                        <option value="Lemon">Lemon</option>
-                                        <option value="Apple">Apple</option>
-                                        <option value="Cherry">Cherry</option>
-                                        <option value="Pineapple">Pineapple</option>
-                                        <option value="Cotton Candy">Cotton Candy</option>
-                                        <option value="Vanilla">Vanilla</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Quantity Requested *</label>
-                                    <input type="number" class="form-input" id="edit-restock-quantity" placeholder="Enter quantity...">
-                                </div>
-                                <div class="form-group">
-                                    <label>Priority *</label>
+                                    <label>Priority</label>
                                     <select class="form-input" id="edit-restock-priority">
-                                        <option value="">Select priority...</option>
                                         <option value="low">Low</option>
                                         <option value="medium">Medium</option>
                                         <option value="high">High</option>
@@ -24613,10 +24707,6 @@ Return ONLY the JSON object, no additional text.`
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>Date *</label>
-                                    <input type="date" class="form-input" id="edit-restock-date">
-                                </div>
                                 <div class="form-group">
                                     <label>Store *</label>
                                     <select class="form-input" id="edit-restock-store">
@@ -24629,16 +24719,16 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Requested By *</label>
-                                <select class="form-input" id="edit-restock-requested-by">
-                                    <option value="">Select employee...</option>
-                                </select>
+                                <div class="form-group">
+                                    <label>Requested By</label>
+                                    <select class="form-input" id="edit-restock-requested-by">
+                                        <option value="">Select employee...</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Notes (Optional)</label>
-                                <textarea class="form-input" id="edit-restock-notes" rows="3" placeholder="Add any additional notes..."></textarea>
+                                <textarea class="form-input" id="edit-restock-notes" rows="2" placeholder="Any additional details..."></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -28563,83 +28653,57 @@ Return ONLY the JSON object, no additional text.`,
         }
 
         function submitNewRestockRequest() {
-            const itemType = document.getElementById('new-restock-item-type').value;
             const product = document.getElementById('new-restock-product').value;
-            const brandSelect = document.getElementById('new-restock-brand').value;
-            const customBrand = document.getElementById('new-restock-custom-brand').value;
-            const brand = brandSelect === 'Other' ? customBrand : brandSelect;
-            const flavor = document.getElementById('new-restock-flavor').value;
             const quantity = document.getElementById('new-restock-quantity').value;
-            const priority = document.getElementById('new-restock-priority').value;
-            const date = document.getElementById('new-restock-date').value;
+            const priority = document.getElementById('new-restock-priority').value || 'medium';
             const store = document.getElementById('new-restock-store').value;
-            const requestedBy = document.getElementById('new-restock-requested-by').value;
-            const isCustomerRequest = document.getElementById('new-restock-customer-request').checked;
-            const customerInfo = document.getElementById('new-restock-customer-info').value;
+            const requestedByEl = document.getElementById('new-restock-requested-by');
+            const requestedBy = requestedByEl ? requestedByEl.value : '';
             const notes = document.getElementById('new-restock-notes').value;
 
             // Validation
-            if (!product || !quantity || !priority || !date || !store || !requestedBy) {
-                alert('Please fill in all required fields');
+            if (!product || !quantity || !store) {
+                alert('Please fill in Product, Quantity and Store');
                 return;
             }
-
-            if (isCustomerRequest && !customerInfo) {
-                alert('Please provide customer information');
-                return;
-            }
-
-            // Build product name
-            let productName = product;
-            if (brand) productName = `${brand} ${productName}`;
-            if (flavor) productName = `${productName} - ${flavor}`;
-
-            // Build notes
-            const noteText = isCustomerRequest
-                ? `Customer Request: ${customerInfo}${notes ? '\n' + notes : ''}`
-                : notes;
 
             // Create request object
             const newRequest = {
-                productName: productName,
-                itemType: itemType,
+                productName: product,
+                itemType: 'product',
                 quantity: parseInt(quantity),
                 store,
-                requestedBy,
-                requestDate: date,
-                status: 'pending',
+                requestedBy: requestedBy || 'Unknown',
+                requestDate: new Date().toISOString().split('T')[0],
+                status: 'approved',
                 priority,
-                notes: noteText
+                notes: notes || ''
             };
 
             // Save to Firebase if initialized
             if (firebaseRestockRequestsManager.isInitialized) {
                 firebaseRestockRequestsManager.addRestockRequest(newRequest).then(newId => {
                     if (newId) {
-                        // Add to local array with Firestore ID
                         restockRequests.unshift({
                             id: newId,
                             firestoreId: newId,
                             ...newRequest
                         });
                         closeModal();
-                        currentRestockTab = 'requests';
                         renderRestockRequests();
                     } else {
-                        alert('Error creating restock request. Please try again.');
+                        alert('Error creating request. Please try again.');
                     }
                 }).catch(error => {
-                    console.error('Error creating restock request in Firebase:', error);
-                    alert('Error creating restock request: ' + error.message);
+                    console.error('Error creating request:', error);
+                    alert('Error: ' + error.message);
                 });
             } else {
-                // Fallback to local storage only
                 restockRequests.unshift({
                     id: restockRequests.length + 1,
                     ...newRequest
                 });
                 closeModal();
-                currentRestockTab = 'requests';
                 renderRestockRequests();
             }
         }
@@ -29504,7 +29568,7 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Training Center', page: 'training', icon: 'fa-graduation-cap' },
                 { name: 'Licenses & Docs', page: 'licenses', icon: 'fa-folder-open' },
                 { name: 'Sales & Analytics', page: 'analytics', icon: 'fa-chart-line' },
-                { name: 'Restock Requests', page: 'restock', icon: 'fa-boxes' },
+                { name: 'Product Requests', page: 'restock', icon: 'fa-boxes' },
                 { name: 'Supplies', page: 'supplies', icon: 'fa-shopping-basket' },
                 { name: 'Daily Checklist', page: 'dailychecklist', icon: 'fa-clipboard-check' },
                 { name: 'Abundance Cloud', page: 'abundancecloud', icon: 'fa-cloud' },
@@ -34766,7 +34830,7 @@ window.renderProjectAnalytics = function() {
         { name: 'Licenses & Docs', icon: 'fa-folder-open', status: 'active', page: 'licenses', description: 'Compliance management', fullDescription: 'Document management for business licenses, permits, and compliance certificates with expiration alerts.', features: ['Expiration alerts', 'Document upload', 'Auto reminders', 'Compliance status'], version: '1.5', linesOfCode: 680 },
         { name: 'Sales Analytics', icon: 'fa-chart-line', status: 'active', page: 'analytics', description: 'Shopify integration', fullDescription: 'Real-time sales analytics with Shopify integration, charts, and performance metrics.', features: ['Shopify sync', 'Interactive charts', 'Revenue tracking', 'Product analytics'], version: '3.0', linesOfCode: 1650 },
         { name: 'Barcode Labels', icon: 'fa-barcode', status: 'active', page: 'labels', description: 'Label generation', fullDescription: 'Barcode and label generation system for inventory management and product tagging.', features: ['Barcode generation', 'Label printing', 'Batch creation', 'Template editor'], version: '1.5', linesOfCode: 520 },
-        { name: 'Restock Requests', icon: 'fa-boxes', status: 'active', page: 'restock', description: 'Stock replenishment', fullDescription: 'Automated restock request system with low-stock alerts and supplier integration.', features: ['Low stock alerts', 'Auto requests', 'Priority levels', 'Supplier orders'], version: '1.8', linesOfCode: 640 },
+        { name: 'Product Requests', icon: 'fa-boxes', status: 'active', page: 'restock', description: 'Product requests', fullDescription: 'Simple product request system for stores.', features: ['Quick requests', 'Priority levels', 'Store tracking'], version: '2.0', linesOfCode: 300 },
         { name: 'Supplies', icon: 'fa-shopping-basket', status: 'active', page: 'supplies', description: 'Store supplies tracking', fullDescription: 'Track everyday supplies needed per store with pending/purchased status and monthly history.', features: ['Per-store tracking', 'Purchase status', 'Monthly history', 'All employees access'], version: '1.2', linesOfCode: 450 },
         { name: 'Daily Checklist', icon: 'fa-clipboard-check', status: 'active', page: 'dailychecklist', description: 'Task management', fullDescription: 'Daily operational checklist for store opening, closing, and routine tasks.', features: ['Custom checklists', 'Task templates', 'Completion tracking', 'Reminders'], version: '1.3', linesOfCode: 380 },
         { name: 'Abundance Cloud', icon: 'fa-cloud', status: 'active', page: 'abundancecloud', description: 'Order management engine', fullDescription: 'Powerful order processing engine for shipping, pickup, and delivery management.', features: ['Order tracking', 'Shipping labels', 'Pickup scheduling', 'Delivery status'], version: '3.5', linesOfCode: 2400 },
