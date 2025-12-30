@@ -324,6 +324,91 @@ async function cancelBulkOperation(storeKey = 'vsu', operationId = null) {
     }
 }
 
+/**
+ * Force cancel a bulk operation by ID without checking status first
+ * This is used when Shopify reports a conflict but status check shows COMPLETED
+ * @param {Object} storeConfig - Store configuration
+ * @param {string} operationId - The operation ID to cancel (gid://shopify/BulkOperation/xxx)
+ */
+async function forceCancelBulkOperation(storeConfig, operationId) {
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    console.log(`[BULK FORCE CANCEL] Attempting to force cancel: ${operationId}`);
+
+    const mutation = `
+        mutation {
+            bulkOperationCancel(id: "${operationId}") {
+                bulkOperation {
+                    id
+                    status
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+    `;
+
+    try {
+        // Add cache-busting timestamp to avoid CORS proxy cache issues
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            },
+            body: JSON.stringify({
+                query: mutation,
+                _nocache: Date.now() // Cache buster in body
+            })
+        });
+
+        if (!response.ok) {
+            console.warn('[BULK FORCE CANCEL] Request failed:', response.status);
+            return false;
+        }
+
+        const result = await response.json();
+        console.log('[BULK FORCE CANCEL] Response:', JSON.stringify(result, null, 2));
+
+        if (result.errors) {
+            console.warn('[BULK FORCE CANCEL] GraphQL errors:', result.errors);
+            return false;
+        }
+
+        const { bulkOperation, userErrors } = result.data?.bulkOperationCancel || {};
+
+        if (userErrors && userErrors.length > 0) {
+            // Check if the error is because there's no operation (which is fine)
+            const noOpError = userErrors.find(e =>
+                e.message.includes('No bulk operation') ||
+                e.message.includes('no existe') ||
+                e.message.includes('not found')
+            );
+            if (noOpError) {
+                console.log('[BULK FORCE CANCEL] No active operation found (already canceled or completed)');
+                return true;
+            }
+            console.warn('[BULK FORCE CANCEL] User errors:', userErrors);
+            return false;
+        }
+
+        if (bulkOperation) {
+            console.log(`[BULK FORCE CANCEL] Result: ${bulkOperation.id} - Status: ${bulkOperation.status}`);
+        }
+
+        // Wait a bit for Shopify to process the cancellation
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        return true;
+    } catch (error) {
+        console.error('[BULK FORCE CANCEL] Failed:', error);
+        return false;
+    }
+}
+
 // =============================================================================
 // BULK OPERATIONS API - For fetching large datasets efficiently
 // =============================================================================
@@ -469,9 +554,13 @@ async function startBulkOperation(startDate, endDate, storeConfig) {
         method: 'POST',
         headers: {
             'X-Shopify-Access-Token': storeConfig.accessToken,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
         },
-        body: JSON.stringify({ query: mutation })
+        body: JSON.stringify({
+            query: mutation,
+            _nocache: Date.now() // Cache buster to avoid CORS proxy cache issues
+        })
     });
 
     if (!response.ok) {
@@ -492,11 +581,13 @@ async function startBulkOperation(startDate, endDate, storeConfig) {
 
     if (userErrors && userErrors.length > 0) {
         console.error('[BULK] User errors:', userErrors);
-        // Check if error is about existing operation
+        // Check if error is about existing operation (in English or Spanish)
         const existingOpError = userErrors.find(e =>
             e.message.toLowerCase().includes('already') ||
             e.message.toLowerCase().includes('in progress') ||
-            e.message.toLowerCase().includes('running')
+            e.message.toLowerCase().includes('running') ||
+            e.message.toLowerCase().includes('en curso') ||
+            e.message.includes('gid://shopify/BulkOperation/')
         );
         if (existingOpError) {
             console.warn('[BULK] Another operation is already running. Need to cancel first.');
@@ -979,25 +1070,31 @@ async function fetchSalesAnalyticsBulkOperation(storeKey = 'vsu', locationId = n
             console.warn(`[BULK] Start failed (attempt ${retryCount}/${maxRetries}):`, error.message);
 
             // If it's an existing operation error, we need to cancel and retry
-            if (error.message.includes('EXISTING_OPERATION') || error.message.toLowerCase().includes('already')) {
-                console.log('[BULK] Detected existing operation, force canceling...');
+            if (error.message.includes('EXISTING_OPERATION') ||
+                error.message.toLowerCase().includes('already') ||
+                error.message.toLowerCase().includes('en curso') ||
+                error.message.includes('gid://shopify/BulkOperation/')) {
+                console.log('[BULK] Detected existing operation conflict, force canceling...');
 
-                // Get current operation and cancel it
-                const currentOp = await checkBulkOperationStatus(storeConfig);
-                if (currentOp && currentOp.id) {
-                    console.log(`[BULK] Canceling operation: ${currentOp.id} (Status: ${currentOp.status})`);
-                    await cancelBulkOperation(storeKey, currentOp.id);
+                // Try to extract the operation ID from the error message
+                const idMatch = error.message.match(/gid:\/\/shopify\/BulkOperation\/\d+/);
+                const extractedId = idMatch ? idMatch[0] : null;
+
+                if (extractedId) {
+                    console.log(`[BULK] Extracted stuck operation ID from error: ${extractedId}`);
+                    // Force cancel using the extracted ID
+                    await forceCancelBulkOperation(storeConfig, extractedId);
+                } else {
+                    // Fallback to checking current operation
+                    const currentOp = await checkBulkOperationStatus(storeConfig);
+                    if (currentOp && currentOp.id) {
+                        console.log(`[BULK] Canceling operation: ${currentOp.id} (Status: ${currentOp.status})`);
+                        await forceCancelBulkOperation(storeConfig, currentOp.id);
+                    }
                 }
 
                 // Wait for cancellation to complete
-                await new Promise(resolve => setTimeout(resolve, 5000));
-
-                // Verify it's canceled
-                const checkOp = await checkBulkOperationStatus(storeConfig);
-                if (checkOp && (checkOp.status === 'RUNNING' || checkOp.status === 'CREATED')) {
-                    console.warn('[BULK] Operation still running after cancel, waiting longer...');
-                    await new Promise(resolve => setTimeout(resolve, 10000));
-                }
+                await new Promise(resolve => setTimeout(resolve, 3000));
             } else {
                 // Other error, wait and retry
                 await new Promise(resolve => setTimeout(resolve, 3000));

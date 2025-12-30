@@ -1282,12 +1282,23 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             if (container) {
                 container.innerHTML = renderSalesTransactionsTable(salesData.recentOrders || []);
             }
+
+            // For single day, set chart to hourly view
+            const chartTypeSelect = document.getElementById('chartTypeSelect');
+            if (chartTypeSelect) {
+                chartTypeSelect.value = 'hourly';
+            }
+            displaySalesChart('hourly', SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
         } else {
             currentTransactionsViewMode = 'daily';
-        }
 
-        // Initialize the chart with daily view
-        displaySalesChart('daily', SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
+            // For multi-day ranges, set chart to daily view
+            const chartTypeSelect = document.getElementById('chartTypeSelect');
+            if (chartTypeSelect) {
+                chartTypeSelect.value = 'daily';
+            }
+            displaySalesChart('daily', SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
+        }
 
     } catch (error) {
         // Check if request was cancelled or user left page - don't show error
