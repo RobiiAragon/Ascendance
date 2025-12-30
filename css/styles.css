@@ -1836,7 +1836,7 @@
             .search-bar { display: none; }
             .breadcrumb { display: none; }
             .page-title { font-size: 12px; }
-            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; width: 100%; }
+            .page-header { flex-direction: column; align-items: center; gap: 16px; width: 100%; text-align: center; }
             .employees-grid { grid-template-columns: 1fr; }
             .training-grid { grid-template-columns: 1fr; }
             .license-stores-grid { grid-template-columns: 1fr !important; }
@@ -1851,13 +1851,21 @@
 
             /* Announcements dropdown mobile */
             .announcements-dropdown {
-                position: fixed;
-                top: 70px;
-                left: 16px;
-                right: 16px;
-                width: auto;
+                position: fixed !important;
+                top: 70px !important;
+                left: 16px !important;
+                right: 16px !important;
+                width: auto !important;
                 max-height: calc(100vh - 100px);
                 border-radius: 16px;
+                z-index: 10000 !important;
+            }
+
+            .announcements-dropdown.active {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: none !important;
             }
 
             .announcements-dropdown-list {
@@ -1867,6 +1875,22 @@
             .header-notification-container {
                 position: static;
                 margin-left: 12px;
+            }
+
+            .header-notification-btn {
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                min-height: 48px;
+                font-size: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+                cursor: pointer;
+                position: relative;
+                z-index: 101;
             }
 
             /* Hide user menu on mobile, show mobile search instead */
@@ -2044,6 +2068,214 @@
 
             .data-table tbody td:last-child .btn-icon {
                 padding: 6px 8px;
+            }
+
+            /* 1. Licenses Status cards - una columna en móvil */
+            .licenses-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+
+            .license-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .license-card .license-info {
+                width: 100%;
+            }
+
+            .license-card .license-status {
+                align-self: flex-start;
+            }
+
+            /* 2. Sidebar menu icons fix */
+            .nav-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .nav-icon {
+                flex-shrink: 0;
+                width: 20px;
+                min-width: 20px;
+            }
+
+            /* 3. Training Center video list - mejor layout */
+            .training-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+
+            .training-card {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                border-radius: 12px;
+            }
+
+            .training-card-thumbnail {
+                width: 80px;
+                min-width: 80px;
+                height: 80px;
+                border-radius: 12px 0 0 12px;
+                font-size: 24px;
+            }
+
+            .training-card-body {
+                flex: 1;
+                padding: 12px;
+            }
+
+            .training-card-title {
+                font-size: 14px;
+                margin-bottom: 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .training-card-meta {
+                margin-bottom: 8px;
+            }
+
+            .training-card-footer {
+                padding: 8px 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .training-card-footer .btn-sm {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            /* 4. Add Product button - más grande y centrado */
+            .page-header {
+                flex-direction: column;
+                align-items: center !important;
+                text-align: center;
+                gap: 16px;
+            }
+
+            .page-header-left {
+                text-align: center;
+                width: 100%;
+            }
+
+            .page-header-left .section-title {
+                font-size: 22px;
+            }
+
+            .page-header-left .section-subtitle {
+                font-size: 14px;
+            }
+
+            .floating-add-btn,
+            .btn-primary {
+                width: 100%;
+                max-width: 300px;
+                padding: 16px 24px !important;
+                font-size: 16px !important;
+                border-radius: 12px;
+                justify-content: center;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .floating-add-btn i,
+            .btn-primary i {
+                font-size: 18px;
+            }
+
+            .page-header .btn-primary,
+            .page-header .floating-add-btn {
+                margin: 0 auto;
+            }
+
+            /* 5. Bills/Expenses table mobile fix */
+            .gconomics-table {
+                display: block !important;
+                overflow-x: auto;
+            }
+
+            .gconomics-table thead {
+                display: none;
+            }
+
+            .gconomics-table tbody tr {
+                display: flex;
+                flex-direction: column;
+                padding: 16px;
+                margin-bottom: 12px;
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+            }
+
+            .gconomics-table tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border: none !important;
+            }
+
+            .gconomics-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--text-muted);
+                font-size: 12px;
+            }
+
+            /* 6. HR Applications table mobile fix */
+            .applications-table {
+                display: block !important;
+            }
+
+            .applications-table thead {
+                display: none;
+            }
+
+            .applications-table tbody tr {
+                display: flex;
+                flex-direction: column;
+                padding: 16px;
+                margin-bottom: 12px;
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+            }
+
+            .applications-table tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border: none !important;
+                font-size: 14px;
+            }
+
+            .applications-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--text-muted);
+                font-size: 12px;
+                margin-right: 12px;
+            }
+
+            .applications-table tbody td:first-child {
+                padding-bottom: 12px;
+                margin-bottom: 8px;
+                border-bottom: 1px solid var(--border-color) !important;
+            }
+
+            .applications-table tbody td:first-child::before {
+                display: none;
             }
         }
 

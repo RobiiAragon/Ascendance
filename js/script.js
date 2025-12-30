@@ -581,6 +581,30 @@
             }
         });
 
+        // Mobile touch support for announcements button
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationBtn = document.querySelector('.header-notification-btn');
+            if (notificationBtn) {
+                // Add touchend event for mobile
+                notificationBtn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleAnnouncementsDropdown();
+                }, { passive: false });
+            }
+
+            // Close dropdown on touch outside (mobile)
+            document.addEventListener('touchend', function(event) {
+                const dropdown = document.getElementById('announcements-dropdown');
+                const btn = document.querySelector('.header-notification-btn');
+                if (dropdown && dropdown.classList.contains('active')) {
+                    if (!dropdown.contains(event.target) && !btn.contains(event.target)) {
+                        dropdown.classList.remove('active');
+                    }
+                }
+            });
+        });
+
         async function initializeFirebaseRestockRequests() {
 
             const initialized = await firebaseRestockRequestsManager.initialize();
@@ -22239,24 +22263,42 @@ Return ONLY the JSON object, no additional text.`
                 `;
             }
 
-            // Vibrant gradient colors for each category
+            // Vibrant gradient colors for each category with better icons
             const categoryGradients = {
-                'Vape Products': { from: '#667eea', to: '#764ba2', icon: 'fa-cloud' },
+                'Vape Products': { from: '#667eea', to: '#764ba2', icon: 'fa-wind' },
                 'Tobacco Products': { from: '#f093fb', to: '#f5576c', icon: 'fa-smoking' },
                 'Beverages': { from: '#4facfe', to: '#00f2fe', icon: 'fa-bottle-water' },
                 'Snacks & Candy': { from: '#fa709a', to: '#fee140', icon: 'fa-cookie-bite' },
-                'Store Supplies': { from: '#38f9d7', to: '#43e97b', icon: 'fa-box-open' }
+                'Store Supplies': { from: '#38f9d7', to: '#43e97b', icon: 'fa-box-open' },
+                'Glass & Accessories': { from: '#a855f7', to: '#6366f1', icon: 'fa-bong' },
+                'CBD Products': { from: '#10b981', to: '#34d399', icon: 'fa-leaf' },
+                'Delta Products': { from: '#f59e0b', to: '#fbbf24', icon: 'fa-cannabis' },
+                'Kratom': { from: '#84cc16', to: '#a3e635', icon: 'fa-seedling' },
+                'Electronics': { from: '#3b82f6', to: '#60a5fa', icon: 'fa-plug' },
+                'Merchandise': { from: '#ec4899', to: '#f472b6', icon: 'fa-shirt' },
+                'Services': { from: '#8b5cf6', to: '#a78bfa', icon: 'fa-wrench' },
+                'Wholesale': { from: '#14b8a6', to: '#2dd4bf', icon: 'fa-warehouse' },
+                'Distribution': { from: '#f97316', to: '#fb923c', icon: 'fa-truck-fast' },
+                'Marketing': { from: '#06b6d4', to: '#22d3ee', icon: 'fa-bullhorn' },
+                'Packaging': { from: '#78716c', to: '#a8a29e', icon: 'fa-box' },
+                'Cleaning': { from: '#0ea5e9', to: '#38bdf8', icon: 'fa-spray-can-sparkles' },
+                'Security': { from: '#dc2626', to: '#f87171', icon: 'fa-shield-halved' },
+                'IT & Tech': { from: '#6366f1', to: '#818cf8', icon: 'fa-laptop-code' },
+                'Legal': { from: '#475569', to: '#64748b', icon: 'fa-gavel' },
+                'Accounting': { from: '#059669', to: '#34d399', icon: 'fa-calculator' },
+                'Insurance': { from: '#7c3aed', to: '#a78bfa', icon: 'fa-umbrella' },
+                'Products/Services': { from: '#8b5cf6', to: '#a78bfa', icon: 'fa-cubes' }
             };
 
             // Extra gradient colors for custom categories
             const customGradients = [
-                { from: '#ff6b6b', to: '#feca57', icon: 'fa-star' },
+                { from: '#ff6b6b', to: '#feca57', icon: 'fa-store' },
                 { from: '#5f27cd', to: '#48dbfb', icon: 'fa-gem' },
-                { from: '#ff9ff3', to: '#ffeaa7', icon: 'fa-heart' },
-                { from: '#00d2d3', to: '#54a0ff', icon: 'fa-bolt' },
-                { from: '#ff6b81', to: '#c44569', icon: 'fa-fire' },
-                { from: '#a29bfe', to: '#6c5ce7', icon: 'fa-magic' },
-                { from: '#fdcb6e', to: '#e17055', icon: 'fa-sun' }
+                { from: '#ff9ff3', to: '#ffeaa7', icon: 'fa-handshake' },
+                { from: '#00d2d3', to: '#54a0ff', icon: 'fa-building' },
+                { from: '#ff6b81', to: '#c44569', icon: 'fa-industry' },
+                { from: '#a29bfe', to: '#6c5ce7', icon: 'fa-briefcase' },
+                { from: '#fdcb6e', to: '#e17055', icon: 'fa-tags' }
             ];
 
             // Function to get gradient for any category (including custom)
