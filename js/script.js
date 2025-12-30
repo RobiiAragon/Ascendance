@@ -6487,7 +6487,8 @@ const defaultChecklistTasks = {
         { id: 'open-5', task: 'Clean front entrance and windows', order: 5 },
         { id: 'open-6', task: 'Turn on POS systems', order: 6 },
         { id: 'open-7', task: 'Review daily promotions/announcements', order: 7 },
-        { id: 'open-8', task: 'Check restroom supplies', order: 8 }
+        { id: 'open-8', task: 'Check restroom supplies', order: 8 },
+        { id: 'open-9', task: 'Check bathroom', order: 9 }
     ],
     closing: [
         { id: 'close-1', task: 'Count and close cash drawer', order: 1 },
@@ -6497,13 +6498,26 @@ const defaultChecklistTasks = {
         { id: 'close-5', task: 'Restock shelves for next day', order: 5 },
         { id: 'close-6', task: 'Turn off POS systems', order: 6 },
         { id: 'close-7', task: 'Turn off lights and signage', order: 7 },
-        { id: 'close-8', task: 'Set alarm and lock store', order: 8 }
+        { id: 'close-8', task: 'Set alarm and lock store', order: 8 },
+        { id: 'close-9', task: 'Clean bathroom', order: 9 }
     ]
 };
 
 // Get today's date string
 function getTodayDateString() {
     return new Date().toISOString().split('T')[0];
+}
+
+// Get current day name for midshift
+function getCurrentDayName() {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[new Date().getDay()];
+}
+
+// Get current day key for Firebase (lowercase)
+function getCurrentDayKey() {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[new Date().getDay()];
 }
 
 // Load checklist tasks - default tasks + custom tasks from Firebase
@@ -6520,6 +6534,7 @@ async function loadChecklistTasks() {
         { id: 'open-6', task: 'Turn on POS systems', order: 6, shift: 'opening', store: 'all', duration: 'permanent' },
         { id: 'open-7', task: 'Review daily promotions/announcements', order: 7, shift: 'opening', store: 'all', duration: 'permanent' },
         { id: 'open-8', task: 'Check restroom supplies', order: 8, shift: 'opening', store: 'all', duration: 'permanent' },
+        { id: 'open-9', task: 'Check bathroom', order: 9, shift: 'opening', store: 'all', duration: 'permanent' },
         { id: 'close-1', task: 'Count and close cash drawer', order: 1, shift: 'closing', store: 'all', duration: 'permanent' },
         { id: 'close-2', task: 'Complete daily sales report', order: 2, shift: 'closing', store: 'all', duration: 'permanent' },
         { id: 'close-3', task: 'Clean and organize store', order: 3, shift: 'closing', store: 'all', duration: 'permanent' },
@@ -6527,13 +6542,25 @@ async function loadChecklistTasks() {
         { id: 'close-5', task: 'Restock shelves for next day', order: 5, shift: 'closing', store: 'all', duration: 'permanent' },
         { id: 'close-6', task: 'Turn off POS systems', order: 6, shift: 'closing', store: 'all', duration: 'permanent' },
         { id: 'close-7', task: 'Turn off lights and signage', order: 7, shift: 'closing', store: 'all', duration: 'permanent' },
-        { id: 'close-8', task: 'Set alarm and lock store', order: 8, shift: 'closing', store: 'all', duration: 'permanent' }
+        { id: 'close-8', task: 'Set alarm and lock store', order: 8, shift: 'closing', store: 'all', duration: 'permanent' },
+        { id: 'close-9', task: 'Clean bathroom', order: 9, shift: 'closing', store: 'all', duration: 'permanent' }
     ];
 
     // Load custom tasks from Firebase
     try {
         const db = firebase.firestore();
         const snapshot = await db.collection('checklistTasks').get();
+
+        // Load midshift tasks for today's day of week
+        const currentDay = getCurrentDayKey();
+        const midshiftSnapshot = await db.collection('midshiftTasks').where('dayOfWeek', '==', currentDay).get();
+        const midshiftTasks = midshiftSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            shift: 'midshift',
+            store: 'all',
+            duration: 'permanent'
+        }));
         const customTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         // Load overrides (hidden/edited default tasks)
@@ -6589,9 +6616,9 @@ async function loadChecklistTasks() {
             }
         }
 
-        // Combine active default + custom tasks
-        checklistData.tasks = [...activeDefaultTasks, ...validCustomTasks];
-        console.log(`[Checklist] Loaded ${activeDefaultTasks.length} default + ${validCustomTasks.length} custom tasks`);
+        // Combine active default + custom tasks + midshift tasks
+        checklistData.tasks = [...activeDefaultTasks, ...validCustomTasks, ...midshiftTasks];
+        console.log(`[Checklist] Loaded ${activeDefaultTasks.length} default + ${validCustomTasks.length} custom + ${midshiftTasks.length} midshift tasks`);
 
     } catch (error) {
         console.error('Error loading custom tasks:', error);
@@ -6725,12 +6752,19 @@ async function deleteChecklistTask(taskId) {
         // Check if this is a default task
         const isDefaultTask = taskId.startsWith('open-') || taskId.startsWith('close-');
 
+        // Check if this is a midshift task
+        const task = checklistData.tasks.find(t => t.id === taskId);
+        const isMidshiftTask = task?.shift === 'midshift';
+
         if (isDefaultTask) {
             // For default tasks, mark as hidden in overrides collection
             await db.collection('checklistTaskOverrides').doc(taskId).set({
                 hidden: true,
                 deletedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+        } else if (isMidshiftTask) {
+            // For midshift tasks, delete from midshiftTasks collection
+            await db.collection('midshiftTasks').doc(taskId).delete();
         } else {
             // For custom tasks, delete from Firebase
             await db.collection('checklistTasks').doc(taskId).delete();
@@ -6899,6 +6933,29 @@ window.renderDailyChecklist = async function() {
         const targetStore = checklistCurrentStore;
 
         if (tasks.length === 0) {
+            // Special empty state for midshift with examples
+            if (shift === 'midshift') {
+                const dayName = getCurrentDayName();
+                return `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="fas fa-mug-hot" style="font-size: 40px; margin-bottom: 16px; color: #10b981; opacity: 0.6;"></i>
+                    <p style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">No downtime tasks for ${dayName}</p>
+                    <p style="font-size: 13px; margin-bottom: 20px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                        Add tasks that change each day of the week.<br>
+                        Perfect for inventory counts and weekly duties!
+                    </p>
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left; max-width: 350px; margin-left: auto; margin-right: auto;">
+                        <p style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px;">💡 Example tasks:</p>
+                        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                            <div>• <strong>Monday:</strong> Count wraps, report low stock</div>
+                            <div>• <strong>Tuesday:</strong> Count cones & papers</div>
+                            <div>• <strong>Wednesday:</strong> Count grinders</div>
+                            <div>• <strong>Thursday:</strong> Count glass pieces</div>
+                            <div>• <strong>Friday:</strong> Count vapes & batteries</div>
+                        </div>
+                    </div>
+                    ${canManageTasks ? `<button onclick="openAddTaskModal('${shift}')" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fas fa-plus"></i> Add ${dayName} Task</button>` : ''}
+                </div>`;
+            }
             return `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
                 <i class="fas fa-clipboard" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
                 <p>No tasks for this shift yet</p>
@@ -7008,6 +7065,12 @@ window.renderDailyChecklist = async function() {
             @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             @keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
             @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+            @keyframes steam-rise {
+                0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(1); }
+                50% { opacity: 0.8; transform: translateX(-50%) translateY(-8px) scale(1.2); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.8); }
+            }
+            @keyframes steam { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
         </style>
         <div class="page-header" style="margin-bottom: 24px;">
             <div class="page-header-left">
@@ -7066,6 +7129,30 @@ window.renderDailyChecklist = async function() {
                         </div>
                     </button>
 
+                    <!-- Mid Shift / Downtime -->
+                    <button onclick="switchChecklistShift('midshift')"
+                        style="flex: 1; padding: 16px 20px; border-radius: 16px; border: 3px solid ${checklistCurrentShift === 'midshift' ? '#10b981' : 'var(--border-color)'};
+                        background: ${checklistCurrentShift === 'midshift' ? 'linear-gradient(135deg, #d1fae5 0%, #6ee7b7 50%, #34d399 100%)' : 'var(--bg-secondary)'};
+                        cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 8px;
+                        box-shadow: ${checklistCurrentShift === 'midshift' ? '0 8px 24px rgba(16, 185, 129, 0.35), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'};"
+                        onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 28px rgba(16, 185, 129, 0.3)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='${checklistCurrentShift === 'midshift' ? '0 8px 24px rgba(16, 185, 129, 0.35), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'}';">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${checklistCurrentShift === 'midshift' ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--bg-tertiary)'};
+                            display: flex; align-items: center; justify-content: center; position: relative;
+                            box-shadow: ${checklistCurrentShift === 'midshift' ? '0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.25)' : 'none'};">
+                            <i class="fas fa-mug-hot" style="font-size: 20px; color: ${checklistCurrentShift === 'midshift' ? 'white' : 'var(--text-muted)'}; ${checklistCurrentShift === 'midshift' ? 'animation: steam 2s ease-in-out infinite;' : ''}"></i>
+                            ${checklistCurrentShift === 'midshift' ? `
+                                <span style="position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 4px; height: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; animation: steam-rise 1.5s ease-in-out infinite;"></span>
+                                <span style="position: absolute; top: -4px; left: 35%; width: 3px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 3px; animation: steam-rise 1.8s ease-in-out infinite 0.3s;"></span>
+                                <span style="position: absolute; top: -3px; left: 65%; width: 3px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 3px; animation: steam-rise 1.6s ease-in-out infinite 0.6s;"></span>
+                            ` : ''}
+                        </div>
+                        <div style="font-weight: 700; font-size: 15px; color: ${checklistCurrentShift === 'midshift' ? '#065f46' : 'var(--text-primary)'};">Downtime</div>
+                        <div style="font-size: 11px; color: ${checklistCurrentShift === 'midshift' ? '#047857' : 'var(--text-muted)'}; font-weight: 500;">
+                            <i class="fas fa-clipboard-list" style="margin-right: 4px; font-size: 9px;"></i>${getCurrentDayName()}
+                        </div>
+                    </button>
+
                     <!-- Closing / Night Shift -->
                     <button onclick="switchChecklistShift('closing')"
                         style="flex: 1; padding: 16px 20px; border-radius: 16px; border: 3px solid ${checklistCurrentShift === 'closing' ? '#8b5cf6' : 'var(--border-color)'};
@@ -7096,8 +7183,8 @@ window.renderDailyChecklist = async function() {
         <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 class="card-title">
-                    <i class="fas ${checklistCurrentShift === 'opening' ? 'fa-sun' : 'fa-moon'}" style="color: ${checklistCurrentShift === 'opening' ? '#f59e0b' : '#8b5cf6'};"></i>
-                    ${checklistCurrentShift === 'opening' ? 'Opening' : 'Closing'} Tasks
+                    <i class="fas ${checklistCurrentShift === 'opening' ? 'fa-sun' : checklistCurrentShift === 'midshift' ? 'fa-mug-hot' : 'fa-moon'}" style="color: ${checklistCurrentShift === 'opening' ? '#f59e0b' : checklistCurrentShift === 'midshift' ? '#10b981' : '#8b5cf6'};"></i>
+                    ${checklistCurrentShift === 'opening' ? 'Opening' : checklistCurrentShift === 'midshift' ? `Downtime - ${getCurrentDayName()}` : 'Closing'} Tasks
                 </h3>
                 <div style="font-size: 14px; color: var(--text-muted);">
                     ${getCompletionPercentage(checklistCurrentStore, checklistCurrentShift)}% complete
@@ -7328,13 +7415,34 @@ window.openAddTaskModal = function(shift) {
 window.addChecklistTaskFromModal = async function() {
     const task = document.getElementById('checklist-task-description')?.value?.trim();
     const shift = document.getElementById('checklist-task-shift')?.value;
-    const duration = document.querySelector('input[name="checklist-task-duration"]:checked')?.value || 'permanent';
 
     if (!task) {
         alert('Please enter a task description');
         return;
     }
 
+    // Handle midshift tasks differently - save to midshiftTasks collection
+    if (shift === 'midshift') {
+        const dayOfWeek = document.querySelector('input[name="midshift-day"]:checked')?.value;
+        if (!dayOfWeek) {
+            alert('Please select a day of the week');
+            return;
+        }
+
+        const result = await addMidshiftTask(task, dayOfWeek);
+        if (result) {
+            closeModal();
+            const dayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+            showNotification(`Task added for ${dayName}!`, 'success');
+            renderDailyChecklist();
+        } else {
+            alert('Error adding task. Please try again.');
+        }
+        return;
+    }
+
+    // Regular opening/closing tasks
+    const duration = document.querySelector('input[name="checklist-task-duration"]:checked')?.value || 'permanent';
     const result = await addChecklistTask(task, shift, 'all', duration);
     if (result) {
         closeModal();
@@ -7342,6 +7450,39 @@ window.addChecklistTaskFromModal = async function() {
         renderDailyChecklist();
     } else {
         alert('Error adding task. Please try again.');
+    }
+}
+
+// Add midshift task to Firebase
+async function addMidshiftTask(task, dayOfWeek) {
+    try {
+        const db = firebase.firestore();
+        const existingTasks = await db.collection('midshiftTasks').where('dayOfWeek', '==', dayOfWeek).get();
+        const order = existingTasks.size + 1;
+
+        const newTask = {
+            task,
+            dayOfWeek,
+            order,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            isCustom: true
+        };
+
+        const docRef = await db.collection('midshiftTasks').add(newTask);
+        newTask.id = docRef.id;
+        newTask.shift = 'midshift';
+        newTask.store = 'all';
+        newTask.duration = 'permanent';
+
+        // Add to local data if it's today's day
+        if (dayOfWeek === getCurrentDayKey()) {
+            checklistData.tasks.push(newTask);
+        }
+
+        return newTask;
+    } catch (error) {
+        console.error('Error adding midshift task:', error);
+        return null;
     }
 }
 
@@ -24308,39 +24449,58 @@ Return ONLY the JSON object, no additional text.`
                     break;
                 case 'add-checklist-task':
                     const shiftForTask = data?.shift || 'opening';
+                    const isMidshift = shiftForTask === 'midshift';
+                    const shiftTitle = shiftForTask === 'midshift' ? 'Downtime' : shiftForTask.charAt(0).toUpperCase() + shiftForTask.slice(1);
                     content = `
                         <div class="modal-header">
-                            <h2>Add ${shiftForTask.charAt(0).toUpperCase() + shiftForTask.slice(1)} Task</h2>
+                            <h2><i class="fas ${shiftForTask === 'opening' ? 'fa-sun' : shiftForTask === 'midshift' ? 'fa-mug-hot' : 'fa-moon'}" style="margin-right: 8px; color: ${shiftForTask === 'opening' ? '#f59e0b' : shiftForTask === 'midshift' ? '#10b981' : '#8b5cf6'};"></i>Add ${shiftTitle} Task</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
                                 <label>Task Description *</label>
-                                <input type="text" class="form-input" id="checklist-task-description" placeholder="e.g., Check inventory levels...">
+                                <input type="text" class="form-input" id="checklist-task-description" placeholder="${isMidshift ? 'e.g., Count wraps and report low stock...' : 'e.g., Check inventory levels...'}">
                             </div>
                             <input type="hidden" id="checklist-task-shift" value="${shiftForTask}">
 
-                            <div class="form-group" style="margin-top: 16px;">
-                                <label>Task Duration *</label>
-                                <div style="display: flex; gap: 12px; margin-top: 8px;">
-                                    <label style="flex: 1; cursor: pointer;">
-                                        <input type="radio" name="checklist-task-duration" value="permanent" checked style="display: none;">
-                                        <div class="duration-option" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
-                                            <i class="fas fa-infinity" style="font-size: 24px; color: var(--accent-primary); margin-bottom: 8px; display: block;"></i>
-                                            <div style="font-weight: 600; margin-bottom: 4px;">Permanent</div>
-                                            <div style="font-size: 11px; color: var(--text-muted);">Shows every day</div>
-                                        </div>
-                                    </label>
-                                    <label style="flex: 1; cursor: pointer;">
-                                        <input type="radio" name="checklist-task-duration" value="one-time" style="display: none;">
-                                        <div class="duration-option" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
-                                            <i class="fas fa-calendar-day" style="font-size: 24px; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
-                                            <div style="font-weight: 600; margin-bottom: 4px;">Just Today</div>
-                                            <div style="font-size: 11px; color: var(--text-muted);">One time only</div>
-                                        </div>
-                                    </label>
+                            ${isMidshift ? `
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label>Day of Week *</label>
+                                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">This task will only appear on the selected day</p>
+                                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
+                                        ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, idx) => `
+                                            <label style="cursor: pointer;">
+                                                <input type="radio" name="midshift-day" value="${day.toLowerCase()}" ${idx === 0 ? 'checked' : ''} style="display: none;">
+                                                <div class="day-option" style="padding: 12px 8px; border: 2px solid ${idx === 0 ? '#10b981' : 'var(--border-color)'}; border-radius: 10px; background: ${idx === 0 ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s; font-size: 12px; font-weight: 600; color: ${idx === 0 ? '#10b981' : 'var(--text-primary)'};">
+                                                    ${day.substring(0, 3)}
+                                                </div>
+                                            </label>
+                                        `).join('')}
+                                    </div>
                                 </div>
-                            </div>
+                            ` : `
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label>Task Duration *</label>
+                                    <div style="display: flex; gap: 12px; margin-top: 8px;">
+                                        <label style="flex: 1; cursor: pointer;">
+                                            <input type="radio" name="checklist-task-duration" value="permanent" checked style="display: none;">
+                                            <div class="duration-option" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
+                                                <i class="fas fa-infinity" style="font-size: 24px; color: var(--accent-primary); margin-bottom: 8px; display: block;"></i>
+                                                <div style="font-weight: 600; margin-bottom: 4px;">Permanent</div>
+                                                <div style="font-size: 11px; color: var(--text-muted);">Shows every day</div>
+                                            </div>
+                                        </label>
+                                        <label style="flex: 1; cursor: pointer;">
+                                            <input type="radio" name="checklist-task-duration" value="one-time" style="display: none;">
+                                            <div class="duration-option" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
+                                                <i class="fas fa-calendar-day" style="font-size: 24px; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                                <div style="font-weight: 600; margin-bottom: 4px;">Just Today</div>
+                                                <div style="font-size: 11px; color: var(--text-muted);">One time only</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            `}
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -24352,6 +24512,7 @@ Return ONLY the JSON object, no additional text.`
 
                     // Add event listeners after modal renders
                     setTimeout(() => {
+                        // Duration option listeners (for opening/closing)
                         document.querySelectorAll('input[name="checklist-task-duration"]').forEach(radio => {
                             radio.addEventListener('change', function() {
                                 document.querySelectorAll('.duration-option').forEach(opt => {
@@ -24361,6 +24522,20 @@ Return ONLY the JSON object, no additional text.`
                                 const selected = this.closest('label').querySelector('.duration-option');
                                 selected.style.borderColor = 'var(--accent-primary)';
                                 selected.querySelector('i').style.color = 'var(--accent-primary)';
+                            });
+                        });
+                        // Day option listeners (for midshift)
+                        document.querySelectorAll('input[name="midshift-day"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.querySelectorAll('.day-option').forEach(opt => {
+                                    opt.style.borderColor = 'var(--border-color)';
+                                    opt.style.background = 'var(--bg-secondary)';
+                                    opt.style.color = 'var(--text-primary)';
+                                });
+                                const selected = this.closest('label').querySelector('.day-option');
+                                selected.style.borderColor = '#10b981';
+                                selected.style.background = 'rgba(16, 185, 129, 0.1)';
+                                selected.style.color = '#10b981';
                             });
                         });
                     }, 100);
