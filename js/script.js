@@ -7527,25 +7527,25 @@ window.viewChecklistHistory = async function() {
                 ` : ''}
 
                 <!-- Filter & Sort Row -->
-                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
                     <!-- Priority Filters -->
-                    <button onclick="setRequestPriorityFilter('all')" id="req-filter-all" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 500;">All (${allRequests.length})</button>
-                    <button onclick="setRequestPriorityFilter('high')" id="req-filter-high" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #ef4444; cursor: pointer; font-weight: 500;">High</button>
-                    <button onclick="setRequestPriorityFilter('medium')" id="req-filter-medium" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #f59e0b; cursor: pointer; font-weight: 500;">Medium</button>
-                    <button onclick="setRequestPriorityFilter('low')" id="req-filter-low" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #10b981; cursor: pointer; font-weight: 500;">Low</button>
-                    <button onclick="setRequestPriorityFilter('pending')" id="req-filter-pending" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;">Pending</button>
+                    <button onclick="setRequestPriorityFilter('all')" id="req-filter-all" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 600;">All (${allRequests.length})</button>
+                    <button onclick="setRequestPriorityFilter('high')" id="req-filter-high" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: #ef4444; cursor: pointer; font-weight: 600;">High</button>
+                    <button onclick="setRequestPriorityFilter('medium')" id="req-filter-medium" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: #f59e0b; cursor: pointer; font-weight: 600;">Medium</button>
+                    <button onclick="setRequestPriorityFilter('low')" id="req-filter-low" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: #10b981; cursor: pointer; font-weight: 600;">Low</button>
+                    <button onclick="setRequestPriorityFilter('pending')" id="req-filter-pending" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;">Pending</button>
 
                     <!-- Divider -->
-                    <div style="width: 1px; height: 20px; background: var(--border-color); margin: 0 4px;"></div>
+                    <div style="width: 2px; height: 35px; background: var(--border-color); margin: 0 10px;"></div>
 
                     <!-- Sort Options -->
-                    <button onclick="setRequestSort('alpha')" id="req-sort-alpha" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;" title="Sort A-Z">
+                    <button onclick="setRequestSort('alpha')" id="req-sort-alpha" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort A-Z">
                         <i class="fas fa-sort-alpha-down"></i> A-Z
                     </button>
-                    <button onclick="setRequestSort('qty')" id="req-sort-qty" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;" title="Sort by Quantity">
+                    <button onclick="setRequestSort('qty')" id="req-sort-qty" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort by Quantity">
                         <i class="fas fa-sort-amount-down"></i> Qty
                     </button>
-                    <button onclick="setRequestSort('store')" id="req-sort-store" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;" title="Sort by Store">
+                    <button onclick="setRequestSort('store')" id="req-sort-store" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort by Store">
                         <i class="fas fa-store"></i> Store
                     </button>
                 </div>
