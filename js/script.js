@@ -1683,8 +1683,8 @@
             }, 100);
         }
 
-        // G-Force inspirational quotes
-        const gforceQuotes = [
+        // G-Force inspirational quotes for dashboard banner
+        const gforceDashboardQuotes = [
             { quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "G-Force" },
             { quote: "The only way to do great work is to love what you do. Stay hungry, stay foolish.", author: "G-Force" },
             { quote: "Your limitation—it's only your imagination. Push beyond what you think is possible.", author: "G-Force" },
@@ -1725,7 +1725,7 @@
             const diff = now - start;
             const oneDay = 1000 * 60 * 60 * 24;
             const dayOfYear = Math.floor(diff / oneDay);
-            return gforceQuotes[dayOfYear % gforceQuotes.length];
+            return gforceDashboardQuotes[dayOfYear % gforceDashboardQuotes.length];
         }
 
         // Get random quote - uses OpenAI to generate fresh quotes
@@ -1798,11 +1798,11 @@
             // Fallback to local quotes if AI fails
             let newIndex;
             do {
-                newIndex = Math.floor(Math.random() * gforceQuotes.length);
-            } while (newIndex === currentQuoteIndex && gforceQuotes.length > 1);
+                newIndex = Math.floor(Math.random() * gforceDashboardQuotes.length);
+            } while (newIndex === currentQuoteIndex && gforceDashboardQuotes.length > 1);
             currentQuoteIndex = newIndex;
 
-            const quote = gforceQuotes[newIndex];
+            const quote = gforceDashboardQuotes[newIndex];
             quoteText.style.opacity = '0';
 
             setTimeout(() => {
