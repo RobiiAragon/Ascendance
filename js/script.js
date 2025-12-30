@@ -7180,8 +7180,8 @@ window.renderDailyChecklist = async function() {
             if (shift === 'midshift') {
                 const dayName = getCurrentDayName();
                 return `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                    <i class="fas fa-mug-hot" style="font-size: 40px; margin-bottom: 16px; color: #10b981; opacity: 0.6;"></i>
-                    <p style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">No downtime tasks for ${dayName}</p>
+                    <i class="fas fa-cloud-sun" style="font-size: 40px; margin-bottom: 16px; color: #f59e0b; opacity: 0.6;"></i>
+                    <p style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">No daily goals for ${dayName}</p>
                     <p style="font-size: 13px; margin-bottom: 20px; max-width: 400px; margin-left: auto; margin-right: auto;">
                         Add tasks that change each day of the week.<br>
                         Perfect for inventory counts and weekly duties!
@@ -7196,7 +7196,7 @@ window.renderDailyChecklist = async function() {
                             <div>• <strong>Friday:</strong> Count vapes & batteries</div>
                         </div>
                     </div>
-                    ${canManageTasks ? `<button onclick="openAddTaskModal('${shift}')" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fas fa-plus"></i> Add ${dayName} Task</button>` : ''}
+                    ${canManageTasks ? `<button onclick="openAddTaskModal('${shift}')" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-plus"></i> Add ${dayName} Goal</button>` : ''}
                 </div>`;
             }
             return `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
@@ -7314,6 +7314,8 @@ window.renderDailyChecklist = async function() {
                 100% { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.8); }
             }
             @keyframes steam { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+            @keyframes float-gentle { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-2px) rotate(3deg); } }
+            @keyframes pulse-glow { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }
         </style>
         <div class="page-header" style="margin-bottom: 24px;">
             <div class="page-header-left">
@@ -7393,27 +7395,25 @@ window.renderDailyChecklist = async function() {
                         </div>
                     </button>
 
-                    <!-- Mid Shift / Downtime -->
+                    <!-- Mid Shift / Daily Goals -->
                     <button onclick="switchChecklistShift('midshift')"
-                        style="flex: 1; padding: 16px 20px; border-radius: 16px; border: 3px solid ${checklistCurrentShift === 'midshift' ? '#10b981' : 'var(--border-color)'};
-                        background: ${checklistCurrentShift === 'midshift' ? 'linear-gradient(135deg, #d1fae5 0%, #6ee7b7 50%, #34d399 100%)' : 'var(--bg-secondary)'};
+                        style="flex: 1; padding: 16px 20px; border-radius: 16px; border: 3px solid ${checklistCurrentShift === 'midshift' ? '#f59e0b' : 'var(--border-color)'};
+                        background: ${checklistCurrentShift === 'midshift' ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)' : 'var(--bg-secondary)'};
                         cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 8px;
-                        box-shadow: ${checklistCurrentShift === 'midshift' ? '0 8px 24px rgba(16, 185, 129, 0.35), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'};"
-                        onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 28px rgba(16, 185, 129, 0.3)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='${checklistCurrentShift === 'midshift' ? '0 8px 24px rgba(16, 185, 129, 0.35), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'}';">
-                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${checklistCurrentShift === 'midshift' ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--bg-tertiary)'};
+                        box-shadow: ${checklistCurrentShift === 'midshift' ? '0 8px 24px rgba(245, 158, 11, 0.35), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'};"
+                        onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 28px rgba(245, 158, 11, 0.3)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='${checklistCurrentShift === 'midshift' ? '0 8px 24px rgba(245, 158, 11, 0.35), inset 0 -2px 8px rgba(0,0,0,0.1)' : 'none'}';">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${checklistCurrentShift === 'midshift' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--bg-tertiary)'};
                             display: flex; align-items: center; justify-content: center; position: relative;
-                            box-shadow: ${checklistCurrentShift === 'midshift' ? '0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.25)' : 'none'};">
-                            <i class="fas fa-mug-hot" style="font-size: 20px; color: ${checklistCurrentShift === 'midshift' ? 'white' : 'var(--text-muted)'}; ${checklistCurrentShift === 'midshift' ? 'animation: steam 2s ease-in-out infinite;' : ''}"></i>
+                            box-shadow: ${checklistCurrentShift === 'midshift' ? '0 0 20px rgba(245, 158, 11, 0.5), 0 0 40px rgba(245, 158, 11, 0.25)' : 'none'};">
+                            <i class="fas fa-cloud-sun" style="font-size: 20px; color: ${checklistCurrentShift === 'midshift' ? 'white' : 'var(--text-muted)'}; ${checklistCurrentShift === 'midshift' ? 'animation: float-gentle 3s ease-in-out infinite;' : ''}"></i>
                             ${checklistCurrentShift === 'midshift' ? `
-                                <span style="position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 4px; height: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; animation: steam-rise 1.5s ease-in-out infinite;"></span>
-                                <span style="position: absolute; top: -4px; left: 35%; width: 3px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 3px; animation: steam-rise 1.8s ease-in-out infinite 0.3s;"></span>
-                                <span style="position: absolute; top: -3px; left: 65%; width: 3px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 3px; animation: steam-rise 1.6s ease-in-out infinite 0.6s;"></span>
+                                <span style="position: absolute; top: 0px; right: 4px; width: 8px; height: 8px; background: #fef3c7; border-radius: 50%; box-shadow: 0 0 8px #fef3c7, 0 0 16px rgba(254, 243, 199, 0.5); animation: pulse-glow 2s ease-in-out infinite;"></span>
                             ` : ''}
                         </div>
-                        <div style="font-weight: 700; font-size: 15px; color: ${checklistCurrentShift === 'midshift' ? '#065f46' : 'var(--text-primary)'};">Downtime</div>
-                        <div style="font-size: 11px; color: ${checklistCurrentShift === 'midshift' ? '#047857' : 'var(--text-muted)'}; font-weight: 500;">
-                            <i class="fas fa-clipboard-list" style="margin-right: 4px; font-size: 9px;"></i>${getCurrentDayName()}
+                        <div style="font-weight: 700; font-size: 15px; color: ${checklistCurrentShift === 'midshift' ? '#92400e' : 'var(--text-primary)'};">Daily Goals</div>
+                        <div style="font-size: 11px; color: ${checklistCurrentShift === 'midshift' ? '#b45309' : 'var(--text-muted)'}; font-weight: 500;">
+                            <i class="fas fa-bullseye" style="margin-right: 4px; font-size: 9px;"></i>${getCurrentDayName()}
                         </div>
                     </button>
 
@@ -7447,8 +7447,8 @@ window.renderDailyChecklist = async function() {
         <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 class="card-title">
-                    <i class="fas ${checklistCurrentShift === 'opening' ? 'fa-sun' : checklistCurrentShift === 'midshift' ? 'fa-mug-hot' : 'fa-moon'}" style="color: ${checklistCurrentShift === 'opening' ? '#f59e0b' : checklistCurrentShift === 'midshift' ? '#10b981' : '#8b5cf6'};"></i>
-                    ${checklistCurrentShift === 'opening' ? 'Opening' : checklistCurrentShift === 'midshift' ? `Downtime - ${getCurrentDayName()}` : 'Closing'} Tasks
+                    <i class="fas ${checklistCurrentShift === 'opening' ? 'fa-sun' : checklistCurrentShift === 'midshift' ? 'fa-cloud-sun' : 'fa-moon'}" style="color: ${checklistCurrentShift === 'opening' ? '#f59e0b' : checklistCurrentShift === 'midshift' ? '#f59e0b' : '#8b5cf6'};"></i>
+                    ${checklistCurrentShift === 'opening' ? 'Opening' : checklistCurrentShift === 'midshift' ? `Daily Goals - ${getCurrentDayName()}` : 'Closing'} Tasks
                 </h3>
                 <div style="font-size: 14px; color: var(--text-muted);">
                     ${getCompletionPercentage(checklistCurrentStore, checklistCurrentShift)}% complete
@@ -24752,10 +24752,10 @@ Return ONLY the JSON object, no additional text.`
                 case 'add-checklist-task':
                     const shiftForTask = data?.shift || 'opening';
                     const isMidshift = shiftForTask === 'midshift';
-                    const shiftTitle = shiftForTask === 'midshift' ? 'Downtime' : shiftForTask.charAt(0).toUpperCase() + shiftForTask.slice(1);
+                    const shiftTitle = shiftForTask === 'midshift' ? 'Daily Goal' : shiftForTask.charAt(0).toUpperCase() + shiftForTask.slice(1);
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas ${shiftForTask === 'opening' ? 'fa-sun' : shiftForTask === 'midshift' ? 'fa-mug-hot' : 'fa-moon'}" style="margin-right: 8px; color: ${shiftForTask === 'opening' ? '#f59e0b' : shiftForTask === 'midshift' ? '#10b981' : '#8b5cf6'};"></i>Add ${shiftTitle} Task</h2>
+                            <h2><i class="fas ${shiftForTask === 'opening' ? 'fa-sun' : shiftForTask === 'midshift' ? 'fa-cloud-sun' : 'fa-moon'}" style="margin-right: 8px; color: ${shiftForTask === 'opening' ? '#f59e0b' : shiftForTask === 'midshift' ? '#f59e0b' : '#8b5cf6'};"></i>Add ${shiftTitle} Task</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
@@ -24768,12 +24768,12 @@ Return ONLY the JSON object, no additional text.`
                             ${isMidshift ? `
                                 <div class="form-group" style="margin-top: 16px;">
                                     <label>Day of Week *</label>
-                                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">This task will only appear on the selected day</p>
+                                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">This goal will only appear on the selected day</p>
                                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
                                         ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, idx) => `
                                             <label style="cursor: pointer;">
                                                 <input type="radio" name="midshift-day" value="${day.toLowerCase()}" ${idx === 0 ? 'checked' : ''} style="display: none;">
-                                                <div class="day-option" style="padding: 12px 8px; border: 2px solid ${idx === 0 ? '#10b981' : 'var(--border-color)'}; border-radius: 10px; background: ${idx === 0 ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s; font-size: 12px; font-weight: 600; color: ${idx === 0 ? '#10b981' : 'var(--text-primary)'};">
+                                                <div class="day-option" style="padding: 12px 8px; border: 2px solid ${idx === 0 ? '#f59e0b' : 'var(--border-color)'}; border-radius: 10px; background: ${idx === 0 ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s; font-size: 12px; font-weight: 600; color: ${idx === 0 ? '#f59e0b' : 'var(--text-primary)'};">
                                                     ${day.substring(0, 3)}
                                                 </div>
                                             </label>
@@ -24826,7 +24826,7 @@ Return ONLY the JSON object, no additional text.`
                                 selected.querySelector('i').style.color = 'var(--accent-primary)';
                             });
                         });
-                        // Day option listeners (for midshift)
+                        // Day option listeners (for midshift/daily goals)
                         document.querySelectorAll('input[name="midshift-day"]').forEach(radio => {
                             radio.addEventListener('change', function() {
                                 document.querySelectorAll('.day-option').forEach(opt => {
@@ -24835,9 +24835,9 @@ Return ONLY the JSON object, no additional text.`
                                     opt.style.color = 'var(--text-primary)';
                                 });
                                 const selected = this.closest('label').querySelector('.day-option');
-                                selected.style.borderColor = '#10b981';
-                                selected.style.background = 'rgba(16, 185, 129, 0.1)';
-                                selected.style.color = '#10b981';
+                                selected.style.borderColor = '#f59e0b';
+                                selected.style.background = 'rgba(245, 158, 11, 0.1)';
+                                selected.style.color = '#f59e0b';
                             });
                         });
                     }, 100);
