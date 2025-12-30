@@ -33236,7 +33236,7 @@ Return ONLY the JSON object, no additional text.`
         // G FORCE FUNCTIONALITY
         function renderGForce() {
             const dashboard = document.querySelector('.dashboard');
-            const quote = getDailyGForceQuote();
+            const quote = getGForceModuleQuote();
             const affirmations = getDailyGForceAffirmations(5);
             const philosophy = getDailyGForcePhilosophy();
 
@@ -33354,7 +33354,7 @@ Return ONLY the JSON object, no additional text.`
         }
 
         // Daily functions - content changes each day but stays consistent throughout the day
-        function getDailyGForceQuote() {
+        function getGForceModuleQuote() {
             const dayOfYear = getDayOfYear();
             const index = dayOfYear % gforceQuotes.length;
             return gforceQuotes[index];
