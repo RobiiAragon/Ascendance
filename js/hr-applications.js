@@ -75,9 +75,12 @@ function renderHRApplications() {
                     </h1>
                     <p style="color: var(--text-muted);">Review and manage job applications from candidates</p>
                 </div>
-                <div style="display: flex; gap: 12px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button onclick="showApplicationQRCode()" class="btn-secondary" style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-qrcode"></i> QR Code
+                    </button>
                     <button onclick="copyApplicationLink()" class="btn-secondary" style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-link"></i> Copy Public Link
+                        <i class="fas fa-link"></i> Copy Link
                     </button>
                     <button onclick="loadHRApplications()" class="btn-secondary" style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-sync-alt"></i> Refresh
@@ -773,6 +776,86 @@ function copyApplicationLink() {
         // Fallback
         prompt('Copy this link:', link);
     });
+}
+
+/**
+ * Show QR Code modal for job application
+ */
+function showApplicationQRCode() {
+    // Remove existing modal if any
+    const existing = document.getElementById('qr-code-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'qr-code-modal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 20px; padding: 32px; max-width: 400px; width: 100%; text-align: center; animation: modalSlideIn 0.3s ease;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-qrcode" style="font-size: 32px; color: #3b82f6; margin-bottom: 12px;"></i>
+                <h2 style="font-size: 22px; font-weight: 700; color: #1f2937; margin-bottom: 8px;">Job Application QR Code</h2>
+                <p style="color: #6b7280; font-size: 14px;">Scan to open the job application form</p>
+            </div>
+
+            <div style="background: white; padding: 20px; border-radius: 16px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://ascendance.site/joinus.html" alt="Job Application QR Code" style="width: 250px; height: 250px; display: block;">
+            </div>
+
+            <div style="background: #f3f4f6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">Application URL:</p>
+                <p style="font-size: 14px; color: #1f2937; font-weight: 500; word-break: break-all;">ascendance.site/joinus.html</p>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button onclick="copyApplicationLink(); document.getElementById('qr-code-modal').remove();" style="flex: 1; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    <i class="fas fa-copy" style="margin-right: 6px;"></i>Copy Link
+                </button>
+                <button onclick="printQRCode()" style="flex: 1; padding: 12px; background: #10b981; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    <i class="fas fa-print" style="margin-right: 6px;"></i>Print
+                </button>
+            </div>
+
+            <button onclick="document.getElementById('qr-code-modal').remove()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; color: #9ca3af; cursor: pointer; padding: 8px;">
+                &times;
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+/**
+ * Print QR Code
+ */
+function printQRCode() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Job Application QR Code</title>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+                h1 { font-size: 24px; margin-bottom: 8px; }
+                p { color: #666; margin-bottom: 24px; }
+                img { width: 300px; height: 300px; }
+                .url { margin-top: 16px; font-size: 14px; color: #333; }
+            </style>
+        </head>
+        <body>
+            <h1>Join Our Team!</h1>
+            <p>Scan to apply for a position</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://ascendance.site/joinus.html" alt="QR Code">
+            <p class="url">ascendance.site/joinus.html</p>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.onload = () => {
+        printWindow.print();
+    };
 }
 
 /**
