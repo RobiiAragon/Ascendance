@@ -7526,13 +7526,28 @@ window.viewChecklistHistory = async function() {
                 </div>
                 ` : ''}
 
-                <!-- Priority Filter Tabs -->
-                <div style="display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;">
-                    <button onclick="setRequestPriorityFilter('all')" id="req-filter-all" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 500;">All (${allRequests.length})</button>
-                    <button onclick="setRequestPriorityFilter('high')" id="req-filter-high" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #ef4444; cursor: pointer; font-weight: 500;">High (${allRequests.filter(r => r.priority === 'high').length})</button>
-                    <button onclick="setRequestPriorityFilter('medium')" id="req-filter-medium" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #f59e0b; cursor: pointer; font-weight: 500;">Medium (${allRequests.filter(r => r.priority === 'medium').length})</button>
-                    <button onclick="setRequestPriorityFilter('low')" id="req-filter-low" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #10b981; cursor: pointer; font-weight: 500;">Low (${allRequests.filter(r => r.priority === 'low').length})</button>
-                    <button onclick="setRequestPriorityFilter('pending')" id="req-filter-pending" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;">Pending (${allRequests.filter(r => !r.purchased).length})</button>
+                <!-- Filter & Sort Row -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                    <!-- Priority Filters -->
+                    <button onclick="setRequestPriorityFilter('all')" id="req-filter-all" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 500;">All (${allRequests.length})</button>
+                    <button onclick="setRequestPriorityFilter('high')" id="req-filter-high" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #ef4444; cursor: pointer; font-weight: 500;">High</button>
+                    <button onclick="setRequestPriorityFilter('medium')" id="req-filter-medium" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #f59e0b; cursor: pointer; font-weight: 500;">Medium</button>
+                    <button onclick="setRequestPriorityFilter('low')" id="req-filter-low" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #10b981; cursor: pointer; font-weight: 500;">Low</button>
+                    <button onclick="setRequestPriorityFilter('pending')" id="req-filter-pending" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;">Pending</button>
+
+                    <!-- Divider -->
+                    <div style="width: 1px; height: 20px; background: var(--border-color); margin: 0 4px;"></div>
+
+                    <!-- Sort Options -->
+                    <button onclick="setRequestSort('alpha')" id="req-sort-alpha" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;" title="Sort A-Z">
+                        <i class="fas fa-sort-alpha-down"></i> A-Z
+                    </button>
+                    <button onclick="setRequestSort('qty')" id="req-sort-qty" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;" title="Sort by Quantity">
+                        <i class="fas fa-sort-amount-down"></i> Qty
+                    </button>
+                    <button onclick="setRequestSort('store')" id="req-sort-store" style="padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;" title="Sort by Store">
+                        <i class="fas fa-store"></i> Store
+                    </button>
                 </div>
 
                 <!-- Requests List -->
@@ -8767,8 +8782,9 @@ window.viewChecklistHistory = async function() {
             }
         }
 
-        // Current priority filter
+        // Current priority filter and sort
         let currentRequestPriorityFilter = 'all';
+        let currentRequestSort = 'none'; // none, alpha, qty, store
 
         // Set priority filter for requests
         window.setRequestPriorityFilter = function(filter) {
@@ -8806,12 +8822,34 @@ window.viewChecklistHistory = async function() {
             renderFilteredRequests();
         };
 
+        // Set sort option for requests
+        window.setRequestSort = function(sort) {
+            // Toggle off if clicking same sort
+            currentRequestSort = (currentRequestSort === sort) ? 'none' : sort;
+
+            // Update sort button styles
+            ['alpha', 'qty', 'store'].forEach(s => {
+                const btn = document.getElementById(`req-sort-${s}`);
+                if (btn) {
+                    if (s === currentRequestSort) {
+                        btn.style.background = 'var(--accent-primary)';
+                        btn.style.color = 'white';
+                    } else {
+                        btn.style.background = 'var(--bg-secondary)';
+                        btn.style.color = 'var(--text-secondary)';
+                    }
+                }
+            });
+
+            renderFilteredRequests();
+        };
+
         // Render filtered requests without full page re-render
         function renderFilteredRequests() {
             const listContainer = document.querySelector('.product-requests-list');
             if (!listContainer) return;
 
-            let filtered = restockRequests;
+            let filtered = [...restockRequests];
 
             // Apply priority filter
             if (currentRequestPriorityFilter === 'pending') {
@@ -8820,12 +8858,22 @@ window.viewChecklistHistory = async function() {
                 filtered = filtered.filter(r => r.priority === currentRequestPriorityFilter);
             }
 
+            // Apply sorting
+            if (currentRequestSort === 'alpha') {
+                filtered.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
+            } else if (currentRequestSort === 'qty') {
+                filtered.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+            } else if (currentRequestSort === 'store') {
+                filtered.sort((a, b) => (a.store || '').localeCompare(b.store || ''));
+            }
+
             // Update title and count
             const titleEl = document.getElementById('requests-list-title');
             const countEl = document.getElementById('requests-list-count');
+            const sortLabel = currentRequestSort !== 'none' ? ` (${currentRequestSort === 'alpha' ? 'A-Z' : currentRequestSort === 'qty' ? 'by Qty' : 'by Store'})` : '';
             if (titleEl) {
                 const titles = { all: 'All Requests', high: 'High Priority', medium: 'Medium Priority', low: 'Low Priority', pending: 'Pending' };
-                titleEl.textContent = titles[currentRequestPriorityFilter] || 'All Requests';
+                titleEl.textContent = (titles[currentRequestPriorityFilter] || 'All Requests') + sortLabel;
             }
             if (countEl) countEl.textContent = `${filtered.length} items`;
 
