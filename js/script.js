@@ -7538,6 +7538,15 @@ window.viewChecklistHistory = async function() {
                     <!-- Divider -->
                     <div style="width: 2px; height: 35px; background: var(--border-color); margin: 0 10px;"></div>
 
+                    <!-- Store Filter Dropdown -->
+                    <select id="req-store-filter" onchange="setRequestStoreFilter(this.value)" style="padding: 12px 16px; font-size: 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 600; min-width: 150px;">
+                        <option value="all">All Stores</option>
+                        ${[...new Set(allRequests.map(r => r.store).filter(s => s))].sort().map(store => `<option value="${store}">${store}</option>`).join('')}
+                    </select>
+
+                    <!-- Divider -->
+                    <div style="width: 2px; height: 35px; background: var(--border-color); margin: 0 10px;"></div>
+
                     <!-- Sort Options -->
                     <button onclick="setRequestSort('alpha')" id="req-sort-alpha" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort A-Z">
                         <i class="fas fa-sort-alpha-down"></i> A-Z
@@ -8782,8 +8791,9 @@ window.viewChecklistHistory = async function() {
             }
         }
 
-        // Current priority filter and sort
+        // Current priority filter, store filter, and sort
         let currentRequestPriorityFilter = 'all';
+        let currentRequestStoreFilter = 'all';
         let currentRequestSort = 'none'; // none, alpha, qty, store
 
         // Set priority filter for requests
@@ -8844,6 +8854,12 @@ window.viewChecklistHistory = async function() {
             renderFilteredRequests();
         };
 
+        // Set store filter for requests
+        window.setRequestStoreFilter = function(store) {
+            currentRequestStoreFilter = store;
+            renderFilteredRequests();
+        };
+
         // Render filtered requests without full page re-render
         function renderFilteredRequests() {
             const listContainer = document.querySelector('.product-requests-list');
@@ -8856,6 +8872,11 @@ window.viewChecklistHistory = async function() {
                 filtered = filtered.filter(r => !r.purchased);
             } else if (currentRequestPriorityFilter !== 'all') {
                 filtered = filtered.filter(r => r.priority === currentRequestPriorityFilter);
+            }
+
+            // Apply store filter
+            if (currentRequestStoreFilter !== 'all') {
+                filtered = filtered.filter(r => r.store === currentRequestStoreFilter);
             }
 
             // Apply sorting
