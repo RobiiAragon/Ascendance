@@ -7526,11 +7526,20 @@ window.viewChecklistHistory = async function() {
                 </div>
                 ` : ''}
 
+                <!-- Priority Filter Tabs -->
+                <div style="display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <button onclick="setRequestPriorityFilter('all')" id="req-filter-all" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 500;">All (${allRequests.length})</button>
+                    <button onclick="setRequestPriorityFilter('high')" id="req-filter-high" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #ef4444; cursor: pointer; font-weight: 500;">High (${allRequests.filter(r => r.priority === 'high').length})</button>
+                    <button onclick="setRequestPriorityFilter('medium')" id="req-filter-medium" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #f59e0b; cursor: pointer; font-weight: 500;">Medium (${allRequests.filter(r => r.priority === 'medium').length})</button>
+                    <button onclick="setRequestPriorityFilter('low')" id="req-filter-low" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: #10b981; cursor: pointer; font-weight: 500;">Low (${allRequests.filter(r => r.priority === 'low').length})</button>
+                    <button onclick="setRequestPriorityFilter('pending')" id="req-filter-pending" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 500;">Pending (${allRequests.filter(r => !r.purchased).length})</button>
+                </div>
+
                 <!-- Requests List -->
                 <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
-                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; color: var(--text-primary);">All Requests</span>
-                        <span style="font-size: 13px; color: var(--text-muted);">${allRequests.length} items</span>
+                    <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;" id="requests-list-title">All Requests</span>
+                        <span style="font-size: 12px; color: var(--text-muted);" id="requests-list-count">${allRequests.length} items</span>
                     </div>
 
                     ${allRequests.length === 0 ? `
@@ -8756,6 +8765,111 @@ window.viewChecklistHistory = async function() {
                     renderRestockRequests();
                 }
             }
+        }
+
+        // Current priority filter
+        let currentRequestPriorityFilter = 'all';
+
+        // Set priority filter for requests
+        window.setRequestPriorityFilter = function(filter) {
+            currentRequestPriorityFilter = filter;
+
+            // Update tab styles
+            ['all', 'high', 'medium', 'low', 'pending'].forEach(f => {
+                const btn = document.getElementById(`req-filter-${f}`);
+                if (btn) {
+                    if (f === filter) {
+                        if (f === 'high') {
+                            btn.style.background = '#ef4444';
+                            btn.style.color = 'white';
+                        } else if (f === 'medium') {
+                            btn.style.background = '#f59e0b';
+                            btn.style.color = 'white';
+                        } else if (f === 'low') {
+                            btn.style.background = '#10b981';
+                            btn.style.color = 'white';
+                        } else {
+                            btn.style.background = 'var(--accent-primary)';
+                            btn.style.color = 'white';
+                        }
+                    } else {
+                        btn.style.background = 'var(--bg-secondary)';
+                        if (f === 'high') btn.style.color = '#ef4444';
+                        else if (f === 'medium') btn.style.color = '#f59e0b';
+                        else if (f === 'low') btn.style.color = '#10b981';
+                        else btn.style.color = 'var(--text-secondary)';
+                    }
+                }
+            });
+
+            // Filter and re-render the list
+            renderFilteredRequests();
+        };
+
+        // Render filtered requests without full page re-render
+        function renderFilteredRequests() {
+            const listContainer = document.querySelector('.product-requests-list');
+            if (!listContainer) return;
+
+            let filtered = restockRequests;
+
+            // Apply priority filter
+            if (currentRequestPriorityFilter === 'pending') {
+                filtered = filtered.filter(r => !r.purchased);
+            } else if (currentRequestPriorityFilter !== 'all') {
+                filtered = filtered.filter(r => r.priority === currentRequestPriorityFilter);
+            }
+
+            // Update title and count
+            const titleEl = document.getElementById('requests-list-title');
+            const countEl = document.getElementById('requests-list-count');
+            if (titleEl) {
+                const titles = { all: 'All Requests', high: 'High Priority', medium: 'Medium Priority', low: 'Low Priority', pending: 'Pending' };
+                titleEl.textContent = titles[currentRequestPriorityFilter] || 'All Requests';
+            }
+            if (countEl) countEl.textContent = `${filtered.length} items`;
+
+            // Re-render list
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                        <i class="fas fa-filter" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px;"></i>
+                        <p style="font-size: 13px; margin: 0;">No ${currentRequestPriorityFilter} requests</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(request => {
+                const priorityColor = request.priority === 'high' ? '#ef4444' : request.priority === 'medium' ? '#f59e0b' : '#10b981';
+                const isPurchased = request.purchased || false;
+                const rowBg = isPurchased ? 'linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' : 'transparent';
+                const rowBorder = isPurchased ? '2px solid #10b981' : '1px solid var(--border-color)';
+                return `
+                    <div class="request-row" id="request-row-${request.firestoreId || request.id}" style="display: flex; align-items: center; padding: 12px 16px; border-bottom: ${rowBorder}; background: ${rowBg}; gap: 12px; transition: all 0.3s ease;">
+                        <div onclick="toggleRequestPurchased('${request.firestoreId || request.id}')" style="cursor: pointer; min-width: 32px; height: 32px; border-radius: 8px; border: 2px solid ${isPurchased ? '#10b981' : 'var(--border-color)'}; background: ${isPurchased ? '#10b981' : 'transparent'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                            ${isPurchased ? '<i class="fas fa-check" style="color: white; font-size: 14px;"></i>' : ''}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; color: ${isPurchased ? '#10b981' : 'var(--text-primary)'}; font-size: 14px; ${isPurchased ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${request.productName}</div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
+                                <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-store" style="margin-right: 4px;"></i>${request.store || '-'}</span>
+                            </div>
+                        </div>
+                        <div style="text-align: center; min-width: 40px;">
+                            <div style="font-weight: 700; font-size: 18px; color: ${isPurchased ? '#10b981' : 'var(--accent-primary)'};">${request.quantity}</div>
+                        </div>
+                        <div>
+                            <span style="background: ${priorityColor}20; color: ${priorityColor}; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase;">${request.priority}</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Clear all purchased requests
