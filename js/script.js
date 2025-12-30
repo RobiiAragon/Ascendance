@@ -1683,9 +1683,179 @@
             }, 100);
         }
 
+        // G-Force inspirational quotes
+        const gforceQuotes = [
+            { quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "G-Force" },
+            { quote: "The only way to do great work is to love what you do. Stay hungry, stay foolish.", author: "G-Force" },
+            { quote: "Your limitation—it's only your imagination. Push beyond what you think is possible.", author: "G-Force" },
+            { quote: "Dream bigger. Start smaller. Act now. The universe rewards action.", author: "G-Force" },
+            { quote: "Every morning you have two choices: continue to sleep with your dreams, or wake up and chase them.", author: "G-Force" },
+            { quote: "Don't watch the clock; do what it does. Keep going.", author: "G-Force" },
+            { quote: "The difference between ordinary and extraordinary is that little extra.", author: "G-Force" },
+            { quote: "Hustle in silence. Let your success make the noise.", author: "G-Force" },
+            { quote: "Your energy introduces you before you even speak. Make it powerful.", author: "G-Force" },
+            { quote: "Champions aren't made in gyms. Champions are made from something deep inside—a desire, a dream, a vision.", author: "G-Force" },
+            { quote: "Be so good they can't ignore you. Excellence is the best revenge.", author: "G-Force" },
+            { quote: "The grind includes days you don't feel like grinding. Show up anyway.", author: "G-Force" },
+            { quote: "Small daily improvements over time lead to stunning results.", author: "G-Force" },
+            { quote: "You don't have to be perfect to be amazing. Progress over perfection.", author: "G-Force" },
+            { quote: "Invest in yourself. It pays the best interest.", author: "G-Force" },
+            { quote: "What consumes your mind controls your life. Think abundance.", author: "G-Force" },
+            { quote: "The comeback is always stronger than the setback.", author: "G-Force" },
+            { quote: "Discipline is choosing between what you want now and what you want most.", author: "G-Force" },
+            { quote: "You are the CEO of your life. Hire, fire, and promote accordingly.", author: "G-Force" },
+            { quote: "Stop doubting yourself. Work hard and make it happen.", author: "G-Force" },
+            { quote: "Your only limit is you. Break the chains of self-doubt.", author: "G-Force" },
+            { quote: "Build your empire. Brick by brick, day by day.", author: "G-Force" },
+            { quote: "Stay focused, go after your dreams, and keep moving toward your goals.", author: "G-Force" },
+            { quote: "Success doesn't come to you. You go to it. Run.", author: "G-Force" },
+            { quote: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "G-Force" },
+            { quote: "Be fearless in the pursuit of what sets your soul on fire.", author: "G-Force" },
+            { quote: "Winners are not people who never fail, but people who never quit.", author: "G-Force" },
+            { quote: "Turn your wounds into wisdom. Your struggles into strength.", author: "G-Force" },
+            { quote: "Create the life you can't wait to wake up to.", author: "G-Force" },
+            { quote: "The harder you work for something, the greater you'll feel when you achieve it.", author: "G-Force" },
+            { quote: "Don't be afraid to give up the good to go for the great.", author: "G-Force" }
+        ];
+
+        // Get daily quote based on day of year (changes each day)
+        function getDailyGForceQuote() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            return gforceQuotes[dayOfYear % gforceQuotes.length];
+        }
+
+        // Get random quote - uses OpenAI to generate fresh quotes
+        let currentQuoteIndex = -1;
+        let isGeneratingQuote = false;
+
+        window.refreshGForceQuote = async function() {
+            if (isGeneratingQuote) return;
+
+            const quoteText = document.querySelector('.gforce-quote-banner p[style*="italic"]');
+            const authorText = document.querySelector('.gforce-quote-banner p[style*="color: #10b981"]');
+            const refreshBtn = document.querySelector('.gforce-quote-banner button');
+
+            if (!quoteText || !authorText) return;
+
+            // Show loading state
+            isGeneratingQuote = true;
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: white; font-size: 14px;"></i>';
+            }
+            quoteText.style.transition = 'opacity 0.3s';
+            quoteText.style.opacity = '0.5';
+
+            try {
+                // Try to generate with AI
+                const apiKey = typeof getOpenAIKey === 'function' ? getOpenAIKey() : localStorage.getItem('openai_api_key');
+
+                if (apiKey) {
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o',
+                            max_tokens: 150,
+                            messages: [{
+                                role: 'user',
+                                content: `Generate ONE unique, powerful motivational quote for business owners and employees. The quote should be about success, hustle, growth mindset, discipline, or entrepreneurship. Make it punchy and memorable (1-2 sentences max). Do NOT use famous quotes - create an original one. Return ONLY the quote text, no quotation marks, no attribution.`
+                            }]
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const newQuote = data.choices?.[0]?.message?.content?.trim();
+
+                        if (newQuote && newQuote.length > 10) {
+                            // Success - show AI generated quote
+                            quoteText.style.opacity = '0';
+                            setTimeout(() => {
+                                quoteText.innerHTML = `"${newQuote}"`;
+                                authorText.innerHTML = `— G-Force <i class="fas fa-bolt" style="margin-left: 4px; font-size: 10px;"></i> <span style="font-size: 9px; opacity: 0.6; margin-left: 4px;">✨ Fresh</span>`;
+                                quoteText.style.opacity = '1';
+                            }, 300);
+
+                            isGeneratingQuote = false;
+                            if (refreshBtn) {
+                                refreshBtn.innerHTML = '<i class="fas fa-sync-alt" style="color: white; font-size: 14px;"></i>';
+                            }
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('AI quote generation failed, using local quotes:', error);
+            }
+
+            // Fallback to local quotes if AI fails
+            let newIndex;
+            do {
+                newIndex = Math.floor(Math.random() * gforceQuotes.length);
+            } while (newIndex === currentQuoteIndex && gforceQuotes.length > 1);
+            currentQuoteIndex = newIndex;
+
+            const quote = gforceQuotes[newIndex];
+            quoteText.style.opacity = '0';
+
+            setTimeout(() => {
+                quoteText.innerHTML = `"${quote.quote}"`;
+                authorText.innerHTML = `— ${quote.author} <i class="fas fa-bolt" style="margin-left: 4px; font-size: 10px;"></i>`;
+                quoteText.style.opacity = '1';
+            }, 300);
+
+            isGeneratingQuote = false;
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt" style="color: white; font-size: 14px;"></i>';
+            }
+        };
+
         function renderDashboard() {
             const dashboard = document.querySelector('.dashboard');
+            const dailyQuote = getDailyGForceQuote();
+
             dashboard.innerHTML = `
+                <!-- G-Force Daily Inspiration -->
+                <div class="gforce-quote-banner" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 16px; padding: 24px 32px; margin-bottom: 24px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                    <!-- Decorative elements -->
+                    <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%); border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -30px; left: 20%; width: 80px; height: 80px; background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 70%); border-radius: 50%;"></div>
+
+                    <div style="display: flex; align-items: center; gap: 20px; position: relative; z-index: 1;">
+                        <!-- G-Force Avatar -->
+                        <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #6366f1); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); flex-shrink: 0;">
+                            <span style="font-size: 24px; font-weight: 800; color: white;">G</span>
+                        </div>
+
+                        <!-- Quote Content -->
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8b5cf6;">Daily Inspiration</span>
+                                <span style="font-size: 10px; color: rgba(255,255,255,0.4);">•</span>
+                                <span style="font-size: 10px; color: rgba(255,255,255,0.4);">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+                            </div>
+                            <p style="font-size: 16px; font-weight: 500; color: white; line-height: 1.6; margin: 0; font-style: italic;">
+                                "${dailyQuote.quote}"
+                            </p>
+                            <p style="font-size: 12px; color: #10b981; margin: 8px 0 0 0; font-weight: 600;">
+                                — ${dailyQuote.author} <i class="fas fa-bolt" style="margin-left: 4px; font-size: 10px;"></i>
+                            </p>
+                        </div>
+
+                        <!-- Refresh button (shows new random quote) -->
+                        <button onclick="refreshGForceQuote()" style="background: rgba(255,255,255,0.1); border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;" title="Get another quote" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'; this.style.transform='rotate(180deg)';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='rotate(0deg)';">
+                            <i class="fas fa-sync-alt" style="color: white; font-size: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Stats -->
                 <div class="stats-grid">
                     <div class="stat-card" style="cursor: pointer;" onclick="navigateTo('employees')">
@@ -16189,7 +16359,7 @@ Return ONLY the JSON object, no additional text.`
             }
         }
 
-        function editInvoice(id) {
+        window.editInvoice = function(id) {
             const numericId = !isNaN(id) ? parseInt(id, 10) : id;
             const invoice = invoices.find(i => i.id === id || i.id === numericId || i.firestoreId === id);
             if (!invoice) return;
@@ -16326,7 +16496,7 @@ Return ONLY the JSON object, no additional text.`
             modal.classList.add('active');
         }
 
-        function previewEditInvoiceFile(input) {
+        window.previewEditInvoiceFile = function(input) {
             const photoPreview = document.getElementById('edit-invoice-photo-preview');
             const pdfPreview = document.getElementById('edit-invoice-pdf-preview');
             const img = document.getElementById('edit-invoice-photo-img');
@@ -16363,11 +16533,11 @@ Return ONLY the JSON object, no additional text.`
         }
 
         // Keep old function name for backwards compatibility
-        function previewEditInvoicePhoto(input) {
+        window.previewEditInvoicePhoto = function(input) {
             previewEditInvoiceFile(input);
         }
 
-        async function saveInvoiceChanges(invoiceId) {
+        window.saveInvoiceChanges = async function(invoiceId) {
             const invoiceNumber = document.getElementById('edit-invoice-number').value.trim();
             const vendor = document.getElementById('edit-invoice-vendor').value.trim();
             const categories = getSelectedInvoiceCategories('edit-invoice-categories-container');
