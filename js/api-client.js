@@ -50,7 +50,7 @@ function injectAnalyticsStyles() {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 8px 16px;
+            padding: 8px 9px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
@@ -705,9 +705,9 @@ async function renderAnalyticsPage(period = 'month') {
                     <label class="filter-label">Quick Select</label>
                     <div class="analytics-presets">
                         <button class="preset-btn ${period === 'today' ? 'active' : ''}" onclick="setAnalyticsPreset('today')">Today</button>
-                        <button class="preset-btn ${period === 'yesterday' ? 'active' : ''}" onclick="setAnalyticsPreset('yesterday')">Yesterday</button>
                         <button class="preset-btn ${period === 'week' ? 'active' : ''}" onclick="setAnalyticsPreset('week')">This Week</button>
                         <button class="preset-btn ${period === 'month' ? 'active' : ''}" onclick="setAnalyticsPreset('month')">This Month</button>
+                        <button class="preset-btn ${period === 'last3months' ? 'active' : ''}" onclick="setAnalyticsPreset('last3months')">Last 3 Months</button>
                         <button class="preset-btn ${period === 'year' ? 'active' : ''}" onclick="setAnalyticsPreset('year')">This Year</button>
                         <button class="preset-btn ${period === 'custom' ? 'active' : ''}" onclick="setAnalyticsPreset('custom')">Custom</button>
                     </div>
@@ -801,20 +801,17 @@ function handleStoreChipClick(storeKey) {
     console.log(`[Analytics] Store changed to: ${storeKey} - Click "Apply" to load data`);
 }
 
-// Set analytics preset (quick select)
+// Set analytics preset (quick select) - Only updates inputs, does NOT auto-run query
 function setAnalyticsPreset(preset) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     let fromDate = new Date(today);
     let toDate = new Date(today);
+    toDate.setHours(23, 59, 59, 999); // End of day
 
     switch(preset) {
         case 'today':
-            break;
-        case 'yesterday':
-            fromDate.setDate(fromDate.getDate() - 1);
-            toDate.setDate(toDate.getDate() - 1);
             break;
         case 'week':
             fromDate.setDate(fromDate.getDate() - fromDate.getDay());
@@ -822,31 +819,41 @@ function setAnalyticsPreset(preset) {
         case 'month':
             fromDate.setDate(1);
             break;
+        case 'last3months':
+            // Go back 3 months from today
+            fromDate.setMonth(fromDate.getMonth() - 3);
+            fromDate.setDate(1);
+            break;
         case 'year':
             fromDate.setMonth(0, 1);
             break;
         case 'custom':
-            // Just update UI, don't change dates
-            break;
+            // Just update UI, don't run query - user needs to select dates first
+            renderAnalyticsPage(preset);
+            return;
     }
 
     // Update date inputs
     const fromInput = document.getElementById('analytics-date-from');
     const toInput = document.getElementById('analytics-date-to');
 
-    if (fromInput && toInput && preset !== 'custom') {
+    if (fromInput && toInput) {
         fromInput.value = fromDate.toISOString().split('T')[0];
         toInput.value = toDate.toISOString().split('T')[0];
     }
 
     // Update custom range state
-    if (preset !== 'custom') {
-        window.analyticsCustomRange.startDate = fromDate;
-        window.analyticsCustomRange.endDate = toDate;
-    }
+    window.analyticsCustomRange.startDate = fromDate;
+    window.analyticsCustomRange.endDate = toDate;
 
-    // Re-render to update button states
-    renderAnalyticsPage(preset);
+    // Update active state on preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.querySelector(`.preset-btn[onclick*="${preset}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    console.log(`[Analytics] Preset "${preset}" selected - Date range: ${fromDate.toISOString().split('T')[0]} to ${toDate.toISOString().split('T')[0]} - Click "Apply" to load data`);
+
+    // Do NOT auto-run query - user must click "Apply" button
 }
 
 // Apply analytics filters (run query)
@@ -860,11 +867,12 @@ function applyAnalyticsFilters() {
     }
 
     // Update custom range
-    window.analyticsCustomRange.startDate = new Date(fromInput.value);
-    window.analyticsCustomRange.endDate = new Date(toInput.value);
+    // Parse dates as LOCAL time by adding T00:00:00 (otherwise JS interprets YYYY-MM-DD as UTC)
+    const [fromYear, fromMonth, fromDay] = fromInput.value.split('-').map(Number);
+    const [toYear, toMonth, toDay] = toInput.value.split('-').map(Number);
 
-    // Set end date to end of day
-    window.analyticsCustomRange.endDate.setHours(23, 59, 59, 999);
+    window.analyticsCustomRange.startDate = new Date(fromYear, fromMonth - 1, fromDay, 0, 0, 0, 0);
+    window.analyticsCustomRange.endDate = new Date(toYear, toMonth - 1, toDay, 23, 59, 59, 999);
 
     console.log(`[Analytics] Applying filters - Store: ${selectedStore}, Date: ${fromInput.value} to ${toInput.value}`);
 
@@ -1094,9 +1102,9 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                         <label class="filter-label">Quick Select</label>
                         <div class="analytics-presets">
                             <button class="preset-btn" onclick="setAnalyticsPreset('today')">Today</button>
-                            <button class="preset-btn" onclick="setAnalyticsPreset('yesterday')">Yesterday</button>
                             <button class="preset-btn" onclick="setAnalyticsPreset('week')">This Week</button>
                             <button class="preset-btn" onclick="setAnalyticsPreset('month')">This Month</button>
+                            <button class="preset-btn" onclick="setAnalyticsPreset('last3months')">Last 3 Months</button>
                             <button class="preset-btn" onclick="setAnalyticsPreset('year')">This Year</button>
                             <button class="preset-btn active">Custom</button>
                         </div>
@@ -1205,13 +1213,24 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
 
                 <!-- Sales Transactions Table - Inspired by sales-report.html -->
                 <div class="card" style="margin-top: 24px; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
-                        <h3 class="card-title" style="font-size: 1rem; font-weight: 600;"><i class="fas fa-receipt"></i> Sales Transactions</h3>
-                        <span style="font-size: 13px; color: var(--text-muted);">${salesData.summary.totalOrders} transactions</span>
+                    <div class="card-header" style="display: flex; flex-direction: column; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); gap: 12px; position: relative;">
+                        <h3 class="card-title" style="font-size: 1rem; font-weight: 600; width: 100%; text-align: left;"><i class="fas fa-receipt"></i> Sales Transactions</h3>
+                        <div style="display: flex; align-items: center; gap: 12px; justify-content: center; width: 100%;">
+                            <!-- View Mode Toggle Buttons - Centered -->
+                            <div class="transactions-view-toggle" style="display: flex; gap: 4px; background: var(--bg-tertiary); padding: 4px; border-radius: 8px;">
+                                <button onclick="setTransactionsViewMode('orders')" id="view-mode-orders" class="view-mode-btn" style="padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);">
+                                    <i class="fas fa-list"></i> Orders
+                                </button>
+                                <button onclick="setTransactionsViewMode('daily')" id="view-mode-daily" class="view-mode-btn active" style="padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: var(--accent-primary); color: white;">
+                                    <i class="fas fa-calendar-day"></i> Daily Summary
+                                </button>
+                            </div>
+                            <span style="font-size: 13px; color: var(--text-muted);">${salesData.summary.totalOrders} transactions</span>
+                        </div>
                     </div>
                     <div class="card-body" style="padding: 0; max-height: 600px; overflow-y: auto;">
                         <div id="sales-transactions-container">
-                            ${renderSalesTransactionsTable(salesData.recentOrders || [])}
+                            ${renderDailySummaryTable(salesData.recentOrders || [])}
                         </div>
                     </div>
                 </div>
@@ -1243,6 +1262,29 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
         // Store sales data for orders table re-rendering (pagination)
         currentSalesData = salesData;
         analyticsOrdersPage = 1; // Reset to page 1 on new data load
+
+        // Determine default view mode based on date range
+        // Use "orders" view for single day (Today), "daily" for multi-day ranges
+        const numDays = Object.keys(salesData.daily || {}).length;
+        if (numDays <= 1) {
+            currentTransactionsViewMode = 'orders';
+            // Update the buttons to reflect the correct state
+            const ordersBtn = document.getElementById('view-mode-orders');
+            const dailyBtn = document.getElementById('view-mode-daily');
+            if (ordersBtn && dailyBtn) {
+                ordersBtn.style.background = 'var(--accent-primary)';
+                ordersBtn.style.color = 'white';
+                dailyBtn.style.background = 'transparent';
+                dailyBtn.style.color = 'var(--text-secondary)';
+            }
+            // Re-render with orders view
+            const container = document.getElementById('sales-transactions-container');
+            if (container) {
+                container.innerHTML = renderSalesTransactionsTable(salesData.recentOrders || []);
+            }
+        } else {
+            currentTransactionsViewMode = 'daily';
+        }
 
         // Initialize the chart with daily view
         displaySalesChart('daily', SHOW_ORDERS_IN_CHART, SHOW_TAX_IN_CHART);
@@ -1797,6 +1839,171 @@ function toggleTransactionDetails(rowId) {
     }
 }
 
+// Current transactions view mode ('orders' or 'daily')
+let currentTransactionsViewMode = 'daily'; // Default to daily summary for multi-day ranges
+
+/**
+ * Set transactions view mode and re-render
+ */
+function setTransactionsViewMode(mode) {
+    currentTransactionsViewMode = mode;
+
+    // Update button styles
+    const ordersBtn = document.getElementById('view-mode-orders');
+    const dailyBtn = document.getElementById('view-mode-daily');
+
+    if (ordersBtn && dailyBtn) {
+        if (mode === 'orders') {
+            ordersBtn.style.background = 'var(--accent-primary)';
+            ordersBtn.style.color = 'white';
+            dailyBtn.style.background = 'transparent';
+            dailyBtn.style.color = 'var(--text-secondary)';
+        } else {
+            dailyBtn.style.background = 'var(--accent-primary)';
+            dailyBtn.style.color = 'white';
+            ordersBtn.style.background = 'transparent';
+            ordersBtn.style.color = 'var(--text-secondary)';
+        }
+    }
+
+    // Re-render the transactions table
+    const container = document.getElementById('sales-transactions-container');
+    if (container && currentSalesData && currentSalesData.recentOrders) {
+        if (mode === 'orders') {
+            container.innerHTML = renderSalesTransactionsTable(currentSalesData.recentOrders);
+        } else {
+            container.innerHTML = renderDailySummaryTable(currentSalesData.recentOrders);
+        }
+    }
+}
+
+/**
+ * Render Daily Summary table - shows aggregated data per day
+ */
+function renderDailySummaryTable(orders) {
+    console.log('[renderDailySummaryTable] Starting with', orders?.length, 'orders');
+
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+        return `
+            <div style="padding: 48px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>No transactions found for this period</p>
+            </div>
+        `;
+    }
+
+    // Group orders by date and calculate daily totals
+    const dailySummary = {};
+    orders.forEach(order => {
+        const dateObj = new Date(order.createdAt);
+        const dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD for sorting
+        const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+        if (!dailySummary[dateKey]) {
+            dailySummary[dateKey] = {
+                displayDate: displayDate,
+                orderCount: 0,
+                gross: 0,
+                cecetTax: 0,
+                salesTax: 0,
+                totalTax: 0,
+                netSales: 0
+            };
+        }
+
+        const orderTotal = parseFloat(order.total) || 0;
+        const orderCecetTax = parseFloat(order.cecetTax) || 0;
+        const orderSalesTax = parseFloat(order.salesTax) || 0;
+        const orderTotalTax = orderCecetTax + orderSalesTax;
+
+        dailySummary[dateKey].orderCount += 1;
+        dailySummary[dateKey].gross += orderTotal;
+        dailySummary[dateKey].cecetTax += orderCecetTax;
+        dailySummary[dateKey].salesTax += orderSalesTax;
+        dailySummary[dateKey].totalTax += orderTotalTax;
+        dailySummary[dateKey].netSales += (orderTotal - orderTotalTax);
+    });
+
+    // Sort by date (newest first)
+    const sortedDays = Object.entries(dailySummary).sort((a, b) => b[0].localeCompare(a[0]));
+
+    // Calculate grand totals
+    const grandTotals = sortedDays.reduce((acc, [_, day]) => {
+        acc.orderCount += day.orderCount;
+        acc.gross += day.gross;
+        acc.cecetTax += day.cecetTax;
+        acc.salesTax += day.salesTax;
+        acc.totalTax += day.totalTax;
+        acc.netSales += day.netSales;
+        return acc;
+    }, { orderCount: 0, gross: 0, cecetTax: 0, salesTax: 0, totalTax: 0, netSales: 0 });
+
+    let tableHTML = `
+        <div class="transactions-table-wrapper">
+        <table class="transactions-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+                <tr style="background: var(--bg-tertiary); position: sticky; top: 0; z-index: 10;">
+                    <th style="text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">
+                        <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i>Date
+                    </th>
+                    <th style="text-align: center; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Orders</th>
+                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Gross</th>
+                    <th class="hide-mobile" style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CECET 12.5%</th>
+                    <th class="hide-mobile" style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">CA Tax 7.5%</th>
+                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Tax Total</th>
+                    <th style="text-align: right; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600;">Net</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Render each day
+    sortedDays.forEach(([dateKey, day]) => {
+        tableHTML += `
+            <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 14px 16px;">
+                    <div style="font-weight: 600; color: #60a5fa;">${day.displayDate}</div>
+                </td>
+                <td style="padding: 14px 16px; text-align: center;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 32px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--bg-tertiary); color: var(--text-primary);">
+                        ${day.orderCount}
+                    </span>
+                </td>
+                <td style="padding: 14px 16px; text-align: right; font-weight: 500;">${formatCurrency(day.gross)}</td>
+                <td class="hide-mobile" style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${day.cecetTax > 0 ? formatCurrency(day.cecetTax) : '-'}</td>
+                <td class="hide-mobile" style="padding: 14px 16px; text-align: right; color: var(--text-muted);">${day.salesTax > 0 ? formatCurrency(day.salesTax) : '-'}</td>
+                <td style="padding: 14px 16px; text-align: right; color: #ef4444; font-weight: 500;">${formatCurrency(day.totalTax)}</td>
+                <td style="padding: 14px 16px; text-align: right; font-weight: 600; color: #10b981;">${formatCurrency(day.netSales)}</td>
+            </tr>
+        `;
+    });
+
+    // Grand total row
+    tableHTML += `
+            <tr style="background: var(--bg-tertiary); border-top: 2px solid var(--border-color);">
+                <td style="padding: 14px 16px; font-weight: 700; color: var(--text-primary);">
+                    <i class="fas fa-calculator" style="margin-right: 8px; color: var(--accent-primary);"></i>
+                    Total (${sortedDays.length} days)
+                </td>
+                <td style="padding: 14px 16px; text-align: center;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; background: var(--accent-primary); color: white;">
+                        ${grandTotals.orderCount}
+                    </span>
+                </td>
+                <td style="padding: 14px 16px; text-align: right; font-weight: 700;">${formatCurrency(grandTotals.gross)}</td>
+                <td class="hide-mobile" style="padding: 14px 16px; text-align: right; font-weight: 600; color: var(--text-muted);">${grandTotals.cecetTax > 0 ? formatCurrency(grandTotals.cecetTax) : '-'}</td>
+                <td class="hide-mobile" style="padding: 14px 16px; text-align: right; font-weight: 600; color: var(--text-muted);">${grandTotals.salesTax > 0 ? formatCurrency(grandTotals.salesTax) : '-'}</td>
+                <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #ef4444;">${formatCurrency(grandTotals.totalTax)}</td>
+                <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: #10b981;">${formatCurrency(grandTotals.netSales)}</td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+    `;
+
+    return tableHTML;
+}
+
 // =============================================================================
 // Recent Orders Table with Expandable Rows & Pagination (Legacy)
 // =============================================================================
@@ -2034,15 +2241,26 @@ document.addEventListener('click', function(event) {
 function exportToPDF() {
     toggleExportDropdown();
 
-    if (!window.analyticsChartData) {
+    if (!window.analyticsChartData || !currentSalesData) {
         alert('No data available to export. Please load analytics data first.');
         return;
     }
 
-    // Get the period
-    const periodSelect = document.getElementById('period-select');
-    const period = periodSelect ? periodSelect.value : 'month';
-    const periodLabel = period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'This Year';
+    // Prepare data
+    const dailyData = window.analyticsChartData.daily;
+    const sortedDates = Object.keys(dailyData).sort();
+    const summary = currentSalesData.summary;
+
+    // Get date range from actual loaded data (first and last date in sortedDates)
+    let dateRangeLabel = '';
+    if (sortedDates.length > 0) {
+        const firstDate = new Date(sortedDates[0] + 'T12:00:00');
+        const lastDate = new Date(sortedDates[sortedDates.length - 1] + 'T12:00:00');
+        const formatDate = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        dateRangeLabel = `${formatDate(firstDate)} - ${formatDate(lastDate)}`;
+    } else {
+        dateRangeLabel = 'No data';
+    }
 
     // Get store info
     const storeConfig = STORES_CONFIG[selectedStore];
@@ -2055,24 +2273,14 @@ function exportToPDF() {
         locationName = location ? ` - ${location.name}` : '';
     }
 
-    // Prepare data
-    const dailyData = window.analyticsChartData.daily;
-    const sortedDates = Object.keys(dailyData).sort();
-
-    // Calculate totals
-    let totalSales = 0;
-    let totalOrders = 0;
-    let totalTax = 0;
-    let totalCecetTax = 0;
-    let totalSalesTax = 0;
-
-    sortedDates.forEach(date => {
-        totalSales += dailyData[date].sales;
-        totalOrders += dailyData[date].orders;
-        totalTax += dailyData[date].tax;
-        totalCecetTax += dailyData[date].cecetTax || 0;
-        totalSalesTax += dailyData[date].salesTax || 0;
-    });
+    // Get totals from summary (more accurate)
+    const totalSales = parseFloat(summary.totalSales) || 0;
+    const totalOrders = parseInt(summary.totalOrders) || 0;
+    const totalTax = parseFloat(summary.totalTax) || 0;
+    const totalCecetTax = parseFloat(summary.totalCecetTax) || 0;
+    const totalSalesTax = parseFloat(summary.totalSalesTax) || 0;
+    const netSales = parseFloat(summary.netSales) || (totalSales - totalTax);
+    const avgOrderValue = parseFloat(summary.avgOrderValue) || (totalOrders > 0 ? totalSales / totalOrders : 0);
 
     const hasTaxBreakdown = totalCecetTax > 0 || totalSalesTax > 0;
 
@@ -2094,8 +2302,8 @@ function exportToPDF() {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(`Store: ${storeName}${locationName}`, 14, 28);
-    doc.text(`Period: ${periodLabel}`, 14, 34);
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 40);
+    doc.text(`Date Range: ${dateRangeLabel}`, 14, 34);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, 40);
 
     // Summary
     doc.setFontSize(14);
@@ -2107,23 +2315,23 @@ function exportToPDF() {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(60, 60, 60);
     let summaryY = 59;
-    doc.text(`Total Sales: $${totalSales.toFixed(2)}`, 14, summaryY);
-    summaryY += 7;
     doc.text(`Total Orders: ${totalOrders}`, 14, summaryY);
     summaryY += 7;
-    doc.text(`Total Tax: $${totalTax.toFixed(2)}`, 14, summaryY);
+    doc.text(`Gross Sales: $${totalSales.toFixed(2)}`, 14, summaryY);
     summaryY += 7;
     if (hasTaxBreakdown) {
-        if (totalCecetTax > 0) {
-            doc.text(`  - CECET Tax: $${totalCecetTax.toFixed(2)}`, 14, summaryY);
-            summaryY += 7;
-        }
-        if (totalSalesTax > 0) {
-            doc.text(`  - Sales Tax: $${totalSalesTax.toFixed(2)}`, 14, summaryY);
-            summaryY += 7;
-        }
+        doc.text(`CECET Tax (12.5%): $${totalCecetTax.toFixed(2)}`, 14, summaryY);
+        summaryY += 7;
+        doc.text(`CA Sales Tax (7.5%): $${totalSalesTax.toFixed(2)}`, 14, summaryY);
+        summaryY += 7;
     }
-    doc.text(`Average Order Value: $${(totalSales / totalOrders).toFixed(2)}`, 14, summaryY);
+    doc.text(`Total Taxes: $${totalTax.toFixed(2)}`, 14, summaryY);
+    summaryY += 7;
+    doc.setTextColor(16, 185, 129); // Green color for net sales
+    doc.text(`Net Sales: $${netSales.toFixed(2)}`, 14, summaryY);
+    summaryY += 7;
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Average Order Value: $${avgOrderValue.toFixed(2)}`, 14, summaryY);
 
     // Daily breakdown table
     doc.setFontSize(14);
@@ -2133,46 +2341,58 @@ function exportToPDF() {
 
     // Table headers - include tax breakdown if available
     const tableHeaders = hasTaxBreakdown
-        ? [['Date', 'Sales', 'Orders', 'CECET Tax', 'Sales Tax', 'Total Tax', 'Avg Order']]
-        : [['Date', 'Sales', 'Orders', 'Tax', 'Avg Order']];
+        ? [['Date', 'Orders', 'Gross Sales', 'CECET Tax', 'Sales Tax', 'Net Sales']]
+        : [['Date', 'Orders', 'Gross Sales', 'Tax', 'Net Sales']];
 
     doc.autoTable({
         startY: summaryY + 18,
         head: tableHeaders,
         body: sortedDates.map(date => {
             const data = dailyData[date];
-            const formattedDate = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            const dayNetSales = data.sales - (data.tax || 0);
 
             if (hasTaxBreakdown) {
                 return [
                     formattedDate,
-                    `$${data.sales.toFixed(2)}`,
                     data.orders,
-                    data.cecetTax > 0 ? `$${data.cecetTax.toFixed(2)}` : '',
-                    data.salesTax > 0 ? `$${data.salesTax.toFixed(2)}` : '',
-                    `$${data.tax.toFixed(2)}`,
-                    `$${(data.sales / data.orders).toFixed(2)}`
+                    `$${data.sales.toFixed(2)}`,
+                    `$${(data.cecetTax || 0).toFixed(2)}`,
+                    `$${(data.salesTax || 0).toFixed(2)}`,
+                    `$${dayNetSales.toFixed(2)}`
                 ];
             } else {
                 return [
                     formattedDate,
-                    `$${data.sales.toFixed(2)}`,
                     data.orders,
-                    `$${data.tax.toFixed(2)}`,
-                    `$${(data.sales / data.orders).toFixed(2)}`
+                    `$${data.sales.toFixed(2)}`,
+                    `$${(data.tax || 0).toFixed(2)}`,
+                    `$${dayNetSales.toFixed(2)}`
                 ];
             }
         }),
+        // Add totals row
+        foot: hasTaxBreakdown
+            ? [['Total', totalOrders, `$${totalSales.toFixed(2)}`, `$${totalCecetTax.toFixed(2)}`, `$${totalSalesTax.toFixed(2)}`, `$${netSales.toFixed(2)}`]]
+            : [['Total', totalOrders, `$${totalSales.toFixed(2)}`, `$${totalTax.toFixed(2)}`, `$${netSales.toFixed(2)}`]],
         theme: 'striped',
         headStyles: {
             fillColor: [102, 126, 234],
             font: 'helvetica',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            cellPadding: 2
+        },
+        footStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
+            font: 'helvetica',
+            fontStyle: 'bold',
+            cellPadding: 2
         },
         styles: {
             font: 'helvetica',
-            fontSize: 10,
-            cellPadding: 4
+            fontSize: 9,
+            cellPadding: 1.5
         },
         bodyStyles: {
             font: 'helvetica',
@@ -2180,26 +2400,41 @@ function exportToPDF() {
         }
     });
 
-    // Save with store name in filename
+    // Save with store name and date range in filename
     const storeSlug = selectedStore;
     const locationSlug = selectedLocation && vsuLocations.length > 0
         ? `-${vsuLocations.find(l => l.id == selectedLocation)?.name.toLowerCase().replace(/\s+/g, '-') || 'location'}`
         : '';
-    doc.save(`sales-analytics-${storeSlug}${locationSlug}-${period}-${new Date().toISOString().split('T')[0]}.pdf`);
+    const dateSlug = window.analyticsCustomRange && window.analyticsCustomRange.startDate && window.analyticsCustomRange.endDate
+        ? `${window.analyticsCustomRange.startDate.toISOString().split('T')[0]}_to_${window.analyticsCustomRange.endDate.toISOString().split('T')[0]}`
+        : new Date().toISOString().split('T')[0];
+    doc.save(`sales-report-${storeSlug}${locationSlug}-${dateSlug}.pdf`);
 }
 
 function exportToExcel() {
     toggleExportDropdown();
 
-    if (!window.analyticsChartData) {
+    if (!window.analyticsChartData || !currentSalesData) {
         alert('No data available to export. Please load analytics data first.');
         return;
     }
 
-    // Get the period
-    const periodSelect = document.getElementById('period-select');
-    const period = periodSelect ? periodSelect.value : 'month';
-    const periodLabel = period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'This Year';
+    // Prepare data
+    const dailyData = window.analyticsChartData.daily;
+    const sortedDates = Object.keys(dailyData).sort();
+    const summary = currentSalesData.summary;
+    const recentOrders = currentSalesData.recentOrders || [];
+
+    // Get date range from actual loaded data (first and last date in sortedDates)
+    let dateRangeLabel = '';
+    if (sortedDates.length > 0) {
+        const firstDate = new Date(sortedDates[0] + 'T12:00:00');
+        const lastDate = new Date(sortedDates[sortedDates.length - 1] + 'T12:00:00');
+        const formatDate = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        dateRangeLabel = `${formatDate(firstDate)} - ${formatDate(lastDate)}`;
+    } else {
+        dateRangeLabel = 'No data';
+    }
 
     // Get store info
     const storeConfig = STORES_CONFIG[selectedStore];
@@ -2212,120 +2447,162 @@ function exportToExcel() {
         locationName = location ? ` - ${location.name}` : '';
     }
 
-    // Prepare data
-    const dailyData = window.analyticsChartData.daily;
-    const sortedDates = Object.keys(dailyData).sort();
-
-    // Calculate totals
-    let totalSales = 0;
-    let totalOrders = 0;
-    let totalTax = 0;
-    let totalCecetTax = 0;
-    let totalSalesTax = 0;
-
-    sortedDates.forEach(date => {
-        totalSales += dailyData[date].sales;
-        totalOrders += dailyData[date].orders;
-        totalTax += dailyData[date].tax;
-        totalCecetTax += dailyData[date].cecetTax || 0;
-        totalSalesTax += dailyData[date].salesTax || 0;
-    });
+    // Get totals from summary (more accurate)
+    const totalSales = parseFloat(summary.totalSales) || 0;
+    const totalOrders = parseInt(summary.totalOrders) || 0;
+    const totalTax = parseFloat(summary.totalTax) || 0;
+    const totalCecetTax = parseFloat(summary.totalCecetTax) || 0;
+    const totalSalesTax = parseFloat(summary.totalSalesTax) || 0;
+    const netSales = parseFloat(summary.netSales) || (totalSales - totalTax);
+    const avgOrderValue = parseFloat(summary.avgOrderValue) || (totalOrders > 0 ? totalSales / totalOrders : 0);
 
     const hasTaxBreakdown = totalCecetTax > 0 || totalSalesTax > 0;
 
     // Build summary rows
     const summaryRows = [
-        ['Summary'],
-        ['Total Sales', `$${totalSales.toFixed(2)}`],
+        ['SUMMARY'],
         ['Total Orders', totalOrders],
-        ['Total Tax', `$${totalTax.toFixed(2)}`]
+        ['Gross Sales', totalSales.toFixed(2)],
     ];
 
     if (hasTaxBreakdown) {
-        if (totalCecetTax > 0) {
-            summaryRows.push(['  - CECET Tax', `$${totalCecetTax.toFixed(2)}`]);
-        }
-        if (totalSalesTax > 0) {
-            summaryRows.push(['  - Sales Tax', `$${totalSalesTax.toFixed(2)}`]);
-        }
+        summaryRows.push(['CECET Tax (12.5%)', totalCecetTax.toFixed(2)]);
+        summaryRows.push(['CA Sales Tax (7.5%)', totalSalesTax.toFixed(2)]);
     }
 
-    summaryRows.push(['Average Order Value', `$${(totalSales / totalOrders).toFixed(2)}`]);
+    summaryRows.push(['Total Taxes', totalTax.toFixed(2)]);
+    summaryRows.push(['Net Sales', netSales.toFixed(2)]);
+    summaryRows.push(['Average Order Value', avgOrderValue.toFixed(2)]);
 
     // Build daily breakdown headers and rows
     const dailyHeaders = hasTaxBreakdown
-        ? ['Date', 'Sales', 'Orders', 'CECET Tax', 'Sales Tax', 'Total Tax', 'Avg Order Value']
-        : ['Date', 'Sales', 'Orders', 'Tax', 'Avg Order Value'];
+        ? ['Date', 'Day', 'Orders', 'Gross Sales', 'CECET Tax', 'Sales Tax', 'Total Tax', 'Net Sales']
+        : ['Date', 'Day', 'Orders', 'Gross Sales', 'Tax', 'Net Sales'];
 
     const dailyRows = sortedDates.map(date => {
         const data = dailyData[date];
-        const formattedDate = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const dateObj = new Date(date + 'T12:00:00');
+        const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayNetSales = data.sales - (data.tax || 0);
 
         if (hasTaxBreakdown) {
             return [
                 formattedDate,
-                data.sales.toFixed(2),
+                dayOfWeek,
                 data.orders,
-                data.cecetTax > 0 ? data.cecetTax.toFixed(2) : '',
-                data.salesTax > 0 ? data.salesTax.toFixed(2) : '',
-                data.tax.toFixed(2),
-                (data.sales / data.orders).toFixed(2)
+                data.sales.toFixed(2),
+                (data.cecetTax || 0).toFixed(2),
+                (data.salesTax || 0).toFixed(2),
+                (data.tax || 0).toFixed(2),
+                dayNetSales.toFixed(2)
             ];
         } else {
             return [
                 formattedDate,
-                data.sales.toFixed(2),
+                dayOfWeek,
                 data.orders,
-                data.tax.toFixed(2),
-                (data.sales / data.orders).toFixed(2)
+                data.sales.toFixed(2),
+                (data.tax || 0).toFixed(2),
+                dayNetSales.toFixed(2)
             ];
         }
     });
 
-    // Create Excel data
-    const excelData = [
-        ['Sales & Analytics Report'],
+    // Add totals row to daily breakdown
+    const dailyTotalsRow = hasTaxBreakdown
+        ? ['Total', '', totalOrders, totalSales.toFixed(2), totalCecetTax.toFixed(2), totalSalesTax.toFixed(2), totalTax.toFixed(2), netSales.toFixed(2)]
+        : ['Total', '', totalOrders, totalSales.toFixed(2), totalTax.toFixed(2), netSales.toFixed(2)];
+
+    // Create Summary sheet data
+    const summarySheetData = [
+        ['SALES & ANALYTICS REPORT'],
         [`Store: ${storeName}${locationName}`],
-        [`Period: ${periodLabel}`],
-        [`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`],
+        [`Date Range: ${dateRangeLabel}`],
+        [`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`],
         [],
         ...summaryRows,
         [],
-        ['Daily Breakdown'],
+        ['DAILY BREAKDOWN'],
         dailyHeaders,
-        ...dailyRows
+        ...dailyRows,
+        dailyTotalsRow
     ];
 
-    // Create workbook and worksheet
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    // Create workbook
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sales Analytics');
 
-    // Style the header - adjust column widths for tax breakdown
-    ws['!cols'] = hasTaxBreakdown
-        ? [
-            { wch: 15 },
-            { wch: 12 },
-            { wch: 10 },
-            { wch: 12 },
-            { wch: 12 },
-            { wch: 12 },
-            { wch: 15 }
-        ]
-        : [
-            { wch: 15 },
-            { wch: 12 },
-            { wch: 10 },
-            { wch: 12 },
-            { wch: 15 }
+    // Add Summary sheet
+    const wsSummary = XLSX.utils.aoa_to_sheet(summarySheetData);
+    wsSummary['!cols'] = hasTaxBreakdown
+        ? [{ wch: 20 }, { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }]
+        : [{ wch: 20 }, { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+    // Create Orders sheet with all individual orders
+    if (recentOrders.length > 0) {
+        const ordersHeaders = ['Order #', 'Date', 'Time', 'Customer', 'Status', 'Gross Total', 'CECET Tax', 'Sales Tax', 'Net Total'];
+        const ordersRows = recentOrders.map(order => {
+            const orderDate = new Date(order.createdAt);
+            const dateStr = orderDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const timeStr = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const netTotal = order.total - (order.cecetTax || 0) - (order.salesTax || 0);
+
+            return [
+                order.name,
+                dateStr,
+                timeStr,
+                order.customer || 'Guest',
+                order.status,
+                order.total.toFixed(2),
+                (order.cecetTax || 0).toFixed(2),
+                (order.salesTax || 0).toFixed(2),
+                netTotal.toFixed(2)
+            ];
+        });
+
+        // Add totals row for orders
+        const ordersTotals = recentOrders.reduce((acc, order) => {
+            acc.total += order.total;
+            acc.cecetTax += order.cecetTax || 0;
+            acc.salesTax += order.salesTax || 0;
+            return acc;
+        }, { total: 0, cecetTax: 0, salesTax: 0 });
+
+        ordersRows.push([
+            `Total (${recentOrders.length} orders)`,
+            '', '', '', '',
+            ordersTotals.total.toFixed(2),
+            ordersTotals.cecetTax.toFixed(2),
+            ordersTotals.salesTax.toFixed(2),
+            (ordersTotals.total - ordersTotals.cecetTax - ordersTotals.salesTax).toFixed(2)
+        ]);
+
+        const ordersSheetData = [
+            ['ALL ORDERS'],
+            [`Store: ${storeName}${locationName}`],
+            [`Date Range: ${dateRangeLabel}`],
+            [],
+            ordersHeaders,
+            ...ordersRows
         ];
 
-    // Save with store name in filename
+        const wsOrders = XLSX.utils.aoa_to_sheet(ordersSheetData);
+        wsOrders['!cols'] = [
+            { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+        ];
+        XLSX.utils.book_append_sheet(wb, wsOrders, 'All Orders');
+    }
+
+    // Save with store name and date range in filename
     const storeSlug = selectedStore;
     const locationSlug = selectedLocation && vsuLocations.length > 0
         ? `-${vsuLocations.find(l => l.id == selectedLocation)?.name.toLowerCase().replace(/\s+/g, '-') || 'location'}`
         : '';
-    XLSX.writeFile(wb, `sales-analytics-${storeSlug}${locationSlug}-${period}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    const dateSlug = window.analyticsCustomRange && window.analyticsCustomRange.startDate && window.analyticsCustomRange.endDate
+        ? `${window.analyticsCustomRange.startDate.toISOString().split('T')[0]}_to_${window.analyticsCustomRange.endDate.toISOString().split('T')[0]}`
+        : new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `sales-report-${storeSlug}${locationSlug}-${dateSlug}.xlsx`);
 }
 
 // =============================================================================

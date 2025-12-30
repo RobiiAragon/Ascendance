@@ -44,6 +44,17 @@ const locationCache = {};
 const CORS_PROXY = 'https://corsproxy.io/?';
 
 /**
+ * Helper function to format a date as YYYY-MM-DD in LOCAL timezone
+ * This avoids timezone conversion issues with toISOString()
+ */
+function formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
  * Fetch data from Shopify API with CORS proxy
  */
 async function fetchShopifyAPI(endpoint, params = {}, storeConfig) {
@@ -159,20 +170,87 @@ function parseTaxBreakdown(taxLines) {
 }
 
 /**
- * Cancel the current bulk operation for a store
+ * Check current bulk operation status
  */
-async function cancelBulkOperation(storeKey = 'vsu') {
+async function checkBulkOperationStatus(storeConfig) {
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const query = `
+        query {
+            currentBulkOperation {
+                id
+                status
+                errorCode
+                objectCount
+                url
+            }
+        }
+    `;
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        });
+
+        if (!response.ok) return null;
+
+        const result = await response.json();
+        return result.data?.currentBulkOperation || null;
+    } catch (error) {
+        console.error('[BULK] Failed to check status:', error);
+        return null;
+    }
+}
+
+/**
+ * Cancel the current bulk operation for a store
+ * Always attempts to cancel to ensure a clean slate for new operations
+ * Can also cancel a specific operation by ID
+ */
+async function cancelBulkOperation(storeKey = 'vsu', operationId = null) {
     const storeConfig = STORES_CONFIG[storeKey];
     if (!storeConfig) {
-        console.warn('⚠️ [BULK CANCEL] Invalid store key:', storeKey);
+        console.warn('[BULK CANCEL] Invalid store key:', storeKey);
         return false;
     }
 
     const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
 
+    // First check if there's an operation
+    const currentOp = await checkBulkOperationStatus(storeConfig);
+
+    if (!currentOp) {
+        console.log('[BULK CANCEL] No bulk operation exists');
+        return true;
+    }
+
+    const targetId = operationId || currentOp.id;
+    console.log(`[BULK CANCEL] Current operation: ${currentOp.id} - Status: ${currentOp.status}`);
+
+    // If already canceled or failed, no need to cancel
+    if (currentOp.status === 'CANCELED' || currentOp.status === 'FAILED') {
+        console.log(`[BULK CANCEL] Operation already ${currentOp.status}, no cancel needed`);
+        return true;
+    }
+
+    // For COMPLETED operations, we're ready for a new one
+    if (currentOp.status === 'COMPLETED') {
+        console.log('[BULK CANCEL] Previous operation completed, ready for new operation');
+        return true;
+    }
+
+    // For RUNNING or CREATED operations, we MUST cancel to start a new one
+    console.log(`[BULK CANCEL] Found active operation (${currentOp.status}), must cancel it first`);
+
+    // Use the specific cancel mutation with the operation ID
     const mutation = `
         mutation {
-            bulkOperationCancel {
+            bulkOperationCancel(id: "${targetId}") {
                 bulkOperation {
                     id
                     status
@@ -186,7 +264,7 @@ async function cancelBulkOperation(storeKey = 'vsu') {
     `;
 
     try {
-        console.log('🛑 [BULK CANCEL] Cancelling bulk operation for:', storeConfig.name);
+        console.log('[BULK CANCEL] Canceling bulk operation for:', storeConfig.name);
 
         const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
             method: 'POST',
@@ -198,40 +276,794 @@ async function cancelBulkOperation(storeKey = 'vsu') {
         });
 
         if (!response.ok) {
-            console.warn('⚠️ [BULK CANCEL] Request failed:', response.status);
+            console.warn('[BULK CANCEL] Request failed:', response.status);
             return false;
         }
 
         const result = await response.json();
 
         if (result.errors) {
-            console.warn('⚠️ [BULK CANCEL] GraphQL errors:', result.errors);
+            console.warn('[BULK CANCEL] GraphQL errors:', result.errors);
             return false;
         }
 
         const { bulkOperation, userErrors } = result.data.bulkOperationCancel;
 
         if (userErrors && userErrors.length > 0) {
-            // "No bulk operation in progress" is not really an error
             const noOpError = userErrors.find(e => e.message.includes('No bulk operation'));
             if (noOpError) {
-                console.log('ℹ️ [BULK CANCEL] No bulk operation was in progress');
+                console.log('[BULK CANCEL] No bulk operation was in progress');
                 return true;
             }
-            console.warn('⚠️ [BULK CANCEL] User errors:', userErrors);
+            console.warn('[BULK CANCEL] User errors:', userErrors);
             return false;
         }
 
         if (bulkOperation) {
-            console.log(`✅ [BULK CANCEL] Cancelled: ${bulkOperation.id} (${bulkOperation.status})`);
+            console.log(`[BULK CANCEL] Canceled: ${bulkOperation.id} (${bulkOperation.status})`);
         }
 
-        return true;
+        // Wait and verify the operation is truly canceled/completed
+        console.log('[BULK CANCEL] Waiting for operation to fully cancel...');
+        for (let i = 0; i < 10; i++) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const status = await checkBulkOperationStatus(storeConfig);
+            if (!status || status.status === 'COMPLETED' || status.status === 'CANCELED' || status.status === 'FAILED') {
+                console.log(`[BULK CANCEL] Operation is now ${status?.status || 'cleared'}`);
+                return true;
+            }
+            console.log(`[BULK CANCEL] Still waiting... Status: ${status.status}`);
+        }
+
+        console.warn('[BULK CANCEL] Operation did not fully cancel in time');
+        return false;
 
     } catch (error) {
-        console.error('❌ [BULK CANCEL] Failed:', error);
+        console.error('[BULK CANCEL] Failed:', error);
         return false;
     }
+}
+
+// =============================================================================
+// BULK OPERATIONS API - For fetching large datasets efficiently
+// =============================================================================
+
+/**
+ * Build GraphQL query for bulk orders export
+ * Uses ISO 8601 format with timezone for accurate date filtering
+ */
+function buildBulkOrdersQuery(startDate, endDate) {
+    // startDate: inclusive (>=) - start of day in local timezone
+    // endDate: inclusive, so we query up to end of that day
+
+    // Parse the dates to get local date components
+    let startYear, startMonth, startDay;
+    let endYear, endMonth, endDay;
+
+    if (typeof startDate === 'string') {
+        [startYear, startMonth, startDay] = startDate.split('T')[0].split('-').map(Number);
+    } else {
+        startYear = startDate.getFullYear();
+        startMonth = startDate.getMonth() + 1;
+        startDay = startDate.getDate();
+    }
+
+    if (typeof endDate === 'string') {
+        [endYear, endMonth, endDay] = endDate.split('T')[0].split('-').map(Number);
+    } else {
+        endYear = endDate.getFullYear();
+        endMonth = endDate.getMonth() + 1;
+        endDay = endDate.getDate();
+    }
+
+    // Create Date objects at LOCAL midnight for start and end+1 day
+    const startLocal = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+    const endLocalPlusOne = new Date(endYear, endMonth - 1, endDay + 1, 0, 0, 0, 0);
+
+    // Format as ISO 8601 with timezone offset for Shopify
+    // This ensures Shopify knows exactly what timezone we mean
+    const formatWithTimezone = (date) => {
+        const offset = -date.getTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const hours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+        const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+        return `${formatLocalDate(date)}T00:00:00${sign}${hours}:${minutes}`;
+    };
+
+    const startISO = formatWithTimezone(startLocal);
+    const endISO = formatWithTimezone(endLocalPlusOne);
+
+    console.log(`[BULK] Date range: ${formatLocalDate(startLocal)} to ${formatLocalDate(new Date(endYear, endMonth - 1, endDay))}`);
+    console.log(`[BULK] Query timestamps: >= ${startISO} AND < ${endISO}`);
+
+    const query = `
+        {
+            orders(query: "created_at:>=${startISO} AND created_at:<${endISO}") {
+                edges {
+                    node {
+                        id
+                        name
+                        createdAt
+                        displayFinancialStatus
+                        displayFulfillmentStatus
+                        totalPriceSet {
+                            shopMoney {
+                                amount
+                                currencyCode
+                            }
+                        }
+                        totalTaxSet {
+                            shopMoney {
+                                amount
+                                currencyCode
+                            }
+                        }
+                        taxLines {
+                            title
+                            rate
+                            priceSet {
+                                shopMoney {
+                                    amount
+                                    currencyCode
+                                }
+                            }
+                        }
+                        customer {
+                            firstName
+                            lastName
+                        }
+                        lineItems(first: 50) {
+                            edges {
+                                node {
+                                    name
+                                    sku
+                                    quantity
+                                    originalUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                            currencyCode
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    `;
+
+    return query;
+}
+
+/**
+ * Start a bulk operation query
+ */
+async function startBulkOperation(startDate, endDate, storeConfig) {
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+    const innerQuery = buildBulkOrdersQuery(startDate, endDate);
+
+    const mutation = `
+        mutation {
+            bulkOperationRunQuery(
+                query: """${innerQuery}"""
+            ) {
+                bulkOperation {
+                    id
+                    status
+                    errorCode
+                    objectCount
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+    `;
+
+    console.log('[BULK] Starting bulk operation...');
+    console.log('[BULK] GraphQL URL:', graphqlUrl);
+
+    const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+        method: 'POST',
+        headers: {
+            'X-Shopify-Access-Token': storeConfig.accessToken,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: mutation })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[BULK] Start failed - Status:', response.status, 'Response:', errorText);
+        throw new Error(`Bulk operation start failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('[BULK] Start response:', JSON.stringify(result, null, 2));
+
+    if (result.errors) {
+        console.error('[BULK] GraphQL errors:', result.errors);
+        throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+    }
+
+    const { bulkOperation, userErrors } = result.data.bulkOperationRunQuery;
+
+    if (userErrors && userErrors.length > 0) {
+        console.error('[BULK] User errors:', userErrors);
+        // Check if error is about existing operation
+        const existingOpError = userErrors.find(e =>
+            e.message.toLowerCase().includes('already') ||
+            e.message.toLowerCase().includes('in progress') ||
+            e.message.toLowerCase().includes('running')
+        );
+        if (existingOpError) {
+            console.warn('[BULK] Another operation is already running. Need to cancel first.');
+            throw new Error(`EXISTING_OPERATION: ${existingOpError.message}`);
+        }
+        throw new Error(`User errors: ${userErrors.map(e => e.message).join(', ')}`);
+    }
+
+    if (!bulkOperation || !bulkOperation.id) {
+        console.error('[BULK] No bulk operation returned');
+        throw new Error('No bulk operation was created');
+    }
+
+    console.log('[BULK] Operation started successfully:', bulkOperation);
+    console.log('[BULK] New operation ID:', bulkOperation.id);
+    return bulkOperation;
+}
+
+/**
+ * Poll bulk operation until complete
+ * Uses currentBulkOperation as primary (recommended for API 2024-01)
+ * Falls back to direct ID query if needed
+ *
+ * @param {Object} storeConfig - Store configuration
+ * @param {string} expectedOperationId - The ID of the operation we started
+ * @param {Function} onProgress - Progress callback
+ * @param {number} maxAttempts - Maximum polling attempts
+ */
+async function pollBulkOperation(storeConfig, expectedOperationId = null, onProgress = null, maxAttempts = 120) {
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const query = `
+        query {
+            currentBulkOperation {
+                id
+                status
+                errorCode
+                objectCount
+                fileSize
+                url
+                createdAt
+                completedAt
+            }
+        }
+    `;
+
+    let zeroObjectCount = 0;
+    const maxZeroAttempts = 60; // If 0 objects for 60 polls (~3 min), something is wrong
+
+    // Wait a moment before first poll to give Shopify time to register the new operation
+    console.log('[BULK] Waiting for Shopify to process new operation...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            // ALWAYS query our specific operation directly by ID first
+            // This is more reliable than currentBulkOperation which can have caching issues
+            if (expectedOperationId) {
+                const ourOp = await queryBulkOperationById(storeConfig, expectedOperationId);
+                if (ourOp) {
+                    const shortId = expectedOperationId.split('/').pop();
+                    console.log(`[BULK] Poll #${attempt + 1}: Direct query - Status: ${ourOp.status}, Objects: ${ourOp.objectCount || 0}, ID: ${shortId}`);
+
+                    // Update progress
+                    if (onProgress) {
+                        const progress = Math.min(20 + (attempt), 85);
+                        const objectInfo = ourOp.objectCount > 0 ? ` - ${ourOp.objectCount} objects` : '';
+                        onProgress(progress, `Processing${objectInfo}...`);
+                    }
+
+                    if (ourOp.status === 'COMPLETED') {
+                        console.log('[BULK] Operation completed!');
+                        console.log('[BULK] URL:', ourOp.url ? 'Available' : 'Not available');
+                        console.log('[BULK] Object count:', ourOp.objectCount);
+                        return ourOp;
+                    }
+                    if (ourOp.status === 'FAILED') {
+                        throw new Error(`Bulk operation failed: ${ourOp.errorCode}`);
+                    }
+                    if (ourOp.status === 'CANCELED') {
+                        throw new Error('Bulk operation was canceled');
+                    }
+
+                    // Track if stuck at 0 objects for too long
+                    if (ourOp.status === 'RUNNING' && (ourOp.objectCount || 0) === 0) {
+                        zeroObjectCount++;
+                        // After 20 polls with 0 objects, also check currentBulkOperation
+                        if (zeroObjectCount > 20 && zeroObjectCount % 10 === 0) {
+                            console.log('[BULK] Checking currentBulkOperation as fallback...');
+                            const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+                                method: 'POST',
+                                headers: {
+                                    'X-Shopify-Access-Token': storeConfig.accessToken,
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                    'Pragma': 'no-cache'
+                                },
+                                body: JSON.stringify({ query, variables: { _nocache: Date.now() } })
+                            });
+                            const result = await response.json();
+                            const currentOp = result.data?.currentBulkOperation;
+                            if (currentOp) {
+                                console.log(`[BULK] currentBulkOperation: ${currentOp.status}, objects: ${currentOp.objectCount}, id: ${currentOp.id.split('/').pop()}`);
+                                // If currentBulkOperation shows completed with same or different ID, check if it has our data
+                                if (currentOp.status === 'COMPLETED' && currentOp.url) {
+                                    console.log('[BULK] Found completed operation in currentBulkOperation!');
+                                    return currentOp;
+                                }
+                            }
+                        }
+
+                        if (zeroObjectCount >= maxZeroAttempts) {
+                            console.warn('[BULK] Operation stuck at 0 objects for too long');
+                            // One final check via currentBulkOperation
+                            const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+                                method: 'POST',
+                                headers: {
+                                    'X-Shopify-Access-Token': storeConfig.accessToken,
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                    'Pragma': 'no-cache'
+                                },
+                                body: JSON.stringify({ query, variables: { _nocache: Date.now() } })
+                            });
+                            const result = await response.json();
+                            const currentOp = result.data?.currentBulkOperation;
+                            if (currentOp && currentOp.status === 'COMPLETED' && currentOp.url) {
+                                console.log('[BULK] Final check found completed operation!');
+                                return currentOp;
+                            }
+                            return { status: 'COMPLETED', url: null, objectCount: 0 };
+                        }
+                    } else {
+                        zeroObjectCount = 0; // Reset if we see objects
+                    }
+
+                    // Wait before next poll (3 seconds)
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    continue;
+                }
+            }
+
+            // Fallback: use currentBulkOperation if direct query failed
+            const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+                method: 'POST',
+                headers: {
+                    'X-Shopify-Access-Token': storeConfig.accessToken,
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
+                },
+                body: JSON.stringify({ query, variables: { _nocache: Date.now() } })
+            });
+
+            if (!response.ok) {
+                console.warn(`[BULK] Poll request failed: ${response.status}, retrying...`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                continue;
+            }
+
+            const result = await response.json();
+            const op = result.data?.currentBulkOperation;
+
+            if (!op) {
+                console.log('[BULK] No bulk operation found');
+                return { status: 'COMPLETED', url: null, objectCount: 0 };
+            }
+
+            const shortId = op.id.split('/').pop();
+            console.log(`[BULK] Poll #${attempt + 1} (fallback): ${op.status} - Objects: ${op.objectCount || 0} - ID: ${shortId}`);
+
+            if (op.status === 'COMPLETED') {
+                console.log('[BULK] Operation completed!');
+                return op;
+            }
+
+            if (op.status === 'FAILED') {
+                throw new Error(`Bulk operation failed: ${op.errorCode}`);
+            }
+
+            if (op.status === 'CANCELED') {
+                throw new Error('Bulk operation was canceled');
+            }
+
+            // Wait before next poll (3 seconds)
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+        } catch (error) {
+            console.error(`[BULK] Poll error:`, error);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+    }
+
+    throw new Error('Bulk operation timed out after ' + maxAttempts + ' attempts');
+}
+
+/**
+ * Query a specific bulk operation by ID
+ * This is useful when currentBulkOperation returns an old operation
+ */
+async function queryBulkOperationById(storeConfig, operationId) {
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const query = `
+        query getBulkOperation($id: ID!) {
+            node(id: $id) {
+                ... on BulkOperation {
+                    id
+                    status
+                    errorCode
+                    objectCount
+                    fileSize
+                    url
+                    createdAt
+                    completedAt
+                }
+            }
+        }
+    `;
+
+    try {
+        // Add cache-busting via a random variable in the GraphQL query
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify({
+                query,
+                variables: { id: operationId, _nocache: Date.now() }
+            })
+        });
+
+        if (!response.ok) {
+            console.error('[BULK] Direct query failed:', response.status);
+            return null;
+        }
+
+        const result = await response.json();
+        const node = result.data?.node || null;
+
+        // Log detailed info when operation is complete
+        if (node && node.status === 'COMPLETED') {
+            console.log('[BULK] Direct query found COMPLETED operation:');
+            console.log('  - Object count:', node.objectCount);
+            console.log('  - File size:', node.fileSize);
+            console.log('  - URL available:', !!node.url);
+        }
+
+        return node;
+    } catch (error) {
+        console.error('[BULK] Failed to query operation by ID:', error);
+        return null;
+    }
+}
+
+/**
+ * Download and parse NDJSON bulk data from Shopify
+ */
+async function downloadBulkData(url, onProgress = null) {
+    console.log('📥 [BULK] Downloading data from:', url);
+
+    if (onProgress) {
+        onProgress(85, 'Downloading orders...');
+    }
+
+    // Shopify bulk operation URLs are pre-signed and don't need CORS proxy
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`Failed to download bulk data: ${response.status}`);
+    }
+
+    const text = await response.text();
+    const orders = [];
+    const lines = text.trim().split('\n');
+
+    console.log(`📊 [BULK] Parsing ${lines.length} lines...`);
+
+    for (const line of lines) {
+        if (line.trim()) {
+            try {
+                const obj = JSON.parse(line);
+                // Only include Order objects (not LineItem children)
+                if (obj.id && obj.id.includes('/Order/') && !obj.__parentId) {
+                    orders.push(obj);
+                }
+            } catch (e) {
+                console.warn('[BULK] Failed to parse line:', e);
+            }
+        }
+    }
+
+    console.log(`✅ [BULK] Parsed ${orders.length} orders`);
+    return orders;
+}
+
+/**
+ * Process bulk orders data into analytics format
+ */
+function processBulkOrdersData(orders) {
+    let totalSales = 0;
+    let totalTax = 0;
+    let totalCecetTax = 0;
+    let totalSalesTax = 0;
+    let totalOrders = orders.length;
+    const dailyData = {};
+    const hourlyData = {};
+    const monthlyData = {};
+
+    orders.forEach(order => {
+        const orderDate = new Date(order.createdAt);
+        // Use LOCAL date for grouping so it matches user's timezone
+        const day = formatLocalDate(orderDate);
+        const hour = orderDate.getHours();
+        const month = orderDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+
+        const amount = parseFloat(order.totalPriceSet?.shopMoney?.amount || 0);
+        const tax = parseFloat(order.totalTaxSet?.shopMoney?.amount || 0);
+
+        // Parse tax breakdown
+        let cecetTax = 0;
+        let salesTax = 0;
+        if (order.taxLines && order.taxLines.length > 0) {
+            order.taxLines.forEach(taxLine => {
+                const taxAmount = parseFloat(taxLine.priceSet?.shopMoney?.amount || 0);
+                const rate = parseFloat(taxLine.rate || 0);
+
+                // CECET tax is 12.5% (0.125)
+                if (Math.abs(rate - 0.125) < 0.0001) {
+                    cecetTax += taxAmount;
+                } else {
+                    salesTax += taxAmount;
+                }
+            });
+        }
+
+        totalSales += amount;
+        totalTax += tax;
+        totalCecetTax += cecetTax;
+        totalSalesTax += salesTax;
+
+        // Daily aggregation
+        if (!dailyData[day]) {
+            dailyData[day] = { sales: 0, orders: 0, tax: 0, cecetTax: 0, salesTax: 0 };
+        }
+        dailyData[day].sales += amount;
+        dailyData[day].orders += 1;
+        dailyData[day].tax += tax;
+        dailyData[day].cecetTax += cecetTax;
+        dailyData[day].salesTax += salesTax;
+
+        // Hourly aggregation
+        if (!hourlyData[hour]) {
+            hourlyData[hour] = { sales: 0, orders: 0, cecetTax: 0, salesTax: 0 };
+        }
+        hourlyData[hour].sales += amount;
+        hourlyData[hour].orders += 1;
+        hourlyData[hour].cecetTax += cecetTax;
+        hourlyData[hour].salesTax += salesTax;
+
+        // Monthly aggregation
+        if (!monthlyData[month]) {
+            monthlyData[month] = { sales: 0, orders: 0, tax: 0, cecetTax: 0, salesTax: 0 };
+        }
+        monthlyData[month].sales += amount;
+        monthlyData[month].orders += 1;
+        monthlyData[month].tax += tax;
+        monthlyData[month].cecetTax += cecetTax;
+        monthlyData[month].salesTax += salesTax;
+    });
+
+    return {
+        summary: {
+            totalSales: totalSales.toFixed(2),
+            netSales: (totalSales - totalTax).toFixed(2),
+            totalTax: totalTax.toFixed(2),
+            totalCecetTax: totalCecetTax.toFixed(2),
+            totalSalesTax: totalSalesTax.toFixed(2),
+            totalOrders,
+            avgOrderValue: totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : '0.00',
+            currency: orders.length > 0 ? (orders[0].totalPriceSet?.shopMoney?.currencyCode || 'USD') : 'USD'
+        },
+        daily: dailyData,
+        hourly: hourlyData,
+        monthly: monthlyData,
+        // Sort orders by date (newest first) and include all orders for the transactions table
+        recentOrders: [...orders]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .map(order => {
+                // Parse tax breakdown for each order
+                let orderCecetTax = 0;
+                let orderSalesTax = 0;
+                if (order.taxLines && order.taxLines.length > 0) {
+                    order.taxLines.forEach(taxLine => {
+                        const taxAmount = parseFloat(taxLine.priceSet?.shopMoney?.amount || 0);
+                        const rate = parseFloat(taxLine.rate || 0);
+                        if (Math.abs(rate - 0.125) < 0.0001) {
+                            orderCecetTax += taxAmount;
+                        } else {
+                            orderSalesTax += taxAmount;
+                        }
+                    });
+                }
+
+                return {
+                    id: order.id.split('/').pop(),
+                    name: order.name,
+                    createdAt: order.createdAt,
+                    status: (order.displayFinancialStatus || 'PENDING').toUpperCase(),
+                    fulfillment: (order.displayFulfillmentStatus || 'UNFULFILLED').toUpperCase(),
+                    total: parseFloat(order.totalPriceSet?.shopMoney?.amount || 0),
+                    customer: order.customer ? `${order.customer.firstName || ''} ${order.customer.lastName || ''}`.trim() : 'Guest',
+                    cecetTax: orderCecetTax,
+                    salesTax: orderSalesTax,
+                    lineItems: (order.lineItems?.edges || []).map(edge => ({
+                        name: edge.node.name,
+                        sku: edge.node.sku || '-',
+                        quantity: edge.node.quantity,
+                        price: parseFloat(edge.node.originalUnitPriceSet?.shopMoney?.amount || 0)
+                    }))
+                };
+            })
+    };
+}
+
+/**
+ * Fetch sales analytics using GraphQL Bulk Operations
+ * This is the main function for fetching large datasets efficiently
+ */
+async function fetchSalesAnalyticsBulkOperation(storeKey = 'vsu', locationId = null, period = 'month', onProgress = null, customRange = null) {
+    const storeConfig = STORES_CONFIG[storeKey];
+
+    if (!storeConfig) {
+        throw new Error(`Invalid store key: ${storeKey}`);
+    }
+
+    const dateRange = getDateRange(period, customRange);
+
+    console.log(`📊 [BULK] Fetching ${period} analytics for ${storeConfig.name}`);
+    console.log(`📊 [BULK] Date range: ${dateRange.since} to ${dateRange.until}`);
+
+    if (onProgress) {
+        onProgress(5, 'Checking for existing operations...');
+    }
+
+    // Cancel any existing bulk operation first and wait for it to clear
+    let cancelled = await cancelBulkOperation(storeKey);
+    if (!cancelled) {
+        console.warn('[BULK] Could not cancel existing operation on first attempt, retrying...');
+        // Wait a bit and try again
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        cancelled = await cancelBulkOperation(storeKey);
+        if (!cancelled) {
+            console.warn('[BULK] Still could not cancel existing operation after retry');
+        }
+    }
+
+    // Wait a bit more to ensure Shopify is ready for a new operation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    if (onProgress) {
+        onProgress(10, 'Starting bulk data export...');
+    }
+
+    // Start bulk operation with retry logic
+    let startedOperation;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+        try {
+            startedOperation = await startBulkOperation(dateRange.since, dateRange.until, storeConfig);
+            break; // Success, exit loop
+        } catch (error) {
+            retryCount++;
+            console.warn(`[BULK] Start failed (attempt ${retryCount}/${maxRetries}):`, error.message);
+
+            // If it's an existing operation error, we need to cancel and retry
+            if (error.message.includes('EXISTING_OPERATION') || error.message.toLowerCase().includes('already')) {
+                console.log('[BULK] Detected existing operation, force canceling...');
+
+                // Get current operation and cancel it
+                const currentOp = await checkBulkOperationStatus(storeConfig);
+                if (currentOp && currentOp.id) {
+                    console.log(`[BULK] Canceling operation: ${currentOp.id} (Status: ${currentOp.status})`);
+                    await cancelBulkOperation(storeKey, currentOp.id);
+                }
+
+                // Wait for cancellation to complete
+                await new Promise(resolve => setTimeout(resolve, 5000));
+
+                // Verify it's canceled
+                const checkOp = await checkBulkOperationStatus(storeConfig);
+                if (checkOp && (checkOp.status === 'RUNNING' || checkOp.status === 'CREATED')) {
+                    console.warn('[BULK] Operation still running after cancel, waiting longer...');
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                }
+            } else {
+                // Other error, wait and retry
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+
+            if (retryCount >= maxRetries) {
+                throw new Error(`Failed to start bulk operation after ${maxRetries} attempts: ${error.message}`);
+            }
+        }
+    }
+
+    if (onProgress) {
+        onProgress(15, 'Waiting for Shopify to process...');
+    }
+
+    // Poll until complete - pass the operation ID to ensure we're polling the right one
+    let completedOp = await pollBulkOperation(storeConfig, startedOperation?.id, onProgress);
+
+    // If polling failed to get the right operation, try direct query as final fallback
+    if (!completedOp.url && startedOperation?.id) {
+        console.log('[BULK] Attempting direct query for operation result...');
+        const directOp = await queryBulkOperationById(storeConfig, startedOperation.id);
+        if (directOp && directOp.status === 'COMPLETED' && directOp.url) {
+            console.log('[BULK] Found completed operation via direct query');
+            completedOp = directOp;
+        }
+    }
+
+    let orders = [];
+
+    if (completedOp.url) {
+        // Download and parse the data
+        orders = await downloadBulkData(completedOp.url, onProgress);
+    } else {
+        console.log('ℹ️ [BULK] No orders found in date range');
+    }
+
+    if (onProgress) {
+        onProgress(92, 'Processing orders...');
+    }
+
+    // Process orders into analytics format
+    const analytics = processBulkOrdersData(orders);
+
+    // Add store info
+    analytics.storeInfo = {
+        key: storeKey,
+        name: storeConfig.name,
+        shortName: storeConfig.shortName,
+        locationId: locationId
+    };
+
+    // Add date range info
+    analytics.dateRange = {
+        period: period,
+        since: dateRange.since,
+        until: dateRange.until
+    };
+
+    if (onProgress) {
+        onProgress(100, 'Complete!');
+    }
+
+    console.log(`✅ [BULK] Analytics complete: ${analytics.summary.totalOrders} orders, $${analytics.summary.totalSales} total`);
+
+    return analytics;
 }
 
 /**
@@ -345,6 +1177,7 @@ async function fetchAllOrders(createdAtMin, createdAtMax, storeConfig, locationI
 /**
  * Get date range based on period selection
  * Supports custom date ranges when customRange object is provided
+ * IMPORTANT: Returns dates as YYYY-MM-DD strings to avoid timezone conversion issues
  * @param {string} period - 'today', 'week', 'month', 'year', or 'custom'
  * @param {Object} customRange - Optional { startDate: Date, endDate: Date } for custom ranges
  */
@@ -355,12 +1188,17 @@ function getDateRange(period, customRange = null) {
     // Handle custom date range
     if (period === 'custom' && customRange && customRange.startDate && customRange.endDate) {
         since = new Date(customRange.startDate);
-        since.setHours(0, 0, 0, 0);
         until = new Date(customRange.endDate);
-        until.setHours(23, 59, 59, 999);
+
+        // Use local date format to avoid timezone shifts
+        const sinceStr = formatLocalDate(since);
+        const untilStr = formatLocalDate(until);
+
+        console.log(`[getDateRange] Custom range (local): ${sinceStr} to ${untilStr}`);
+
         return {
-            since: since.toISOString(),
-            until: until.toISOString()
+            since: sinceStr,
+            until: untilStr
         };
     }
 
@@ -389,9 +1227,10 @@ function getDateRange(period, customRange = null) {
             until = new Date();
     }
 
+    // Use local date format to avoid timezone shifts
     return {
-        since: since.toISOString(),
-        until: until.toISOString()
+        since: formatLocalDate(since),
+        until: formatLocalDate(until)
     };
 }
 
@@ -991,14 +1830,399 @@ function getStoresConfig() {
 }
 
 // =============================================================================
+// DEBUG / TEST FUNCTIONS
+// =============================================================================
+
+/**
+ * Test function to run a simple GraphQL query (non-bulk) to verify orders exist
+ * Run from console: testOrdersQuery('vsu', '2024-12-01', '2024-12-30')
+ */
+async function testOrdersQuery(storeKey = 'vsu', startDate = null, endDate = null) {
+    const storeConfig = STORES_CONFIG[storeKey];
+    if (!storeConfig) {
+        console.error('Invalid store key:', storeKey);
+        return;
+    }
+
+    // Default to this month if no dates provided
+    if (!startDate) {
+        const now = new Date();
+        startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+    if (!endDate) {
+        const now = new Date();
+        now.setDate(now.getDate() + 1);
+        endDate = now.toISOString().split('T')[0];
+    }
+
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    // Simple query to test if orders exist in the date range
+    const query = `
+        query {
+            orders(first: 10, query: "created_at:>=${startDate} AND created_at:<${endDate}") {
+                edges {
+                    node {
+                        id
+                        name
+                        createdAt
+                        totalPriceSet {
+                            shopMoney {
+                                amount
+                            }
+                        }
+                    }
+                }
+                pageInfo {
+                    hasNextPage
+                }
+            }
+        }
+    `;
+
+    console.log('=== TEST ORDERS QUERY ===');
+    console.log('Store:', storeConfig.name);
+    console.log('Date range:', `created_at:>=${startDate} AND created_at:<${endDate}`);
+    console.log('Query:', query);
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        });
+
+        const result = await response.json();
+        console.log('Response:', JSON.stringify(result, null, 2));
+
+        if (result.data?.orders?.edges) {
+            console.log(`Found ${result.data.orders.edges.length} orders`);
+            result.data.orders.edges.forEach((edge, i) => {
+                const order = edge.node;
+                console.log(`  ${i + 1}. ${order.name} - $${order.totalPriceSet?.shopMoney?.amount} - ${order.createdAt}`);
+            });
+            if (result.data.orders.pageInfo?.hasNextPage) {
+                console.log('  ... and more (hasNextPage: true)');
+            }
+        } else {
+            console.log('No orders found or error in response');
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Test query failed:', error);
+        return null;
+    }
+}
+
+/**
+ * Test function to check current bulk operation status
+ * Run from console: checkBulkStatus('vsu')
+ */
+async function checkBulkStatus(storeKey = 'vsu') {
+    const storeConfig = STORES_CONFIG[storeKey];
+    if (!storeConfig) {
+        console.error('Invalid store key:', storeKey);
+        return;
+    }
+
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const query = `
+        query {
+            currentBulkOperation {
+                id
+                status
+                errorCode
+                objectCount
+                fileSize
+                url
+                partialDataUrl
+                query
+                createdAt
+                completedAt
+            }
+        }
+    `;
+
+    console.log('=== BULK OPERATION STATUS ===');
+    console.log('Store:', storeConfig.name);
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        });
+
+        const result = await response.json();
+        console.log('Current Bulk Operation:', JSON.stringify(result, null, 2));
+
+        if (result.data?.currentBulkOperation) {
+            const op = result.data.currentBulkOperation;
+            console.log('Status:', op.status);
+            console.log('Error Code:', op.errorCode);
+            console.log('Object Count:', op.objectCount);
+            console.log('URL:', op.url);
+            console.log('Query used:', op.query);
+        } else {
+            console.log('No bulk operation in progress');
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Status check failed:', error);
+        return null;
+    }
+}
+
+// =============================================================================
 // EXPORT FUNCTIONS TO WINDOW (for use by api-client.js)
 // =============================================================================
 window.cancelBulkOperation = cancelBulkOperation;
-window.fetchSalesAnalytics = fetchSalesAnalytics;
-window.fetchSalesAnalyticsBulk = fetchSalesAnalytics; // Alias - same function
+window.fetchSalesAnalytics = fetchSalesAnalytics; // REST API fallback (may have 403 issues with CORS proxy)
+window.fetchSalesAnalyticsBulk = fetchSalesAnalyticsBulkOperation; // GraphQL Bulk Operations (recommended)
 window.fetchStoreLocations = fetchStoreLocations;
 window.fetchStoreInventory = fetchStoreInventory;
 window.fetchAllStoresInventory = fetchAllStoresInventory;
 window.getStoresConfig = getStoresConfig;
 window.STORES_CONFIG = STORES_CONFIG;
+
+// Debug functions
+window.testOrdersQuery = testOrdersQuery;
+window.checkBulkStatus = checkBulkStatus;
+
+/**
+ * DIAGNOSTIC: Full bulk operation diagnosis
+ * Run from console: diagnoseBulkOperation('vsu')
+ */
+async function diagnoseBulkOperation(storeKey = 'vsu') {
+    const storeConfig = STORES_CONFIG[storeKey];
+    if (!storeConfig) {
+        console.error('Invalid store key:', storeKey);
+        return;
+    }
+
+    console.log('='.repeat(60));
+    console.log('BULK OPERATION DIAGNOSTIC');
+    console.log('='.repeat(60));
+    console.log('Store:', storeConfig.name);
+    console.log('API Version:', API_VERSION);
+    console.log('');
+
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    // 1. Check current bulk operation with ALL fields
+    console.log('1. CURRENT BULK OPERATION STATUS:');
+    console.log('-'.repeat(40));
+
+    const currentOpQuery = `
+        query {
+            currentBulkOperation {
+                id
+                status
+                errorCode
+                objectCount
+                fileSize
+                url
+                partialDataUrl
+                query
+                rootObjectCount
+                type
+                createdAt
+                completedAt
+            }
+        }
+    `;
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: currentOpQuery })
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+            console.error('GraphQL Errors:', result.errors);
+        }
+
+        const op = result.data?.currentBulkOperation;
+        if (op) {
+            console.log('ID:', op.id);
+            console.log('Status:', op.status);
+            console.log('Error Code:', op.errorCode || 'none');
+            console.log('Object Count:', op.objectCount);
+            console.log('Root Object Count:', op.rootObjectCount);
+            console.log('File Size:', op.fileSize);
+            console.log('Type:', op.type);
+            console.log('URL:', op.url || 'not available yet');
+            console.log('Partial URL:', op.partialDataUrl || 'none');
+            console.log('Created At:', op.createdAt);
+            console.log('Completed At:', op.completedAt || 'not completed');
+            console.log('');
+            console.log('QUERY USED:');
+            console.log(op.query || 'not available');
+        } else {
+            console.log('No current bulk operation found');
+        }
+    } catch (error) {
+        console.error('Failed to check current operation:', error);
+    }
+
+    console.log('');
+
+    // 2. Test simple orders query (non-bulk) to verify data exists
+    console.log('2. TESTING SIMPLE ORDERS QUERY (non-bulk):');
+    console.log('-'.repeat(40));
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startDate = startOfMonth.toISOString().split('T')[0];
+    const endDate = now.toISOString().split('T')[0];
+
+    const simpleQuery = `
+        query {
+            orders(first: 5, query: "created_at:>=${startDate} AND created_at:<=${endDate}") {
+                edges {
+                    node {
+                        id
+                        name
+                        createdAt
+                        totalPriceSet {
+                            shopMoney {
+                                amount
+                            }
+                        }
+                    }
+                }
+                pageInfo {
+                    hasNextPage
+                }
+            }
+        }
+    `;
+
+    console.log('Query date range:', `${startDate} to ${endDate}`);
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: simpleQuery })
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+            console.error('GraphQL Errors:', result.errors);
+        }
+
+        const orders = result.data?.orders?.edges || [];
+        console.log('Orders found:', orders.length);
+        console.log('Has more pages:', result.data?.orders?.pageInfo?.hasNextPage);
+
+        if (orders.length > 0) {
+            console.log('Sample orders:');
+            orders.forEach((edge, i) => {
+                const o = edge.node;
+                console.log(`  ${i + 1}. ${o.name} - $${o.totalPriceSet?.shopMoney?.amount} - ${o.createdAt}`);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to query orders:', error);
+    }
+
+    console.log('');
+
+    // 3. Test starting a NEW bulk operation with minimal query
+    console.log('3. TESTING MINIMAL BULK OPERATION:');
+    console.log('-'.repeat(40));
+    console.log('This will attempt to start a simple bulk operation...');
+
+    const minimalBulkQuery = `
+        mutation {
+            bulkOperationRunQuery(
+                query: """
+                {
+                    orders(first: 10, query: "created_at:>=${startDate}") {
+                        edges {
+                            node {
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+                """
+            ) {
+                bulkOperation {
+                    id
+                    status
+                    errorCode
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+    `;
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: minimalBulkQuery })
+        });
+
+        const result = await response.json();
+        console.log('Full response:', JSON.stringify(result, null, 2));
+
+        if (result.data?.bulkOperationRunQuery?.userErrors?.length > 0) {
+            console.log('USER ERRORS:', result.data.bulkOperationRunQuery.userErrors);
+        }
+
+        if (result.data?.bulkOperationRunQuery?.bulkOperation) {
+            const newOp = result.data.bulkOperationRunQuery.bulkOperation;
+            console.log('New operation started:');
+            console.log('  ID:', newOp.id);
+            console.log('  Status:', newOp.status);
+            console.log('  Error:', newOp.errorCode || 'none');
+        }
+    } catch (error) {
+        console.error('Failed to start minimal bulk operation:', error);
+    }
+
+    console.log('');
+    console.log('='.repeat(60));
+    console.log('DIAGNOSTIC COMPLETE');
+    console.log('='.repeat(60));
+    console.log('');
+    console.log('NEXT STEPS:');
+    console.log('1. If there is a RUNNING operation, run: cancelBulkOperation("vsu")');
+    console.log('2. Wait 10 seconds');
+    console.log('3. Run this diagnostic again');
+    console.log('4. Share the output with the developer');
+
+    return 'Diagnostic complete - check console output above';
+}
+
+window.diagnoseBulkOperation = diagnoseBulkOperation;
 
