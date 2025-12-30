@@ -30403,15 +30403,30 @@ Return ONLY the JSON object, no additional text.`,
             sidebar.classList.toggle('mobile-open');
         }
 
-        // Close mobile menu when clicking nav items
+        // Close mobile menu when clicking nav items (with delay for navigation to complete)
         document.querySelectorAll('.nav-item').forEach(item => {
             const existingListener = item.onclick;
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function(e) {
                 if (window.innerWidth <= 768) {
                     const sidebar = document.querySelector('.sidebar');
-                    sidebar.classList.remove('mobile-open');
+                    // Small delay to ensure navigation starts before closing
+                    setTimeout(() => {
+                        sidebar.classList.remove('mobile-open');
+                    }, 150);
                 }
             });
+
+            // Add touch support for better mobile response
+            item.addEventListener('touchend', function(e) {
+                if (window.innerWidth <= 768) {
+                    // Let the click handler do the navigation
+                    // Just ensure the sidebar closes
+                    const sidebar = document.querySelector('.sidebar');
+                    setTimeout(() => {
+                        sidebar.classList.remove('mobile-open');
+                    }, 200);
+                }
+            }, { passive: true });
         });
 
         // Close mobile menu when clicking outside
@@ -30627,12 +30642,21 @@ Return ONLY the JSON object, no additional text.`,
         });
 
         var riskNotesState = {
-            notes: JSON.parse(localStorage.getItem('riskNotes')) || [],
+            notes: [], // Start empty, will be populated from Firebase
             filterStore: 'all',
             filterLevel: 'all',
             filterType: 'all',
-            viewMode: 'list' // 'list' or 'grid'
+            viewMode: 'list', // 'list' or 'grid'
+            isLoading: true // Flag to show loading state
         };
+
+        // Load from localStorage only as fallback until Firebase loads
+        (function loadInitialRiskNotes() {
+            const localNotes = JSON.parse(localStorage.getItem('riskNotes')) || [];
+            if (localNotes.length > 0) {
+                riskNotesState.notes = localNotes;
+            }
+        })();
 
         // Load risk notes from Firebase when available
         async function loadRiskNotesFromFirebase() {
@@ -30661,31 +30685,17 @@ Return ONLY the JSON object, no additional text.`,
                 console.log('📥 Loading risk notes from Firebase...');
                 const firebaseNotes = await firebaseSyncManager.loadRiskNotesFromFirestore();
 
-                // Merge Firebase notes with local notes (Firebase takes priority)
-                const localNotes = JSON.parse(localStorage.getItem('riskNotes')) || [];
-                const mergedNotes = [...(firebaseNotes || [])];
+                // Firebase is the SINGLE source of truth
+                // Clear localStorage first to prevent zombie data
+                localStorage.removeItem('riskNotes');
 
-                // Add local notes that don't have a firestoreId (not yet synced)
-                for (const localNote of localNotes) {
-                    if (!localNote.firestoreId && !mergedNotes.find(n => n.id === localNote.id)) {
-                        mergedNotes.push(localNote);
-                        // Sync this local note to Firebase
-                        try {
-                            const firestoreId = await firebaseSyncManager.saveRiskNoteToFirestore(localNote);
-                            if (firestoreId) {
-                                localNote.firestoreId = firestoreId;
-                                // Update in mergedNotes
-                                const noteInMerged = mergedNotes.find(n => n.id === localNote.id);
-                                if (noteInMerged) noteInMerged.firestoreId = firestoreId;
-                            }
-                        } catch (syncErr) {
-                            console.error('Error syncing local note to Firebase:', syncErr);
-                        }
-                    }
+                if (firebaseNotes && firebaseNotes.length >= 0) {
+                    // Use Firebase data directly (even if empty - that means all were deleted)
+                    riskNotesState.notes = firebaseNotes;
+                    riskNotesState.isLoading = false;
+                    saveRiskNotes();
+                    console.log(`✅ Loaded ${firebaseNotes.length} risk notes from Firebase`);
                 }
-
-                riskNotesState.notes = mergedNotes;
-                saveRiskNotes();
 
                 // Re-render if on risknotes page
                 if (window.currentPage === 'risknotes') {
@@ -34434,7 +34444,6 @@ window.renderPasswordManager = async function renderPasswordManager() {
                 </div>
                 <select id="password-store-filter" class="form-input" onchange="filterPasswords()" style="width: 180px; height: 48px; border-radius: 12px;">
                     <option value="">All Stores</option>
-                    <option value="All Stores">All Stores (Shared)</option>
                     <option value="Miramar">VSU Miramar</option>
                     <option value="Morena">VSU Morena</option>
                     <option value="Kearny Mesa">VSU Kearny Mesa</option>
