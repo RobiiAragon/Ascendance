@@ -6476,6 +6476,7 @@ let checklistData = {
 };
 let checklistCurrentStore = 'Miramar';
 let checklistCurrentShift = 'opening'; // 'opening' or 'closing'
+let checklistSelectedDate = new Date().toISOString().split('T')[0]; // Selected date for viewing
 
 // Default tasks template
 const defaultChecklistTasks = {
@@ -6508,16 +6509,18 @@ function getTodayDateString() {
     return new Date().toISOString().split('T')[0];
 }
 
-// Get current day name for midshift
+// Get day name for selected date (used for midshift)
 function getCurrentDayName() {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[new Date().getDay()];
+    const date = new Date(checklistSelectedDate + 'T12:00:00');
+    return days[date.getDay()];
 }
 
-// Get current day key for Firebase (lowercase)
+// Get day key for selected date - Firebase (lowercase)
 function getCurrentDayKey() {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    return days[new Date().getDay()];
+    const date = new Date(checklistSelectedDate + 'T12:00:00');
+    return days[date.getDay()];
 }
 
 // Load checklist tasks - default tasks + custom tasks from Firebase
@@ -6626,13 +6629,12 @@ async function loadChecklistTasks() {
     }
 }
 
-// Load today's completions from Firebase
-async function loadTodayCompletions() {
+// Load completions for a specific date from Firebase
+async function loadCompletionsForDate(dateString) {
     try {
         const db = firebase.firestore();
-        const today = getTodayDateString();
         const snapshot = await db.collection('checklistCompletions')
-            .where('date', '==', today)
+            .where('date', '==', dateString)
             .get();
 
         checklistData.completions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -6640,6 +6642,77 @@ async function loadTodayCompletions() {
         console.error('Error loading completions:', error);
         checklistData.completions = [];
     }
+}
+
+// Load today's completions from Firebase (backwards compatible)
+async function loadTodayCompletions() {
+    await loadCompletionsForDate(checklistSelectedDate);
+}
+
+// Navigate to a specific date
+window.navigateChecklistDate = async function(dateString) {
+    checklistSelectedDate = dateString;
+    // Reload tasks (to get midshift tasks for the correct day of week)
+    await loadChecklistTasks();
+    await loadCompletionsForDate(dateString);
+    renderDailyChecklist();
+}
+
+// Navigate to previous day
+window.checklistPrevDay = async function() {
+    const date = new Date(checklistSelectedDate);
+    date.setDate(date.getDate() - 1);
+    await navigateChecklistDate(date.toISOString().split('T')[0]);
+}
+
+// Navigate to next day
+window.checklistNextDay = async function() {
+    const date = new Date(checklistSelectedDate);
+    date.setDate(date.getDate() + 1);
+    // Allow going up to 14 days in the future for planning downtime tasks
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 14);
+    if (date <= maxDate) {
+        await navigateChecklistDate(date.toISOString().split('T')[0]);
+    }
+}
+
+// Navigate to today
+window.checklistGoToToday = async function() {
+    await navigateChecklistDate(new Date().toISOString().split('T')[0]);
+}
+
+// Format date for display
+function formatChecklistDate(dateString) {
+    const date = new Date(dateString + 'T12:00:00');
+    const today = new Date().toISOString().split('T')[0];
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    if (dateString === today) {
+        return 'Today';
+    } else if (dateString === yesterdayStr) {
+        return 'Yesterday';
+    } else if (dateString === tomorrowStr) {
+        return 'Tomorrow';
+    } else if (dateString > today) {
+        // Future date - show day name prominently
+        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    } else {
+        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+}
+
+// Check if selected date is in the future
+function isChecklistDateFuture() {
+    const today = new Date().toISOString().split('T')[0];
+    return checklistSelectedDate > today;
 }
 
 // Reset checklist tasks to defaults (admin function)
@@ -6688,7 +6761,7 @@ async function saveChecklistCompletion(taskId, store, shift, photoUrl = null) {
             taskId,
             store,
             shift,
-            date: getTodayDateString(),
+            date: checklistSelectedDate, // Use selected date instead of always today
             completedBy: user?.name || 'Unknown',
             completedAt: firebase.firestore.FieldValue.serverTimestamp(),
             photoUrl
@@ -6915,7 +6988,7 @@ window.renderDailyChecklist = async function() {
             c.taskId === taskId &&
             c.store === store &&
             c.shift === shift &&
-            c.date === getTodayDateString()
+            c.date === checklistSelectedDate
         );
     };
 
@@ -7080,7 +7153,28 @@ window.renderDailyChecklist = async function() {
                     </div>
                     Daily Checklist
                 </h2>
-                <p class="section-subtitle">${today}</p>
+                <!-- Date Navigator -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                    <button onclick="checklistPrevDay()" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--accent-primary)';" onmouseout="this.style.background='var(--bg-secondary)'; this.style.borderColor='var(--border-color)';">
+                        <i class="fas fa-chevron-left" style="color: var(--text-primary); font-size: 12px;"></i>
+                    </button>
+                    <div style="position: relative;">
+                        <button onclick="document.getElementById('checklist-date-picker').showPicker()" style="padding: 8px 16px; border-radius: 10px; border: 2px solid ${checklistSelectedDate === new Date().toISOString().split('T')[0] ? '#10b981' : 'var(--border-color)'}; background: ${checklistSelectedDate === new Date().toISOString().split('T')[0] ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)'}; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary); transition: all 0.2s;">
+                            <i class="fas fa-calendar-alt" style="color: ${checklistSelectedDate === new Date().toISOString().split('T')[0] ? '#10b981' : 'var(--accent-primary)'};"></i>
+                            <span>${formatChecklistDate(checklistSelectedDate)}</span>
+                            ${checklistSelectedDate !== new Date().toISOString().split('T')[0] ? `<span style="font-size: 11px; color: var(--text-muted);">(${checklistSelectedDate})</span>` : ''}
+                        </button>
+                        <input type="date" id="checklist-date-picker" value="${checklistSelectedDate}" max="${(() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split('T')[0]; })()}" onchange="navigateChecklistDate(this.value)" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                    </div>
+                    <button onclick="checklistNextDay()" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--accent-primary)';" onmouseout="this.style.background='var(--bg-secondary)'; this.style.borderColor='var(--border-color)';">
+                        <i class="fas fa-chevron-right" style="color: var(--text-primary); font-size: 12px;"></i>
+                    </button>
+                    ${checklistSelectedDate !== new Date().toISOString().split('T')[0] ? `
+                        <button onclick="checklistGoToToday()" style="padding: 8px 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, #10b981, #059669); color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">
+                            <i class="fas fa-calendar-day"></i> Today
+                        </button>
+                    ` : ''}
+                </div>
             </div>
             <div class="page-header-right" style="display: flex; gap: 12px;">
                 <button onclick="viewChecklistHistory()" class="btn-secondary">
@@ -7231,7 +7325,7 @@ window.toggleChecklistTask = async function(taskId, store, shift, completionId) 
         if (success) {
             // Get the new completion from the array
             const newCompletion = checklistData.completions.find(c =>
-                c.taskId === taskId && c.store === store && c.shift === shift && c.date === getTodayDateString()
+                c.taskId === taskId && c.store === store && c.shift === shift && c.date === checklistSelectedDate
             );
             showNotification('Task completed!', 'success');
             // Update UI without full reload
@@ -7332,7 +7426,7 @@ function updateChecklistProgress() {
             c.taskId === t.id &&
             c.store === checklistCurrentStore &&
             c.shift === checklistCurrentShift &&
-            c.date === getTodayDateString()
+            c.date === checklistSelectedDate
         );
     }).length;
 
@@ -7361,7 +7455,7 @@ function updateStoreProgressCards() {
                     c.taskId === t.id &&
                     c.store === targetStore &&
                     c.shift === shift &&
-                    c.date === getTodayDateString()
+                    c.date === checklistSelectedDate
                 );
             }).length;
             return Math.round((completed / tasks.length) * 100);
@@ -7643,6 +7737,8 @@ window.viewChecklistHistory = async function() {
 
         async function renderRestockRequests() {
             const dashboard = document.querySelector('.dashboard');
+            const user = getCurrentUser();
+            const canEditRequests = user && (user.role === 'administrator' || user.role === 'manager');
 
             // Get all requests sorted by date (newest first)
             const allRequests = [...restockRequests].sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
@@ -7773,7 +7869,12 @@ window.viewChecklistHistory = async function() {
 
                                         <!-- Actions -->
                                         <div style="display: flex; gap: 4px;">
-                                            <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Delete">
+                                            ${canEditRequests ? `
+                                                <button onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Edit" onmouseover="this.style.color='var(--accent-primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            ` : ''}
+                                            <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Delete" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -9220,54 +9321,12 @@ window.viewChecklistHistory = async function() {
 
             // Populate form with current values
             setTimeout(() => {
-                const productName = request.productName;
-                // Try to parse product name (Brand ProductName - Flavor format)
-                let brand = '', flavor = '', product = '';
-
-                const parts = productName.split(' - ');
-                if (parts.length === 2) {
-                    flavor = parts[1];
-                    const productParts = parts[0].split(' ');
-                    if (productParts.length > 1) {
-                        brand = productParts[0];
-                        product = productParts.slice(1).join(' ');
-                    } else {
-                        product = parts[0];
-                    }
-                } else {
-                    product = productName;
-                }
-
-                // Set form values
-                document.getElementById('edit-restock-item-type').value = request.itemType || 'product';
-                document.getElementById('edit-restock-product').value = product || '';
+                // Set form values directly - no need to parse brand/flavor
+                document.getElementById('edit-restock-product').value = request.productName || '';
                 document.getElementById('edit-restock-quantity').value = request.quantity || '';
                 document.getElementById('edit-restock-priority').value = request.priority || 'medium';
-                document.getElementById('edit-restock-date').value = request.requestDate || '';
                 document.getElementById('edit-restock-store').value = request.store || '';
                 document.getElementById('edit-restock-notes').value = request.notes || '';
-
-                // Set brand dropdown - try to match existing option or select "Other"
-                const brandSelect = document.getElementById('edit-restock-brand');
-                if (brandSelect) {
-                    const brandOption = Array.from(brandSelect.options).find(opt => opt.value === brand);
-                    if (brandOption) {
-                        brandSelect.value = brand;
-                    } else if (brand) {
-                        brandSelect.value = 'Other';
-                    }
-                }
-
-                // Set flavor dropdown - try to match existing option or select "Other"
-                const flavorSelect = document.getElementById('edit-restock-flavor');
-                if (flavorSelect) {
-                    const flavorOption = Array.from(flavorSelect.options).find(opt => opt.value === flavor);
-                    if (flavorOption) {
-                        flavorSelect.value = flavor;
-                    } else if (flavor) {
-                        flavorSelect.value = 'Other';
-                    }
-                }
 
                 // Populate and set employee dropdown
                 populateEmployeeDropdown('edit-restock-requested-by', request.requestedBy || '');
@@ -9275,20 +9334,17 @@ window.viewChecklistHistory = async function() {
         }
 
         function submitEditRestockRequest() {
-            const itemType = document.getElementById('edit-restock-item-type').value;
-            const product = document.getElementById('edit-restock-product').value;
-            const brand = document.getElementById('edit-restock-brand').value;
-            const flavor = document.getElementById('edit-restock-flavor').value;
+            const productName = document.getElementById('edit-restock-product').value.trim();
             const quantity = document.getElementById('edit-restock-quantity').value;
             const priority = document.getElementById('edit-restock-priority').value;
-            const date = document.getElementById('edit-restock-date').value;
             const store = document.getElementById('edit-restock-store').value;
-            const requestedBy = document.getElementById('edit-restock-requested-by').value;
+            const requestedByEl = document.getElementById('edit-restock-requested-by');
+            const requestedBy = requestedByEl ? requestedByEl.value : '';
             const notes = document.getElementById('edit-restock-notes').value;
 
             // Validation
-            if (!product || !quantity || !priority || !date || !store || !requestedBy) {
-                alert('Please fill in all required fields');
+            if (!productName || !quantity || !store) {
+                alert('Please fill in Product Name, Quantity, and Store');
                 return;
             }
 
@@ -9299,41 +9355,30 @@ window.viewChecklistHistory = async function() {
                 return;
             }
 
-            // Build product name
-            let productName = product;
-            if (brand) productName = `${brand} ${productName}`;
-            if (flavor) productName = `${productName} - ${flavor}`;
-
             // Update local request
             request.productName = productName;
-            request.itemType = itemType;
             request.quantity = parseInt(quantity);
-            request.priority = priority;
-            request.requestDate = date;
+            request.priority = priority || 'medium';
             request.store = store;
-            request.requestedBy = requestedBy;
+            if (requestedBy) request.requestedBy = requestedBy;
             request.notes = notes;
-            request.status = 'pending';  // Automatically set to pending when edited
 
             // Update in Firebase if initialized
             if (firebaseRestockRequestsManager.isInitialized) {
                 const updateData = {
                     productName: productName,
-                    itemType: itemType,
                     quantity: parseInt(quantity),
-                    priority: priority,
-                    requestDate: date,
+                    priority: priority || 'medium',
                     store: store,
-                    requestedBy: requestedBy,
-                    notes: notes,
-                    status: 'pending'  // Automatically set to pending when edited
+                    notes: notes
                 };
+                if (requestedBy) updateData.requestedBy = requestedBy;
 
                 firebaseRestockRequestsManager.updateRestockRequest(editingRestockRequestId, updateData).then(success => {
                     if (success) {
-                        console.log('Request updated in Firebase and status set to pending:', editingRestockRequestId);
+                        console.log('Request updated in Firebase:', editingRestockRequestId);
                         closeModal();
-                        currentRestockTab = 'requests';
+                        showNotification('Request updated successfully!', 'success');
                         renderRestockRequests();
                     } else {
                         alert('Error updating request. Please try again.');
@@ -9345,12 +9390,95 @@ window.viewChecklistHistory = async function() {
             } else {
                 // Fallback to local storage only
                 closeModal();
-                currentRestockTab = 'requests';
+                showNotification('Request updated successfully!', 'success');
                 renderRestockRequests();
             }
 
             editingRestockRequestId = null;
         }
+
+        // Product name autocomplete - get unique product names from previous requests
+        function getUniqueProductNames() {
+            const productNames = restockRequests.map(r => r.productName).filter(Boolean);
+            // Get unique names and sort alphabetically
+            return [...new Set(productNames)].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        }
+
+        // Show product suggestions dropdown
+        window.showProductSuggestions = function(inputValue, dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+
+            const query = inputValue.toLowerCase().trim();
+
+            // Hide if query is too short
+            if (query.length < 1) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            // Get matching products
+            const allProducts = getUniqueProductNames();
+            const matches = allProducts.filter(name =>
+                name.toLowerCase().includes(query)
+            ).slice(0, 10); // Limit to 10 suggestions
+
+            if (matches.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            // Build dropdown HTML
+            dropdown.innerHTML = matches.map(name => {
+                // Highlight the matching part
+                const lowerName = name.toLowerCase();
+                const matchIndex = lowerName.indexOf(query);
+                let displayName = name;
+                if (matchIndex >= 0) {
+                    displayName = name.substring(0, matchIndex) +
+                        '<strong style="color: var(--accent-primary);">' +
+                        name.substring(matchIndex, matchIndex + query.length) +
+                        '</strong>' +
+                        name.substring(matchIndex + query.length);
+                }
+
+                return `
+                    <div onclick="selectProductSuggestion('${name.replace(/'/g, "\\'")}', '${dropdownId}')"
+                        style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: background 0.2s; display: flex; align-items: center; gap: 10px;"
+                        onmouseover="this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background='transparent'">
+                        <i class="fas fa-history" style="color: var(--text-muted); font-size: 12px;"></i>
+                        <span style="flex: 1;">${displayName}</span>
+                    </div>
+                `;
+            }).join('');
+
+            dropdown.style.display = 'block';
+        };
+
+        // Select a product suggestion
+        window.selectProductSuggestion = function(productName, dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+
+            // Find the input associated with this dropdown
+            const inputId = dropdownId.replace('-suggestions', '-product');
+            const input = document.getElementById(inputId);
+
+            if (input) {
+                input.value = productName;
+                input.focus();
+            }
+
+            dropdown.style.display = 'none';
+        };
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.form-group')) {
+                document.querySelectorAll('.product-suggestions-dropdown').forEach(d => d.style.display = 'none');
+            }
+        });
 
         function renderAbundanceCloud() {
             const dashboard = document.querySelector('.dashboard');
@@ -14121,7 +14249,8 @@ window.viewChecklistHistory = async function() {
                             const statusStyles = {
                                 paid: 'background: #10b981; color: #fff;',
                                 pending: 'background: #f59e0b; color: #000;',
-                                overdue: 'background: #ef4444; color: #fff;'
+                                overdue: 'background: #ef4444; color: #fff;',
+                                filed: 'background: #6366f1; color: #fff;'
                             };
                             const invoiceId = invoice.firestoreId || invoice.id;
 
@@ -14577,12 +14706,12 @@ window.viewChecklistHistory = async function() {
 
                 <!-- MAIN TABS NAVIGATION -->
                 <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
-                    <button onclick="switchInvoiceMainTab('pending')" class="invoice-main-tab ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? '#f59e0b' : 'var(--border-color)'}; background: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--bg-card)'}; color: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
-                        <i class="fas fa-clock"></i> Pending Payments
-                        ${pendingPaymentsCount > 0 ? `<span style="background: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'pending' ? 'rgba(255,255,255,0.3)' : '#ef4444'}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${pendingPaymentsCount}</span>` : ''}
+                    <button onclick="switchInvoiceMainTab('all')" class="invoice-main-tab ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'all' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'all' ? '#6366f1' : 'var(--border-color)'}; background: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'all' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--bg-card)'}; color: ${!invoiceFilters.mainTab || invoiceFilters.mainTab === 'all' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+                        <i class="fas fa-file-invoice"></i> Invoices
                     </button>
-                    <button onclick="switchInvoiceMainTab('all')" class="invoice-main-tab ${invoiceFilters.mainTab === 'all' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'all' ? '#6366f1' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'all' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'all' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
-                        <i class="fas fa-file-invoice"></i> All Invoices
+                    <button onclick="switchInvoiceMainTab('pending')" class="invoice-main-tab ${invoiceFilters.mainTab === 'pending' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'pending' ? '#f59e0b' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'pending' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+                        <i class="fas fa-clock"></i> Pending Payments
+                        ${pendingPaymentsCount > 0 ? `<span style="background: ${invoiceFilters.mainTab === 'pending' ? 'rgba(255,255,255,0.3)' : '#ef4444'}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${pendingPaymentsCount}</span>` : ''}
                     </button>
                     <button onclick="switchInvoiceMainTab('recurring')" class="invoice-main-tab ${invoiceFilters.mainTab === 'recurring' ? 'active' : ''}" style="padding: 12px 24px; border-radius: 12px; border: 2px solid ${invoiceFilters.mainTab === 'recurring' ? '#8b5cf6' : 'var(--border-color)'}; background: ${invoiceFilters.mainTab === 'recurring' ? 'linear-gradient(135deg, #8b5cf6, #a855f7)' : 'var(--bg-card)'}; color: ${invoiceFilters.mainTab === 'recurring' ? 'white' : 'var(--text-primary)'}; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
                         <i class="fas fa-sync-alt"></i> Recurring
@@ -14833,6 +14962,7 @@ window.viewChecklistHistory = async function() {
                                     <option value="pending">Pending</option>
                                     <option value="paid">Paid</option>
                                     <option value="overdue">Overdue</option>
+                                    <option value="filed">Filed</option>
                                 </select>
                             </div>
                             <button class="btn-secondary" onclick="resetInvoiceFilters()" style="height: 40px;">
@@ -14969,7 +15099,8 @@ window.viewChecklistHistory = async function() {
                 const statusStyles = {
                     paid: 'background: var(--success); color: #fff;',
                     pending: 'background: var(--warning); color: #000;',
-                    overdue: 'background: var(--danger); color: #fff;'
+                    overdue: 'background: var(--danger); color: #fff;',
+                    filed: 'background: #6366f1; color: #fff;'
                 };
 
                 const invoiceId = invoice.firestoreId || invoice.id;
@@ -16121,6 +16252,7 @@ Return ONLY the JSON object, no additional text.`
                                     <option value="pending" ${invoice.status === 'pending' ? 'selected' : ''}>Pending</option>
                                     <option value="overdue" ${invoice.status === 'overdue' ? 'selected' : ''}>Overdue</option>
                                     <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Paid</option>
+                                    <option value="filed" ${invoice.status === 'filed' ? 'selected' : ''}>Filed</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -25057,6 +25189,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="pending">Pending</option>
                                         <option value="paid">Paid</option>
                                         <option value="overdue">Overdue</option>
+                                        <option value="filed">Filed</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -25185,9 +25318,10 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
+                            <div class="form-group" style="position: relative;">
                                 <label>Product Name *</label>
-                                <input type="text" class="form-input" id="new-restock-product" placeholder="Enter product name...">
+                                <input type="text" class="form-input" id="new-restock-product" placeholder="Start typing to see suggestions..." autocomplete="off" oninput="showProductSuggestions(this.value, 'new-restock-suggestions')">
+                                <div id="new-restock-suggestions" class="product-suggestions-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);"></div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
@@ -25241,9 +25375,10 @@ Return ONLY the JSON object, no additional text.`
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div class="form-group">
+                            <div class="form-group" style="position: relative;">
                                 <label>Product Name *</label>
-                                <input type="text" class="form-input" id="edit-restock-product" placeholder="Enter product name...">
+                                <input type="text" class="form-input" id="edit-restock-product" placeholder="Start typing to see suggestions..." autocomplete="off" oninput="showProductSuggestions(this.value, 'edit-restock-suggestions')">
+                                <div id="edit-restock-suggestions" class="product-suggestions-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);"></div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
