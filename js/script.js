@@ -13955,13 +13955,15 @@ window.viewChecklistHistory = async function() {
             status: 'all',
             minAmount: null,
             maxAmount: null,
-            activeTab: 'current' // 'current' or 'recurring'
+            activeTab: 'current', // 'current' or 'recurring'
+            sortBy: 'dueDate-asc' // default sort
         };
 
         // Default invoice categories
         const DEFAULT_INVOICE_CATEGORIES = [
             { id: 'utilities', name: 'Utilities', icon: 'fa-bolt' },
             { id: 'supplies', name: 'Supplies', icon: 'fa-box' },
+            { id: 'product', name: 'Product', icon: 'fa-cube' },
             { id: 'services', name: 'Services', icon: 'fa-concierge-bell' },
             { id: 'equipment', name: 'Equipment', icon: 'fa-tools' },
             { id: 'marketing', name: 'Marketing', icon: 'fa-bullhorn' },
@@ -14006,6 +14008,21 @@ window.viewChecklistHistory = async function() {
             if (allCategories.some(c => c.id === categoryId || c.name.toLowerCase() === trimmedName.toLowerCase())) {
                 showToast('Category already exists', 'warning');
                 return null;
+            }
+
+            // Check if Firebase is available
+            if (typeof db === 'undefined' || !db) {
+                // Fallback to local storage if Firebase not available
+                const newCategory = { id: categoryId, name: trimmedName, icon: 'fa-tag' };
+                customInvoiceCategories.push(newCategory);
+                // Save to localStorage as backup
+                try {
+                    localStorage.setItem('customInvoiceCategories', JSON.stringify(customInvoiceCategories));
+                } catch (e) {
+                    console.warn('Could not save to localStorage:', e);
+                }
+                showToast(`Category "${trimmedName}" added`, 'success');
+                return newCategory;
             }
 
             try {
@@ -14376,7 +14393,8 @@ window.viewChecklistHistory = async function() {
                 status: 'all',
                 minAmount: null,
                 maxAmount: null,
-                activeTab: invoiceFilters.activeTab
+                activeTab: invoiceFilters.activeTab,
+                sortBy: 'dueDate-asc'
             };
             renderInvoices();
         }
@@ -14385,6 +14403,50 @@ window.viewChecklistHistory = async function() {
         function switchInvoiceTab(tab) {
             invoiceFilters.activeTab = tab;
             renderInvoices();
+        }
+
+        // Update invoice sort
+        function updateInvoiceSort(sortValue) {
+            invoiceFilters.sortBy = sortValue;
+            renderInvoices();
+        }
+
+        // Sort invoices based on current sortBy filter
+        function sortInvoices(invoicesList) {
+            const [field, direction] = invoiceFilters.sortBy.split('-');
+            const multiplier = direction === 'desc' ? -1 : 1;
+
+            return [...invoicesList].sort((a, b) => {
+                let valA, valB;
+
+                switch (field) {
+                    case 'dueDate':
+                        valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+                        valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                        break;
+                    case 'invoiceDate':
+                        valA = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+                        valB = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+                        break;
+                    case 'vendor':
+                        valA = (a.vendor || '').toLowerCase();
+                        valB = (b.vendor || '').toLowerCase();
+                        return multiplier * valA.localeCompare(valB);
+                    case 'invoiceNumber':
+                        valA = a.invoiceNumber || '';
+                        valB = b.invoiceNumber || '';
+                        return multiplier * valA.localeCompare(valB, undefined, { numeric: true });
+                    case 'amount':
+                        valA = parseFloat(a.amount) || 0;
+                        valB = parseFloat(b.amount) || 0;
+                        break;
+                    default:
+                        valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+                        valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                }
+
+                return multiplier * (valA - valB);
+            });
         }
 
         // Render current invoices table
@@ -15130,9 +15192,25 @@ window.viewChecklistHistory = async function() {
                                 <select class="form-input" onchange="updateInvoiceFilter('status', this.value)">
                                     <option value="all">All Status</option>
                                     <option value="pending">Pending</option>
+                                    <option value="partial">Partial</option>
                                     <option value="paid">Paid</option>
                                     <option value="overdue">Overdue</option>
                                     <option value="filed">Filed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Sort By</label>
+                                <select class="form-input" onchange="updateInvoiceSort(this.value)">
+                                    <option value="dueDate-asc" ${invoiceFilters.sortBy === 'dueDate-asc' ? 'selected' : ''}>Due Date (Oldest)</option>
+                                    <option value="dueDate-desc" ${invoiceFilters.sortBy === 'dueDate-desc' ? 'selected' : ''}>Due Date (Newest)</option>
+                                    <option value="invoiceDate-desc" ${invoiceFilters.sortBy === 'invoiceDate-desc' ? 'selected' : ''}>Invoice Date (Newest)</option>
+                                    <option value="invoiceDate-asc" ${invoiceFilters.sortBy === 'invoiceDate-asc' ? 'selected' : ''}>Invoice Date (Oldest)</option>
+                                    <option value="vendor-asc" ${invoiceFilters.sortBy === 'vendor-asc' ? 'selected' : ''}>Vendor (A-Z)</option>
+                                    <option value="vendor-desc" ${invoiceFilters.sortBy === 'vendor-desc' ? 'selected' : ''}>Vendor (Z-A)</option>
+                                    <option value="invoiceNumber-asc" ${invoiceFilters.sortBy === 'invoiceNumber-asc' ? 'selected' : ''}>Invoice # (Asc)</option>
+                                    <option value="invoiceNumber-desc" ${invoiceFilters.sortBy === 'invoiceNumber-desc' ? 'selected' : ''}>Invoice # (Desc)</option>
+                                    <option value="amount-desc" ${invoiceFilters.sortBy === 'amount-desc' ? 'selected' : ''}>Amount (High-Low)</option>
+                                    <option value="amount-asc" ${invoiceFilters.sortBy === 'amount-asc' ? 'selected' : ''}>Amount (Low-High)</option>
                                 </select>
                             </div>
                             <button class="btn-secondary" onclick="resetInvoiceFilters()" style="height: 40px;">
@@ -15249,6 +15327,8 @@ window.viewChecklistHistory = async function() {
             if (invoiceFilters.store && invoiceFilters.store !== 'all') {
                 baseInvoices = invoices.filter(i => i.store === invoiceFilters.store);
             }
+            // Apply sorting
+            baseInvoices = sortInvoices(baseInvoices);
             const filteredInvoices = filter === 'all' ? baseInvoices : baseInvoices.filter(i => i.status === filter);
 
             if (filteredInvoices.length === 0) {
@@ -15451,12 +15531,26 @@ window.viewChecklistHistory = async function() {
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Vendor</label>
-                                    <div>${invoice.vendor}</div>
+                                    <div style="font-weight: 500;">${invoice.vendor}</div>
                                 </div>
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Categories</label>
                                     <div>${renderInvoiceCategoryBadges(invoice)}</div>
                                 </div>
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Store</label>
+                                    <div>${invoice.store || '<span style="color: var(--text-muted);">Unassigned</span>'}</div>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Payment Account</label>
+                                    <div>${invoice.paymentAccount || '<span style="color: var(--text-muted);">Not set</span>'}</div>
+                                </div>
+                                ${invoice.invoiceDate ? `
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Invoice Date</label>
+                                        <div>${formatDate(invoice.invoiceDate)}</div>
+                                    </div>
+                                ` : ''}
                                 <div>
                                     <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Due Date</label>
                                     <div>${formatDate(invoice.dueDate)}</div>
@@ -15465,6 +15559,16 @@ window.viewChecklistHistory = async function() {
                                     <div>
                                         <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Paid Date</label>
                                         <div style="color: var(--success);">${formatDate(invoice.paidDate)}</div>
+                                    </div>
+                                ` : ''}
+                                ${invoice.amountPaid && invoice.amountPaid > 0 && invoice.amountPaid < invoice.amount ? `
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Amount Paid</label>
+                                        <div style="color: var(--success);">$${invoice.amountPaid.toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Balance Due</label>
+                                        <div style="color: #f59e0b; font-weight: 600;">$${(invoice.amount - invoice.amountPaid).toFixed(2)}</div>
                                     </div>
                                 ` : ''}
                             </div>
@@ -15547,12 +15651,23 @@ window.viewChecklistHistory = async function() {
                         </div>
                     </div>
 
-                    ${invoice.status !== 'paid' ? `
-                        <button class="btn-primary" style="width: 100%;" onclick="markInvoicePaid('${invoiceId}'); closeModal();">
-                            <i class="fas fa-check"></i>
-                            Mark as Paid
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px;">
+                        ${invoice.status !== 'paid' ? `
+                            <button class="btn-primary" style="flex: 1; min-width: 140px;" onclick="markInvoicePaid('${invoiceId}'); closeModal();">
+                                <i class="fas fa-check"></i> Mark as Paid
+                            </button>
+                            <button class="btn-secondary" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; border: none;" onclick="openRecordPaymentModal('${invoiceId}')">
+                                <i class="fas fa-credit-card"></i> Record Payment
+                            </button>
+                        ` : ''}
+                        <button class="btn-secondary" style="flex: 1; min-width: 100px;" onclick="closeModal(); editInvoice('${invoiceId}');">
+                            <i class="fas fa-edit"></i> Edit
                         </button>
-                    ` : ''}
+                        <button class="btn-secondary" style="flex: 1; min-width: 100px; color: #ef4444;" onclick="if(confirm('Delete this invoice?')) { deleteInvoice('${invoiceId}'); closeModal(); }">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
                 </div>
             `;
 
@@ -15589,14 +15704,40 @@ window.viewChecklistHistory = async function() {
             });
         }
 
+        // Toggle multiple locations checkboxes
+        function toggleMultipleLocations(selectElement) {
+            const checkboxesDiv = document.getElementById('invoice-stores-checkboxes') || document.getElementById('edit-invoice-stores-checkboxes');
+            if (checkboxesDiv) {
+                checkboxesDiv.style.display = selectElement.value === 'Multiple' ? 'block' : 'none';
+            }
+        }
+
+        // Get selected stores (handles both single and multiple selection)
+        function getSelectedStores(formPrefix = '') {
+            const selectId = formPrefix ? `${formPrefix}-invoice-store` : 'invoice-store';
+            const checkboxesId = formPrefix ? `${formPrefix}-invoice-stores-checkboxes` : 'invoice-stores-checkboxes';
+
+            const select = document.getElementById(selectId);
+            if (!select) return null;
+
+            if (select.value === 'Multiple') {
+                const checkboxes = document.querySelectorAll(`#${checkboxesId} .invoice-store-checkbox:checked`);
+                const stores = Array.from(checkboxes).map(cb => cb.value);
+                return stores.length > 0 ? stores.join(', ') : null;
+            }
+
+            return select.value || null;
+        }
+
         async function saveInvoice() {
             const invoiceNumber = document.getElementById('invoice-number').value.trim();
             const vendor = document.getElementById('invoice-vendor').value.trim();
             const categories = getSelectedInvoiceCategories('invoice-categories-container');
             const category = categories.length > 0 ? categories[0] : ''; // Primary category for backwards compatibility
-            const store = document.getElementById('invoice-store').value || null;
+            const store = getSelectedStores() || null;
             const amount = document.getElementById('invoice-amount').value;
             const description = document.getElementById('invoice-description').value.trim();
+            const invoiceDate = document.getElementById('invoice-date').value;
             const dueDate = document.getElementById('invoice-due-date').value;
             const status = document.getElementById('invoice-status').value;
             const paymentAccount = document.getElementById('invoice-payment-account').value;
@@ -15663,7 +15804,7 @@ window.viewChecklistHistory = async function() {
 
                 if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving invoice...';
 
-                await createInvoiceRecord(invoiceNumber, vendor, category, categories, store, amount, description, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
+                await createInvoiceRecord(invoiceNumber, vendor, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
             } catch (error) {
                 console.error('Error saving invoice:', error);
                 alert('Error saving invoice. Please try again.');
@@ -15675,7 +15816,7 @@ window.viewChecklistHistory = async function() {
             }
         }
 
-        async function createInvoiceRecord(invoiceNumber, vendor, category, categories, store, amount, description, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
+        async function createInvoiceRecord(invoiceNumber, vendor, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
             // Create invoice data object
             const invoiceData = {
                 invoiceNumber: invoiceNumber || '',
@@ -15685,6 +15826,7 @@ window.viewChecklistHistory = async function() {
                 store: store || null,
                 description: description || '',
                 amount: parseFloat(amount) || 0,
+                invoiceDate: invoiceDate || '',
                 dueDate: dueDate || '',
                 paidDate: status === 'paid' ? new Date().toISOString().split('T')[0] : null,
                 status: status || 'pending',
@@ -16459,20 +16601,49 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                         <div class="form-group">
                             <label class="form-label">Store</label>
-                            <select class="form-input" id="edit-invoice-store">
+                            <select class="form-input" id="edit-invoice-store" onchange="toggleMultipleLocations(this)">
                                 <option value="" ${!invoice.store ? 'selected' : ''}>Unassigned</option>
+                                <option value="All Locations" ${invoice.store === 'All Locations' ? 'selected' : ''}>All Locations</option>
                                 <option value="Miramar" ${invoice.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
                                 <option value="Morena" ${invoice.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
                                 <option value="Kearny Mesa" ${invoice.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
                                 <option value="Chula Vista" ${invoice.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
                                 <option value="North Park" ${invoice.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                 <option value="Miramar Wine & Liquor" ${invoice.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                <option value="Multiple" ${invoice.store && invoice.store.includes(',') ? 'selected' : ''}>Multiple Locations...</option>
                             </select>
+                            <div id="edit-invoice-stores-checkboxes" style="display: ${invoice.store && invoice.store.includes(',') ? 'block' : 'none'}; margin-top: 8px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Select locations:</p>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                        <input type="checkbox" class="invoice-store-checkbox" value="Miramar" ${invoice.store && invoice.store.includes('Miramar') && !invoice.store.includes('Wine') ? 'checked' : ''}> VSU Miramar
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                        <input type="checkbox" class="invoice-store-checkbox" value="Morena" ${invoice.store && invoice.store.includes('Morena') ? 'checked' : ''}> VSU Morena
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                        <input type="checkbox" class="invoice-store-checkbox" value="Kearny Mesa" ${invoice.store && invoice.store.includes('Kearny Mesa') ? 'checked' : ''}> VSU Kearny Mesa
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                        <input type="checkbox" class="invoice-store-checkbox" value="Chula Vista" ${invoice.store && invoice.store.includes('Chula Vista') ? 'checked' : ''}> VSU Chula Vista
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                        <input type="checkbox" class="invoice-store-checkbox" value="North Park" ${invoice.store && invoice.store.includes('North Park') ? 'checked' : ''}> VSU North Park
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                        <input type="checkbox" class="invoice-store-checkbox" value="Miramar Wine & Liquor" ${invoice.store && invoice.store.includes('Wine') ? 'checked' : ''}> MW&L
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">Amount *</label>
                                 <input type="number" step="0.01" class="form-input" id="edit-invoice-amount" value="${invoice.amount || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Invoice Date</label>
+                                <input type="date" class="form-input" id="edit-invoice-date" value="${invoice.invoiceDate || ''}">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Due Date</label>
@@ -16488,6 +16659,7 @@ Return ONLY the JSON object, no additional text.`
                                 <label class="form-label">Status</label>
                                 <select class="form-input" id="edit-invoice-status">
                                     <option value="pending" ${invoice.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="partial" ${invoice.status === 'partial' ? 'selected' : ''}>Partial</option>
                                     <option value="overdue" ${invoice.status === 'overdue' ? 'selected' : ''}>Overdue</option>
                                     <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Paid</option>
                                     <option value="filed" ${invoice.status === 'filed' ? 'selected' : ''}>Filed</option>
@@ -16500,6 +16672,7 @@ Return ONLY the JSON object, no additional text.`
                                     <option value="Shop App" ${invoice.paymentAccount === 'Shop App' ? 'selected' : ''}>Shop App</option>
                                     <option value="Personal Account" ${invoice.paymentAccount === 'Personal Account' ? 'selected' : ''}>Personal Account</option>
                                     <option value="Business Account" ${invoice.paymentAccount === 'Business Account' ? 'selected' : ''}>Business Account</option>
+                                    <option value="Zelle" ${invoice.paymentAccount === 'Zelle' ? 'selected' : ''}>Zelle</option>
                                     <option value="PayPal" ${invoice.paymentAccount === 'PayPal' ? 'selected' : ''}>PayPal</option>
                                     <option value="Credit Card" ${invoice.paymentAccount === 'Credit Card' ? 'selected' : ''}>Credit Card</option>
                                     <option value="Cash" ${invoice.paymentAccount === 'Cash' ? 'selected' : ''}>Cash</option>
@@ -16610,9 +16783,10 @@ Return ONLY the JSON object, no additional text.`
             const vendor = document.getElementById('edit-invoice-vendor').value.trim();
             const categories = getSelectedInvoiceCategories('edit-invoice-categories-container');
             const category = categories.length > 0 ? categories[0] : ''; // Primary category for backwards compatibility
-            const store = document.getElementById('edit-invoice-store').value || null;
+            const store = getSelectedStores('edit') || null;
             const amount = document.getElementById('edit-invoice-amount').value;
             const description = document.getElementById('edit-invoice-description').value.trim();
+            const invoiceDate = document.getElementById('edit-invoice-date').value;
             const dueDate = document.getElementById('edit-invoice-due-date').value;
             const status = document.getElementById('edit-invoice-status').value;
             const paymentAccount = document.getElementById('edit-invoice-payment-account').value;
@@ -16661,6 +16835,7 @@ Return ONLY the JSON object, no additional text.`
                 store: store || null,
                 description: description || '',
                 amount: parseFloat(amount) || 0,
+                invoiceDate: invoiceDate || '',
                 dueDate: dueDate || '',
                 paidDate: status === 'paid' ? (invoice && invoice.paidDate ? invoice.paidDate : new Date().toISOString().split('T')[0]) : null,
                 status: status || 'pending',
@@ -23133,14 +23308,20 @@ Return ONLY the JSON object, no additional text.`
                                 <input type="tel" id="vendor-phone" class="form-input" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                             </div>
                             <div>
-                                <label class="form-label">Email</label>
-                                <input type="email" id="vendor-email" class="form-input" placeholder="contact@vendor.com">
+                                <label class="form-label">Phone 2 <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
+                                <input type="tel" id="vendor-phone2" class="form-input" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                             </div>
                         </div>
 
-                        <div>
-                            <label class="form-label">Website</label>
-                            <input type="url" id="vendor-website" class="form-input" placeholder="https://www.vendor.com" pattern="https?://.+">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Email</label>
+                                <input type="email" id="vendor-email" class="form-input" placeholder="contact@vendor.com">
+                            </div>
+                            <div>
+                                <label class="form-label">Website</label>
+                                <input type="url" id="vendor-website" class="form-input" placeholder="https://www.vendor.com" pattern="https?://.+">
+                            </div>
                         </div>
 
                         <div>
@@ -23245,6 +23426,7 @@ Return ONLY the JSON object, no additional text.`
 
             const contact = document.getElementById('vendor-contact').value.trim();
             const phone = document.getElementById('vendor-phone').value.trim();
+            const phone2 = document.getElementById('vendor-phone2').value.trim();
             const email = document.getElementById('vendor-email').value.trim();
             const website = document.getElementById('vendor-website').value.trim();
             const access = document.getElementById('vendor-access').value.trim();
@@ -23310,6 +23492,7 @@ Return ONLY the JSON object, no additional text.`
                     categories,         // Array of all selected categories
                     contact,
                     phone,
+                    phone2,
                     email,
                     website,
                     access,
@@ -23762,14 +23945,20 @@ Return ONLY the JSON object, no additional text.`
                                 <input type="tel" id="edit-vendor-phone" class="form-input" value="${vendor.phone}" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                             </div>
                             <div>
-                                <label class="form-label">Email</label>
-                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="contact@vendor.com">
+                                <label class="form-label">Phone 2 <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
+                                <input type="tel" id="edit-vendor-phone2" class="form-input" value="${vendor.phone2 || ''}" placeholder="(800) 555-0000" oninput="formatPhoneNumber(this)" maxlength="14">
                             </div>
                         </div>
 
-                        <div>
-                            <label class="form-label">Website</label>
-                            <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://www.vendor.com" pattern="https?://.+">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label">Email</label>
+                                <input type="email" id="edit-vendor-email" class="form-input" value="${vendor.email}" placeholder="contact@vendor.com">
+                            </div>
+                            <div>
+                                <label class="form-label">Website</label>
+                                <input type="url" id="edit-vendor-website" class="form-input" value="${vendor.website || ''}" placeholder="https://www.vendor.com" pattern="https?://.+">
+                            </div>
                         </div>
 
                         <div>
@@ -23843,6 +24032,7 @@ Return ONLY the JSON object, no additional text.`
 
             const contact = document.getElementById('edit-vendor-contact').value.trim();
             const phone = document.getElementById('edit-vendor-phone').value.trim();
+            const phone2 = document.getElementById('edit-vendor-phone2').value.trim();
             const email = document.getElementById('edit-vendor-email').value.trim();
             const website = document.getElementById('edit-vendor-website').value.trim();
             const access = document.getElementById('edit-vendor-access').value.trim();
@@ -23939,6 +24129,7 @@ Return ONLY the JSON object, no additional text.`
                     categories,         // Array of all selected categories
                     contact,
                     phone,
+                    phone2,
                     email,
                     website,
                     access,
@@ -25485,20 +25676,49 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-group">
                                 <label>Store</label>
-                                <select class="form-input" id="invoice-store">
-                                    <option value="" ${!invoiceFilters.store || invoiceFilters.store === 'all' ? 'selected' : ''}>Unassigned</option>
-                                    <option value="Miramar" ${invoiceFilters.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
-                                    <option value="Morena" ${invoiceFilters.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
-                                    <option value="Kearny Mesa" ${invoiceFilters.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
-                                    <option value="Chula Vista" ${invoiceFilters.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
-                                    <option value="North Park" ${invoiceFilters.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
-                                    <option value="Miramar Wine & Liquor" ${invoiceFilters.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                <select class="form-input" id="invoice-store" onchange="toggleMultipleLocations(this)">
+                                    <option value="">Unassigned</option>
+                                    <option value="All Locations">All Locations</option>
+                                    <option value="Miramar">VSU Miramar</option>
+                                    <option value="Morena">VSU Morena</option>
+                                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                    <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="North Park">VSU North Park</option>
+                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    <option value="Multiple">Multiple Locations...</option>
                                 </select>
+                                <div id="invoice-stores-checkboxes" style="display: none; margin-top: 8px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Select locations:</p>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="invoice-store-checkbox" value="Miramar"> VSU Miramar
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="invoice-store-checkbox" value="Morena"> VSU Morena
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="invoice-store-checkbox" value="Kearny Mesa"> VSU Kearny Mesa
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="invoice-store-checkbox" value="Chula Vista"> VSU Chula Vista
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="invoice-store-checkbox" value="North Park"> VSU North Park
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="invoice-store-checkbox" value="Miramar Wine & Liquor"> MW&L
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Amount ($)</label>
                                     <input type="number" step="0.01" class="form-input" id="invoice-amount" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Invoice Date</label>
+                                    <input type="date" class="form-input" id="invoice-date">
                                 </div>
                                 <div class="form-group">
                                     <label>Due Date</label>
@@ -25514,6 +25734,7 @@ Return ONLY the JSON object, no additional text.`
                                     <label>Status</label>
                                     <select class="form-input" id="invoice-status">
                                         <option value="pending">Pending</option>
+                                        <option value="partial">Partial</option>
                                         <option value="paid">Paid</option>
                                         <option value="overdue">Overdue</option>
                                         <option value="filed">Filed</option>
@@ -25526,6 +25747,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Shop App">Shop App</option>
                                         <option value="Personal Account">Personal Account</option>
                                         <option value="Business Account">Business Account</option>
+                                        <option value="Zelle">Zelle</option>
                                         <option value="PayPal">PayPal</option>
                                         <option value="Credit Card">Credit Card</option>
                                         <option value="Cash">Cash</option>
