@@ -15140,10 +15140,13 @@ window.viewChecklistHistory = async function() {
                                     <td style="padding: 14px 16px; text-align: center;">
                                         <span style="background: ${statusBg}; color: ${statusColor}; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${statusText}</span>
                                     </td>
-                                    <td style="padding: 14px 16px; text-align: center;">
-                                        <button onclick="openRecordPaymentModal('${inv.id || inv.firestoreId}')" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                    <td style="padding: 14px 12px; text-align: center; white-space: nowrap;">
+                                        <button onclick="openRecordPaymentModal('${inv.id || inv.firestoreId}')" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-right: 4px;" title="Record Payment">
                                             <i class="fas fa-credit-card"></i> Pay
                                         </button>
+                                        <button class="btn-icon" onclick="viewInvoice('${inv.id || inv.firestoreId}')" title="View Details" style="padding: 6px; margin: 0 2px;"><i class="fas fa-eye" style="font-size: 12px;"></i></button>
+                                        <button class="btn-icon" onclick="editInvoice('${inv.id || inv.firestoreId}')" title="Edit" style="padding: 6px; margin: 0 2px;"><i class="fas fa-edit" style="font-size: 12px;"></i></button>
+                                        <button class="btn-icon" onclick="deleteInvoice('${inv.id || inv.firestoreId}')" title="Delete" style="padding: 6px; margin: 0 2px;"><i class="fas fa-trash" style="font-size: 12px;"></i></button>
                                     </td>
                                 </tr>
                                     `;
@@ -16695,16 +16698,28 @@ Return ONLY the JSON object, no additional text.`
                             ${invoice.photo ? `
                                 <div id="edit-invoice-current-file" style="margin-bottom: 10px;">
                                     ${invoice.fileType === 'pdf' ? `
-                                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
-                                            <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444;"></i>
-                                            <div>
-                                                <div style="font-weight: 500;">${invoice.fileName || 'Invoice.pdf'}</div>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Current PDF (upload new to replace)</p>
+                                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <i class="fas fa-file-pdf" style="font-size: 32px; color: #ef4444;"></i>
+                                                <div>
+                                                    <div style="font-weight: 500;">${invoice.fileName || 'Invoice.pdf'}</div>
+                                                    <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Upload new file to replace</p>
+                                                </div>
                                             </div>
+                                            <button type="button" onclick="window.open('${invoice.photo.replace(/'/g, "\\'")}', '_blank')" class="btn-secondary" style="padding: 8px 12px; font-size: 12px;">
+                                                <i class="fas fa-external-link-alt"></i> View PDF
+                                            </button>
                                         </div>
                                     ` : `
-                                        <img src="${invoice.photo}" alt="Current Invoice Photo" style="max-width: 200px; max-height: 150px; border-radius: 8px; object-fit: contain;">
-                                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Current photo (upload new to replace)</p>
+                                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                            <img src="${invoice.photo}" alt="Current Invoice Photo" style="max-width: 150px; max-height: 100px; border-radius: 8px; object-fit: contain; cursor: pointer;" onclick="window.open('${invoice.photo.replace(/'/g, "\\'")}', '_blank')">
+                                            <div>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px 0;">Upload new file to replace</p>
+                                                <button type="button" onclick="window.open('${invoice.photo.replace(/'/g, "\\'")}', '_blank')" class="btn-secondary" style="padding: 6px 10px; font-size: 11px;">
+                                                    <i class="fas fa-search-plus"></i> View Full Size
+                                                </button>
+                                            </div>
+                                        </div>
                                     `}
                                 </div>
                             ` : ''}
