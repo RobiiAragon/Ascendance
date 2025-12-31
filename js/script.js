@@ -15145,22 +15145,21 @@ window.viewChecklistHistory = async function() {
                 <!-- Invoices Table -->
                 <div class="card">
                     <div class="card-body" style="padding: 0; overflow-x: auto;">
-                        <table class="data-table" style="width: 100%;">
+                        <table class="data-table invoices-table-compact" style="width: 100%; min-width: 800px;">
                             <thead>
                                 <tr>
-                                    <th>File</th>
-                                    <th>Invoice #</th>
-                                    <th>Vendor</th>
-                                    <th>Category</th>
-                                    <th>Store</th>
-                                    <th>Amount</th>
-                                    <th>Due Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th style="width: 55px;"></th>
+                                    <th style="min-width: 180px;">Vendor</th>
+                                    <th style="width: 100px;">Category</th>
+                                    <th style="width: 90px;">Store</th>
+                                    <th style="width: 90px; text-align: right;">Amount</th>
+                                    <th style="width: 95px;">Due Date</th>
+                                    <th style="width: 85px; text-align: center;">Status</th>
+                                    <th style="width: 120px; text-align: center;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${renderInvoicesTable('all')}
+                                ${renderInvoicesTableCompact('all')}
                             </tbody>
                         </table>
                     </div>
@@ -15243,6 +15242,75 @@ window.viewChecklistHistory = async function() {
         function filterInvoicesByStore(store) {
             invoiceFilters.store = store;
             renderInvoices();
+        }
+
+        function renderInvoicesTableCompact(filter = 'all') {
+            let baseInvoices = invoices;
+            if (invoiceFilters.store && invoiceFilters.store !== 'all') {
+                baseInvoices = invoices.filter(i => i.store === invoiceFilters.store);
+            }
+            const filteredInvoices = filter === 'all' ? baseInvoices : baseInvoices.filter(i => i.status === filter);
+
+            if (filteredInvoices.length === 0) {
+                return `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                            No invoices found
+                        </td>
+                    </tr>
+                `;
+            }
+
+            return filteredInvoices.map(invoice => {
+                const statusStyles = {
+                    paid: 'background: var(--success); color: #fff;',
+                    pending: 'background: var(--warning); color: #000;',
+                    overdue: 'background: var(--danger); color: #fff;',
+                    partial: 'background: #8b5cf6; color: #fff;',
+                    filed: 'background: #6366f1; color: #fff;'
+                };
+                const invoiceId = invoice.firestoreId || invoice.id;
+
+                return `
+                    <tr>
+                        <td style="padding: 10px 12px;">
+                            ${invoice.photo ? (invoice.fileType === 'pdf' ? `
+                                <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="View PDF">
+                                    <i class="fas fa-file-pdf" style="font-size: 18px; color: #ef4444;"></i>
+                                </div>
+                            ` : `
+                                <img src="${invoice.photo}" alt="Invoice" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="View">
+                            `) : `
+                                <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-file-invoice" style="color: var(--text-muted); font-size: 16px;"></i>
+                                </div>
+                            `}
+                        </td>
+                        <td style="padding: 10px 12px;">
+                            <div style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${invoice.vendor}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">#${invoice.invoiceNumber}</div>
+                        </td>
+                        <td style="padding: 10px 12px;">
+                            <span style="display: inline-block; padding: 3px 8px; background: #10b98120; color: #10b981; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px;">
+                                ${invoice.category || 'General'}
+                            </span>
+                        </td>
+                        <td style="padding: 10px 12px; font-size: 13px; color: var(--text-secondary);">${invoice.store || '-'}</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: 600; color: var(--text-primary);">$${invoice.amount.toFixed(2)}</td>
+                        <td style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary);">${formatDate(invoice.dueDate)}</td>
+                        <td style="padding: 10px 12px; text-align: center;">
+                            <span class="badge" style="${statusStyles[invoice.status]} padding: 4px 8px; font-size: 10px; border-radius: 4px;">${invoice.status.toUpperCase()}</span>
+                        </td>
+                        <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
+                            ${invoice.status !== 'paid' ? `<button class="btn-icon" onclick="markInvoicePaid('${invoiceId}')" title="Mark Paid" style="padding: 6px; margin: 0 1px;"><i class="fas fa-check" style="font-size: 12px;"></i></button>` : ''}
+                            <button class="btn-icon" onclick="viewInvoice('${invoiceId}')" title="View" style="padding: 6px; margin: 0 1px;"><i class="fas fa-eye" style="font-size: 12px;"></i></button>
+                            <button class="btn-icon" onclick="editInvoice('${invoiceId}')" title="Edit" style="padding: 6px; margin: 0 1px;"><i class="fas fa-edit" style="font-size: 12px;"></i></button>
+                            <button class="btn-icon" onclick="deleteInvoice('${invoiceId}')" title="Delete" style="padding: 6px; margin: 0 1px;"><i class="fas fa-trash" style="font-size: 12px;"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function renderInvoicesTable(filter = 'all') {
@@ -22580,6 +22648,7 @@ Return ONLY the JSON object, no additional text.`
         let vendorSearchTerm = '';
         let vendorCategoryFilter = 'all';
         let vendorTypeFilter = 'all'; // 'all', 'vendor', 'service'
+        let vendorViewMode = 'grid'; // 'grid' or 'list'
         let firebaseVendors = [];
 
         async function initVendors() {
@@ -22661,6 +22730,14 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="${cat}" ${vendorCategoryFilter === cat ? 'selected' : ''}>${cat}</option>
                                     `).join('')}
                                 </select>
+                            </div>
+                            <div style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 8px;">
+                                <button class="vendor-view-btn ${vendorViewMode === 'grid' ? 'active' : ''}" onclick="toggleVendorView('grid')" title="Grid View" style="padding: 8px 12px; border: none; background: ${vendorViewMode === 'grid' ? 'var(--accent-primary)' : 'transparent'}; color: ${vendorViewMode === 'grid' ? 'white' : 'var(--text-muted)'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button class="vendor-view-btn ${vendorViewMode === 'list' ? 'active' : ''}" onclick="toggleVendorView('list')" title="List View" style="padding: 8px 12px; border: none; background: ${vendorViewMode === 'list' ? 'var(--accent-primary)' : 'transparent'}; color: ${vendorViewMode === 'list' ? 'white' : 'var(--text-muted)'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fas fa-list"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -22763,6 +22840,80 @@ Return ONLY the JSON object, no additional text.`
                 'service': '#8b5cf6'
             };
 
+            // List View
+            if (vendorViewMode === 'list') {
+                return `
+                    <div class="card" style="overflow: hidden;">
+                        <!-- List Header - Desktop -->
+                        <div class="vendor-list-header" style="display: grid; grid-template-columns: 50px 1.5fr 1fr 1fr 1fr 80px; gap: 16px; padding: 14px 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                            <div></div>
+                            <div>Vendor</div>
+                            <div>Category</div>
+                            <div>Contact</div>
+                            <div>Phone</div>
+                            <div style="text-align: center;">Type</div>
+                        </div>
+                        <div class="vendor-list-body">
+                            ${filteredVendors.map(vendor => {
+                                const vendorType = vendor.type || 'vendor';
+                                const vendorCategories = vendor.categories || (vendor.category ? [vendor.category] : ['General']);
+                                const primaryCategory = vendorCategories[0] || 'General';
+                                const gradient = getCategoryGradient(primaryCategory);
+                                return `
+                                <div class="vendor-list-row" onclick="viewVendorDetails('${vendor.firestoreId}')" style="display: grid; grid-template-columns: 50px 1.5fr 1fr 1fr 1fr 80px; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border-color); align-items: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                                    <!-- Avatar -->
+                                    <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, ${gradient.from}, ${gradient.to}); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                        ${vendor.image
+                                            ? `<img src="${vendor.image}" style="width: 100%; height: 100%; object-fit: cover;">`
+                                            : `<i class="fas ${gradient.icon || 'fa-building'}" style="font-size: 14px; color: white;"></i>`
+                                        }
+                                    </div>
+                                    <!-- Vendor Name -->
+                                    <div style="min-width: 0;">
+                                        <div style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${vendor.name}</div>
+                                        <div class="vendor-list-mobile-info" style="display: none; font-size: 12px; color: var(--text-muted); margin-top: 2px;">${primaryCategory}</div>
+                                    </div>
+                                    <!-- Category -->
+                                    <div class="vendor-list-desktop-only" style="min-width: 0;">
+                                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: ${gradient.from}15; color: ${gradient.from}; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                                            <i class="fas ${gradient.icon || 'fa-tag'}" style="font-size: 10px;"></i>
+                                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">${primaryCategory}</span>
+                                        </span>
+                                    </div>
+                                    <!-- Contact -->
+                                    <div class="vendor-list-desktop-only" style="color: var(--text-secondary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${vendor.contact || '-'}
+                                    </div>
+                                    <!-- Phone -->
+                                    <div class="vendor-list-desktop-only" style="color: var(--text-secondary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${vendor.phone || '-'}
+                                    </div>
+                                    <!-- Type Badge -->
+                                    <div style="text-align: center;">
+                                        <span style="display: inline-block; padding: 4px 8px; background: ${vendorType === 'service' ? '#8b5cf620' : '#10b98120'}; color: ${vendorType === 'service' ? '#8b5cf6' : '#10b981'}; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">
+                                            ${vendorType === 'service' ? 'SVC' : 'VND'}
+                                        </span>
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
+                    </div>
+                    <style>
+                        @media (max-width: 768px) {
+                            .vendor-list-header { display: none !important; }
+                            .vendor-list-row {
+                                grid-template-columns: 44px 1fr 60px !important;
+                                gap: 12px !important;
+                                padding: 12px 16px !important;
+                            }
+                            .vendor-list-desktop-only { display: none !important; }
+                            .vendor-list-mobile-info { display: block !important; }
+                        }
+                    </style>
+                `;
+            }
+
+            // Grid View (original)
             return `
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
                     ${filteredVendors.map(vendor => {
@@ -22872,6 +23023,12 @@ Return ONLY the JSON object, no additional text.`
             if (vendorsList) {
                 vendorsList.innerHTML = renderVendorsList();
             }
+        }
+
+        function toggleVendorView(mode) {
+            vendorViewMode = mode;
+            // Re-render the entire vendors section to update button states
+            renderVendors();
         }
 
         function openAddVendorModal() {
