@@ -31193,10 +31193,22 @@ Return ONLY the JSON object, no additional text.`,
             } else {
                 // Navigate to the page
                 navigateTo(page);
-            }
 
-            // Optionally highlight or scroll to the item (future enhancement)
-            console.log(`Navigated to ${page}, item ID: ${itemId}`);
+                // Open the specific item after navigation
+                if (itemId) {
+                    setTimeout(() => {
+                        if (page === 'invoices' && typeof viewInvoice === 'function') {
+                            viewInvoice(itemId);
+                        } else if (page === 'employees' && typeof viewEmployeeDetails === 'function') {
+                            viewEmployeeDetails(itemId);
+                        } else if (page === 'thieves' && typeof viewThiefDetails === 'function') {
+                            viewThiefDetails(itemId);
+                        } else if (page === 'treasury' && typeof viewTreasuryPiece === 'function') {
+                            viewTreasuryPiece(itemId);
+                        }
+                    }, 300);
+                }
+            }
         }
 
         function showSearchResults() {
