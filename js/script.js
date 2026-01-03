@@ -15739,6 +15739,7 @@ window.viewChecklistHistory = async function() {
         async function saveInvoice() {
             const invoiceNumber = document.getElementById('invoice-number').value.trim();
             const vendor = document.getElementById('invoice-vendor').value.trim();
+            const product = document.getElementById('invoice-product').value.trim();
             const categories = getSelectedInvoiceCategories('invoice-categories-container');
             const category = categories.length > 0 ? categories[0] : ''; // Primary category for backwards compatibility
             const store = getSelectedStores() || null;
@@ -15811,7 +15812,7 @@ window.viewChecklistHistory = async function() {
 
                 if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving invoice...';
 
-                await createInvoiceRecord(invoiceNumber, vendor, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
+                await createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
             } catch (error) {
                 console.error('Error saving invoice:', error);
                 alert('Error saving invoice. Please try again.');
@@ -15823,11 +15824,12 @@ window.viewChecklistHistory = async function() {
             }
         }
 
-        async function createInvoiceRecord(invoiceNumber, vendor, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
+        async function createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
             // Create invoice data object
             const invoiceData = {
                 invoiceNumber: invoiceNumber || '',
                 vendor: vendor || '',
+                product: product || '',
                 category: category || '', // Primary category for backwards compatibility
                 categories: categories || [], // All selected categories
                 store: store || null,
@@ -16603,6 +16605,10 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Product</label>
+                            <input type="text" class="form-input" id="edit-invoice-product" value="${invoice.product || ''}" placeholder="Enter product name...">
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Categories <span style="font-weight: 400; color: var(--text-muted); font-size: 12px;">(select one or more)</span></label>
                             ${renderInvoiceCategoryCheckboxes(invoice.categories || (invoice.category ? [invoice.category] : []), 'edit-invoice-categories-container')}
                         </div>
@@ -16800,6 +16806,7 @@ Return ONLY the JSON object, no additional text.`
         window.saveInvoiceChanges = async function(invoiceId) {
             const invoiceNumber = document.getElementById('edit-invoice-number').value.trim();
             const vendor = document.getElementById('edit-invoice-vendor').value.trim();
+            const product = document.getElementById('edit-invoice-product').value.trim();
             const categories = getSelectedInvoiceCategories('edit-invoice-categories-container');
             const category = categories.length > 0 ? categories[0] : ''; // Primary category for backwards compatibility
             const store = getSelectedStores('edit') || null;
@@ -16849,6 +16856,7 @@ Return ONLY the JSON object, no additional text.`
             const updateData = {
                 invoiceNumber: invoiceNumber || '',
                 vendor: vendor || '',
+                product: product || '',
                 category: category || '', // Primary category for backwards compatibility
                 categories: categories || [], // All selected categories
                 store: store || null,
@@ -25739,6 +25747,10 @@ Return ONLY the JSON object, no additional text.`
                                     <label>Vendor</label>
                                     <input type="text" class="form-input" id="invoice-vendor" placeholder="Enter vendor name...">
                                 </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Product</label>
+                                <input type="text" class="form-input" id="invoice-product" placeholder="Enter product name...">
                             </div>
                             <div class="form-group">
                                 <label>Categories <span style="font-weight: 400; color: var(--text-muted); font-size: 12px;">(select one or more)</span></label>
