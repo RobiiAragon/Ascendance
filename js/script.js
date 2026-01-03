@@ -15177,28 +15177,28 @@ window.viewChecklistHistory = async function() {
                             <div>
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Period</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('timePeriod', this.value)">
-                                    <option value="all">All Time</option>
-                                    <option value="thisMonth">This Month</option>
-                                    <option value="lastMonth">Last Month</option>
-                                    <option value="thisYear">This Year</option>
+                                    <option value="all" ${invoiceFilters.timePeriod === 'all' ? 'selected' : ''}>All Time</option>
+                                    <option value="thisMonth" ${invoiceFilters.timePeriod === 'thisMonth' ? 'selected' : ''}>This Month</option>
+                                    <option value="lastMonth" ${invoiceFilters.timePeriod === 'lastMonth' ? 'selected' : ''}>Last Month</option>
+                                    <option value="thisYear" ${invoiceFilters.timePeriod === 'thisYear' ? 'selected' : ''}>This Year</option>
                                 </select>
                             </div>
                             <div>
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Vendor</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('vendor', this.value)">
-                                    <option value="all">All Vendors</option>
-                                    ${vendorOptions}
+                                    <option value="all" ${invoiceFilters.vendor === 'all' ? 'selected' : ''}>All Vendors</option>
+                                    ${vendors.map(v => `<option value="${v}" ${invoiceFilters.vendor === v ? 'selected' : ''}>${v}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Status</label>
                                 <select class="form-input" onchange="updateInvoiceFilter('status', this.value)">
-                                    <option value="all">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="partial">Partial</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="overdue">Overdue</option>
-                                    <option value="filed">Filed</option>
+                                    <option value="all" ${invoiceFilters.status === 'all' ? 'selected' : ''}>All Status</option>
+                                    <option value="pending" ${invoiceFilters.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="partial" ${invoiceFilters.status === 'partial' ? 'selected' : ''}>Partial</option>
+                                    <option value="paid" ${invoiceFilters.status === 'paid' ? 'selected' : ''}>Paid</option>
+                                    <option value="overdue" ${invoiceFilters.status === 'overdue' ? 'selected' : ''}>Overdue</option>
+                                    <option value="filed" ${invoiceFilters.status === 'filed' ? 'selected' : ''}>Filed</option>
                                 </select>
                             </div>
                             <div>
@@ -25140,22 +25140,49 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <input type="hidden" id="checklist-task-shift" value="${shiftForTask}">
 
-                            ${isMidshift ? `
+                            ${isMidshift ? (() => {
+                                // Calculate dates for each day of the current week
+                                const today = new Date();
+                                const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                                const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+                                const monday = new Date(today);
+                                monday.setDate(today.getDate() + mondayOffset);
+
+                                const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, idx) => {
+                                    const date = new Date(monday);
+                                    date.setDate(monday.getDate() + idx);
+                                    return {
+                                        name: day,
+                                        short: day.substring(0, 3),
+                                        date: date.getDate(),
+                                        month: date.toLocaleDateString('en-US', { month: 'short' }),
+                                        isToday: date.toDateString() === today.toDateString()
+                                    };
+                                });
+
+                                // Find today's index to pre-select it
+                                const todayIdx = weekDays.findIndex(d => d.isToday);
+                                const defaultIdx = todayIdx >= 0 ? todayIdx : 0;
+
+                                return `
                                 <div class="form-group" style="margin-top: 16px;">
                                     <label>Day of Week *</label>
                                     <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">This goal will only appear on the selected day</p>
                                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
-                                        ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, idx) => `
+                                        ${weekDays.map((day, idx) => `
                                             <label style="cursor: pointer;">
-                                                <input type="radio" name="midshift-day" value="${day.toLowerCase()}" ${idx === 0 ? 'checked' : ''} style="display: none;">
-                                                <div class="day-option" style="padding: 12px 8px; border: 2px solid ${idx === 0 ? '#f59e0b' : 'var(--border-color)'}; border-radius: 10px; background: ${idx === 0 ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s; font-size: 12px; font-weight: 600; color: ${idx === 0 ? '#f59e0b' : 'var(--text-primary)'};">
-                                                    ${day.substring(0, 3)}
+                                                <input type="radio" name="midshift-day" value="${day.name.toLowerCase()}" ${idx === defaultIdx ? 'checked' : ''} style="display: none;">
+                                                <div class="day-option" style="padding: 12px 8px; border: 2px solid ${idx === defaultIdx ? '#f59e0b' : 'var(--border-color)'}; border-radius: 10px; background: ${idx === defaultIdx ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s; color: ${idx === defaultIdx ? '#f59e0b' : 'var(--text-primary)'};">
+                                                    <div style="font-size: 11px; font-weight: 600;">${day.short}</div>
+                                                    <div style="font-size: 14px; font-weight: 700;">${day.date}</div>
+                                                    <div style="font-size: 9px; color: ${idx === defaultIdx ? '#f59e0b' : 'var(--text-muted)'};">${day.month}</div>
                                                 </div>
                                             </label>
                                         `).join('')}
                                     </div>
                                 </div>
-                            ` : `
+                            `;
+                            })()` : `
                                 <div class="form-group" style="margin-top: 16px;">
                                     <label>Task Duration *</label>
                                     <div style="display: flex; gap: 12px; margin-top: 8px;">
