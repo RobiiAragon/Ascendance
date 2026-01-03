@@ -24224,13 +24224,14 @@ Return ONLY the JSON object, no additional text.`
 
         function formatDate(dateStr) {
             // Format date string directly without using Date object to avoid timezone issues
-            if (!dateStr) return '';
+            if (!dateStr) return 'Not Specified';
 
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
             // Handle Date objects
             if (dateStr instanceof Date) {
+                if (isNaN(dateStr.getTime())) return 'Not Specified';
                 const monthName = monthNames[dateStr.getMonth()];
                 const dayNum = dateStr.getDate();
                 const year = dateStr.getFullYear();
@@ -24240,6 +24241,7 @@ Return ONLY the JSON object, no additional text.`
             // Handle Firestore Timestamp objects
             if (dateStr && typeof dateStr.toDate === 'function') {
                 const date = dateStr.toDate();
+                if (isNaN(date.getTime())) return 'Not Specified';
                 const monthName = monthNames[date.getMonth()];
                 const dayNum = date.getDate();
                 const year = date.getFullYear();
@@ -24250,12 +24252,22 @@ Return ONLY the JSON object, no additional text.`
             if (typeof dateStr === 'string' && dateStr.includes('-')) {
                 const [year, month, day] = dateStr.split('-');
                 const monthIndex = parseInt(month, 10) - 1;
-                const monthName = monthNames[monthIndex];
                 const dayNum = parseInt(day, 10);
+                // Validate the parsed values
+                if (isNaN(monthIndex) || isNaN(dayNum) || monthIndex < 0 || monthIndex > 11) {
+                    return 'Not Specified';
+                }
+                const monthName = monthNames[monthIndex];
                 return `${monthName} ${dayNum}, ${year}`;
             }
 
-            return String(dateStr);
+            // Check if it's "Invalid Date" string
+            const strValue = String(dateStr);
+            if (strValue === 'Invalid Date' || strValue === 'NaN') {
+                return 'Not Specified';
+            }
+
+            return strValue;
         }
 
         // Format phone number to US format (XXX) XXX-XXXX
@@ -38983,8 +38995,9 @@ function filterLeasesByStore(storeId) {
 }
 
 function formatDate(dateStr) {
-    if (!dateStr) return '';
+    if (!dateStr) return 'Not Specified';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Not Specified';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
