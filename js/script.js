@@ -21817,7 +21817,7 @@ Return ONLY the JSON object, no additional text.`
                                         const status = issue.status || 'open';
                                         const statusConfig = issueStatusConfig[status] || issueStatusConfig['open'];
                                         return `
-                                        <tr onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                                        <tr onclick="viewIssueDetails('${issue.firestoreId || issue.id}')" style="cursor: pointer;">
                                             <td data-label="Status">
                                                 <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: ${statusConfig.bg}; color: ${statusConfig.color}; border-radius: 20px; font-size: 12px; font-weight: 600;">
                                                     <i class="fas ${statusConfig.icon}"></i>

@@ -6744,6 +6744,26 @@
     }
 }
 
+/* Issues Table Desktop Styles - Compact */
+.issues-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.issues-table th,
+.issues-table td {
+    padding: 12px 10px !important;
+    vertical-align: middle;
+}
+
+.issues-table tr {
+    height: auto !important;
+}
+
+.issues-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
 /* Issues Module Responsive Styles */
 @media (max-width: 768px) {
     /* Issues table to cards on mobile */
@@ -6751,6 +6771,7 @@
         display: block !important;
         width: 100% !important;
         min-width: unset !important;
+        table-layout: auto;
     }
 
     .issues-table thead {
@@ -6834,8 +6855,8 @@
         text-overflow: unset !important;
     }
 
-    /* Perception emoji centered */
-    .issues-table td[data-label="Perception"] {
+    /* Response emoji centered */
+    .issues-table td[data-label="Response"] {
         text-align: center !important;
     }
 
