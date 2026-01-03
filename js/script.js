@@ -21744,13 +21744,13 @@ Return ONLY the JSON object, no additional text.`
                     </div>
                 </div>
 
-                <!-- Customer Perception Chart -->
+                <!-- Customer Response Chart -->
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="card-header issues-card-header" style="flex-wrap: wrap; gap: 12px;">
                         <div>
                             <h3 class="card-title">
-                                <i class="fas fa-smile"></i>
-                                Customer Perception
+                                <i class="fas fa-comments"></i>
+                                Customer Response
                             </h3>
                             <span style="font-size: 13px; color: var(--text-muted);">How customers felt when leaving</span>
                         </div>
@@ -21771,22 +21771,22 @@ Return ONLY the JSON object, no additional text.`
                     </div>
                 </div>
 
-                <!-- All Issues List -->
+                <!-- Order Issues List -->
                 <div class="card">
                     <div class="card-header" style="justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <h3 class="card-title">
-                                <i class="fas fa-${issuesViewMode === 'gallery' ? 'th' : 'list'}"></i>
-                                ${currentIssueStatusFilter === 'all' ? 'All Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Issues'}
+                                <i class="fas fa-clipboard-list"></i>
+                                ${currentIssueStatusFilter === 'all' ? 'Order Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Order Issues'}
                             </h3>
                             <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
                         </div>
                         <div class="view-toggle" style="display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;">
                             <button class="view-toggle-btn ${issuesViewMode === 'gallery' ? 'active' : ''}" onclick="toggleIssuesView('gallery')" title="Gallery View">
-                                <i class="fas fa-th"></i>
+                                <i class="fas fa-th-large"></i>
                             </button>
                             <button class="view-toggle-btn ${issuesViewMode === 'table' ? 'active' : ''}" onclick="toggleIssuesView('table')" title="Table View">
-                                <i class="fas fa-table"></i>
+                                <i class="fas fa-list"></i>
                             </button>
                         </div>
                     </div>
@@ -21802,12 +21802,13 @@ Return ONLY the JSON object, no additional text.`
                                     <tr>
                                         <th>Status</th>
                                         <th>Date</th>
+                                        <th>Order #</th>
                                         <th>Store</th>
                                         <th>Customer</th>
                                         <th>Phone</th>
                                         <th>Type</th>
                                         <th>Description</th>
-                                        <th>Perception</th>
+                                        <th>Response</th>
                                         <th style="width: 180px;">Actions</th>
                                     </tr>
                                 </thead>
@@ -21824,6 +21825,7 @@ Return ONLY the JSON object, no additional text.`
                                                 </span>
                                             </td>
                                             <td data-label="Date" style="white-space: nowrap;">${formatDate(issue.incidentDate)}</td>
+                                            <td data-label="Order #" style="font-weight: 600; color: var(--accent-primary);">${issue.orderNumber || '-'}</td>
                                             <td data-label="Store">
                                                 ${issue.store ? `
                                                     <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary);">
@@ -21843,7 +21845,7 @@ Return ONLY the JSON object, no additional text.`
                                                 </span>
                                             </td>
                                             <td data-label="Description" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${issue.description || '-'}</td>
-                                            <td data-label="Perception" style="text-align: center; font-size: 24px;">
+                                            <td data-label="Response" style="text-align: center; font-size: 24px;">
                                                 ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
                                             </td>
                                             <td data-label="Actions" onclick="event.stopPropagation()">
@@ -22237,6 +22239,7 @@ Return ONLY the JSON object, no additional text.`
         async function createIssue() {
             const customer = document.getElementById('issue-customer').value.trim();
             const phone = document.getElementById('issue-phone').value.trim();
+            const orderNumber = document.getElementById('issue-order-number')?.value.trim() || '';
             const type = document.getElementById('issue-type').value;
             const store = document.getElementById('issue-store').value;
             const description = document.getElementById('issue-description').value.trim();
@@ -22249,6 +22252,7 @@ Return ONLY the JSON object, no additional text.`
             const newIssue = {
                 customer: customer || 'Anonymous',
                 phone: phone || '',
+                orderNumber: orderNumber || '',
                 type: type || 'In Store',
                 store: store || '',
                 description: description || '',
@@ -22590,6 +22594,17 @@ Return ONLY the JSON object, no additional text.`
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div>
+                                <label class="form-label">Order #</label>
+                                <input type="text" class="form-input" id="edit-issue-order-number" value="${issue.orderNumber || ''}" placeholder="Order number">
+                            </div>
+                            <div>
+                                <label class="form-label">Incident Date</label>
+                                <input type="date" class="form-input" id="edit-issue-incident-date" value="${issue.incidentDate || ''}">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
                                 <label class="form-label">Store</label>
                                 <select class="form-input" id="edit-issue-store">
                                     <option value="" ${!issue.store ? 'selected' : ''}>Select Store</option>
@@ -22611,17 +22626,12 @@ Return ONLY the JSON object, no additional text.`
                         </div>
 
                         <div>
-                            <label class="form-label">Incident Date</label>
-                            <input type="date" class="form-input" id="edit-issue-incident-date" value="${issue.incidentDate || ''}">
-                        </div>
-
-                        <div>
                             <label class="form-label">Description</label>
                             <textarea class="form-input" id="edit-issue-description" rows="4" placeholder="Describe the issue...">${issue.description || ''}</textarea>
                         </div>
 
                         <div>
-                            <label class="form-label">Customer Perception</label>
+                            <label class="form-label">Customer Response</label>
                             <div style="display: flex; justify-content: space-between; gap: 8px;">
                                 ${[1, 2, 3, 4, 5].map(level => `
                                     <button type="button"
@@ -22670,6 +22680,7 @@ Return ONLY the JSON object, no additional text.`
         async function saveIssueEdit(issueId) {
             const customer = document.getElementById('edit-issue-customer').value.trim();
             const phone = document.getElementById('edit-issue-phone').value.trim();
+            const orderNumber = document.getElementById('edit-issue-order-number')?.value.trim() || '';
             const store = document.getElementById('edit-issue-store').value;
             const type = document.getElementById('edit-issue-type').value;
             const incidentDate = document.getElementById('edit-issue-incident-date').value;
@@ -22686,6 +22697,7 @@ Return ONLY the JSON object, no additional text.`
             const updateData = {
                 customer: customer || 'Anonymous',
                 phone: phone || '',
+                orderNumber: orderNumber || '',
                 store: store || '',
                 type: type || 'In Store',
                 incidentDate: incidentDate || '',
@@ -26242,6 +26254,16 @@ Return ONLY the JSON object, no additional text.`,
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
+                                    <label>Order #</label>
+                                    <input type="text" class="form-input" id="issue-order-number" placeholder="Enter order number...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Incident Date</label>
+                                    <input type="date" class="form-input" id="issue-incident-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
                                     <label>Issue Type</label>
                                     <select class="form-input" id="issue-type">
                                         <option value="">Select type...</option>
@@ -26263,15 +26285,11 @@ Return ONLY the JSON object, no additional text.`,
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Incident Date</label>
-                                <input type="date" class="form-input" id="issue-incident-date" value="${new Date().toISOString().split('T')[0]}">
-                            </div>
-                            <div class="form-group">
                                 <label>Brief Description</label>
                                 <textarea class="form-input" id="issue-description" rows="3" placeholder="Describe the issue... or use voice above!"></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Customer Perception When Leaving</label>
+                                <label>Customer Response When Leaving</label>
                                 <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">How did the customer feel when leaving the store?</p>
                                 <div id="perception-selector" style="display: flex; justify-content: space-between; gap: 8px;">
                                     <button type="button" class="perception-btn" data-value="1" onclick="selectPerception(1)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
