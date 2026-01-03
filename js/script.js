@@ -14199,6 +14199,9 @@ window.viewChecklistHistory = async function() {
                     <button type="button" class="btn-secondary" onclick="addInvoiceCustomCategoryCheckbox('${containerId}')" style="white-space: nowrap;">
                         <i class="fas fa-plus"></i> Add
                     </button>
+                    <button type="button" class="btn-secondary" onclick="showAddInvoiceCategoryModal()" style="white-space: nowrap;" title="Manage custom categories">
+                        <i class="fas fa-cog"></i>
+                    </button>
                 </div>
             `;
         }
