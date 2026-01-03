@@ -25206,7 +25206,7 @@ Return ONLY the JSON object, no additional text.`
                                     </div>
                                 </div>
                             `;
-                            })()` : `
+                            })() : `
                                 <div class="form-group" style="margin-top: 16px;">
                                     <label>Task Duration *</label>
                                     <div style="display: flex; gap: 12px; margin-top: 8px;">
