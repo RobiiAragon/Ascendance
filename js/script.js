@@ -14382,6 +14382,7 @@ window.viewChecklistHistory = async function() {
             invoiceFilters[filterKey] = value;
             renderInvoices();
         }
+        window.updateInvoiceFilter = updateInvoiceFilter;
 
         // Reset all invoice filters
         function resetInvoiceFilters() {
@@ -14398,18 +14399,21 @@ window.viewChecklistHistory = async function() {
             };
             renderInvoices();
         }
+        window.resetInvoiceFilters = resetInvoiceFilters;
 
         // Switch invoice tab
         function switchInvoiceTab(tab) {
             invoiceFilters.activeTab = tab;
             renderInvoices();
         }
+        window.switchInvoiceTab = switchInvoiceTab;
 
         // Update invoice sort
         function updateInvoiceSort(sortValue) {
             invoiceFilters.sortBy = sortValue;
             renderInvoices();
         }
+        window.updateInvoiceSort = updateInvoiceSort;
 
         // Sort invoices based on current sortBy filter
         function sortInvoices(invoicesList) {
