@@ -504,6 +504,17 @@ let selectedStore = 'vsu';
 let selectedLocation = null;
 let vsuLocations = [];
 
+/**
+ * Helper function to format a date as YYYY-MM-DD in LOCAL timezone
+ * This avoids timezone conversion issues with toISOString()
+ */
+function formatLocalDateStr(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Pagination state for Recent Orders
 let analyticsOrdersPage = 1;
 const ORDERS_PER_PAGE = 15;
@@ -649,25 +660,25 @@ async function renderAnalyticsPage(period = 'month') {
         customDateText = `${formatDate(window.analyticsCustomRange.startDate)} → ${formatDate(window.analyticsCustomRange.endDate)}`;
     }
 
-    // Get date values for inputs
+    // Get date values for inputs (use local date to avoid timezone issues)
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = formatLocalDateStr(today);
     let fromDateStr = todayStr;
     let toDateStr = todayStr;
 
     if (period === 'custom' && window.analyticsCustomRange?.startDate && window.analyticsCustomRange?.endDate) {
-        fromDateStr = window.analyticsCustomRange.startDate.toISOString().split('T')[0];
-        toDateStr = window.analyticsCustomRange.endDate.toISOString().split('T')[0];
+        fromDateStr = formatLocalDateStr(window.analyticsCustomRange.startDate);
+        toDateStr = formatLocalDateStr(window.analyticsCustomRange.endDate);
     } else if (period === 'week') {
         const weekStart = new Date(today);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        fromDateStr = weekStart.toISOString().split('T')[0];
+        fromDateStr = formatLocalDateStr(weekStart);
     } else if (period === 'month') {
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        fromDateStr = monthStart.toISOString().split('T')[0];
+        fromDateStr = formatLocalDateStr(monthStart);
     } else if (period === 'year') {
         const yearStart = new Date(today.getFullYear(), 0, 1);
-        fromDateStr = yearStart.toISOString().split('T')[0];
+        fromDateStr = formatLocalDateStr(yearStart);
     }
 
     // Render page with new sales-report.html inspired layout
@@ -838,8 +849,8 @@ function setAnalyticsPreset(preset) {
     const toInput = document.getElementById('analytics-date-to');
 
     if (fromInput && toInput) {
-        fromInput.value = fromDate.toISOString().split('T')[0];
-        toInput.value = toDate.toISOString().split('T')[0];
+        fromInput.value = formatLocalDateStr(fromDate);
+        toInput.value = formatLocalDateStr(toDate);
     }
 
     // Update custom range state
@@ -851,7 +862,7 @@ function setAnalyticsPreset(preset) {
     const activeBtn = document.querySelector(`.preset-btn[onclick*="${preset}"]`);
     if (activeBtn) activeBtn.classList.add('active');
 
-    console.log(`[Analytics] Preset "${preset}" selected - Date range: ${fromDate.toISOString().split('T')[0]} to ${toDate.toISOString().split('T')[0]} - Click "Apply" to load data`);
+    console.log(`[Analytics] Preset "${preset}" selected - Date range: ${formatLocalDateStr(fromDate)} to ${formatLocalDateStr(toDate)} - Click "Apply" to load data`);
 
     // Do NOT auto-run query - user must click "Apply" button
 }
@@ -914,7 +925,7 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
     const fromInput = document.getElementById('analytics-date-from');
     const toInput = document.getElementById('analytics-date-to');
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = formatLocalDateStr(today);
     let fromDateStr = fromInput?.value || todayStr;
     let toDateStr = toInput?.value || todayStr;
 
@@ -1061,11 +1072,11 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
         const daysInPeriod = Object.keys(salesData.daily).length || 1;
         const ordersPerDay = (salesData.summary.totalOrders / daysInPeriod).toFixed(1);
 
-        // Get date range for display
+        // Get date range for display (use local date to avoid timezone issues)
         const dateFrom = window.analyticsCustomRange?.startDate || new Date();
         const dateTo = window.analyticsCustomRange?.endDate || new Date();
-        const fromDateStr = dateFrom.toISOString().split('T')[0];
-        const toDateStr = dateTo.toISOString().split('T')[0];
+        const fromDateStr = formatLocalDateStr(dateFrom);
+        const toDateStr = formatLocalDateStr(dateTo);
 
         // Render full page with new layout
         dashboard.innerHTML = `
@@ -1443,7 +1454,8 @@ function displaySalesChart(type, showOrders = true, showTax = true) {
         const dailyData = window.analyticsChartData.daily;
         const sortedDates = Object.keys(dailyData).sort();
         labels = sortedDates.map(date => {
-            return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            // Add T12:00:00 to avoid timezone issues when parsing YYYY-MM-DD
+            return new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         salesData = sortedDates.map(date => dailyData[date].sales);
         ordersData = sortedDates.map(date => dailyData[date].orders);
@@ -1907,7 +1919,7 @@ function renderDailySummaryTable(orders) {
     const dailySummary = {};
     orders.forEach(order => {
         const dateObj = new Date(order.createdAt);
-        const dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD for sorting
+        const dateKey = formatLocalDateStr(dateObj); // YYYY-MM-DD for sorting (local timezone)
         const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
         if (!dailySummary[dateKey]) {
@@ -2417,8 +2429,8 @@ function exportToPDF() {
         ? `-${vsuLocations.find(l => l.id == selectedLocation)?.name.toLowerCase().replace(/\s+/g, '-') || 'location'}`
         : '';
     const dateSlug = window.analyticsCustomRange && window.analyticsCustomRange.startDate && window.analyticsCustomRange.endDate
-        ? `${window.analyticsCustomRange.startDate.toISOString().split('T')[0]}_to_${window.analyticsCustomRange.endDate.toISOString().split('T')[0]}`
-        : new Date().toISOString().split('T')[0];
+        ? `${formatLocalDateStr(window.analyticsCustomRange.startDate)}_to_${formatLocalDateStr(window.analyticsCustomRange.endDate)}`
+        : formatLocalDateStr(new Date());
     doc.save(`sales-report-${storeSlug}${locationSlug}-${dateSlug}.pdf`);
 }
 
@@ -2611,8 +2623,8 @@ function exportToExcel() {
         ? `-${vsuLocations.find(l => l.id == selectedLocation)?.name.toLowerCase().replace(/\s+/g, '-') || 'location'}`
         : '';
     const dateSlug = window.analyticsCustomRange && window.analyticsCustomRange.startDate && window.analyticsCustomRange.endDate
-        ? `${window.analyticsCustomRange.startDate.toISOString().split('T')[0]}_to_${window.analyticsCustomRange.endDate.toISOString().split('T')[0]}`
-        : new Date().toISOString().split('T')[0];
+        ? `${formatLocalDateStr(window.analyticsCustomRange.startDate)}_to_${formatLocalDateStr(window.analyticsCustomRange.endDate)}`
+        : formatLocalDateStr(new Date());
     XLSX.writeFile(wb, `sales-report-${storeSlug}${locationSlug}-${dateSlug}.xlsx`);
 }
 
