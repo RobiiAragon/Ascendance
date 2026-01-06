@@ -153,7 +153,7 @@ window.USERS_DATABASE = {
     'admin@vsu.com': {
         id: 'admin-001',
         email: 'admin@vsu.com',
-        password: 'Admin@123', // hashed in production
+        password: 'VSUVSUVSU.2016$', // hashed in production
         name: 'VSU Admin',
         role: 'admin',
         employeeType: 'admin',
