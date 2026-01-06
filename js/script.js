@@ -47,6 +47,9 @@
         // Training view mode state
         let trainingViewMode = 'grid'; // 'grid' or 'list'
 
+        // Employee view mode state
+        let employeeViewMode = localStorage.getItem('employeeViewMode') || 'grid'; // 'grid' or 'list'
+
         let licenses = [
             { id: 1, name: 'Business License', store: 'Miramar', expires: '2025-12-31', status: 'valid', file: 'business_license_miramar.pdf' },
             { id: 2, name: 'Tobacco License', store: 'Morena', expires: '2026-01-15', status: 'expiring', file: 'tobacco_license_morena.pdf' },
@@ -2644,12 +2647,20 @@
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
+                    <div class="view-toggle" style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 8px;">
+                        <button class="view-toggle-btn ${employeeViewMode === 'grid' ? 'active' : ''}" onclick="setEmployeeViewMode('grid')" title="Grid View" style="padding: 8px 12px; border: none; background: ${employeeViewMode === 'grid' ? 'var(--accent-primary)' : 'transparent'}; color: ${employeeViewMode === 'grid' ? 'white' : 'var(--text-muted)'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button class="view-toggle-btn ${employeeViewMode === 'list' ? 'active' : ''}" onclick="setEmployeeViewMode('list')" title="List View" style="padding: 8px 12px; border: none; background: ${employeeViewMode === 'list' ? 'var(--accent-primary)' : 'transparent'}; color: ${employeeViewMode === 'list' ? 'white' : 'var(--text-muted)'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
                     <button class="btn-secondary" onclick="refreshEmployeesFromFirebase()" title="Refresh from database">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
 
-                <div class="employees-grid" id="employees-grid">
+                <div class="${employeeViewMode === 'list' ? 'employees-list' : 'employees-grid'}" id="employees-grid">
                     <div class="loading-state">
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Loading employees...</p>
@@ -2675,7 +2686,30 @@
                         </div>
                     `;
                 } else {
-                    grid.innerHTML = employees.map(emp => renderEmployeeCard(emp)).join('');
+                    if (employeeViewMode === 'list') {
+                        grid.innerHTML = `
+                            <div class="card" style="overflow-x: auto;">
+                                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Employee</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Role</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Store</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Type</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Status</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Phone</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${employees.map(emp => renderEmployeeListRow(emp)).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        grid.innerHTML = employees.map(emp => renderEmployeeCard(emp)).join('');
+                    }
                 }
             }
         }
@@ -2840,6 +2874,73 @@
                 </div>
             `;
         }
+
+        /**
+         * Render employee as list row
+         */
+        function renderEmployeeListRow(emp) {
+            const getRoleColor = () => {
+                const colors = {
+                    'admin': '#ef4444',
+                    'manager': '#f59e0b',
+                    'employee': '#3b82f6'
+                };
+                return colors[emp.employeeType] || '#3b82f6';
+            };
+
+            const empId = emp.firestoreId || emp.id;
+            return `
+                <tr class="employee-list-row" onclick="viewEmployee('${empId}')" style="cursor: pointer; transition: background 0.2s;">
+                    <td style="padding: 12px 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            ${emp.photo
+                                ? `<div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
+                                : `<div class="employee-avatar ${emp.color}" style="width: 40px; height: 40px; font-size: 14px;">${emp.initials}</div>`
+                            }
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${emp.name}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">${emp.authEmail || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 12px 16px; color: var(--text-secondary);">${emp.role}</td>
+                    <td style="padding: 12px 16px;">
+                        <span style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary);">
+                            <i class="fas fa-store" style="font-size: 12px;"></i> ${emp.store}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        <span class="badge" style="background: ${getRoleColor()}; color: white; font-size: 11px; padding: 4px 8px; border-radius: 4px;">
+                            ${emp.employeeType || 'employee'}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        <span class="employee-status-badge ${emp.status}" style="font-size: 11px;">${emp.status}</span>
+                    </td>
+                    <td style="padding: 12px 16px; color: var(--text-muted); font-size: 13px;">${emp.phone || '-'}</td>
+                    <td style="padding: 12px 16px;">
+                        <div style="display: flex; gap: 4px;">
+                            <button class="btn-icon" onclick="event.stopPropagation(); editEmployee('${empId}')" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon" onclick="event.stopPropagation(); viewEmployeePaperwork('${empId}')" title="Documents"><i class="fas fa-file-pdf"></i></button>
+                            ${emp.status === 'inactive' ? `
+                                <button class="btn-icon success" onclick="event.stopPropagation(); activateEmployee('${empId}')" title="Activate"><i class="fas fa-check"></i></button>
+                            ` : `
+                                <button class="btn-icon danger" onclick="event.stopPropagation(); deleteEmployee('${empId}')" title="Delete"><i class="fas fa-trash"></i></button>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        /**
+         * Set employee view mode (grid or list)
+         */
+        window.setEmployeeViewMode = function(mode) {
+            employeeViewMode = mode;
+            localStorage.setItem('employeeViewMode', mode);
+            renderEmployees();
+        };
 
         /**
          * Get color for document type
@@ -28459,7 +28560,31 @@ Return ONLY the JSON object, no additional text.`,
                 return matchSearch && matchStore && matchStatus;
             });
 
-            document.getElementById('employees-grid').innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
+            const grid = document.getElementById('employees-grid');
+            if (employeeViewMode === 'list') {
+                grid.innerHTML = `
+                    <div class="card" style="overflow-x: auto;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Employee</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Role</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Store</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Type</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Status</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Phone</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${filtered.map(emp => renderEmployeeListRow(emp)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
+            }
         }
 
         /**
