@@ -2730,6 +2730,37 @@
             width: 100%;
         }
 
+        .employees-list .data-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        .employees-list .data-table th,
+        .employees-list .data-table td {
+            vertical-align: middle;
+        }
+
+        .employees-list .data-table th:nth-child(1),
+        .employees-list .data-table td:nth-child(1) { width: 25%; }
+
+        .employees-list .data-table th:nth-child(2),
+        .employees-list .data-table td:nth-child(2) { width: 15%; }
+
+        .employees-list .data-table th:nth-child(3),
+        .employees-list .data-table td:nth-child(3) { width: 12%; }
+
+        .employees-list .data-table th:nth-child(4),
+        .employees-list .data-table td:nth-child(4) { width: 10%; }
+
+        .employees-list .data-table th:nth-child(5),
+        .employees-list .data-table td:nth-child(5) { width: 10%; }
+
+        .employees-list .data-table th:nth-child(6),
+        .employees-list .data-table td:nth-child(6) { width: 13%; }
+
+        .employees-list .data-table th:nth-child(7),
+        .employees-list .data-table td:nth-child(7) { width: 15%; }
+
         .employee-list-row:hover {
             background: var(--bg-hover) !important;
         }
