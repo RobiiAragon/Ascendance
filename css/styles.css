@@ -2725,6 +2725,19 @@
             gap: 20px;
         }
 
+        /* Employees List View */
+        .employees-list {
+            width: 100%;
+        }
+
+        .employee-list-row:hover {
+            background: var(--bg-hover) !important;
+        }
+
+        .employee-list-row td {
+            border-bottom: 1px solid var(--border-color);
+        }
+
         .employee-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
