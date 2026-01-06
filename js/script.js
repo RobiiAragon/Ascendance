@@ -2687,18 +2687,19 @@
                     `;
                 } else {
                     if (employeeViewMode === 'list') {
+                        grid.className = 'employees-list';
                         grid.innerHTML = `
                             <div class="card" style="overflow-x: auto;">
-                                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                                <table class="data-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                                     <thead>
                                         <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Employee</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Role</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Store</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Type</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Status</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Phone</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 22%;">Employee</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 14%;">Role</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 12%;">Store</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 10%;">Type</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 10%;">Status</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 14%;">Phone</th>
+                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 18%;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2708,6 +2709,7 @@
                             </div>
                         `;
                     } else {
+                        grid.className = 'employees-grid';
                         grid.innerHTML = employees.map(emp => renderEmployeeCard(emp)).join('');
                     }
                 }
@@ -28562,18 +28564,19 @@ Return ONLY the JSON object, no additional text.`,
 
             const grid = document.getElementById('employees-grid');
             if (employeeViewMode === 'list') {
+                grid.className = 'employees-list';
                 grid.innerHTML = `
                     <div class="card" style="overflow-x: auto;">
-                        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                             <thead>
                                 <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Employee</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Role</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Store</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Type</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Status</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Phone</th>
-                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 22%;">Employee</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 14%;">Role</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 12%;">Store</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 10%;">Type</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 10%;">Status</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 14%;">Phone</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 18%;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -28583,6 +28586,7 @@ Return ONLY the JSON object, no additional text.`,
                     </div>
                 `;
             } else {
+                grid.className = 'employees-grid';
                 grid.innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
             }
         }
