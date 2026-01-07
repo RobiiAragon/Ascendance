@@ -1416,6 +1416,9 @@
                 case 'glabs':
                     renderGLabs();
                     break;
+                case 'activitylog':
+                    renderActivityLog();
+                    break;
                 default:
                     render404(page);
             }
@@ -5619,9 +5622,35 @@
                 // The user will still see success message but data is local only
             }
 
+            // Log clock in/out activity
+            try {
+                if (typeof logActivity === 'function') {
+                    const actionTypes = {
+                        'in': ACTIVITY_TYPES.CLOCK_IN,
+                        'out': ACTIVITY_TYPES.CLOCK_OUT,
+                        'lunch-start': 'lunch_start',
+                        'lunch-end': 'lunch_end'
+                    };
+                    const activityType = actionTypes[currentClockAction] || currentClockAction;
+                    const actionMessages = {
+                        'in': 'Clocked in',
+                        'out': 'Clocked out',
+                        'lunch-start': 'Started lunch break',
+                        'lunch-end': 'Ended lunch break'
+                    };
+                    await logActivity(activityType, {
+                        message: actionMessages[currentClockAction] || `Clock action: ${currentClockAction}`,
+                        time: time,
+                        store: store
+                    }, 'clockin', record.id);
+                }
+            } catch (logError) {
+                console.warn('⚠️ Failed to log clock activity:', logError);
+            }
+
             // Show success message and reload
             showNotification('Action recorded successfully!', 'success');
-            
+
             // Reload attendance table
             setTimeout(() => {
                 loadAttendanceData();
@@ -28315,6 +28344,19 @@ Return ONLY the JSON object, no additional text.`,
                 // Clear editing state
                 editingEmployeeId = null;
 
+                // Log activity
+                try {
+                    if (typeof logActivity === 'function') {
+                        await logActivity(ACTIVITY_TYPES.UPDATE, {
+                            message: `Updated employee: ${updatedData.name}`,
+                            employeeName: updatedData.name,
+                            changes: passwordResetRequested ? 'Password reset included' : 'Profile updated'
+                        }, 'employee', employeeId);
+                    }
+                } catch (logError) {
+                    console.warn('⚠️ Failed to log employee update:', logError);
+                }
+
                 closeModal();
                 renderPage(currentPage);
 
@@ -28441,6 +28483,20 @@ Return ONLY the JSON object, no additional text.`,
                 window.pendingOffboardingData = null;
                 editingEmployeeId = null;
 
+                // Log activity
+                try {
+                    if (typeof logActivity === 'function') {
+                        await logActivity(ACTIVITY_TYPES.DELETE, {
+                            message: `Offboarded employee: ${currentEmployee.name}`,
+                            employeeName: currentEmployee.name,
+                            reason: offboardingData.reasonText,
+                            lastDayWorked: offboardingData.lastDayWorked
+                        }, 'employee', employeeId);
+                    }
+                } catch (logError) {
+                    console.warn('⚠️ Failed to log employee offboarding:', logError);
+                }
+
                 closeModal();
                 renderPage(currentPage);
                 updateEmployeeCountBadge();
@@ -28538,6 +28594,20 @@ Return ONLY the JSON object, no additional text.`,
 
                         // Update employee count badge
                         updateEmployeeCountBadge();
+
+                        // Log activity
+                        try {
+                            if (typeof logActivity === 'function') {
+                                await logActivity(ACTIVITY_TYPES.UPDATE, {
+                                    message: `Activated employee: ${emp.name}`,
+                                    employeeName: emp.name,
+                                    previousStatus: 'inactive',
+                                    newStatus: 'active'
+                                }, 'employee', firestoreId);
+                            }
+                        } catch (logError) {
+                            console.warn('⚠️ Failed to log employee activation:', logError);
+                        }
 
                         // Re-render page
                         renderPage(currentPage);
@@ -29166,6 +29236,20 @@ Return ONLY the JSON object, no additional text.`,
 
                         // Update employee count badge
                         updateEmployeeCountBadge();
+
+                        // Log activity
+                        try {
+                            if (typeof logActivity === 'function') {
+                                await logActivity(ACTIVITY_TYPES.CREATE, {
+                                    message: `Added new employee: ${newEmployee.name}`,
+                                    employeeName: newEmployee.name,
+                                    role: newEmployee.role,
+                                    store: newEmployee.store
+                                }, 'employee', firestoreId);
+                            }
+                        } catch (logError) {
+                            console.warn('⚠️ Failed to log employee creation:', logError);
+                        }
 
                         closeModal();
                         renderPage(currentPage);
@@ -31084,15 +31168,27 @@ Return ONLY the JSON object, no additional text.`,
         });
 
         // Logout functionality
-        function logout() {
+        async function logout() {
+            // Log the logout activity before clearing session
+            try {
+                const user = getCurrentUser();
+                if (user && typeof logActivity === 'function') {
+                    await logActivity(ACTIVITY_TYPES.LOGOUT, {
+                        message: 'User logged out'
+                    }, 'user', user.userId || user.id);
+                }
+            } catch (error) {
+                console.error('Error logging logout activity:', error);
+            }
+
             // Clear auth data
             if (typeof authManager !== 'undefined') {
                 authManager.logout();
             }
-            
+
             // Clear all localStorage data for security
             localStorage.clear();
-            
+
             // Also clear sessionStorage to ensure clean state
             sessionStorage.clear();
 
@@ -40374,6 +40470,403 @@ function glabsGetSavedMonths() {
     }
     return months.sort().reverse();
 }
+
+// ==========================================
+// ACTIVITY LOG MODULE
+// ==========================================
+
+// Activity types
+const ACTIVITY_TYPES = {
+    LOGIN: 'login',
+    LOGOUT: 'logout',
+    CLOCK_IN: 'clock_in',
+    CLOCK_OUT: 'clock_out',
+    CREATE: 'create',
+    UPDATE: 'update',
+    DELETE: 'delete'
+};
+
+// Log activity to Firebase
+async function logActivity(type, details = {}, entityType = null, entityId = null) {
+    try {
+        const user = getCurrentUser();
+        if (!user) return;
+
+        const activityData = {
+            type: type,
+            userId: user.id || user.firestoreId,
+            userName: user.name,
+            userEmail: user.email || user.authEmail,
+            userRole: user.role || user.employeeType,
+            entityType: entityType,
+            entityId: entityId,
+            details: details,
+            timestamp: new Date().toISOString(),
+            store: user.store || details.store || null,
+            ipAddress: null, // Could be added with external service
+            userAgent: navigator.userAgent
+        };
+
+        // Save to Firebase
+        if (window.firebase && firebase.firestore) {
+            await firebase.firestore().collection('activityLogs').add(activityData);
+        }
+
+        // Also keep in localStorage for quick access
+        const localLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+        localLogs.unshift(activityData);
+        // Keep only last 500 local entries
+        if (localLogs.length > 500) localLogs.length = 500;
+        localStorage.setItem('activityLogs', JSON.stringify(localLogs));
+
+        console.log('📝 Activity logged:', type, details);
+    } catch (error) {
+        console.error('Error logging activity:', error);
+    }
+}
+
+// Load activity logs from Firebase
+async function loadActivityLogs(filters = {}) {
+    try {
+        let logs = [];
+
+        if (window.firebase && firebase.firestore) {
+            let query = firebase.firestore().collection('activityLogs')
+                .orderBy('timestamp', 'desc')
+                .limit(filters.limit || 100);
+
+            if (filters.type) {
+                query = query.where('type', '==', filters.type);
+            }
+            if (filters.userId) {
+                query = query.where('userId', '==', filters.userId);
+            }
+            if (filters.startDate) {
+                query = query.where('timestamp', '>=', filters.startDate);
+            }
+            if (filters.endDate) {
+                query = query.where('timestamp', '<=', filters.endDate);
+            }
+
+            const snapshot = await query.get();
+            logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        // Fallback to localStorage if no Firebase logs
+        if (logs.length === 0) {
+            logs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+        }
+
+        return logs;
+    } catch (error) {
+        console.error('Error loading activity logs:', error);
+        // Fallback to localStorage
+        return JSON.parse(localStorage.getItem('activityLogs') || '[]');
+    }
+}
+
+// Render Activity Log page
+async function renderActivityLog() {
+    const dashboard = document.querySelector('.dashboard');
+
+    dashboard.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-left">
+                <h2 class="section-title"><i class="fas fa-history" style="color: var(--accent-primary);"></i> Activity Log</h2>
+                <p class="section-subtitle">Track all system activities and user actions</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-secondary" onclick="exportActivityLog()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button class="btn-secondary" onclick="renderActivityLog()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card" style="margin-bottom: 20px; padding: 16px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <div class="search-filter" style="flex: 1; min-width: 200px;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="activity-search" placeholder="Search by user, action..." onkeyup="filterActivityLogs()">
+                </div>
+                <select class="filter-select" id="activity-type-filter" onchange="filterActivityLogs()">
+                    <option value="">All Activities</option>
+                    <option value="login">Logins</option>
+                    <option value="logout">Logouts</option>
+                    <option value="clock_in">Clock In</option>
+                    <option value="clock_out">Clock Out</option>
+                    <option value="create">Created</option>
+                    <option value="update">Updated</option>
+                    <option value="delete">Deleted</option>
+                </select>
+                <select class="filter-select" id="activity-user-filter" onchange="filterActivityLogs()">
+                    <option value="">All Users</option>
+                </select>
+                <input type="date" class="form-input" id="activity-date-filter" onchange="filterActivityLogs()" style="width: auto;">
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="activity-stats" style="margin-bottom: 20px;">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fas fa-sign-in-alt"></i></div>
+                <div class="stat-content">
+                    <span class="stat-value" id="stat-logins">-</span>
+                    <span class="stat-label">Logins Today</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);"><i class="fas fa-clock"></i></div>
+                <div class="stat-content">
+                    <span class="stat-value" id="stat-clockins">-</span>
+                    <span class="stat-label">Clock Ins Today</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-edit"></i></div>
+                <div class="stat-content">
+                    <span class="stat-value" id="stat-changes">-</span>
+                    <span class="stat-label">Changes Today</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"><i class="fas fa-users"></i></div>
+                <div class="stat-content">
+                    <span class="stat-value" id="stat-active-users">-</span>
+                    <span class="stat-label">Active Users</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Table -->
+        <div class="card" style="overflow: hidden;">
+            <div class="card-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+                <h3 style="font-size: 16px; font-weight: 600;">Recent Activity</h3>
+            </div>
+            <div id="activity-log-container" style="overflow-x: auto;">
+                <div style="padding: 40px; text-align: center;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--text-muted);"></i>
+                    <p style="color: var(--text-muted); margin-top: 10px;">Loading activities...</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Load and display activity logs
+    await loadAndDisplayActivityLogs();
+}
+
+// Load and display activity logs with stats
+async function loadAndDisplayActivityLogs() {
+    const logs = await loadActivityLogs({ limit: 200 });
+    const container = document.getElementById('activity-log-container');
+    const userFilter = document.getElementById('activity-user-filter');
+
+    // Calculate stats
+    const today = new Date().toISOString().split('T')[0];
+    const todayLogs = logs.filter(log => log.timestamp && log.timestamp.startsWith(today));
+
+    const loginsToday = todayLogs.filter(l => l.type === 'login').length;
+    const clockInsToday = todayLogs.filter(l => l.type === 'clock_in').length;
+    const changesToday = todayLogs.filter(l => ['create', 'update', 'delete'].includes(l.type)).length;
+    const activeUsers = new Set(todayLogs.map(l => l.userId)).size;
+
+    // Update stats
+    document.getElementById('stat-logins').textContent = loginsToday;
+    document.getElementById('stat-clockins').textContent = clockInsToday;
+    document.getElementById('stat-changes').textContent = changesToday;
+    document.getElementById('stat-active-users').textContent = activeUsers;
+
+    // Populate user filter
+    const users = [...new Set(logs.map(l => l.userName).filter(Boolean))];
+    userFilter.innerHTML = '<option value="">All Users</option>' +
+        users.map(u => `<option value="${u}">${u}</option>`).join('');
+
+    // Store logs globally for filtering
+    window.activityLogs = logs;
+
+    // Render table
+    renderActivityTable(logs);
+}
+
+// Render activity table
+function renderActivityTable(logs) {
+    const container = document.getElementById('activity-log-container');
+
+    if (!logs || logs.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 60px; text-align: center;">
+                <i class="fas fa-clipboard-list" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Activity Yet</h3>
+                <p style="color: var(--text-muted);">Activities will appear here as users interact with the system.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const getActivityIcon = (type) => {
+        const icons = {
+            'login': '<i class="fas fa-sign-in-alt" style="color: #10b981;"></i>',
+            'logout': '<i class="fas fa-sign-out-alt" style="color: #6b7280;"></i>',
+            'clock_in': '<i class="fas fa-clock" style="color: #3b82f6;"></i>',
+            'clock_out': '<i class="fas fa-clock" style="color: #f59e0b;"></i>',
+            'create': '<i class="fas fa-plus-circle" style="color: #10b981;"></i>',
+            'update': '<i class="fas fa-edit" style="color: #3b82f6;"></i>',
+            'delete': '<i class="fas fa-trash" style="color: #ef4444;"></i>'
+        };
+        return icons[type] || '<i class="fas fa-circle" style="color: var(--text-muted);"></i>';
+    };
+
+    const getActivityLabel = (type) => {
+        const labels = {
+            'login': 'Logged In',
+            'logout': 'Logged Out',
+            'clock_in': 'Clocked In',
+            'clock_out': 'Clocked Out',
+            'create': 'Created',
+            'update': 'Updated',
+            'delete': 'Deleted'
+        };
+        return labels[type] || type;
+    };
+
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return '-';
+        const date = new Date(timestamp);
+        const today = new Date();
+        const isToday = date.toDateString() === today.toDateString();
+
+        if (isToday) {
+            return 'Today ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+               date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: var(--bg-secondary);">
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-muted);">Time</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-muted);">User</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-muted);">Action</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-muted);">Details</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-muted);">Store</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${logs.map(log => `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 12px 16px; font-size: 13px; color: var(--text-muted); white-space: nowrap;">
+                            ${formatTimestamp(log.timestamp)}
+                        </td>
+                        <td style="padding: 12px 16px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                                    ${log.userName ? log.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500; font-size: 13px; color: var(--text-primary);">${log.userName || 'Unknown'}</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">${log.userRole || '-'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 12px 16px;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
+                                ${getActivityIcon(log.type)}
+                                ${getActivityLabel(log.type)}
+                            </span>
+                        </td>
+                        <td style="padding: 12px 16px; font-size: 13px; color: var(--text-secondary); max-width: 300px;">
+                            ${log.entityType ? `<span style="background: var(--bg-secondary); padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 6px;">${log.entityType}</span>` : ''}
+                            ${log.details && typeof log.details === 'object' ?
+                                (log.details.description || log.details.name || log.details.message || JSON.stringify(log.details).substring(0, 50)) :
+                                (log.details || '-')}
+                        </td>
+                        <td style="padding: 12px 16px; font-size: 13px; color: var(--text-muted);">
+                            ${log.store || '-'}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+// Filter activity logs
+window.filterActivityLogs = function() {
+    const search = document.getElementById('activity-search').value.toLowerCase();
+    const type = document.getElementById('activity-type-filter').value;
+    const user = document.getElementById('activity-user-filter').value;
+    const date = document.getElementById('activity-date-filter').value;
+
+    let filtered = window.activityLogs || [];
+
+    if (search) {
+        filtered = filtered.filter(log =>
+            (log.userName && log.userName.toLowerCase().includes(search)) ||
+            (log.type && log.type.toLowerCase().includes(search)) ||
+            (log.entityType && log.entityType.toLowerCase().includes(search)) ||
+            (log.details && JSON.stringify(log.details).toLowerCase().includes(search))
+        );
+    }
+
+    if (type) {
+        filtered = filtered.filter(log => log.type === type);
+    }
+
+    if (user) {
+        filtered = filtered.filter(log => log.userName === user);
+    }
+
+    if (date) {
+        filtered = filtered.filter(log => log.timestamp && log.timestamp.startsWith(date));
+    }
+
+    renderActivityTable(filtered);
+};
+
+// Export activity log
+window.exportActivityLog = function() {
+    const logs = window.activityLogs || [];
+    if (logs.length === 0) {
+        showNotification('No activities to export', 'warning');
+        return;
+    }
+
+    const csv = [
+        ['Timestamp', 'User', 'Role', 'Action', 'Entity Type', 'Details', 'Store'].join(','),
+        ...logs.map(log => [
+            log.timestamp,
+            log.userName,
+            log.userRole,
+            log.type,
+            log.entityType || '',
+            JSON.stringify(log.details || '').replace(/,/g, ';'),
+            log.store || ''
+        ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `activity-log-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showNotification('Activity log exported!', 'success');
+};
+
+// Make logActivity globally available
+window.logActivity = logActivity;
+
+// ==========================================
+// END ACTIVITY LOG MODULE
+// ==========================================
 
 // Multi-selection state
 let glabsSelectionStart = null;

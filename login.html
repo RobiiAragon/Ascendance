@@ -528,6 +528,9 @@
             // Store in sessionStorage (cleared when browser closes)
             sessionStorage.setItem('ascendance_user', JSON.stringify(sessionData));
 
+            // Set flag to indicate new login (for activity logging on index.html)
+            sessionStorage.setItem('ascendance_new_login', 'true');
+
             // Store in localStorage if remember me is checked
             if (rememberMe) {
                 localStorage.setItem('ascendance_user_remembered', JSON.stringify({

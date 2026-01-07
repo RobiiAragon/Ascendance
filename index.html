@@ -545,6 +545,9 @@
 
             <!-- SISTEMA -->
             <div class="nav-label">System</div>
+            <a href="#" class="nav-item" data-page="activitylog" onclick="window.navigateTo && window.navigateTo('activitylog'); return false;">
+                <span class="nav-icon"><i class="fas fa-history"></i></span> Activity Log
+            </a>
             <a href="#" class="nav-item" data-page="gforce" onclick="window.navigateTo && window.navigateTo('gforce'); return false;">
                 <span class="nav-icon"><i class="fas fa-bolt"></i></span> G-Force
             </a>
@@ -1070,6 +1073,21 @@
                 const roleLabel = (window.ROLE_PERMISSIONS?.[user.role]?.label) || user.role;
             } catch (error) {
                 console.warn('⚠️ Navigation filtering failed:', error);
+            }
+
+            // Log login activity if this is a new login session
+            try {
+                const isNewLogin = sessionStorage.getItem('ascendance_new_login') === 'true';
+                if (isNewLogin && typeof logActivity === 'function') {
+                    sessionStorage.removeItem('ascendance_new_login');
+                    await logActivity('login', {
+                        message: 'User logged in',
+                        store: user.store || 'Unknown'
+                    }, 'user', user.userId || user.id);
+                    console.log('✅ Login activity logged');
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to log login activity:', error);
             }
 
             // Restore the last viewed page from sessionStorage (persists on refresh, clears on tab close)
