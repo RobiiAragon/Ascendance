@@ -32588,9 +32588,8 @@ Return ONLY the JSON object, no additional text.`,
             statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i> <span style="color: var(--text-primary);">AI is processing your report...</span>';
 
             try {
-                // Get API key - use window.getOpenAIKey or fallback to default
-                const DEFAULT_KEY = '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';
-                const apiKey = (typeof window.getOpenAIKey === 'function') ? window.getOpenAIKey() : (localStorage.getItem('openai_api_key') || DEFAULT_KEY);
+                // Get API key from Firebase/localStorage (no hardcoded key)
+                const apiKey = (typeof window.getOpenAIKey === 'function') ? window.getOpenAIKey() : '';
 
                 if (!apiKey) {
                     // If no API key, just put the transcript in description
