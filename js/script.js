@@ -9761,7 +9761,7 @@ window.viewChecklistHistory = async function() {
                 // Set category - check if it's a predefined category or custom
                 const categorySelect = document.getElementById('edit-restock-category');
                 const categoryCustom = document.getElementById('edit-restock-category-custom');
-                const predefinedCategories = ['Coils', 'Eliquid', 'Smokeshop', 'Sex Shop', 'Devices', 'Wraps'];
+                const predefinedCategories = ['Disposables', 'Vape Liquids', 'Coils & Pod', 'Smokeshop', 'Rolling Papers', 'Wraps', 'Chips'];
 
                 if (request.category && predefinedCategories.includes(request.category)) {
                     categorySelect.value = request.category;
@@ -26418,6 +26418,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="low">Low</option>
                                         <option value="medium" selected>Medium</option>
                                         <option value="high">High</option>
+                                        <option value="must_haves">Must Haves</option>
                                     </select>
                                 </div>
                             </div>
@@ -26426,12 +26427,13 @@ Return ONLY the JSON object, no additional text.`
                                     <label>Category *</label>
                                     <select class="form-input" id="new-restock-category" onchange="toggleCustomCategory('new-restock')">
                                         <option value="">Select category...</option>
-                                        <option value="Coils">Coils</option>
-                                        <option value="Eliquid">Eliquid</option>
+                                        <option value="Disposables">Disposables</option>
+                                        <option value="Vape Liquids">Vape Liquids</option>
+                                        <option value="Coils & Pod">Coils & Pod</option>
                                         <option value="Smokeshop">Smokeshop</option>
-                                        <option value="Sex Shop">Sex Shop</option>
-                                        <option value="Devices">Devices</option>
+                                        <option value="Rolling Papers">Rolling Papers</option>
                                         <option value="Wraps">Wraps</option>
+                                        <option value="Chips">Chips</option>
                                         <option value="Other">Other (type your own)</option>
                                     </select>
                                     <input type="text" class="form-input" id="new-restock-category-custom" placeholder="Type custom category..." style="display: none; margin-top: 8px;">
@@ -26491,6 +26493,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="low">Low</option>
                                         <option value="medium">Medium</option>
                                         <option value="high">High</option>
+                                        <option value="must_haves">Must Haves</option>
                                     </select>
                                 </div>
                             </div>
@@ -26499,12 +26502,13 @@ Return ONLY the JSON object, no additional text.`
                                     <label>Category *</label>
                                     <select class="form-input" id="edit-restock-category" onchange="toggleCustomCategory('edit-restock')">
                                         <option value="">Select category...</option>
-                                        <option value="Coils">Coils</option>
-                                        <option value="Eliquid">Eliquid</option>
+                                        <option value="Disposables">Disposables</option>
+                                        <option value="Vape Liquids">Vape Liquids</option>
+                                        <option value="Coils & Pod">Coils & Pod</option>
                                         <option value="Smokeshop">Smokeshop</option>
-                                        <option value="Sex Shop">Sex Shop</option>
-                                        <option value="Devices">Devices</option>
+                                        <option value="Rolling Papers">Rolling Papers</option>
                                         <option value="Wraps">Wraps</option>
+                                        <option value="Chips">Chips</option>
                                         <option value="Other">Other (type your own)</option>
                                     </select>
                                     <input type="text" class="form-input" id="edit-restock-category-custom" placeholder="Type custom category..." style="display: none; margin-top: 8px;">
