@@ -43151,17 +43151,47 @@ const STORE_LOCATION_MAP = {
 async function renderSalesPerformance() {
     const dashboard = document.querySelector('.dashboard');
 
-    // Set default date range to this week
-    if (!salesPerfData.dateRange.start) {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        salesPerfData.dateRange.start = startOfWeek;
-        salesPerfData.dateRange.end = today;
-    }
+    // Reset and set default date range to this week (Sunday to today)
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    salesPerfData.dateRange.start = startOfWeek;
+    salesPerfData.dateRange.end = today;
+    salesPerfData.selectedStore = 'all'; // Reset store filter
 
     dashboard.innerHTML = `
         <style>
+            /* WIP Banner with animation */
+            .wip-banner {
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                font-size: 14px;
+                animation: slideDown 0.5s ease-out;
+            }
+
+            .wip-banner i {
+                font-size: 20px;
+                animation: pulse-icon 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse-icon {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
             .sales-perf-container {
                 max-width: 1400px;
                 margin: 0 auto;
@@ -43174,6 +43204,12 @@ async function renderSalesPerformance() {
                 margin-bottom: 24px;
                 flex-wrap: wrap;
                 gap: 16px;
+                animation: fadeIn 0.6s ease-out;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
             }
 
             .sales-perf-title {
@@ -43210,6 +43246,12 @@ async function renderSalesPerformance() {
                 color: var(--text-primary);
                 font-size: 14px;
                 font-family: inherit;
+                transition: all 0.2s;
+            }
+
+            .sales-perf-filters select:hover,
+            .sales-perf-filters input:hover {
+                border-color: var(--accent-primary);
             }
 
             .sales-perf-summary {
@@ -43224,16 +43266,52 @@ async function renderSalesPerformance() {
                 border-radius: 16px;
                 padding: 20px;
                 border: 1px solid var(--border-color);
+                transition: all 0.3s ease;
+                animation: cardSlideUp 0.5s ease-out backwards;
+            }
+
+            .summary-card:nth-child(1) { animation-delay: 0.1s; }
+            .summary-card:nth-child(2) { animation-delay: 0.2s; }
+            .summary-card:nth-child(3) { animation-delay: 0.3s; }
+            .summary-card:nth-child(4) { animation-delay: 0.4s; }
+
+            @keyframes cardSlideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .summary-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 24px rgba(0,0,0,0.1);
             }
 
             .summary-card.highlight {
                 background: linear-gradient(135deg, var(--accent-primary) 0%, #8b5cf6 100%);
                 border: none;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .summary-card.highlight::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -50%;
+                width: 200%;
+                height: 200%;
+                background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+                animation: shimmer 3s infinite;
+            }
+
+            @keyframes shimmer {
+                0% { transform: translateX(-100%) rotate(45deg); }
+                100% { transform: translateX(100%) rotate(45deg); }
             }
 
             .summary-card.highlight .summary-label,
             .summary-card.highlight .summary-value {
                 color: white;
+                position: relative;
             }
 
             .summary-label {
@@ -43279,6 +43357,12 @@ async function renderSalesPerformance() {
                 border-radius: 16px;
                 border: 1px solid var(--border-color);
                 overflow: hidden;
+                transition: all 0.3s ease;
+                animation: cardSlideUp 0.6s ease-out backwards;
+            }
+
+            .perf-card:hover {
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             }
 
             .perf-card-header {
@@ -43314,42 +43398,67 @@ async function renderSalesPerformance() {
                 flex: 1;
                 min-width: 20px;
                 background: linear-gradient(180deg, var(--accent-primary) 0%, #8b5cf6 100%);
-                border-radius: 4px 4px 0 0;
+                border-radius: 6px 6px 0 0;
                 position: relative;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.3s ease;
+                animation: barGrow 0.8s ease-out backwards;
+            }
+
+            .hourly-bar:nth-child(1) { animation-delay: 0.05s; }
+            .hourly-bar:nth-child(2) { animation-delay: 0.1s; }
+            .hourly-bar:nth-child(3) { animation-delay: 0.15s; }
+            .hourly-bar:nth-child(4) { animation-delay: 0.2s; }
+            .hourly-bar:nth-child(5) { animation-delay: 0.25s; }
+            .hourly-bar:nth-child(6) { animation-delay: 0.3s; }
+            .hourly-bar:nth-child(7) { animation-delay: 0.35s; }
+            .hourly-bar:nth-child(8) { animation-delay: 0.4s; }
+            .hourly-bar:nth-child(9) { animation-delay: 0.45s; }
+            .hourly-bar:nth-child(10) { animation-delay: 0.5s; }
+            .hourly-bar:nth-child(11) { animation-delay: 0.55s; }
+            .hourly-bar:nth-child(12) { animation-delay: 0.6s; }
+            .hourly-bar:nth-child(13) { animation-delay: 0.65s; }
+            .hourly-bar:nth-child(14) { animation-delay: 0.7s; }
+            .hourly-bar:nth-child(15) { animation-delay: 0.75s; }
+
+            @keyframes barGrow {
+                from { transform: scaleY(0); transform-origin: bottom; }
+                to { transform: scaleY(1); transform-origin: bottom; }
             }
 
             .hourly-bar:hover {
-                filter: brightness(1.1);
-                transform: scaleY(1.02);
+                filter: brightness(1.15);
+                transform: scaleY(1.05);
+                box-shadow: 0 -4px 12px rgba(139, 92, 246, 0.3);
             }
 
             .hourly-bar .tooltip {
                 position: absolute;
                 bottom: 100%;
                 left: 50%;
-                transform: translateX(-50%);
+                transform: translateX(-50%) translateY(-8px);
                 background: var(--bg-primary);
-                padding: 8px 12px;
-                border-radius: 8px;
+                padding: 10px 14px;
+                border-radius: 10px;
                 font-size: 12px;
                 white-space: nowrap;
                 opacity: 0;
                 pointer-events: none;
-                transition: opacity 0.2s;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                transition: all 0.2s;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.2);
                 z-index: 10;
+                border: 1px solid var(--border-color);
             }
 
             .hourly-bar:hover .tooltip {
                 opacity: 1;
+                transform: translateX(-50%) translateY(-12px);
             }
 
             .hourly-labels {
                 display: flex;
                 justify-content: space-between;
-                margin-top: 8px;
+                margin-top: 12px;
                 padding: 0 10px;
             }
 
@@ -43368,61 +43477,132 @@ async function renderSalesPerformance() {
                 display: flex;
                 align-items: center;
                 gap: 12px;
-                padding: 12px;
+                padding: 14px;
                 background: var(--bg-secondary);
-                border-radius: 12px;
-                transition: all 0.2s;
+                border-radius: 14px;
+                transition: all 0.3s ease;
+                animation: rankSlideIn 0.5s ease-out backwards;
+                cursor: pointer;
+            }
+
+            .ranking-item:nth-child(1) { animation-delay: 0.1s; }
+            .ranking-item:nth-child(2) { animation-delay: 0.15s; }
+            .ranking-item:nth-child(3) { animation-delay: 0.2s; }
+            .ranking-item:nth-child(4) { animation-delay: 0.25s; }
+            .ranking-item:nth-child(5) { animation-delay: 0.3s; }
+
+            @keyframes rankSlideIn {
+                from { opacity: 0; transform: translateX(-20px); }
+                to { opacity: 1; transform: translateX(0); }
             }
 
             .ranking-item:hover {
                 background: var(--bg-tertiary);
+                transform: translateX(8px);
+                box-shadow: -4px 4px 12px rgba(0,0,0,0.05);
+            }
+
+            .ranking-item.first-place {
+                background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1));
+                border: 1px solid rgba(251, 191, 36, 0.3);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .ranking-item.first-place::after {
+                content: '👑';
+                position: absolute;
+                right: 16px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 24px;
+                animation: crownBounce 2s ease-in-out infinite;
+            }
+
+            @keyframes crownBounce {
+                0%, 100% { transform: translateY(-50%) rotate(-5deg); }
+                50% { transform: translateY(-55%) rotate(5deg); }
             }
 
             .ranking-position {
-                width: 32px;
-                height: 32px;
+                width: 36px;
+                height: 36px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border-radius: 8px;
+                border-radius: 10px;
                 font-weight: 700;
                 font-size: 14px;
+                flex-shrink: 0;
             }
 
-            .ranking-position.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
-            .ranking-position.silver { background: linear-gradient(135deg, #9ca3af, #6b7280); color: white; }
-            .ranking-position.bronze { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
-            .ranking-position.normal { background: var(--bg-card); color: var(--text-muted); }
+            .ranking-position.gold {
+                background: linear-gradient(135deg, #fbbf24, #f59e0b);
+                color: white;
+                box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+            }
+            .ranking-position.silver {
+                background: linear-gradient(135deg, #9ca3af, #6b7280);
+                color: white;
+                box-shadow: 0 4px 12px rgba(156, 163, 175, 0.4);
+            }
+            .ranking-position.bronze {
+                background: linear-gradient(135deg, #d97706, #b45309);
+                color: white;
+                box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+            }
+            .ranking-position.normal {
+                background: var(--bg-card);
+                color: var(--text-muted);
+            }
 
             .ranking-avatar {
-                width: 40px;
-                height: 40px;
-                border-radius: 10px;
+                width: 56px;
+                height: 56px;
+                border-radius: 14px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-weight: 600;
                 color: white;
-                font-size: 14px;
+                font-size: 18px;
+                flex-shrink: 0;
+                overflow: hidden;
+                border: 3px solid rgba(255,255,255,0.2);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+
+            .ranking-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
 
             .ranking-info {
                 flex: 1;
+                min-width: 0;
             }
 
             .ranking-name {
                 font-weight: 600;
                 color: var(--text-primary);
                 font-size: 14px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .ranking-store {
                 font-size: 12px;
                 color: var(--text-muted);
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
 
             .ranking-stats {
                 text-align: right;
+                flex-shrink: 0;
             }
 
             .ranking-sales {
@@ -43432,8 +43612,13 @@ async function renderSalesPerformance() {
             }
 
             .ranking-hours {
-                font-size: 12px;
+                font-size: 11px;
                 color: var(--text-muted);
+                background: var(--bg-card);
+                padding: 2px 8px;
+                border-radius: 10px;
+                display: inline-block;
+                margin-top: 4px;
             }
 
             .store-comparison {
@@ -43444,27 +43629,57 @@ async function renderSalesPerformance() {
 
             .store-stat {
                 text-align: center;
-                padding: 16px;
+                padding: 20px 16px;
                 background: var(--bg-secondary);
-                border-radius: 12px;
+                border-radius: 14px;
+                transition: all 0.3s ease;
+                animation: cardSlideUp 0.5s ease-out backwards;
+                cursor: pointer;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .store-stat::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, var(--accent-primary), #8b5cf6);
+                transform: scaleX(0);
+                transition: transform 0.3s ease;
+            }
+
+            .store-stat:hover::before {
+                transform: scaleX(1);
+            }
+
+            .store-stat:hover {
+                transform: translateY(-4px);
+                background: var(--bg-tertiary);
             }
 
             .store-name {
                 font-size: 12px;
                 color: var(--text-muted);
                 margin-bottom: 8px;
+                font-weight: 500;
             }
 
             .store-value {
-                font-size: 20px;
+                font-size: 22px;
                 font-weight: 700;
                 color: var(--text-primary);
+                background: linear-gradient(135deg, var(--accent-primary), #8b5cf6);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
             }
 
             .store-orders {
                 font-size: 12px;
                 color: var(--text-muted);
-                margin-top: 4px;
+                margin-top: 6px;
             }
 
             .loading-overlay {
@@ -43472,17 +43687,18 @@ async function renderSalesPerformance() {
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                padding: 60px;
-                gap: 16px;
+                padding: 80px;
+                gap: 20px;
             }
 
             .loading-spinner {
-                width: 48px;
-                height: 48px;
+                width: 56px;
+                height: 56px;
                 border: 4px solid var(--border-color);
                 border-top-color: var(--accent-primary);
+                border-right-color: #8b5cf6;
                 border-radius: 50%;
-                animation: spin 1s linear infinite;
+                animation: spin 0.8s linear infinite;
             }
 
             @keyframes spin {
@@ -43496,20 +43712,47 @@ async function renderSalesPerformance() {
 
             .perf-table th,
             .perf-table td {
-                padding: 12px;
+                padding: 14px 12px;
                 text-align: left;
                 border-bottom: 1px solid var(--border-color);
             }
 
             .perf-table th {
-                font-size: 12px;
+                font-size: 11px;
                 color: var(--text-muted);
                 text-transform: uppercase;
                 font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+
+            .perf-table tbody tr {
+                transition: all 0.2s ease;
             }
 
             .perf-table tbody tr:hover {
                 background: var(--bg-secondary);
+            }
+
+            .table-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                color: white;
+                font-size: 14px;
+                margin-right: 12px;
+                vertical-align: middle;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+            .table-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
 
             .shift-badge {
@@ -43531,13 +43774,37 @@ async function renderSalesPerformance() {
                 background: #dbeafe;
                 color: #2563eb;
             }
+
+            /* Confetti animation for #1 */
+            @keyframes confetti-fall {
+                0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+                100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+            }
+
+            .confetti-piece {
+                position: fixed;
+                width: 10px;
+                height: 10px;
+                top: 0;
+                animation: confetti-fall 3s linear forwards;
+                z-index: 9999;
+                pointer-events: none;
+            }
         </style>
 
         <div class="sales-perf-container">
+            <!-- Work in Progress Banner -->
+            <div class="wip-banner">
+                <i class="fas fa-flask"></i>
+                <div>
+                    <strong>Beta Feature</strong> — We're actively building this module. Sales are attributed to employees based on their scheduled shifts. More insights coming soon!
+                </div>
+            </div>
+
             <div class="sales-perf-header">
                 <div class="sales-perf-title">
                     <div>
-                        <h2><i class="fas fa-chart-line" style="color: var(--accent-primary);"></i> Sales Performance</h2>
+                        <h2><i class="fas fa-ranking-star" style="color: var(--accent-primary);"></i> Sales Performance</h2>
                         <div class="subtitle">Employee sales attribution based on schedules</div>
                     </div>
                 </div>
@@ -43908,17 +44175,25 @@ function renderSalesPerformanceContent() {
                             const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
                             const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
                             const salesPerHour = emp.hoursWorked > 0 ? emp.sales / emp.hoursWorked : 0;
+                            const isFirstPlace = idx === 0;
+
+                            // Get employee photo from Firebase data
+                            const fullEmp = employees.find(e => e.id === emp.id);
+                            const hasPhoto = fullEmp?.photoURL || fullEmp?.photo;
+                            const photoUrl = hasPhoto || null;
 
                             return `
-                                <div class="ranking-item">
+                                <div class="ranking-item ${isFirstPlace ? 'first-place' : ''}">
                                     <div class="ranking-position ${posClass}">${idx + 1}</div>
-                                    <div class="ranking-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                    <div class="ranking-avatar" style="background: ${colors[colorIndex]};">
+                                        ${photoUrl ? `<img src="${photoUrl}" alt="${emp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><span style="display:none;">${initials}</span>` : initials}
+                                    </div>
                                     <div class="ranking-info">
                                         <div class="ranking-name">${emp.name}</div>
-                                        <div class="ranking-store">${emp.store} · ${emp.hoursWorked.toFixed(1)}h worked</div>
+                                        <div class="ranking-store"><i class="fas fa-store" style="font-size: 10px;"></i> ${emp.store} · <i class="fas fa-clock" style="font-size: 10px;"></i> ${emp.hoursWorked.toFixed(1)}h</div>
                                     </div>
                                     <div class="ranking-stats">
-                                        <div class="ranking-sales">$${emp.sales.toFixed(2)}</div>
+                                        <div class="ranking-sales">$${emp.sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                         <div class="ranking-hours">$${salesPerHour.toFixed(2)}/hr</div>
                                     </div>
                                 </div>
@@ -43986,18 +44261,33 @@ function renderSalesPerformanceContent() {
                     <tbody>
                         ${Object.values(employeePerf).length > 0 ? Object.values(employeePerf)
                             .sort((a, b) => b.sales - a.sales)
-                            .map(emp => {
+                            .map((emp, idx) => {
                                 const salesPerHour = emp.hoursWorked > 0 ? emp.sales / emp.hoursWorked : 0;
                                 const shiftCount = emp.shifts.length;
+                                const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                                const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                                // Get employee photo
+                                const fullEmp = employees.find(e => e.id === emp.id);
+                                const photoUrl = fullEmp?.photoURL || fullEmp?.photo || null;
+
+                                // Rank medal
+                                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '';
+
                                 return `
                                     <tr>
-                                        <td style="font-weight: 600;">${emp.name}</td>
-                                        <td>${emp.store}</td>
-                                        <td>${shiftCount} shifts</td>
+                                        <td>
+                                            <div class="table-avatar" style="background: ${colors[colorIndex]};">
+                                                ${photoUrl ? `<img src="${photoUrl}" alt="${emp.name}" onerror="this.style.display='none';" />` : initials}
+                                            </div>
+                                            <span style="font-weight: 600;">${medal} ${emp.name}</span>
+                                        </td>
+                                        <td><i class="fas fa-map-marker-alt" style="color: var(--text-muted); margin-right: 6px;"></i>${emp.store}</td>
+                                        <td><span style="background: var(--bg-secondary); padding: 4px 8px; border-radius: 6px;">${shiftCount} shifts</span></td>
                                         <td>${emp.hoursWorked.toFixed(1)}h</td>
-                                        <td style="text-align: right; font-weight: 600; color: var(--accent-primary);">$${emp.sales.toFixed(2)}</td>
+                                        <td style="text-align: right; font-weight: 700; color: var(--accent-primary);">$${emp.sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                         <td style="text-align: right;">${emp.orders}</td>
-                                        <td style="text-align: right;">$${salesPerHour.toFixed(2)}</td>
+                                        <td style="text-align: right; font-weight: 500;">$${salesPerHour.toFixed(2)}</td>
                                     </tr>
                                 `;
                             }).join('') : `
@@ -44013,6 +44303,11 @@ function renderSalesPerformanceContent() {
             </div>
         </div>
     `;
+
+    // Trigger confetti if we have a top performer with sales
+    if (rankedEmployees.length > 0 && rankedEmployees[0].sales > 0) {
+        setTimeout(() => triggerSalesPerfConfetti(), 800);
+    }
 }
 
 /**
@@ -44044,9 +44339,38 @@ function formatHour(hour) {
     return `${hour - 12}pm`;
 }
 
+/**
+ * Trigger confetti celebration for top performer
+ */
+function triggerSalesPerfConfetti() {
+    const colors = ['#fbbf24', '#f59e0b', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6'];
+    const confettiCount = 50;
+
+    for (let i = 0; i < confettiCount; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti-piece';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+            // Random shapes
+            if (Math.random() > 0.5) {
+                confetti.style.borderRadius = '50%';
+            }
+
+            document.body.appendChild(confetti);
+
+            setTimeout(() => confetti.remove(), 4000);
+        }, i * 30);
+    }
+}
+
 // Make functions globally available
 window.renderSalesPerformance = renderSalesPerformance;
 window.loadSalesPerformanceData = loadSalesPerformanceData;
 window.updateSalesPerfStore = updateSalesPerfStore;
 window.updateSalesPerfDateRange = updateSalesPerfDateRange;
+window.triggerSalesPerfConfetti = triggerSalesPerfConfetti;
 
