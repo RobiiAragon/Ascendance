@@ -2695,17 +2695,95 @@
                     if (employeeViewMode === 'list') {
                         grid.className = 'employees-list';
                         grid.innerHTML = `
-                            <div class="card" style="overflow-x: auto;">
-                                <table class="data-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                            <style>
+                                .emp-list-table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    min-width: 900px;
+                                }
+                                .emp-list-table th {
+                                    padding: 14px 16px;
+                                    text-align: left;
+                                    font-weight: 600;
+                                    font-size: 12px;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                    color: var(--text-muted);
+                                    background: var(--bg-secondary);
+                                    border-bottom: 2px solid var(--border-color);
+                                    white-space: nowrap;
+                                }
+                                .emp-list-table td {
+                                    padding: 16px;
+                                    border-bottom: 1px solid var(--border-color);
+                                    vertical-align: middle;
+                                }
+                                .emp-list-table tbody tr {
+                                    transition: background 0.2s;
+                                }
+                                .emp-list-table tbody tr:hover {
+                                    background: var(--bg-secondary);
+                                }
+                                .emp-info-cell {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 12px;
+                                    min-width: 200px;
+                                }
+                                .emp-info-cell .avatar {
+                                    width: 44px;
+                                    height: 44px;
+                                    border-radius: 12px;
+                                    flex-shrink: 0;
+                                }
+                                .emp-info-cell .details {
+                                    min-width: 0;
+                                }
+                                .emp-info-cell .name {
+                                    font-weight: 600;
+                                    color: var(--text-primary);
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                }
+                                .emp-info-cell .email {
+                                    font-size: 12px;
+                                    color: var(--text-muted);
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                    max-width: 180px;
+                                }
+                                .emp-actions-cell {
+                                    display: flex;
+                                    gap: 6px;
+                                }
+                                @media (max-width: 1024px) {
+                                    .emp-list-table th:nth-child(6),
+                                    .emp-list-table td:nth-child(6) {
+                                        display: none;
+                                    }
+                                }
+                                @media (max-width: 768px) {
+                                    .emp-list-table th:nth-child(2),
+                                    .emp-list-table td:nth-child(2),
+                                    .emp-list-table th:nth-child(3),
+                                    .emp-list-table td:nth-child(3) {
+                                        display: none;
+                                    }
+                                }
+                            </style>
+                            <div class="card" style="overflow-x: auto; border-radius: 16px;">
+                                <table class="emp-list-table">
                                     <thead>
-                                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 22%;">Employee</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 14%;">Role</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 12%;">Store</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 10%;">Type</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 10%;">Status</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 14%;">Phone</th>
-                                            <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-primary); width: 18%;">Actions</th>
+                                        <tr>
+                                            <th>Employee</th>
+                                            <th>Role</th>
+                                            <th>Store</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Phone</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2898,36 +2976,36 @@
 
             const empId = emp.firestoreId || emp.id;
             return `
-                <tr class="employee-list-row" onclick="viewEmployee('${empId}')" style="cursor: pointer; transition: background 0.2s;">
-                    <td style="padding: 12px 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
+                <tr onclick="viewEmployee('${empId}')" style="cursor: pointer;">
+                    <td>
+                        <div class="emp-info-cell">
                             ${emp.photo
-                                ? `<div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
-                                : `<div class="employee-avatar ${emp.color}" style="width: 40px; height: 40px; font-size: 14px;">${emp.initials}</div>`
+                                ? `<div class="avatar" style="background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
+                                : `<div class="avatar employee-avatar ${emp.color}" style="display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: white;">${emp.initials}</div>`
                             }
-                            <div>
-                                <div style="font-weight: 600; color: var(--text-primary);">${emp.name}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">${emp.authEmail || ''}</div>
+                            <div class="details">
+                                <div class="name">${emp.name}</div>
+                                <div class="email">${emp.authEmail || ''}</div>
                             </div>
                         </div>
                     </td>
-                    <td style="padding: 12px 16px; color: var(--text-secondary);">${emp.role}</td>
-                    <td style="padding: 12px 16px;">
-                        <span style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary);">
-                            <i class="fas fa-store" style="font-size: 12px;"></i> ${emp.store}
+                    <td style="color: var(--text-secondary); white-space: nowrap;">${emp.role}</td>
+                    <td>
+                        <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); white-space: nowrap;">
+                            <i class="fas fa-store" style="font-size: 11px; color: var(--text-muted);"></i> ${emp.store}
                         </span>
                     </td>
-                    <td style="padding: 12px 16px;">
-                        <span class="badge" style="background: ${getRoleColor()}; color: white; font-size: 11px; padding: 4px 8px; border-radius: 4px;">
+                    <td>
+                        <span style="background: ${getRoleColor()}; color: white; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 500;">
                             ${emp.employeeType || 'employee'}
                         </span>
                     </td>
-                    <td style="padding: 12px 16px;">
+                    <td>
                         <span class="employee-status-badge ${emp.status}" style="font-size: 11px;">${emp.status}</span>
                     </td>
-                    <td style="padding: 12px 16px; color: var(--text-muted); font-size: 13px;">${emp.phone || '-'}</td>
-                    <td style="padding: 12px 16px;">
-                        <div style="display: flex; gap: 4px;">
+                    <td style="color: var(--text-muted); font-size: 13px; white-space: nowrap;">${emp.phone || '-'}</td>
+                    <td>
+                        <div class="emp-actions-cell">
                             <button class="btn-icon" onclick="event.stopPropagation(); editEmployee('${empId}')" title="Edit"><i class="fas fa-edit"></i></button>
                             <button class="btn-icon" onclick="event.stopPropagation(); viewEmployeePaperwork('${empId}')" title="Documents"><i class="fas fa-file-pdf"></i></button>
                             ${emp.status === 'inactive' ? `
@@ -10086,6 +10164,121 @@ window.viewChecklistHistory = async function() {
                         }
                         .schedule-controls > .week-nav-btn {
                             margin-right: 0 !important;
+                        }
+                        /* Mobile Stores Grid */
+                        .stores-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 16px;
+                        }
+                        .store-schedule-card {
+                            border-radius: 12px;
+                        }
+                        .store-schedule-header {
+                            padding: 12px 16px;
+                        }
+                        .store-schedule-header h4 {
+                            font-size: 14px;
+                        }
+                        .store-schedule-header .store-icon {
+                            width: 28px;
+                            height: 28px;
+                            font-size: 12px;
+                        }
+                        .store-schedule-body {
+                            padding: 8px;
+                        }
+                        .store-day-row {
+                            gap: 6px;
+                            padding: 6px 0;
+                        }
+                        .store-day-label {
+                            width: 52px;
+                            font-size: 10px;
+                        }
+                        .store-shift-slot {
+                            min-height: 36px;
+                            padding: 4px 6px;
+                            font-size: 10px;
+                        }
+                        .store-shift-name {
+                            font-size: 11px;
+                        }
+                        .store-shift-time {
+                            font-size: 9px;
+                        }
+                        .store-days-off-section {
+                            padding: 12px;
+                        }
+                        .store-day-off-avatar {
+                            width: 28px;
+                            height: 28px;
+                            font-size: 11px;
+                        }
+                        .store-day-off-name {
+                            font-size: 12px;
+                        }
+                        /* Mobile Day Card */
+                        .schedule-day-card {
+                            flex: 0 0 280px;
+                            min-width: 280px;
+                        }
+                        .day-card-header {
+                            padding: 12px;
+                        }
+                        .day-card-header .day-number {
+                            font-size: 24px;
+                        }
+                        .day-card-body {
+                            padding: 10px;
+                            gap: 8px;
+                        }
+                        .shift-slot {
+                            padding: 10px;
+                        }
+                        .assigned-employee {
+                            padding: 6px 10px;
+                            gap: 8px;
+                        }
+                        .assigned-employee-avatar {
+                            width: 32px;
+                            height: 32px;
+                            font-size: 12px;
+                        }
+                        .assigned-employee-name {
+                            font-size: 13px;
+                        }
+                    }
+                    @media (max-width: 480px) {
+                        .schedule-title-section h2 {
+                            font-size: 18px;
+                        }
+                        .schedule-title-section p {
+                            font-size: 12px;
+                        }
+                        .week-display {
+                            font-size: 13px;
+                        }
+                        .week-nav-btn {
+                            width: 32px;
+                            height: 32px;
+                        }
+                        .store-filter-select {
+                            padding: 8px 12px;
+                            font-size: 13px;
+                        }
+                        .store-day-label {
+                            width: 44px;
+                            font-size: 9px;
+                        }
+                        .store-shift-slot {
+                            min-height: 32px;
+                            padding: 3px 5px;
+                        }
+                        .store-shift-name {
+                            font-size: 10px;
+                        }
+                        .store-shift-time {
+                            font-size: 8px;
                         }
                     }
 
@@ -43789,6 +43982,157 @@ async function renderSalesPerformance() {
                 animation: confetti-fall 3s linear forwards;
                 z-index: 9999;
                 pointer-events: none;
+            }
+
+            /* Mobile Responsive - Sales Performance */
+            @media (max-width: 768px) {
+                .sales-perf-header {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 12px;
+                }
+                .sales-perf-title {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 4px;
+                }
+                .sales-perf-title h2 {
+                    font-size: 20px;
+                }
+                .sales-perf-filters {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .sales-perf-filters select,
+                .sales-perf-filters input {
+                    width: 100%;
+                    padding: 12px;
+                }
+                .sales-perf-filters .btn-primary {
+                    width: 100%;
+                }
+                .sales-perf-summary {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 12px;
+                }
+                .summary-card {
+                    padding: 14px;
+                }
+                .summary-value {
+                    font-size: 22px;
+                }
+                .summary-label {
+                    font-size: 11px;
+                }
+                .hourly-chart {
+                    height: 150px;
+                    overflow-x: auto;
+                    padding-bottom: 8px;
+                }
+                .hourly-bar {
+                    min-width: 16px;
+                }
+                .hourly-label {
+                    font-size: 9px;
+                }
+                .ranking-item {
+                    padding: 12px;
+                    gap: 10px;
+                }
+                .ranking-avatar {
+                    width: 44px;
+                    height: 44px;
+                    font-size: 14px;
+                }
+                .ranking-position {
+                    width: 30px;
+                    height: 30px;
+                    font-size: 12px;
+                }
+                .ranking-name {
+                    font-size: 13px;
+                }
+                .ranking-sales {
+                    font-size: 14px;
+                }
+                .ranking-item.first-place::after {
+                    font-size: 18px;
+                    right: 10px;
+                }
+                .store-comparison {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 10px;
+                }
+                .store-stat {
+                    padding: 14px 10px;
+                }
+                .store-value {
+                    font-size: 18px;
+                }
+                .perf-card-header {
+                    padding: 12px 16px;
+                }
+                .perf-card-body {
+                    padding: 14px;
+                }
+                .perf-table th,
+                .perf-table td {
+                    padding: 10px 8px;
+                    font-size: 12px;
+                }
+                .table-avatar {
+                    width: 32px;
+                    height: 32px;
+                    font-size: 12px;
+                    margin-right: 8px;
+                }
+                /* Hide less important columns on mobile */
+                .perf-table th:nth-child(4),
+                .perf-table td:nth-child(4),
+                .perf-table th:nth-child(5),
+                .perf-table td:nth-child(5) {
+                    display: none;
+                }
+                .wip-banner {
+                    padding: 12px 14px;
+                    font-size: 12px;
+                }
+            }
+            @media (max-width: 480px) {
+                .sales-perf-title h2 {
+                    font-size: 18px;
+                }
+                .sales-perf-summary {
+                    grid-template-columns: 1fr 1fr;
+                    gap: 8px;
+                }
+                .summary-card {
+                    padding: 12px;
+                }
+                .summary-value {
+                    font-size: 18px;
+                }
+                .ranking-avatar {
+                    width: 36px;
+                    height: 36px;
+                    font-size: 12px;
+                }
+                .ranking-item.first-place::after {
+                    display: none;
+                }
+                .store-comparison {
+                    grid-template-columns: 1fr 1fr;
+                }
+                .store-value {
+                    font-size: 16px;
+                }
+                .store-name {
+                    font-size: 11px;
+                }
+                .perf-table th:nth-child(3),
+                .perf-table td:nth-child(3) {
+                    display: none;
+                }
             }
         </style>
 
