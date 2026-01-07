@@ -37103,11 +37103,11 @@ window.renderProjectAnalytics = function() {
                             <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">January 2026: Security & AI Enhancements <span style="font-size: 10px; padding: 2px 8px; background: #06b6d4; color: white; border-radius: 10px;">CURRENT</span></div>
                             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">January 6, 2026</div>
                             <div style="font-size: 13px; color: var(--text-secondary);">
-                                <strong>Sales Performance Module:</strong> Correlates Shopify sales with employee schedules - hourly sales charts, employee rankings with $/hr metrics, store comparison, detailed attribution tables.<br>
+                                <strong>Sales Performance Module:</strong> Correlates Shopify sales with employee schedules - hourly sales charts, employee rankings with $/hr metrics, store comparison. Click on employee for detailed modal with sales by day, peak hour, and shift-by-shift breakdown.<br>
                                 <strong>Activity Log Module:</strong> Admin-only tracking for login/logout, clock in/out, and system changes with filtering and CSV export.<br>
                                 <strong>API Security:</strong> Removed hardcoded API keys, centralized key management via Firebase.<br>
                                 <strong>Celeste AI Vision:</strong> Image upload and analysis with GPT-4 Vision for product identification, receipt scanning, and visual reports.<br>
-                                <strong>Employee Management:</strong> Added list view toggle, category management gear button.
+                                <strong>UI Animations:</strong> Confetti celebration for top performer, crown animation, shimmer effects, animated charts and cards.
                             </div>
                         </div>
                     </div>
