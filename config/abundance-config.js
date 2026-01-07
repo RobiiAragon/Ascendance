@@ -300,7 +300,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs', 'activitylog']
+        pages: ['celesteai', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'salesperformance', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs', 'activitylog']
     },
     'manager': {
         // Action Permissions
@@ -314,7 +314,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs']
+        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'salesperformance', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs']
     },
     'employee': {
         // Action Permissions

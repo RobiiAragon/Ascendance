@@ -1419,6 +1419,9 @@
                 case 'activitylog':
                     renderActivityLog();
                     break;
+                case 'salesperformance':
+                    renderSalesPerformance();
+                    break;
                 default:
                     render404(page);
             }
@@ -36626,7 +36629,7 @@ window.renderProjectAnalytics = function() {
         configLines: 766,
         totalFunctions: 795,
         totalFiles: 21,
-        totalModules: 28,
+        totalModules: 29,
         projectSize: '9.5 MB',
         stores: 5,
         gitCommits: 65,
@@ -37090,7 +37093,7 @@ window.renderProjectAnalytics = function() {
                         <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
                             <div style="font-weight: 600; margin-bottom: 4px;">Day 7: Continuous Development</div>
                             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 15, 2025</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">System optimizations, bug fixes, UI/UX improvements, and continuous feature enhancements across all 28 modules.</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">System optimizations, bug fixes, UI/UX improvements, and continuous feature enhancements across all 29 modules.</div>
                         </div>
                     </div>
 
@@ -37100,6 +37103,7 @@ window.renderProjectAnalytics = function() {
                             <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">January 2026: Security & AI Enhancements <span style="font-size: 10px; padding: 2px 8px; background: #06b6d4; color: white; border-radius: 10px;">CURRENT</span></div>
                             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">January 6, 2026</div>
                             <div style="font-size: 13px; color: var(--text-secondary);">
+                                <strong>Sales Performance Module:</strong> Correlates Shopify sales with employee schedules - hourly sales charts, employee rankings with $/hr metrics, store comparison, detailed attribution tables.<br>
                                 <strong>Activity Log Module:</strong> Admin-only tracking for login/logout, clock in/out, and system changes with filtering and CSV export.<br>
                                 <strong>API Security:</strong> Removed hardcoded API keys, centralized key management via Firebase.<br>
                                 <strong>Celeste AI Vision:</strong> Image upload and analysis with GPT-4 Vision for product identification, receipt scanning, and visual reports.<br>
@@ -43116,4 +43120,933 @@ function glabsExportCSV() {
     a.click();
     URL.revokeObjectURL(url);
 }
+
+// =====================================================
+// SALES PERFORMANCE MODULE
+// Correlates Shopify sales with employee schedules
+// =====================================================
+
+// Sales Performance state
+let salesPerfData = {
+    orders: [],
+    schedules: [],
+    employees: [],
+    dateRange: { start: null, end: null },
+    selectedStore: 'all',
+    storeLocations: {}
+};
+
+// Map Shopify location names to our store names
+const STORE_LOCATION_MAP = {
+    'miramar': 'Miramar',
+    'chula vista': 'Chula Vista',
+    'morena': 'Morena',
+    'north park': 'North Park',
+    'kearny mesa': 'Kearny Mesa'
+};
+
+/**
+ * Main render function for Sales Performance module
+ */
+async function renderSalesPerformance() {
+    const dashboard = document.querySelector('.dashboard');
+
+    // Set default date range to this week
+    if (!salesPerfData.dateRange.start) {
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        salesPerfData.dateRange.start = startOfWeek;
+        salesPerfData.dateRange.end = today;
+    }
+
+    dashboard.innerHTML = `
+        <style>
+            .sales-perf-container {
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+
+            .sales-perf-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 24px;
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+
+            .sales-perf-title {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .sales-perf-title h2 {
+                font-size: 24px;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin: 0;
+            }
+
+            .sales-perf-title .subtitle {
+                color: var(--text-muted);
+                font-size: 14px;
+            }
+
+            .sales-perf-filters {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .sales-perf-filters select,
+            .sales-perf-filters input {
+                padding: 10px 14px;
+                border-radius: 10px;
+                border: 1px solid var(--border-color);
+                background: var(--bg-card);
+                color: var(--text-primary);
+                font-size: 14px;
+                font-family: inherit;
+            }
+
+            .sales-perf-summary {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+
+            .summary-card {
+                background: var(--bg-card);
+                border-radius: 16px;
+                padding: 20px;
+                border: 1px solid var(--border-color);
+            }
+
+            .summary-card.highlight {
+                background: linear-gradient(135deg, var(--accent-primary) 0%, #8b5cf6 100%);
+                border: none;
+            }
+
+            .summary-card.highlight .summary-label,
+            .summary-card.highlight .summary-value {
+                color: white;
+            }
+
+            .summary-label {
+                font-size: 12px;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 8px;
+            }
+
+            .summary-value {
+                font-size: 28px;
+                font-weight: 700;
+                color: var(--text-primary);
+            }
+
+            .summary-change {
+                font-size: 12px;
+                margin-top: 8px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .summary-change.up { color: #10b981; }
+            .summary-change.down { color: #ef4444; }
+
+            .sales-perf-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+                margin-bottom: 24px;
+            }
+
+            @media (max-width: 1024px) {
+                .sales-perf-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .perf-card {
+                background: var(--bg-card);
+                border-radius: 16px;
+                border: 1px solid var(--border-color);
+                overflow: hidden;
+            }
+
+            .perf-card-header {
+                padding: 16px 20px;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .perf-card-title {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--text-primary);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .perf-card-body {
+                padding: 20px;
+            }
+
+            .hourly-chart {
+                display: flex;
+                align-items: flex-end;
+                gap: 4px;
+                height: 200px;
+                padding: 0 10px;
+            }
+
+            .hourly-bar {
+                flex: 1;
+                min-width: 20px;
+                background: linear-gradient(180deg, var(--accent-primary) 0%, #8b5cf6 100%);
+                border-radius: 4px 4px 0 0;
+                position: relative;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .hourly-bar:hover {
+                filter: brightness(1.1);
+                transform: scaleY(1.02);
+            }
+
+            .hourly-bar .tooltip {
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--bg-primary);
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10;
+            }
+
+            .hourly-bar:hover .tooltip {
+                opacity: 1;
+            }
+
+            .hourly-labels {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 8px;
+                padding: 0 10px;
+            }
+
+            .hourly-label {
+                font-size: 10px;
+                color: var(--text-muted);
+            }
+
+            .employee-ranking {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .ranking-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                background: var(--bg-secondary);
+                border-radius: 12px;
+                transition: all 0.2s;
+            }
+
+            .ranking-item:hover {
+                background: var(--bg-tertiary);
+            }
+
+            .ranking-position {
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                font-weight: 700;
+                font-size: 14px;
+            }
+
+            .ranking-position.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+            .ranking-position.silver { background: linear-gradient(135deg, #9ca3af, #6b7280); color: white; }
+            .ranking-position.bronze { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
+            .ranking-position.normal { background: var(--bg-card); color: var(--text-muted); }
+
+            .ranking-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                color: white;
+                font-size: 14px;
+            }
+
+            .ranking-info {
+                flex: 1;
+            }
+
+            .ranking-name {
+                font-weight: 600;
+                color: var(--text-primary);
+                font-size: 14px;
+            }
+
+            .ranking-store {
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            .ranking-stats {
+                text-align: right;
+            }
+
+            .ranking-sales {
+                font-weight: 700;
+                color: var(--accent-primary);
+                font-size: 16px;
+            }
+
+            .ranking-hours {
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            .store-comparison {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 16px;
+            }
+
+            .store-stat {
+                text-align: center;
+                padding: 16px;
+                background: var(--bg-secondary);
+                border-radius: 12px;
+            }
+
+            .store-name {
+                font-size: 12px;
+                color: var(--text-muted);
+                margin-bottom: 8px;
+            }
+
+            .store-value {
+                font-size: 20px;
+                font-weight: 700;
+                color: var(--text-primary);
+            }
+
+            .store-orders {
+                font-size: 12px;
+                color: var(--text-muted);
+                margin-top: 4px;
+            }
+
+            .loading-overlay {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 60px;
+                gap: 16px;
+            }
+
+            .loading-spinner {
+                width: 48px;
+                height: 48px;
+                border: 4px solid var(--border-color);
+                border-top-color: var(--accent-primary);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+
+            .perf-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .perf-table th,
+            .perf-table td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .perf-table th {
+                font-size: 12px;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+
+            .perf-table tbody tr:hover {
+                background: var(--bg-secondary);
+            }
+
+            .shift-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 4px 8px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 500;
+            }
+
+            .shift-badge.opening {
+                background: #fef3c7;
+                color: #d97706;
+            }
+
+            .shift-badge.closing {
+                background: #dbeafe;
+                color: #2563eb;
+            }
+        </style>
+
+        <div class="sales-perf-container">
+            <div class="sales-perf-header">
+                <div class="sales-perf-title">
+                    <div>
+                        <h2><i class="fas fa-chart-line" style="color: var(--accent-primary);"></i> Sales Performance</h2>
+                        <div class="subtitle">Employee sales attribution based on schedules</div>
+                    </div>
+                </div>
+
+                <div class="sales-perf-filters">
+                    <select id="sales-perf-store" onchange="updateSalesPerfStore(this.value)">
+                        <option value="all">All Stores</option>
+                        <option value="Miramar">VSU Miramar</option>
+                        <option value="Chula Vista">VSU Chula Vista</option>
+                        <option value="Morena">VSU Morena</option>
+                        <option value="North Park">VSU North Park</option>
+                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                    </select>
+
+                    <input type="date" id="sales-perf-start" onchange="updateSalesPerfDateRange()" value="${formatDateInput(salesPerfData.dateRange.start)}">
+                    <span style="color: var(--text-muted);">to</span>
+                    <input type="date" id="sales-perf-end" onchange="updateSalesPerfDateRange()" value="${formatDateInput(salesPerfData.dateRange.end)}">
+
+                    <button class="btn-primary" onclick="loadSalesPerformanceData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div id="sales-perf-content">
+                <div class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <div style="color: var(--text-muted);">Loading sales performance data...</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Load data
+    await loadSalesPerformanceData();
+}
+
+/**
+ * Format date for input field
+ */
+function formatDateInput(date) {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * Update store filter
+ */
+function updateSalesPerfStore(store) {
+    salesPerfData.selectedStore = store;
+    renderSalesPerformanceContent();
+}
+
+/**
+ * Update date range
+ */
+function updateSalesPerfDateRange() {
+    const startInput = document.getElementById('sales-perf-start');
+    const endInput = document.getElementById('sales-perf-end');
+
+    if (startInput && endInput) {
+        salesPerfData.dateRange.start = new Date(startInput.value);
+        salesPerfData.dateRange.end = new Date(endInput.value);
+        loadSalesPerformanceData();
+    }
+}
+
+/**
+ * Load all sales performance data
+ */
+async function loadSalesPerformanceData() {
+    const content = document.getElementById('sales-perf-content');
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <div id="sales-perf-status" style="color: var(--text-muted);">Loading sales data from Shopify...</div>
+        </div>
+    `;
+
+    try {
+        // 1. Load Shopify orders for the date range using bulk API
+        const statusEl = document.getElementById('sales-perf-status');
+
+        // Get date range strings
+        const startStr = formatDateInput(salesPerfData.dateRange.start);
+        const endStr = formatDateInput(salesPerfData.dateRange.end);
+
+        if (statusEl) statusEl.textContent = 'Fetching sales from Shopify...';
+
+        // Use the bulk operation API from shopify-analytics.js
+        const analytics = await window.fetchSalesAnalyticsBulk('vsu', null, 'custom', (progress, msg) => {
+            if (statusEl) statusEl.textContent = msg;
+        }, {
+            startDate: salesPerfData.dateRange.start,
+            endDate: salesPerfData.dateRange.end
+        });
+
+        salesPerfData.orders = analytics.recentOrders || [];
+
+        if (statusEl) statusEl.textContent = 'Loading employee schedules...';
+
+        // 2. Load schedules from Firebase
+        const db = firebase.firestore();
+        const schedulesRef = db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules');
+        const schedulesSnapshot = await schedulesRef
+            .where('date', '>=', startStr)
+            .where('date', '<=', endStr)
+            .get();
+
+        salesPerfData.schedules = [];
+        schedulesSnapshot.forEach(doc => {
+            salesPerfData.schedules.push({ id: doc.id, ...doc.data() });
+        });
+
+        // 3. Load employees
+        if (statusEl) statusEl.textContent = 'Loading employees...';
+        const employeesRef = db.collection(window.FIREBASE_COLLECTIONS.employees || 'employees');
+        const employeesSnapshot = await employeesRef.get();
+
+        salesPerfData.employees = [];
+        employeesSnapshot.forEach(doc => {
+            salesPerfData.employees.push({ id: doc.id, ...doc.data() });
+        });
+
+        // 4. Fetch Shopify locations for mapping
+        if (statusEl) statusEl.textContent = 'Loading store locations...';
+        try {
+            const locations = await window.fetchStoreLocations('vsu');
+            salesPerfData.storeLocations = {};
+            locations.forEach(loc => {
+                // Map location name to our standard names
+                const lowerName = loc.name.toLowerCase();
+                for (const [key, value] of Object.entries(STORE_LOCATION_MAP)) {
+                    if (lowerName.includes(key)) {
+                        salesPerfData.storeLocations[loc.id] = value;
+                        break;
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn('Could not fetch locations:', e);
+        }
+
+        // 5. Render the content
+        renderSalesPerformanceContent();
+
+    } catch (error) {
+        console.error('Error loading sales performance data:', error);
+        content.innerHTML = `
+            <div class="loading-overlay">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ef4444;"></i>
+                <div style="color: var(--text-primary); font-weight: 600;">Error Loading Data</div>
+                <div style="color: var(--text-muted);">${error.message}</div>
+                <button class="btn-primary" onclick="loadSalesPerformanceData()" style="margin-top: 16px;">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Process and render the sales performance content
+ */
+function renderSalesPerformanceContent() {
+    const content = document.getElementById('sales-perf-content');
+    if (!content) return;
+
+    const orders = salesPerfData.orders;
+    const schedules = salesPerfData.schedules;
+    const employees = salesPerfData.employees;
+    const selectedStore = salesPerfData.selectedStore;
+
+    // Calculate hourly sales
+    const hourlySales = {};
+    for (let i = 0; i < 24; i++) {
+        hourlySales[i] = { sales: 0, orders: 0 };
+    }
+
+    // Calculate sales by store
+    const storeStats = {};
+
+    // Calculate employee performance based on schedule attribution
+    const employeePerf = {};
+
+    // Process orders
+    orders.forEach(order => {
+        const orderDate = new Date(order.createdAt);
+        const hour = orderDate.getHours();
+        const dateKey = formatDateInput(orderDate);
+        const total = order.total || 0;
+
+        // Add to hourly stats
+        hourlySales[hour].sales += total;
+        hourlySales[hour].orders += 1;
+
+        // Find which store this order belongs to (from location or default)
+        // For now, we'll attribute based on schedules for that time
+
+        // Find employees who were scheduled during this order
+        const orderTimeMinutes = hour * 60 + orderDate.getMinutes();
+
+        schedules.filter(s => s.date === dateKey).forEach(schedule => {
+            // Filter by store if selected
+            if (selectedStore !== 'all' && schedule.store !== selectedStore) return;
+
+            const startMinutes = timeToMinutes(schedule.startTime);
+            const endMinutes = timeToMinutes(schedule.endTime);
+
+            // Check if order time falls within schedule
+            if (orderTimeMinutes >= startMinutes && orderTimeMinutes < endMinutes) {
+                const empId = schedule.employeeId;
+                if (!employeePerf[empId]) {
+                    const emp = employees.find(e => e.id === empId);
+                    employeePerf[empId] = {
+                        id: empId,
+                        name: emp?.name || 'Unknown',
+                        store: schedule.store,
+                        sales: 0,
+                        orders: 0,
+                        hoursWorked: 0,
+                        shifts: []
+                    };
+                }
+
+                // Attribute this sale to the employee
+                employeePerf[empId].sales += total;
+                employeePerf[empId].orders += 1;
+
+                // Track store stats
+                const store = schedule.store;
+                if (!storeStats[store]) {
+                    storeStats[store] = { sales: 0, orders: 0 };
+                }
+                storeStats[store].sales += total;
+                storeStats[store].orders += 1;
+            }
+        });
+    });
+
+    // Calculate hours worked for each employee
+    const processedShifts = new Set();
+    schedules.forEach(schedule => {
+        if (selectedStore !== 'all' && schedule.store !== selectedStore) return;
+
+        const shiftKey = `${schedule.employeeId}-${schedule.date}-${schedule.shiftType}`;
+        if (processedShifts.has(shiftKey)) return;
+        processedShifts.add(shiftKey);
+
+        const empId = schedule.employeeId;
+        if (!employeePerf[empId]) {
+            const emp = employees.find(e => e.id === empId);
+            employeePerf[empId] = {
+                id: empId,
+                name: emp?.name || 'Unknown',
+                store: schedule.store,
+                sales: 0,
+                orders: 0,
+                hoursWorked: 0,
+                shifts: []
+            };
+        }
+
+        const hours = calculateShiftHours(schedule.startTime, schedule.endTime);
+        employeePerf[empId].hoursWorked += hours;
+        employeePerf[empId].shifts.push(schedule);
+    });
+
+    // Calculate totals
+    const totalSales = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalOrders = orders.length;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    // Sort employees by sales for ranking
+    const rankedEmployees = Object.values(employeePerf)
+        .sort((a, b) => b.sales - a.sales)
+        .slice(0, 10);
+
+    // Find peak hour
+    let peakHour = 0;
+    let peakSales = 0;
+    Object.entries(hourlySales).forEach(([hour, data]) => {
+        if (data.sales > peakSales) {
+            peakSales = data.sales;
+            peakHour = parseInt(hour);
+        }
+    });
+
+    // Find max hourly sales for chart scaling
+    const maxHourlySales = Math.max(...Object.values(hourlySales).map(h => h.sales), 1);
+
+    // Generate colors for employees
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+    content.innerHTML = `
+        <!-- Summary Cards -->
+        <div class="sales-perf-summary">
+            <div class="summary-card highlight">
+                <div class="summary-label">Total Sales</div>
+                <div class="summary-value">$${totalSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Orders</div>
+                <div class="summary-value">${totalOrders.toLocaleString()}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Avg Order Value</div>
+                <div class="summary-value">$${avgOrderValue.toFixed(2)}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Peak Hour</div>
+                <div class="summary-value">${formatHour(peakHour)}</div>
+                <div class="summary-change">${hourlySales[peakHour].orders} orders</div>
+            </div>
+        </div>
+
+        <div class="sales-perf-grid">
+            <!-- Hourly Sales Chart -->
+            <div class="perf-card">
+                <div class="perf-card-header">
+                    <div class="perf-card-title">
+                        <i class="fas fa-clock" style="color: var(--accent-primary);"></i>
+                        Sales by Hour
+                    </div>
+                </div>
+                <div class="perf-card-body">
+                    <div class="hourly-chart">
+                        ${Object.entries(hourlySales).filter(([h]) => h >= 8 && h <= 22).map(([hour, data]) => {
+                            const heightPercent = maxHourlySales > 0 ? (data.sales / maxHourlySales) * 100 : 0;
+                            return `
+                                <div class="hourly-bar" style="height: ${Math.max(heightPercent, 2)}%;">
+                                    <div class="tooltip">
+                                        <strong>${formatHour(parseInt(hour))}</strong><br>
+                                        $${data.sales.toFixed(2)}<br>
+                                        ${data.orders} orders
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="hourly-labels">
+                        <span class="hourly-label">8am</span>
+                        <span class="hourly-label">12pm</span>
+                        <span class="hourly-label">4pm</span>
+                        <span class="hourly-label">8pm</span>
+                        <span class="hourly-label">10pm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Ranking -->
+            <div class="perf-card">
+                <div class="perf-card-header">
+                    <div class="perf-card-title">
+                        <i class="fas fa-trophy" style="color: #fbbf24;"></i>
+                        Top Performers
+                    </div>
+                </div>
+                <div class="perf-card-body">
+                    <div class="employee-ranking">
+                        ${rankedEmployees.length > 0 ? rankedEmployees.map((emp, idx) => {
+                            const posClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'normal';
+                            const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                            const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+                            const salesPerHour = emp.hoursWorked > 0 ? emp.sales / emp.hoursWorked : 0;
+
+                            return `
+                                <div class="ranking-item">
+                                    <div class="ranking-position ${posClass}">${idx + 1}</div>
+                                    <div class="ranking-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                    <div class="ranking-info">
+                                        <div class="ranking-name">${emp.name}</div>
+                                        <div class="ranking-store">${emp.store} · ${emp.hoursWorked.toFixed(1)}h worked</div>
+                                    </div>
+                                    <div class="ranking-stats">
+                                        <div class="ranking-sales">$${emp.sales.toFixed(2)}</div>
+                                        <div class="ranking-hours">$${salesPerHour.toFixed(2)}/hr</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') : `
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fas fa-users" style="font-size: 32px; margin-bottom: 12px; display: block;"></i>
+                                No employee data for selected period
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Comparison -->
+        <div class="perf-card" style="margin-bottom: 24px;">
+            <div class="perf-card-header">
+                <div class="perf-card-title">
+                    <i class="fas fa-store" style="color: #10b981;"></i>
+                    Store Comparison
+                </div>
+            </div>
+            <div class="perf-card-body">
+                <div class="store-comparison">
+                    ${Object.keys(storeStats).length > 0 ? Object.entries(storeStats)
+                        .sort((a, b) => b[1].sales - a[1].sales)
+                        .map(([store, stats]) => `
+                            <div class="store-stat">
+                                <div class="store-name">${store}</div>
+                                <div class="store-value">$${stats.sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                                <div class="store-orders">${stats.orders} orders</div>
+                            </div>
+                        `).join('') : `
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted); grid-column: 1 / -1;">
+                            <i class="fas fa-store-slash" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                            No store data available. Make sure employees have schedules assigned.
+                        </div>
+                    `}
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Schedule/Sales Table -->
+        <div class="perf-card">
+            <div class="perf-card-header">
+                <div class="perf-card-title">
+                    <i class="fas fa-table" style="color: var(--accent-primary);"></i>
+                    Detailed Attribution
+                </div>
+            </div>
+            <div class="perf-card-body" style="overflow-x: auto;">
+                <table class="perf-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Store</th>
+                            <th>Shifts</th>
+                            <th>Hours</th>
+                            <th style="text-align: right;">Sales</th>
+                            <th style="text-align: right;">Orders</th>
+                            <th style="text-align: right;">$/Hour</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.values(employeePerf).length > 0 ? Object.values(employeePerf)
+                            .sort((a, b) => b.sales - a.sales)
+                            .map(emp => {
+                                const salesPerHour = emp.hoursWorked > 0 ? emp.sales / emp.hoursWorked : 0;
+                                const shiftCount = emp.shifts.length;
+                                return `
+                                    <tr>
+                                        <td style="font-weight: 600;">${emp.name}</td>
+                                        <td>${emp.store}</td>
+                                        <td>${shiftCount} shifts</td>
+                                        <td>${emp.hoursWorked.toFixed(1)}h</td>
+                                        <td style="text-align: right; font-weight: 600; color: var(--accent-primary);">$${emp.sales.toFixed(2)}</td>
+                                        <td style="text-align: right;">${emp.orders}</td>
+                                        <td style="text-align: right;">$${salesPerHour.toFixed(2)}</td>
+                                    </tr>
+                                `;
+                            }).join('') : `
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                    No schedule data found for the selected period.<br>
+                                    <small>Add employee schedules in the Schedule module to see attribution.</small>
+                                </td>
+                            </tr>
+                        `}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Convert time string (HH:MM) to minutes
+ */
+function timeToMinutes(timeStr) {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return (hours * 60) + (minutes || 0);
+}
+
+/**
+ * Calculate hours between two times
+ */
+function calculateShiftHours(startTime, endTime) {
+    if (!startTime || !endTime) return 0;
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    return (endMinutes - startMinutes) / 60;
+}
+
+/**
+ * Format hour for display
+ */
+function formatHour(hour) {
+    if (hour === 0) return '12am';
+    if (hour === 12) return '12pm';
+    if (hour < 12) return `${hour}am`;
+    return `${hour - 12}pm`;
+}
+
+// Make functions globally available
+window.renderSalesPerformance = renderSalesPerformance;
+window.loadSalesPerformanceData = loadSalesPerformanceData;
+window.updateSalesPerfStore = updateSalesPerfStore;
+window.updateSalesPerfDateRange = updateSalesPerfDateRange;
 
