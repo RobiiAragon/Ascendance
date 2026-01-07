@@ -9722,6 +9722,22 @@ window.viewChecklistHistory = async function() {
 
         let editingRestockRequestId = null;
 
+        // Toggle custom category input visibility
+        function toggleCustomCategory(prefix) {
+            const select = document.getElementById(`${prefix}-category`);
+            const customInput = document.getElementById(`${prefix}-category-custom`);
+            if (select && customInput) {
+                if (select.value === 'Other') {
+                    customInput.style.display = 'block';
+                    customInput.focus();
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.value = '';
+                }
+            }
+        }
+        window.toggleCustomCategory = toggleCustomCategory;
+
         function openEditRestockRequestModal(requestId) {
             editingRestockRequestId = requestId;
             const request = restockRequests.find(r => r.firestoreId === requestId || r.id === requestId);
@@ -9742,6 +9758,20 @@ window.viewChecklistHistory = async function() {
                 document.getElementById('edit-restock-store').value = request.store || '';
                 document.getElementById('edit-restock-notes').value = request.notes || '';
 
+                // Set category - check if it's a predefined category or custom
+                const categorySelect = document.getElementById('edit-restock-category');
+                const categoryCustom = document.getElementById('edit-restock-category-custom');
+                const predefinedCategories = ['Coils', 'Eliquid', 'Smokeshop', 'Sex Shop', 'Devices', 'Wraps'];
+
+                if (request.category && predefinedCategories.includes(request.category)) {
+                    categorySelect.value = request.category;
+                    categoryCustom.style.display = 'none';
+                } else if (request.category) {
+                    categorySelect.value = 'Other';
+                    categoryCustom.value = request.category;
+                    categoryCustom.style.display = 'block';
+                }
+
                 // Populate and set employee dropdown
                 populateEmployeeDropdown('edit-restock-requested-by', request.requestedBy || '');
             }, 100);
@@ -9756,9 +9786,17 @@ window.viewChecklistHistory = async function() {
             const requestedBy = requestedByEl ? requestedByEl.value : '';
             const notes = document.getElementById('edit-restock-notes').value;
 
+            // Get category (use custom if "Other" selected)
+            const categorySelect = document.getElementById('edit-restock-category');
+            const categoryCustom = document.getElementById('edit-restock-category-custom');
+            let category = categorySelect ? categorySelect.value : '';
+            if (category === 'Other' && categoryCustom) {
+                category = categoryCustom.value.trim() || 'Other';
+            }
+
             // Validation
-            if (!productName || !quantity || !store) {
-                alert('Please fill in Product Name, Quantity, and Store');
+            if (!productName || !quantity || !store || !category) {
+                alert('Please fill in Product Name, Quantity, Category, and Store');
                 return;
             }
 
@@ -9774,6 +9812,7 @@ window.viewChecklistHistory = async function() {
             request.quantity = parseInt(quantity);
             request.priority = priority || 'medium';
             request.store = store;
+            request.category = category;
             if (requestedBy) request.requestedBy = requestedBy;
             request.notes = notes;
 
@@ -9784,6 +9823,7 @@ window.viewChecklistHistory = async function() {
                     quantity: parseInt(quantity),
                     priority: priority || 'medium',
                     store: store,
+                    category: category,
                     notes: notes
                 };
                 if (requestedBy) updateData.requestedBy = requestedBy;
@@ -26383,6 +26423,20 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
+                                    <label>Category *</label>
+                                    <select class="form-input" id="new-restock-category" onchange="toggleCustomCategory('new-restock')">
+                                        <option value="">Select category...</option>
+                                        <option value="Coils">Coils</option>
+                                        <option value="Eliquid">Eliquid</option>
+                                        <option value="Smokeshop">Smokeshop</option>
+                                        <option value="Sex Shop">Sex Shop</option>
+                                        <option value="Devices">Devices</option>
+                                        <option value="Wraps">Wraps</option>
+                                        <option value="Other">Other (type your own)</option>
+                                    </select>
+                                    <input type="text" class="form-input" id="new-restock-category-custom" placeholder="Type custom category..." style="display: none; margin-top: 8px;">
+                                </div>
+                                <div class="form-group">
                                     <label>Store *</label>
                                     <select class="form-input" id="new-restock-store">
                                         <option value="">Select store...</option>
@@ -26394,6 +26448,8 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Requested By</label>
                                     <select class="form-input" id="new-restock-requested-by">
@@ -26440,6 +26496,20 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
+                                    <label>Category *</label>
+                                    <select class="form-input" id="edit-restock-category" onchange="toggleCustomCategory('edit-restock')">
+                                        <option value="">Select category...</option>
+                                        <option value="Coils">Coils</option>
+                                        <option value="Eliquid">Eliquid</option>
+                                        <option value="Smokeshop">Smokeshop</option>
+                                        <option value="Sex Shop">Sex Shop</option>
+                                        <option value="Devices">Devices</option>
+                                        <option value="Wraps">Wraps</option>
+                                        <option value="Other">Other (type your own)</option>
+                                    </select>
+                                    <input type="text" class="form-input" id="edit-restock-category-custom" placeholder="Type custom category..." style="display: none; margin-top: 8px;">
+                                </div>
+                                <div class="form-group">
                                     <label>Store *</label>
                                     <select class="form-input" id="edit-restock-store">
                                         <option value="">Select store...</option>
@@ -26451,6 +26521,8 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Requested By</label>
                                     <select class="form-input" id="edit-restock-requested-by">
@@ -30749,9 +30821,17 @@ Return ONLY the JSON object, no additional text.`,
             const requestedBy = requestedByEl ? requestedByEl.value : '';
             const notes = document.getElementById('new-restock-notes').value;
 
+            // Get category (use custom if "Other" selected)
+            const categorySelect = document.getElementById('new-restock-category');
+            const categoryCustom = document.getElementById('new-restock-category-custom');
+            let category = categorySelect ? categorySelect.value : '';
+            if (category === 'Other' && categoryCustom) {
+                category = categoryCustom.value.trim() || 'Other';
+            }
+
             // Validation
-            if (!product || !quantity || !store) {
-                alert('Please fill in Product, Quantity and Store');
+            if (!product || !quantity || !store || !category) {
+                alert('Please fill in Product, Quantity, Category and Store');
                 return;
             }
 
@@ -30761,6 +30841,7 @@ Return ONLY the JSON object, no additional text.`,
                 itemType: 'product',
                 quantity: parseInt(quantity),
                 store,
+                category,
                 requestedBy: requestedBy || 'Unknown',
                 requestDate: new Date().toISOString().split('T')[0],
                 status: 'approved',
