@@ -44183,7 +44183,7 @@ function renderSalesPerformanceContent() {
                             const photoUrl = hasPhoto || null;
 
                             return `
-                                <div class="ranking-item ${isFirstPlace ? 'first-place' : ''}">
+                                <div class="ranking-item ${isFirstPlace ? 'first-place' : ''}" onclick="openEmployeePerformanceModal('${emp.id}')">
                                     <div class="ranking-position ${posClass}">${idx + 1}</div>
                                     <div class="ranking-avatar" style="background: ${colors[colorIndex]};">
                                         ${photoUrl ? `<img src="${photoUrl}" alt="${emp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><span style="display:none;">${initials}</span>` : initials}
@@ -44196,6 +44196,7 @@ function renderSalesPerformanceContent() {
                                         <div class="ranking-sales">$${emp.sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                         <div class="ranking-hours">$${salesPerHour.toFixed(2)}/hr</div>
                                     </div>
+                                    <i class="fas fa-chevron-right" style="color: var(--text-muted); font-size: 12px; margin-left: 8px;"></i>
                                 </div>
                             `;
                         }).join('') : `
@@ -44367,10 +44368,387 @@ function triggerSalesPerfConfetti() {
     }
 }
 
+/**
+ * Open employee performance detail modal
+ */
+function openEmployeePerformanceModal(employeeId) {
+    const employees = salesPerfData.employees;
+    const orders = salesPerfData.orders;
+    const schedules = salesPerfData.schedules;
+
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    // Get employee's schedules for the period
+    const empSchedules = schedules.filter(s => s.employeeId === employeeId);
+
+    // Calculate sales by day
+    const salesByDay = {};
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Initialize days
+    dayNames.forEach(day => {
+        salesByDay[day] = { sales: 0, orders: 0 };
+    });
+
+    // Calculate hourly sales for this employee
+    const hourlyEmpSales = {};
+    for (let i = 0; i < 24; i++) {
+        hourlyEmpSales[i] = { sales: 0, orders: 0 };
+    }
+
+    // Process orders and attribute to this employee based on schedules
+    let totalEmpSales = 0;
+    let totalEmpOrders = 0;
+
+    orders.forEach(order => {
+        const orderDate = new Date(order.createdAt);
+        const hour = orderDate.getHours();
+        const dateKey = formatDateInput(orderDate);
+        const dayOfWeek = dayNames[orderDate.getDay()];
+        const total = order.total || 0;
+        const orderTimeMinutes = hour * 60 + orderDate.getMinutes();
+
+        // Check if employee was working during this order
+        const wasWorking = empSchedules.some(schedule => {
+            if (schedule.date !== dateKey) return false;
+            const startMinutes = timeToMinutes(schedule.startTime);
+            const endMinutes = timeToMinutes(schedule.endTime);
+            return orderTimeMinutes >= startMinutes && orderTimeMinutes < endMinutes;
+        });
+
+        if (wasWorking) {
+            salesByDay[dayOfWeek].sales += total;
+            salesByDay[dayOfWeek].orders += 1;
+            hourlyEmpSales[hour].sales += total;
+            hourlyEmpSales[hour].orders += 1;
+            totalEmpSales += total;
+            totalEmpOrders += 1;
+        }
+    });
+
+    // Calculate total hours worked
+    let totalHours = 0;
+    empSchedules.forEach(schedule => {
+        totalHours += calculateShiftHours(schedule.startTime, schedule.endTime);
+    });
+
+    const salesPerHour = totalHours > 0 ? totalEmpSales / totalHours : 0;
+
+    // Find best day
+    let bestDay = 'N/A';
+    let bestDaySales = 0;
+    Object.entries(salesByDay).forEach(([day, data]) => {
+        if (data.sales > bestDaySales) {
+            bestDaySales = data.sales;
+            bestDay = day;
+        }
+    });
+
+    // Find peak hour
+    let peakHour = 0;
+    let peakHourSales = 0;
+    Object.entries(hourlyEmpSales).forEach(([hour, data]) => {
+        if (data.sales > peakHourSales) {
+            peakHourSales = data.sales;
+            peakHour = parseInt(hour);
+        }
+    });
+
+    // Get employee photo and color
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+    const colorIndex = employee.name ? employee.name.charCodeAt(0) % colors.length : 0;
+    const initials = employee.name ? employee.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+    const photoUrl = employee.photoURL || employee.photo || null;
+
+    // Max for day chart scaling
+    const maxDaySales = Math.max(...Object.values(salesByDay).map(d => d.sales), 1);
+    const maxHourSales = Math.max(...Object.values(hourlyEmpSales).map(h => h.sales), 1);
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'employee-perf-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-out;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: var(--bg-card);
+            border-radius: 24px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.4s ease-out;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        ">
+            <!-- Header -->
+            <div style="
+                padding: 24px;
+                background: linear-gradient(135deg, ${colors[colorIndex]}22, ${colors[colorIndex]}11);
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                position: relative;
+            ">
+                <button onclick="closeEmployeePerformanceModal()" style="
+                    position: absolute;
+                    top: 16px;
+                    right: 16px;
+                    background: var(--bg-secondary);
+                    border: none;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    color: var(--text-muted);
+                    font-size: 16px;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 20px;
+                    background: ${colors[colorIndex]};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 28px;
+                    font-weight: 700;
+                    color: white;
+                    overflow: hidden;
+                    box-shadow: 0 8px 24px ${colors[colorIndex]}44;
+                ">
+                    ${photoUrl ? `<img src="${photoUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none';" />` : ''}
+                    <span style="${photoUrl ? 'display:none;' : ''}">${initials}</span>
+                </div>
+
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary);">${employee.name}</h2>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">
+                        <i class="fas fa-store"></i> ${employee.store || 'Multiple Stores'} · <i class="fas fa-calendar"></i> ${empSchedules.length} shifts
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+                padding: 20px 24px;
+                background: var(--bg-secondary);
+            ">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">$${totalEmpSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Total Sales</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${totalEmpOrders}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Orders</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${totalHours.toFixed(1)}h</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Hours</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #10b981;">$${salesPerHour.toFixed(2)}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Per Hour</div>
+                </div>
+            </div>
+
+            <!-- Sales by Day -->
+            <div style="padding: 24px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-calendar-week" style="color: var(--accent-primary);"></i>
+                    Sales by Day
+                </h3>
+                <div style="display: flex; align-items: flex-end; gap: 8px; height: 120px;">
+                    ${dayNames.map(day => {
+                        const data = salesByDay[day];
+                        const heightPercent = maxDaySales > 0 ? (data.sales / maxDaySales) * 100 : 0;
+                        const isToday = dayNames[new Date().getDay()] === day;
+                        return `
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <div style="font-size: 10px; color: var(--text-muted);">$${data.sales.toFixed(0)}</div>
+                                <div style="
+                                    width: 100%;
+                                    height: ${Math.max(heightPercent, 4)}%;
+                                    background: ${isToday ? 'linear-gradient(180deg, #10b981, #059669)' : 'linear-gradient(180deg, var(--accent-primary), #8b5cf6)'};
+                                    border-radius: 6px 6px 0 0;
+                                    transition: all 0.3s;
+                                "></div>
+                                <div style="font-size: 11px; font-weight: ${isToday ? '700' : '500'}; color: ${isToday ? '#10b981' : 'var(--text-muted)'};">${day}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Peak Performance -->
+            <div style="padding: 0 24px 24px;">
+                <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                ">
+                    <div style="
+                        background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
+                        border: 1px solid rgba(251, 191, 36, 0.2);
+                        border-radius: 16px;
+                        padding: 16px;
+                        text-align: center;
+                    ">
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Best Day</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">${bestDay}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">$${bestDaySales.toFixed(2)}</div>
+                    </div>
+                    <div style="
+                        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05));
+                        border: 1px solid rgba(139, 92, 246, 0.2);
+                        border-radius: 16px;
+                        padding: 16px;
+                        text-align: center;
+                    ">
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Peak Hour</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #8b5cf6;">${formatHour(peakHour)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">$${peakHourSales.toFixed(2)}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shifts Worked -->
+            <div style="padding: 0 24px 24px;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-clock" style="color: #10b981;"></i>
+                    Shifts This Period
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                    ${empSchedules.length > 0 ? empSchedules.map(shift => {
+                        const shiftDate = new Date(shift.date + 'T12:00:00');
+                        const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'short' });
+                        const dateStr = shiftDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const hours = calculateShiftHours(shift.startTime, shift.endTime);
+                        const isOpening = shift.shiftType === 'opening';
+
+                        // Calculate sales during this shift
+                        let shiftSales = 0;
+                        orders.forEach(order => {
+                            const orderDate = new Date(order.createdAt);
+                            const orderDateKey = formatDateInput(orderDate);
+                            if (orderDateKey !== shift.date) return;
+                            const orderTimeMinutes = orderDate.getHours() * 60 + orderDate.getMinutes();
+                            const startMinutes = timeToMinutes(shift.startTime);
+                            const endMinutes = timeToMinutes(shift.endTime);
+                            if (orderTimeMinutes >= startMinutes && orderTimeMinutes < endMinutes) {
+                                shiftSales += order.total || 0;
+                            }
+                        });
+
+                        return `
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                                padding: 12px;
+                                background: var(--bg-secondary);
+                                border-radius: 12px;
+                            ">
+                                <div style="
+                                    width: 44px;
+                                    height: 44px;
+                                    background: ${isOpening ? '#fef3c7' : '#dbeafe'};
+                                    border-radius: 10px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    flex-direction: column;
+                                ">
+                                    <div style="font-size: 12px; font-weight: 700; color: ${isOpening ? '#d97706' : '#2563eb'};">${dayName}</div>
+                                    <div style="font-size: 10px; color: ${isOpening ? '#d97706' : '#2563eb'};">${dateStr.split(' ')[1]}</div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${shift.store}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        ${shift.startTime} - ${shift.endTime} · ${hours.toFixed(1)}h
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 14px; font-weight: 700; color: var(--accent-primary);">$${shiftSales.toFixed(2)}</div>
+                                    <div style="font-size: 10px; color: var(--text-muted);">${(shiftSales / hours).toFixed(2)}/hr</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : `
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            No shifts recorded for this period
+                        </div>
+                    `}
+                </div>
+            </div>
+        </div>
+
+        <style>
+            @keyframes slideUp {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeEmployeePerformanceModal();
+        }
+    });
+
+    // Close on Escape
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeEmployeePerformanceModal();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+/**
+ * Close employee performance modal
+ */
+function closeEmployeePerformanceModal() {
+    const modal = document.getElementById('employee-perf-modal');
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.2s ease-out forwards';
+        setTimeout(() => modal.remove(), 200);
+    }
+}
+
 // Make functions globally available
 window.renderSalesPerformance = renderSalesPerformance;
 window.loadSalesPerformanceData = loadSalesPerformanceData;
 window.updateSalesPerfStore = updateSalesPerfStore;
 window.updateSalesPerfDateRange = updateSalesPerfDateRange;
 window.triggerSalesPerfConfetti = triggerSalesPerfConfetti;
+window.openEmployeePerformanceModal = openEmployeePerformanceModal;
+window.closeEmployeePerformanceModal = closeEmployeePerformanceModal;
 
