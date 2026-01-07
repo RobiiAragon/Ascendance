@@ -189,6 +189,7 @@ let celesteIsOpen = false;
 let celesteIsListening = false;
 let celesteConversation = [];
 let celesteRecognition = null;
+let celesteCurrentImage = null; // Base64 image for vision
 
 // Available actions Celeste can perform
 const CELESTE_ACTIONS = {
@@ -891,10 +892,26 @@ function createCelesteChatModal() {
             </div>
         </div>
 
+        <div id="celeste-image-preview" style="display: none; padding: 8px 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="celeste-preview-img" src="" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid var(--primary-color);">
+                <div style="flex: 1; font-size: 12px; color: var(--text-secondary);">
+                    <div style="font-weight: 600; color: var(--text-primary);">Image attached</div>
+                    <div>Ask me anything about this image</div>
+                </div>
+                <button onclick="celesteRemoveImage()" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(239,68,68,0.15); color: #ef4444; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
         <div class="celeste-input-area">
             <button class="celeste-voice-btn" id="celeste-voice-btn" onclick="toggleCelesteVoice()" title="Speak">
                 <i class="fas fa-microphone"></i>
             </button>
+            <button class="celeste-image-btn" onclick="document.getElementById('celeste-image-input').click()" title="Upload Image" style="width: 40px; height: 40px; border-radius: 50%; border: none; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;">
+                <i class="fas fa-camera"></i>
+            </button>
+            <input type="file" id="celeste-image-input" accept="image/*" style="display: none;" onchange="celesteHandleImageSelect(event)">
             <input type="text" class="celeste-input" id="celeste-input"
                 placeholder="Type or speak to Celeste..."
                 onkeypress="if(event.key==='Enter') sendCelesteMessage()">
@@ -1071,14 +1088,15 @@ async function sendCelesteMessage() {
 }
 
 /**
- * Process message with AI (OpenAI GPT-4)
+ * Process message with AI (OpenAI GPT-4 / GPT-4 Vision)
  */
 async function processCelesteMessage(userMessage) {
-    // First, try to detect intent locally
-    const localIntent = detectLocalIntent(userMessage);
-
-    if (localIntent) {
-        return localIntent;
+    // First, try to detect intent locally (skip if image is attached)
+    if (!celesteCurrentImage) {
+        const localIntent = detectLocalIntent(userMessage);
+        if (localIntent) {
+            return localIntent;
+        }
     }
 
     // OpenAI API key - check Firebase first, then saved key, then default
@@ -1092,6 +1110,26 @@ async function processCelesteMessage(userMessage) {
     let assistantMessage = null;
 
     try {
+        // Build the user message content
+        let userContent;
+        if (celesteCurrentImage) {
+            // Vision mode - send image with text
+            console.log('🖼️ Celeste: Processing image with GPT-4 Vision...');
+            userContent = [
+                { type: 'text', text: userMessage || 'What do you see in this image? Describe it in detail.' },
+                {
+                    type: 'image_url',
+                    image_url: {
+                        url: celesteCurrentImage,
+                        detail: 'auto'
+                    }
+                }
+            ];
+        } else {
+            // Text only mode
+            userContent = userMessage;
+        }
+
         console.log('🤖 Celeste: Calling OpenAI GPT-4...');
         const openaiUrl = CELESTE_CORS_PROXY + encodeURIComponent(AI_CONFIG.apiEndpoint);
         const response = await fetch(openaiUrl, {
@@ -1102,11 +1140,11 @@ async function processCelesteMessage(userMessage) {
             },
             body: JSON.stringify({
                 model: AI_CONFIG.model,
-                max_tokens: AI_CONFIG.maxTokens,
+                max_tokens: celesteCurrentImage ? 2048 : AI_CONFIG.maxTokens, // More tokens for image analysis
                 messages: [
-                    { role: 'system', content: systemPrompt },
+                    { role: 'system', content: systemPrompt + (celesteCurrentImage ? '\n\nThe user has attached an image. Analyze it and provide helpful information. If it\'s a product, provide details. If it\'s a receipt, extract the information. If it\'s a suspicious person, describe them for a report.' : '') },
                     ...celesteConversation.slice(-6),
-                    { role: 'user', content: userMessage }
+                    { role: 'user', content: userContent }
                 ]
             })
         });
@@ -1115,6 +1153,11 @@ async function processCelesteMessage(userMessage) {
             const data = await response.json();
             assistantMessage = data.choices[0].message.content;
             console.log('✅ Celeste: OpenAI GPT-4 succeeded');
+
+            // Clear image after processing
+            if (celesteCurrentImage) {
+                celesteRemoveImage();
+            }
         } else {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
@@ -1122,14 +1165,14 @@ async function processCelesteMessage(userMessage) {
     } catch (error) {
         console.error('❌ Celeste: OpenAI API failed:', error.message);
         return {
-            message: "I couldn't connect to OpenAI. Please check your API key in Project Analytics settings. Get your key at: https://platform.openai.com/api-keys",
+            message: "I couldn't connect to OpenAI. Please check your API key in Settings (gear icon). Get your key at: https://platform.openai.com/api-keys",
             action: null
         };
     }
 
     // Successfully got a response
     if (assistantMessage) {
-        // Add to conversation history
+        // Add to conversation history (text only for history)
         celesteConversation.push({ role: 'user', content: userMessage });
         celesteConversation.push({ role: 'assistant', content: assistantMessage });
 
@@ -1888,6 +1931,65 @@ function celesteQuickAction(action) {
         sendCelesteMessage();
     }
 }
+
+/**
+ * Handle image selection for vision
+ */
+function celesteHandleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check file size (max 4MB for base64)
+    if (file.size > 4 * 1024 * 1024) {
+        addCelesteMessage('Image is too large. Please use an image under 4MB.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        celesteCurrentImage = e.target.result;
+
+        // Show preview
+        const preview = document.getElementById('celeste-image-preview');
+        const previewImg = document.getElementById('celeste-preview-img');
+        if (preview && previewImg) {
+            previewImg.src = celesteCurrentImage;
+            preview.style.display = 'block';
+        }
+
+        // Update placeholder
+        const input = document.getElementById('celeste-input');
+        if (input) {
+            input.placeholder = 'Ask about this image...';
+            input.focus();
+        }
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input for same file selection
+    event.target.value = '';
+}
+
+/**
+ * Remove attached image
+ */
+function celesteRemoveImage() {
+    celesteCurrentImage = null;
+
+    const preview = document.getElementById('celeste-image-preview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+
+    const input = document.getElementById('celeste-input');
+    if (input) {
+        input.placeholder = 'Type or speak to Celeste...';
+    }
+}
+
+// Make functions globally available
+window.celesteHandleImageSelect = celesteHandleImageSelect;
+window.celesteRemoveImage = celesteRemoveImage;
 
 /**
  * Text-to-Speech for Celeste responses
