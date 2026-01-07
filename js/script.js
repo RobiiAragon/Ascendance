@@ -37314,7 +37314,8 @@ window.navigateToModule = function(page) {
 
 // API Settings Modal for Celeste AI - OpenAI Only
 window.openAPISettings = function() {
-    const currentKey = localStorage.getItem('openai_api_key') || '';
+    // Get key from Firebase first, then localStorage
+    const currentKey = window.celesteFirebaseSettings?.openai_api_key || localStorage.getItem('openai_api_key') || '';
     const maskedKey = currentKey ? '••••••••' + currentKey.slice(-8) : '';
     const isConnected = currentKey && currentKey.startsWith('sk-');
 
@@ -37484,22 +37485,53 @@ window.testOpenAIConnection = async function() {
     }
 }
 
-// Save API Settings
-window.saveAPISettings = function() {
+// Save API Settings - saves to Firebase for all users
+window.saveAPISettings = async function() {
     const apiKey = document.getElementById('openai-api-key-input').value.trim();
+    const saveBtn = document.querySelector('#api-settings-modal .btn-primary');
 
-    // Save to localStorage for persistence
-    if (apiKey) {
-        localStorage.setItem('openai_api_key', apiKey);
-        window.OPENAI_API_KEY = apiKey;
-    } else {
-        localStorage.removeItem('openai_api_key');
-        window.OPENAI_API_KEY = '';
+    // Show saving state
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveBtn.disabled = true;
     }
 
-    // Show success toast
-    showAPISettingsToast('API settings saved successfully!', 'success');
-    closeAPISettings();
+    try {
+        // Save to Firebase (for all users)
+        if (apiKey && typeof window.saveCelesteSettings === 'function') {
+            const saved = await window.saveCelesteSettings({ openai_api_key: apiKey });
+            if (saved) {
+                console.log('[API Settings] Saved to Firebase successfully');
+            }
+        }
+
+        // Also save to localStorage as backup
+        if (apiKey) {
+            localStorage.setItem('openai_api_key', apiKey);
+            window.OPENAI_API_KEY = apiKey;
+            // Update global settings
+            if (!window.celesteFirebaseSettings) window.celesteFirebaseSettings = {};
+            window.celesteFirebaseSettings.openai_api_key = apiKey;
+        } else {
+            localStorage.removeItem('openai_api_key');
+            window.OPENAI_API_KEY = '';
+            if (window.celesteFirebaseSettings) {
+                window.celesteFirebaseSettings.openai_api_key = '';
+            }
+        }
+
+        // Show success toast
+        showAPISettingsToast('API settings saved to cloud!', 'success');
+        closeAPISettings();
+    } catch (error) {
+        console.error('[API Settings] Error saving:', error);
+        showAPISettingsToast('Error saving settings: ' + error.message, 'error');
+
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Settings';
+            saveBtn.disabled = false;
+        }
+    }
 }
 
 // Toast for API settings
@@ -38456,17 +38488,16 @@ window.resetAIProviderKeys = async function() {
 // AI API KEY DEFAULTS (Shared across all AI features)
 // ═══════════════════════════════════════════════════════════════
 // OpenAI GPT-4 (used by Celeste AI and all voice assistants)
-const DEFAULT_OPENAI_KEY = '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';
+// OpenAI API Key - loaded from Firebase (no hardcoded key)
+const DEFAULT_OPENAI_KEY = ''; // Must be configured via Settings
 
-// Initialize default API key in localStorage on app load
-(function initializeDefaultAPIKey() {
-    if (!localStorage.getItem('openai_api_key')) {
-        localStorage.setItem('openai_api_key', DEFAULT_OPENAI_KEY);
-    }
-})();
-
+// Global function to get OpenAI API key from Firebase/localStorage
 window.getOpenAIKey = function() {
-    return localStorage.getItem('openai_api_key') || DEFAULT_OPENAI_KEY;
+    // Priority: Firebase settings > localStorage > empty
+    if (window.celesteFirebaseSettings?.openai_api_key) {
+        return window.celesteFirebaseSettings.openai_api_key;
+    }
+    return localStorage.getItem('openai_api_key') || '';
 }
 
 // ========== REUSABLE VOICE ASSISTANT COMPONENT ==========

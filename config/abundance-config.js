@@ -9,11 +9,12 @@
 // ═══════════════════════════════════════════════════════════════
 // CELESTE AI - API KEY
 // Powered by OpenAI GPT-4
-// Get your API key at: https://platform.openai.com/api-keys
+// API Key is stored in Firebase (app_config/openai_settings)
+// Configure via Settings > Celeste AI
 // ═══════════════════════════════════════════════════════════════
 
-// OpenAI API Key (GPT-4)
-window.OPENAI_API_KEY = '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';
+// OpenAI API Key placeholder - actual key loaded from Firebase
+window.OPENAI_API_KEY = ''; // Will be loaded from Firebase
 
 // Main Configuration
 window.ABUNDANCE_CONFIG = {

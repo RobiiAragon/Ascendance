@@ -8,10 +8,11 @@
 const CELESTE_CORS_PROXY = 'https://corsproxy.io/?';
 
 // ═══════════════════════════════════════════════════════════════
-// OPENAI API KEY (can be overridden via Firebase)
+// OPENAI API KEY - Must be configured via Settings > Celeste AI
 // Get your API key at: https://platform.openai.com/api-keys
+// Key is stored securely in Firebase, NOT in code
 // ═══════════════════════════════════════════════════════════════
-const DEFAULT_OPENAI_API_KEY = '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';
+const DEFAULT_OPENAI_API_KEY = ''; // No hardcoded key - must be set via Firebase
 
 // Celeste settings loaded from Firebase (will be populated on init)
 let celesteFirebaseSettings = null;
@@ -874,6 +875,9 @@ function createCelesteChatModal() {
                     Always ready to help
                 </div>
             </div>
+            <button class="celeste-settings-btn" onclick="if(typeof openAPISettings === 'function') openAPISettings();" title="API Settings" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 8px; transition: all 0.2s;">
+                <i class="fas fa-cog" style="color: rgba(255,255,255,0.8); font-size: 14px;"></i>
+            </button>
             <button class="celeste-close" onclick="toggleCelesteChat()">
                 <i class="fas fa-times"></i>
             </button>
