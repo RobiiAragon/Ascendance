@@ -150,38 +150,138 @@ window.EMPLOYEE_ROLES = {
 
 // Users Database (In-memory - for demo, normally in Firebase)
 window.USERS_DATABASE = {
-    'admin@vsu.com': {
-        id: 'admin-001',
-        email: 'admin@vsu.com',
-        password: 'VSUVSUVSU.2016$', // hashed in production
-        name: 'VSU Admin',
+    // === ADMINISTRATORS ===
+    'giselle@mwwineliquor.com': {
+        id: 'admin-giselle',
+        email: 'giselle@mwwineliquor.com',
+        password: 'Giselle2024!',
+        name: 'Giselle Brambila',
         role: 'admin',
         employeeType: 'admin',
         store: 'Miramar',
-        status: 'active',
-        hireDate: '2022-01-01'
+        status: 'active'
     },
-    'manager@vsu.com': {
-        id: 'manager-001',
-        email: 'manager@vsu.com',
-        password: 'Manager@123', // hashed in production
-        name: 'Marcus Rodriguez',
+    'lauren@mwwineliquor.com': {
+        id: 'admin-lauren',
+        email: 'lauren@mwwineliquor.com',
+        password: 'Lauren2024!',
+        name: 'Lauren Barrantes',
+        role: 'admin',
+        employeeType: 'admin',
+        store: 'Miramar',
+        status: 'active'
+    },
+    'carlos@calidevs.com': {
+        id: 'admin-carlos',
+        email: 'carlos@calidevs.com',
+        password: 'Carlos2024!',
+        name: 'Carlos Armando',
+        role: 'admin',
+        employeeType: 'admin',
+        store: 'Miramar',
+        status: 'active'
+    },
+    // === MANAGERS ===
+    'tianalatryce@gmail.com': {
+        id: 'mgr-tiana',
+        email: 'tianalatryce@gmail.com',
+        password: 'Tiana2024!',
+        name: 'Tiana Estrada',
         role: 'manager',
         employeeType: 'manager',
         store: 'Miramar',
-        status: 'active',
-        hireDate: '2023-01-15'
+        status: 'active'
     },
-    'employee@vsu.com': {
-        id: 'employee-001',
-        email: 'employee@vsu.com',
-        password: 'Employee@123', // hashed in production
-        name: 'Sarah Kim',
+    'rebeca@mmwl.com': {
+        id: 'mgr-rebeca',
+        email: 'rebeca@mmwl.com',
+        password: 'Rebeca2024!',
+        name: 'Rebecca Lozano',
+        role: 'manager',
+        employeeType: 'manager',
+        store: 'Miramar Wine & Liquor',
+        status: 'active'
+    },
+    // === EMPLOYEES ===
+    '56152jose@gmail.com': {
+        id: 'emp-jose',
+        email: '56152jose@gmail.com',
+        password: 'Jose2024!',
+        name: 'Jose Orozco',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Kearny Mesa',
+        status: 'active'
+    },
+    'sigala.angel@yahoo.com': {
+        id: 'emp-angel',
+        email: 'sigala.angel@yahoo.com',
+        password: 'Angel2024!',
+        name: 'Angel Sigala',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Chula Vista',
+        status: 'active'
+    },
+    'dbarrantes99@gmail.com': {
+        id: 'emp-daniel',
+        email: 'dbarrantes99@gmail.com',
+        password: 'Daniel2024!',
+        name: 'Daniel B',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Miramar',
+        status: 'active'
+    },
+    'saintnick1998@gmail.com': {
+        id: 'emp-chaston',
+        email: 'saintnick1998@gmail.com',
+        password: 'Chaston2024!',
+        name: 'Chaston Jolley-Kilfoy',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Chula Vista',
+        status: 'active'
+    },
+    'jnkeazor2@gmail.com': {
+        id: 'emp-kaitlyn',
+        email: 'jnkeazor2@gmail.com',
+        password: 'Kaitlyn2024!',
+        name: 'Kaitlyn Eazor',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Miramar',
+        status: 'active'
+    },
+    'pjayvyn@gmail.com': {
+        id: 'emp-jayjay',
+        email: 'pjayvyn@gmail.com',
+        password: 'JayJay2024!',
+        name: 'Jay Jay P',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Miramar',
+        status: 'active'
+    },
+    'willrubio@ymail.com': {
+        id: 'emp-will',
+        email: 'willrubio@ymail.com',
+        password: 'Will2024!',
+        name: 'Will Rubio',
+        role: 'employee',
+        employeeType: 'employee',
+        store: 'Miramar',
+        status: 'active'
+    },
+    'joceline.m11@gmail.com': {
+        id: 'emp-joceline',
+        email: 'joceline.m11@gmail.com',
+        password: 'Joceline2024!',
+        name: 'Joceline Ramos',
         role: 'employee',
         employeeType: 'employee',
         store: 'Morena',
-        status: 'active',
-        hireDate: '2023-03-20'
+        status: 'active'
     }
 };
 
