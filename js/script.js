@@ -1164,6 +1164,14 @@
 
             currentPage = page;
 
+            // Log page view activity (non-blocking)
+            if (typeof logActivity === 'function') {
+                logActivity(ACTIVITY_TYPES.VIEW, {
+                    message: `Viewed page: ${page}`,
+                    page: page
+                }, 'page', page).catch(err => console.warn('Failed to log page view:', err));
+            }
+
             // Save current page to sessionStorage (persists on refresh, clears on tab close)
             sessionStorage.setItem('ascendance_current_page', page);
 
@@ -4708,6 +4716,13 @@
                         if (firebaseAnnouncementsManager.isInitialized) {
                             const success = await firebaseAnnouncementsManager.deleteAnnouncement(announcementId);
                             if (success) {
+                                // Log activity
+                                if (typeof logActivity === 'function') {
+                                    await logActivity(ACTIVITY_TYPES.DELETE, {
+                                        message: `Deleted announcement: ${title}`,
+                                        announcementTitle: title
+                                    }, 'announcement', announcementId);
+                                }
                                 // Reload announcements from Firebase
                                 const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                                 announcements = updatedAnnouncements || [];
@@ -4799,6 +4814,14 @@
                         targetStores
                     });
                     if (success) {
+                        // Log activity
+                        if (typeof logActivity === 'function') {
+                            await logActivity(ACTIVITY_TYPES.UPDATE, {
+                                message: `Updated announcement: ${title}`,
+                                announcementTitle: title,
+                                targetStores: targetStores
+                            }, 'announcement', announcementId);
+                        }
                         // Reload announcements from Firebase
                         const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (updatedAnnouncements && updatedAnnouncements.length > 0) {
@@ -9673,8 +9696,16 @@ window.viewChecklistHistory = async function() {
 
                     // Delete from Firebase if initialized
                     if (firebaseRestockRequestsManager.isInitialized) {
-                        firebaseRestockRequestsManager.deleteRestockRequest(requestId).then(success => {
+                        firebaseRestockRequestsManager.deleteRestockRequest(requestId).then(async success => {
                             if (success) {
+                                // Log activity
+                                if (typeof logActivity === 'function') {
+                                    await logActivity(ACTIVITY_TYPES.DELETE, {
+                                        message: `Deleted restock request: ${productName}`,
+                                        productName: productName,
+                                        store: request?.store || 'Unknown'
+                                    }, 'restock', requestId);
+                                }
                                 console.log('Request deleted from Firebase:', requestId);
                                 renderRestockRequests();
                             }
@@ -13624,6 +13655,17 @@ window.viewChecklistHistory = async function() {
                 const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(scheduleData);
                 console.log('Schedule saved with ID:', docRef.id);
 
+                // Log activity
+                if (typeof logActivity === 'function') {
+                    await logActivity(ACTIVITY_TYPES.SCHEDULE, {
+                        message: `Created schedule for ${scheduleData.employeeName}`,
+                        employeeName: scheduleData.employeeName,
+                        store: scheduleData.store,
+                        date: scheduleData.date,
+                        shift: `${startTime} - ${endTime}`
+                    }, 'schedule', docRef.id);
+                }
+
                 showNotification('Shift added!', 'success');
                 closeModal();
                 loadScheduleData();
@@ -13659,6 +13701,18 @@ window.viewChecklistHistory = async function() {
                     updatedAt: new Date().toISOString()
                 });
 
+                // Log activity
+                if (typeof logActivity === 'function') {
+                    await logActivity(ACTIVITY_TYPES.SCHEDULE, {
+                        message: `Updated schedule for ${emp ? emp.name : 'employee'}`,
+                        employeeName: emp ? emp.name : 'Unknown',
+                        store: store,
+                        date: date,
+                        shift: `${startTime} - ${endTime}`,
+                        action: 'update'
+                    }, 'schedule', scheduleId);
+                }
+
                 showNotification('Shift updated!', 'success');
                 closeModal();
                 loadScheduleData();
@@ -13678,6 +13732,14 @@ window.viewChecklistHistory = async function() {
                     try {
                         const db = firebase.firestore();
                         await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(scheduleId).delete();
+
+                        // Log activity
+                        if (typeof logActivity === 'function') {
+                            await logActivity(ACTIVITY_TYPES.DELETE, {
+                                message: 'Deleted schedule shift',
+                                action: 'delete'
+                            }, 'schedule', scheduleId);
+                        }
 
                         showNotification('Shift deleted!', 'success');
                         loadScheduleData();
@@ -16015,6 +16077,9 @@ window.viewChecklistHistory = async function() {
         }
 
         async function deleteInvoice(id) {
+            const invoice = invoices.find(i => i.id === id || i.firestoreId === id);
+            const invoiceNumber = invoice?.invoiceNumber || id;
+
             showConfirmModal({
                 title: 'Delete Invoice',
                 message: 'Are you sure you want to delete this invoice? This action cannot be undone.',
@@ -16026,6 +16091,14 @@ window.viewChecklistHistory = async function() {
                     if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
                         const success = await firebaseInvoiceManager.deleteInvoice(id);
                         if (success) {
+                            // Log activity
+                            if (typeof logActivity === 'function') {
+                                await logActivity(ACTIVITY_TYPES.DELETE, {
+                                    message: `Deleted invoice: ${invoiceNumber}`,
+                                    invoiceNumber: invoiceNumber,
+                                    vendor: invoice?.vendor || 'Unknown'
+                                }, 'invoice', id);
+                            }
                             // Update local state
                             invoices = invoices.filter(i => i.id !== id && i.id !== numericId && i.firestoreId !== id);
                             renderInvoices();
@@ -16182,6 +16255,16 @@ window.viewChecklistHistory = async function() {
             if (typeof firebaseInvoiceManager !== 'undefined' && firebaseInvoiceManager.isInitialized) {
                 const docId = await firebaseInvoiceManager.addInvoice(invoiceData);
                 if (docId) {
+                    // Log activity
+                    if (typeof logActivity === 'function') {
+                        await logActivity(ACTIVITY_TYPES.CREATE, {
+                            message: `Created invoice: ${invoiceNumber || 'No number'}`,
+                            invoiceNumber: invoiceNumber,
+                            vendor: vendor,
+                            amount: amount,
+                            store: store
+                        }, 'invoice', docId);
+                    }
                     // Add to local array with Firebase ID
                     invoiceData.id = docId;
                     invoiceData.firestoreId = docId;
@@ -29949,6 +30032,14 @@ Return ONLY the JSON object, no additional text.`,
                 if (firebaseAnnouncementsManager.isInitialized) {
                     const docId = await firebaseAnnouncementsManager.addAnnouncement(announcementData);
                     if (docId) {
+                        // Log activity
+                        if (typeof logActivity === 'function') {
+                            await logActivity(ACTIVITY_TYPES.CREATE, {
+                                message: `Created announcement: ${title}`,
+                                announcementTitle: title,
+                                targetStores: targetStores
+                            }, 'announcement', docId);
+                        }
                         // Reload announcements from Firebase
                         const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (updatedAnnouncements && updatedAnnouncements.length > 0) {
@@ -30000,6 +30091,14 @@ Return ONLY the JSON object, no additional text.`,
                 if (firebaseAnnouncementsManager.isInitialized) {
                     const docId = await firebaseAnnouncementsManager.addAnnouncement(announcementData);
                     if (docId) {
+                        // Log activity
+                        if (typeof logActivity === 'function') {
+                            await logActivity(ACTIVITY_TYPES.CREATE, {
+                                message: `Created announcement: ${title}`,
+                                announcementTitle: title,
+                                targetStores: 'all'
+                            }, 'announcement', docId);
+                        }
                         // Reload announcements from Firebase
                         const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (updatedAnnouncements && updatedAnnouncements.length > 0) {
@@ -30548,8 +30647,18 @@ Return ONLY the JSON object, no additional text.`,
 
             // Save to Firebase if initialized
             if (firebaseRestockRequestsManager.isInitialized) {
-                firebaseRestockRequestsManager.addRestockRequest(newRequest).then(newId => {
+                firebaseRestockRequestsManager.addRestockRequest(newRequest).then(async newId => {
                     if (newId) {
+                        // Log activity
+                        if (typeof logActivity === 'function') {
+                            await logActivity(ACTIVITY_TYPES.CREATE, {
+                                message: `Created restock request: ${newRequest.productName}`,
+                                productName: newRequest.productName,
+                                quantity: newRequest.quantity,
+                                store: newRequest.store,
+                                priority: newRequest.priority
+                            }, 'restock', newId);
+                        }
                         restockRequests.unshift({
                             id: newId,
                             firestoreId: newId,
@@ -30661,8 +30770,18 @@ Return ONLY the JSON object, no additional text.`,
 
             // Save to Firebase if initialized
             if (firebaseRestockRequestsManager.isInitialized) {
-                firebaseRestockRequestsManager.addRestockRequest(newRequest).then(newId => {
+                firebaseRestockRequestsManager.addRestockRequest(newRequest).then(async newId => {
                     if (newId) {
+                        // Log activity
+                        if (typeof logActivity === 'function') {
+                            await logActivity(ACTIVITY_TYPES.CREATE, {
+                                message: `Created restock request: ${newRequest.productName}`,
+                                productName: newRequest.productName,
+                                quantity: newRequest.quantity,
+                                store: newRequest.store,
+                                priority: newRequest.priority
+                            }, 'restock', newId);
+                        }
                         restockRequests.unshift({
                             id: newId,
                             firestoreId: newId,
@@ -40724,27 +40843,64 @@ const ACTIVITY_TYPES = {
     CLOCK_OUT: 'clock_out',
     CREATE: 'create',
     UPDATE: 'update',
-    DELETE: 'delete'
+    DELETE: 'delete',
+    VIEW: 'view',
+    EXPORT: 'export',
+    SCHEDULE: 'schedule',
+    ANNOUNCEMENT: 'announcement',
+    INVOICE: 'invoice',
+    INVENTORY: 'inventory',
+    RESTOCK: 'restock',
+    TRANSFER: 'transfer'
 };
 
 // Log activity to Firebase
 async function logActivity(type, details = {}, entityType = null, entityId = null) {
     try {
-        const user = getCurrentUser();
-        if (!user) return;
+        // Get user from multiple sources for reliability
+        let user = getCurrentUser();
+
+        // Fallback to sessionStorage if getCurrentUser fails (e.g., during login)
+        if (!user) {
+            try {
+                const sessionUser = sessionStorage.getItem('ascendance_user');
+                if (sessionUser) {
+                    user = JSON.parse(sessionUser);
+                }
+            } catch (e) {
+                console.warn('Could not get user from sessionStorage:', e);
+            }
+        }
+
+        // If still no user and details has user info, use that (for login events)
+        if (!user && details.userName) {
+            user = {
+                id: details.userId || 'unknown',
+                name: details.userName,
+                email: details.userEmail || 'unknown',
+                role: details.userRole || 'unknown',
+                store: details.store || 'Unknown'
+            };
+        }
+
+        // Skip logging if no user context at all (except for system events)
+        if (!user && type !== 'system') {
+            console.warn('Cannot log activity without user context:', type);
+            return;
+        }
 
         const activityData = {
             type: type,
-            userId: user.id || user.firestoreId,
-            userName: user.name,
-            userEmail: user.email || user.authEmail,
-            userRole: user.role || user.employeeType,
+            userId: user?.id || user?.userId || user?.firestoreId || 'unknown',
+            userName: user?.name || 'Unknown User',
+            userEmail: user?.email || user?.authEmail || 'unknown',
+            userRole: user?.role || user?.employeeType || 'unknown',
             entityType: entityType,
             entityId: entityId,
             details: details,
             timestamp: new Date().toISOString(),
-            store: user.store || details.store || null,
-            ipAddress: null, // Could be added with external service
+            store: user?.store || details?.store || null,
+            ipAddress: null,
             userAgent: navigator.userAgent
         };
 
@@ -40842,6 +40998,14 @@ async function renderActivityLog() {
                     <option value="create">Created</option>
                     <option value="update">Updated</option>
                     <option value="delete">Deleted</option>
+                    <option value="view">Page Views</option>
+                    <option value="export">Exports</option>
+                    <option value="schedule">Schedule Changes</option>
+                    <option value="announcement">Announcements</option>
+                    <option value="invoice">Invoices</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="restock">Restocks</option>
+                    <option value="transfer">Transfers</option>
                 </select>
                 <select class="filter-select" id="activity-user-filter" onchange="filterActivityLogs()">
                     <option value="">All Users</option>
@@ -40956,7 +41120,15 @@ function renderActivityTable(logs) {
             'clock_out': '<i class="fas fa-clock" style="color: #f59e0b;"></i>',
             'create': '<i class="fas fa-plus-circle" style="color: #10b981;"></i>',
             'update': '<i class="fas fa-edit" style="color: #3b82f6;"></i>',
-            'delete': '<i class="fas fa-trash" style="color: #ef4444;"></i>'
+            'delete': '<i class="fas fa-trash" style="color: #ef4444;"></i>',
+            'view': '<i class="fas fa-eye" style="color: #8b5cf6;"></i>',
+            'export': '<i class="fas fa-download" style="color: #06b6d4;"></i>',
+            'schedule': '<i class="fas fa-calendar-alt" style="color: #ec4899;"></i>',
+            'announcement': '<i class="fas fa-bullhorn" style="color: #f97316;"></i>',
+            'invoice': '<i class="fas fa-file-invoice-dollar" style="color: #84cc16;"></i>',
+            'inventory': '<i class="fas fa-boxes" style="color: #a855f7;"></i>',
+            'restock': '<i class="fas fa-truck-loading" style="color: #14b8a6;"></i>',
+            'transfer': '<i class="fas fa-exchange-alt" style="color: #6366f1;"></i>'
         };
         return icons[type] || '<i class="fas fa-circle" style="color: var(--text-muted);"></i>';
     };
@@ -40969,7 +41141,15 @@ function renderActivityTable(logs) {
             'clock_out': 'Clocked Out',
             'create': 'Created',
             'update': 'Updated',
-            'delete': 'Deleted'
+            'delete': 'Deleted',
+            'view': 'Viewed',
+            'export': 'Exported',
+            'schedule': 'Schedule',
+            'announcement': 'Announcement',
+            'invoice': 'Invoice',
+            'inventory': 'Inventory',
+            'restock': 'Restock',
+            'transfer': 'Transfer'
         };
         return labels[type] || type;
     };
@@ -41071,7 +41251,7 @@ window.filterActivityLogs = function() {
 };
 
 // Export activity log
-window.exportActivityLog = function() {
+window.exportActivityLog = async function() {
     const logs = window.activityLogs || [];
     if (logs.length === 0) {
         showNotification('No activities to export', 'warning');
@@ -41099,11 +41279,21 @@ window.exportActivityLog = function() {
     a.click();
     URL.revokeObjectURL(url);
 
+    // Log the export activity
+    if (typeof logActivity === 'function') {
+        await logActivity(ACTIVITY_TYPES.EXPORT, {
+            message: 'Exported activity log',
+            recordCount: logs.length,
+            format: 'CSV'
+        }, 'activityLog', null);
+    }
+
     showNotification('Activity log exported!', 'success');
 };
 
-// Make logActivity globally available
+// Make logActivity and ACTIVITY_TYPES globally available
 window.logActivity = logActivity;
+window.ACTIVITY_TYPES = ACTIVITY_TYPES;
 
 // ==========================================
 // END ACTIVITY LOG MODULE
