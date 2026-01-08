@@ -40735,34 +40735,109 @@ function glabsLoadData() {
     glabsLoadDataForMonth();
 }
 
-// Load data for specific month
-function glabsLoadDataForMonth() {
+// Load data for specific month from Firebase
+async function glabsLoadDataForMonth() {
     const monthKey = glabsGetMonthKey();
-    const saved = localStorage.getItem(`glabs_month_${monthKey}`);
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            glabsSheets = parsed.sheets || {};
-            glabsCurrentSheet = parsed.currentSheet || 'Sheet 1';
-        } catch (e) {
-            console.error('Error loading G-Labs:', e);
+
+    try {
+        // Try Firebase first
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            const doc = await db.collection('glabs').doc(monthKey).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                glabsSheets = data.sheets || {};
+                glabsCurrentSheet = data.currentSheet || 'Sheet 1';
+                console.log('✅ G-Labs loaded from Firebase:', monthKey);
+            } else {
+                // No data in Firebase, check localStorage as fallback for migration
+                const saved = localStorage.getItem(`glabs_month_${monthKey}`);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        glabsSheets = parsed.sheets || {};
+                        glabsCurrentSheet = parsed.currentSheet || 'Sheet 1';
+                        // Migrate to Firebase
+                        glabsSaveData();
+                        console.log('✅ G-Labs migrated from localStorage to Firebase:', monthKey);
+                    } catch (e) {
+                        glabsSheets = {};
+                    }
+                } else {
+                    glabsSheets = {};
+                }
+            }
+        } else {
+            // Fallback to localStorage if Firebase not available
+            const saved = localStorage.getItem(`glabs_month_${monthKey}`);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                glabsSheets = parsed.sheets || {};
+                glabsCurrentSheet = parsed.currentSheet || 'Sheet 1';
+            } else {
+                glabsSheets = {};
+            }
+        }
+    } catch (error) {
+        console.error('Error loading G-Labs from Firebase:', error);
+        // Fallback to localStorage
+        const saved = localStorage.getItem(`glabs_month_${monthKey}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                glabsSheets = parsed.sheets || {};
+                glabsCurrentSheet = parsed.currentSheet || 'Sheet 1';
+            } catch (e) {
+                glabsSheets = {};
+            }
+        } else {
             glabsSheets = {};
         }
-    } else {
-        glabsSheets = {};
     }
+
     if (Object.keys(glabsSheets).length === 0) {
         glabsInitSheet('Sheet 1');
     }
 }
 
-// Save G-Labs to localStorage for current month
-function glabsSaveData() {
+// Save G-Labs to Firebase for current month
+async function glabsSaveData() {
     const monthKey = glabsGetMonthKey();
-    localStorage.setItem(`glabs_month_${monthKey}`, JSON.stringify({
+    const data = {
         sheets: glabsSheets,
-        currentSheet: glabsCurrentSheet
-    }));
+        currentSheet: glabsCurrentSheet,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        // Save to Firebase
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            await db.collection('glabs').doc(monthKey).set(data, { merge: true });
+            console.log('✅ G-Labs saved to Firebase:', monthKey);
+        }
+
+        // Also save to localStorage as backup
+        localStorage.setItem(`glabs_month_${monthKey}`, JSON.stringify({
+            sheets: glabsSheets,
+            currentSheet: glabsCurrentSheet
+        }));
+    } catch (error) {
+        console.error('Error saving G-Labs to Firebase:', error);
+        // Fallback to localStorage only
+        localStorage.setItem(`glabs_month_${monthKey}`, JSON.stringify({
+            sheets: glabsSheets,
+            currentSheet: glabsCurrentSheet
+        }));
+    }
+
+    // Update saved indicator
+    const savedEl = document.getElementById('glabs-saved');
+    if (savedEl) {
+        savedEl.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Synced';
+        savedEl.style.color = '#10b981';
+    }
 }
 
 // Save state for undo
@@ -41115,17 +41190,33 @@ function glabsEditCellDirectly(row, col, element, initialValue = null) {
     }
 }
 
-// Get list of all months that have data
-function glabsGetSavedMonths() {
-    const months = [];
+// Get list of all months that have data from Firebase
+async function glabsGetSavedMonths() {
+    const months = new Set();
+
+    try {
+        // Get from Firebase
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            const snapshot = await db.collection('glabs').get();
+            snapshot.forEach(doc => {
+                months.add(doc.id);
+            });
+        }
+    } catch (error) {
+        console.error('Error getting saved months from Firebase:', error);
+    }
+
+    // Also check localStorage for any local-only data
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('glabs_month_')) {
             const monthKey = key.replace('glabs_month_', '');
-            months.push(monthKey);
+            months.add(monthKey);
         }
     }
-    return months.sort().reverse();
+
+    return Array.from(months).sort().reverse();
 }
 
 // ==========================================
