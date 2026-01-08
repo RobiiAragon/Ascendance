@@ -1203,9 +1203,9 @@ function openAITransferModal() {
 
                         <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                             <div style="flex: 1;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From (Bodega)</label>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From (Warehouse)</label>
                                 <select id="aiTransferOrigin" class="form-control" style="width: 100%;">
-                                    <option value="loyalvaper" selected>Loyal Vaper (Bodega)</option>
+                                    <option value="loyalvaper" selected>Loyal Vaper (Warehouse)</option>
                                 </select>
                             </div>
                             <div style="flex: 1;">
