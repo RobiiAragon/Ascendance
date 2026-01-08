@@ -1203,25 +1203,20 @@ function openAITransferModal() {
 
                         <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                             <div style="flex: 1;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From</label>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From (Bodega)</label>
                                 <select id="aiTransferOrigin" class="form-control" style="width: 100%;">
-                                    <option value="">Select Origin</option>
-                                    <option value="1">Miramar</option>
-                                    <option value="2">Morena</option>
-                                    <option value="3">Kearny Mesa</option>
-                                    <option value="4">Chula Vista</option>
-                                    <option value="5">North Park</option>
+                                    <option value="loyalvaper" selected>Loyal Vaper (Bodega)</option>
                                 </select>
                             </div>
                             <div style="flex: 1;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">To</label>
+                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">To (VSU Location)</label>
                                 <select id="aiTransferDestination" class="form-control" style="width: 100%;">
                                     <option value="">Select Destination</option>
-                                    <option value="1">Miramar</option>
-                                    <option value="2">Morena</option>
-                                    <option value="3">Kearny Mesa</option>
-                                    <option value="4">Chula Vista</option>
-                                    <option value="5">North Park</option>
+                                    <option value="1">VSU Miramar</option>
+                                    <option value="2">VSU Morena</option>
+                                    <option value="3">VSU Kearny Mesa</option>
+                                    <option value="4">VSU Chula Vista</option>
+                                    <option value="5">VSU North Park</option>
                                 </select>
                             </div>
                         </div>
@@ -1546,43 +1541,84 @@ async function createAITransfers() {
         };
 
         // Try to sync with Shopify if enabled
+        // Flow: Loyal Vaper (bodega) -> VSU Location
         if (syncShopify && locationMap && window.searchProductForInventory) {
             try {
                 const productName = item.name || item.productName || '';
-                console.log(`[AI Transfer] Searching Shopify for: ${productName}`);
+                console.log(`[AI Transfer] Searching for: ${productName}`);
 
-                // Search for the product in Shopify
-                const products = await window.searchProductForInventory(productName, 'vsu');
+                // Step 1: Search product in Loyal Vaper (source/bodega)
+                const loyalVaperProducts = await window.searchProductForInventory(productName, 'loyalvaper');
 
-                if (products.length > 0) {
-                    const product = products[0]; // Use first match
-                    const fromLocationId = locationMap[origin];
-                    const toLocationId = locationMap[destination];
+                // Step 2: Search product in VSU (destination)
+                const vsuProducts = await window.searchProductForInventory(productName, 'vsu');
 
-                    if (product.inventoryItemId && fromLocationId && toLocationId) {
-                        console.log(`[AI Transfer] Syncing ${item.quantity} units of ${product.productTitle}`);
+                const toLocationId = locationMap[destination]; // VSU location
 
-                        const result = await window.transferInventoryBetweenLocations(
-                            product.inventoryItemId,
-                            fromLocationId,
+                if (loyalVaperProducts.length > 0 && vsuProducts.length > 0 && toLocationId) {
+                    const lvProduct = loyalVaperProducts[0];
+                    const vsuProduct = vsuProducts[0];
+
+                    console.log(`[AI Transfer] Found in Loyal Vaper: ${lvProduct.productTitle}`);
+                    console.log(`[AI Transfer] Found in VSU: ${vsuProduct.productTitle}`);
+
+                    let syncSuccess = true;
+                    let syncErrors = [];
+
+                    // Step 3: Subtract from Loyal Vaper inventory
+                    if (lvProduct.inventoryItemId && lvProduct.inventoryLevels.length > 0) {
+                        const lvLocationId = lvProduct.inventoryLevels[0].locationId;
+                        console.log(`[AI Transfer] Subtracting ${item.quantity} from Loyal Vaper`);
+
+                        const subtractResult = await window.adjustInventoryLevel(
+                            lvProduct.inventoryItemId,
+                            `gid://shopify/Location/${lvLocationId}`,
+                            -Math.abs(item.quantity),
+                            'loyalvaper'
+                        );
+
+                        if (!subtractResult.success) {
+                            syncSuccess = false;
+                            syncErrors.push(`Loyal Vaper: ${subtractResult.error}`);
+                        }
+                    } else {
+                        syncSuccess = false;
+                        syncErrors.push('Loyal Vaper: No inventory location found');
+                    }
+
+                    // Step 4: Add to VSU location inventory
+                    if (vsuProduct.inventoryItemId) {
+                        console.log(`[AI Transfer] Adding ${item.quantity} to VSU ${destination}`);
+
+                        const addResult = await window.adjustInventoryLevel(
+                            vsuProduct.inventoryItemId,
                             toLocationId,
-                            item.quantity,
+                            Math.abs(item.quantity),
                             'vsu'
                         );
 
-                        if (result.success) {
-                            transfer.shopifySynced = true;
-                            transfer.shopifyProductId = product.productId;
-                            transfer.notes = `Synced with Shopify: ${product.productTitle}`;
-                            shopifySyncResults.push({ name: productName, success: true });
-                        } else {
-                            shopifySyncResults.push({ name: productName, success: false, error: result.error });
+                        if (!addResult.success) {
+                            syncSuccess = false;
+                            syncErrors.push(`VSU: ${addResult.error}`);
                         }
                     } else {
-                        shopifySyncResults.push({ name: productName, success: false, error: 'Missing location IDs' });
+                        syncSuccess = false;
+                        syncErrors.push('VSU: No inventory item found');
+                    }
+
+                    if (syncSuccess) {
+                        transfer.shopifySynced = true;
+                        transfer.notes = `Synced: ${lvProduct.productTitle} (LV→VSU)`;
+                        shopifySyncResults.push({ name: productName, success: true });
+                    } else {
+                        shopifySyncResults.push({ name: productName, success: false, error: syncErrors.join('; ') });
                     }
                 } else {
-                    shopifySyncResults.push({ name: productName, success: false, error: 'Product not found in Shopify' });
+                    let error = '';
+                    if (loyalVaperProducts.length === 0) error += 'Not found in Loyal Vaper. ';
+                    if (vsuProducts.length === 0) error += 'Not found in VSU. ';
+                    if (!toLocationId) error += 'Invalid VSU location.';
+                    shopifySyncResults.push({ name: productName, success: false, error: error.trim() });
                 }
             } catch (syncError) {
                 console.error('[AI Transfer] Shopify sync error:', syncError);
