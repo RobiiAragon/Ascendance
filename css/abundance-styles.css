@@ -1230,3 +1230,323 @@ textarea.form-input {
         border-bottom: 1px solid var(--border-color) !important;
     }
 }
+
+/* ========================================
+   THE CHAMPS - RESPONSIVE STYLES
+   ======================================== */
+
+/* The Champs Product Card */
+.champs-product-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+    border-radius: 16px;
+    transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+    /* The Champs Container */
+    .champs-container {
+        padding: 16px !important;
+    }
+
+    /* The Champs Header */
+    .champs-header h2 {
+        font-size: 20px !important;
+    }
+
+    .champs-header h2 i {
+        font-size: 22px !important;
+    }
+
+    /* The Champs Controls - Stack vertically on mobile */
+    .champs-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+
+    .champs-controls > div:first-child {
+        width: 100%;
+    }
+
+    .champs-controls select {
+        flex: 1;
+        min-width: unset !important;
+    }
+
+    .champs-controls button {
+        flex: 1;
+    }
+
+    /* The Champs Summary Card */
+    .champs-summary {
+        width: 100%;
+        text-align: center;
+        padding: 10px 16px !important;
+    }
+
+    .champs-summary span:last-child {
+        font-size: 16px !important;
+    }
+
+    /* The Champs Product Cards - Mobile Layout */
+    .champs-product-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+        padding: 16px !important;
+    }
+
+    .champs-product-rank {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 18px !important;
+        flex-shrink: 0;
+    }
+
+    .champs-product-info {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+
+    .champs-product-name {
+        font-size: 14px !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.4;
+    }
+
+    .champs-product-meta {
+        flex-wrap: wrap;
+        gap: 8px !important;
+    }
+
+    .champs-product-revenue {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        margin-top: 4px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .champs-product-revenue > div:first-child {
+        font-size: 20px !important;
+    }
+
+    .champs-product-revenue > div:last-child {
+        font-size: 12px !important;
+    }
+
+    /* Loading and Error States */
+    .champs-loading,
+    .champs-error {
+        padding: 60px 20px !important;
+    }
+
+    .champs-loading i,
+    .champs-error i {
+        font-size: 32px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .champs-container {
+        padding: 12px !important;
+    }
+
+    .champs-product-card {
+        padding: 14px !important;
+    }
+
+    .champs-header h2 {
+        font-size: 18px !important;
+    }
+
+    .champs-controls select,
+    .champs-controls button {
+        padding: 10px 12px !important;
+        font-size: 13px !important;
+    }
+}
+
+/* ========================================
+   ACTIVITY LOG - RESPONSIVE STYLES
+   ======================================== */
+
+@media (max-width: 1024px) {
+    /* Activity Log Stats Grid */
+    .activity-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Activity Log Header */
+    .activity-log-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+    }
+
+    .activity-log-header .page-header-left {
+        width: 100%;
+    }
+
+    .activity-log-header > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+    }
+
+    .activity-log-header > div:last-child button {
+        flex: 1;
+    }
+
+    /* Activity Log Filters - Stack vertically */
+    .activity-filters {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .activity-filters .search-filter {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+
+    .activity-filters select,
+    .activity-filters input[type="date"] {
+        width: 100% !important;
+    }
+
+    /* Activity Stats Grid */
+    .activity-stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px !important;
+    }
+
+    .activity-stat-card {
+        padding: 16px !important;
+    }
+
+    .activity-stat-card .stat-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 18px !important;
+    }
+
+    .activity-stat-card .stat-value {
+        font-size: 22px !important;
+    }
+
+    .activity-stat-card .stat-label {
+        font-size: 11px !important;
+    }
+
+    /* Activity Table - Convert to Cards on Mobile */
+    .activity-log-table {
+        display: block !important;
+    }
+
+    .activity-log-table thead {
+        display: none !important;
+    }
+
+    .activity-log-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .activity-log-table tbody tr {
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px;
+        gap: 10px;
+    }
+
+    .activity-log-table tbody tr td {
+        padding: 0 !important;
+        border: none !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Time cell */
+    .activity-log-table tbody tr td:nth-child(1) {
+        order: 1;
+        font-size: 11px !important;
+        color: var(--text-muted);
+    }
+
+    /* User cell */
+    .activity-log-table tbody tr td:nth-child(2) {
+        order: 0;
+        padding-bottom: 10px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+
+    .activity-log-table tbody tr td:nth-child(2) > div {
+        gap: 10px !important;
+    }
+
+    .activity-log-table tbody tr td:nth-child(2) .user-avatar {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    /* Action cell */
+    .activity-log-table tbody tr td:nth-child(3) {
+        order: 2;
+    }
+
+    /* Details cell */
+    .activity-log-table tbody tr td:nth-child(4) {
+        order: 3;
+        max-width: 100% !important;
+        font-size: 12px !important;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+    }
+
+    /* Store cell */
+    .activity-log-table tbody tr td:nth-child(5) {
+        order: 4;
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    /* Hide store column on very small screens */
+    .activity-log-table tbody tr td:nth-child(5)::before {
+        content: 'Store: ';
+        font-weight: 500;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Even smaller screens */
+    .activity-stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .activity-stat-card {
+        flex-direction: row;
+        gap: 12px;
+    }
+
+    .activity-log-table tbody tr {
+        padding: 12px;
+    }
+
+    .activity-log-table tbody tr td:nth-child(2) > div > div:last-child > div:last-child {
+        display: none; /* Hide role on very small screens */
+    }
+}

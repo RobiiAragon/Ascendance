@@ -37677,37 +37677,42 @@ window.renderTheChamps = function() {
     if (!dashboard) return;
 
     dashboard.innerHTML = `
-        <div style="padding: 24px; max-width: 1200px; margin: 0 auto;">
+        <div class="champs-container" style="padding: 24px; max-width: 1200px; margin: 0 auto;">
             <!-- Header -->
-            <div class="page-header" style="margin-bottom: 24px;">
+            <div class="page-header champs-header" style="margin-bottom: 24px;">
                 <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
                     <i class="fas fa-crown" style="color: #FFD700; font-size: 28px;"></i>
-                    The Champs - Loyal Vaper
+                    The Champs
                 </h2>
-                <p class="section-subtitle">Top selling products from Loyal Vaper store</p>
+                <p class="section-subtitle">Top selling products across all stores</p>
             </div>
 
             <!-- Controls -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
-                <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="champs-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <select id="champs-store" onchange="loadChampsData()" style="padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; min-width: 180px;">
+                        <option value="loyalvaper">Loyal Vaper</option>
+                        <option value="vsu">Vape Smoke Universe</option>
+                        <option value="miramarwine">Miramar Wine & Liquor</option>
+                    </select>
                     <select id="champs-period" onchange="loadChampsData()" style="padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; min-width: 150px;">
                         <option value="month">This Month</option>
                         <option value="week">This Week</option>
                         <option value="today">Today</option>
                     </select>
-                    <button onclick="loadChampsData()" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                    <button onclick="loadChampsData()" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                 </div>
-                <div id="champs-summary" style="display: none; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05)); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.2);">
+                <div id="champs-summary" class="champs-summary" style="display: none; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05)); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.2);">
                     <span style="font-size: 13px; color: var(--text-muted);">Total Revenue:</span>
                     <span id="champs-total-revenue" style="font-size: 18px; font-weight: 700; color: #10b981; margin-left: 8px;">$0.00</span>
                 </div>
             </div>
 
             <!-- Loading State -->
-            <div id="champs-loading" style="text-align: center; padding: 80px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
-                <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: #FFD700; margin-bottom: 16px;"></i>
+            <div id="champs-loading" class="champs-loading" style="text-align: center; padding: 80px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
+                <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: #FFD700; margin-bottom: 16px; display: block;"></i>
                 <div style="font-size: 16px; color: var(--text-muted);">Loading top products...</div>
             </div>
 
@@ -37719,8 +37724,8 @@ window.renderTheChamps = function() {
             </div>
 
             <!-- Error State -->
-            <div id="champs-error" style="display: none; text-align: center; padding: 80px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
-                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: #f59e0b; margin-bottom: 16px;"></i>
+            <div id="champs-error" class="champs-error" style="display: none; text-align: center; padding: 80px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: #f59e0b; margin-bottom: 16px; display: block;"></i>
                 <div style="font-size: 16px; color: var(--text-primary); margin-bottom: 8px;">Failed to load data</div>
                 <div style="font-size: 14px; color: var(--text-muted);">Click refresh to try again</div>
             </div>
@@ -37731,7 +37736,7 @@ window.renderTheChamps = function() {
     loadChampsData();
 }
 
-// Load The Champs data from Loyal Vaper API
+// Load The Champs data from selected store API
 window.loadChampsData = async function() {
     const loadingEl = document.getElementById('champs-loading');
     const contentEl = document.getElementById('champs-content');
@@ -37740,6 +37745,7 @@ window.loadChampsData = async function() {
     const summaryEl = document.getElementById('champs-summary');
     const totalRevenueEl = document.getElementById('champs-total-revenue');
     const periodSelect = document.getElementById('champs-period');
+    const storeSelect = document.getElementById('champs-store');
 
     if (!loadingEl || !contentEl || !listEl) return;
 
@@ -37750,9 +37756,10 @@ window.loadChampsData = async function() {
     if (summaryEl) summaryEl.style.display = 'none';
 
     try {
-        const storeConfig = window.STORES_CONFIG?.loyalvaper;
+        const selectedStore = storeSelect?.value || 'loyalvaper';
+        const storeConfig = window.STORES_CONFIG?.[selectedStore];
         if (!storeConfig) {
-            throw new Error('Loyal Vaper config not found');
+            throw new Error(`Store config not found: ${selectedStore}`);
         }
 
         const CORS_PROXY = 'https://corsproxy.io/?';
@@ -37833,21 +37840,20 @@ window.loadChampsData = async function() {
                                   : index === 1 ? 'rgba(192, 192, 192, 0.4)'
                                   : index === 2 ? 'rgba(205, 127, 50, 0.4)'
                                   : 'var(--border-color)';
-                const scale = isTop3 ? 'transform: scale(1.02);' : '';
 
                 return `
-                    <div style="display: flex; align-items: center; gap: 20px; padding: 20px 24px; background: ${bgColor}; border-radius: 16px; border: 1px solid ${borderColor}; ${scale} transition: all 0.2s;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='${isTop3 ? 'scale(1.02)' : 'scale(1)'}'">
-                        <div style="width: 48px; height: 48px; background: var(--bg-primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: ${medal ? '24px' : '18px'}; color: var(--text-primary); border: 2px solid ${borderColor};">
+                    <div class="champs-product-card" style="display: flex; align-items: center; gap: 20px; padding: 20px 24px; background: ${bgColor}; border-radius: 16px; border: 1px solid ${borderColor}; transition: all 0.2s;">
+                        <div class="champs-product-rank" style="width: 48px; height: 48px; background: var(--bg-primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: ${medal ? '24px' : '18px'}; color: var(--text-primary); border: 2px solid ${borderColor}; flex-shrink: 0;">
                             ${medal || (index + 1)}
                         </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.name}</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">
-                                <span style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${product.sku}</span>
-                                ${product.units} units sold
+                        <div class="champs-product-info" style="flex: 1; min-width: 0;">
+                            <div class="champs-product-name" style="font-weight: 600; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.name}</div>
+                            <div class="champs-product-meta" style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+                                <span style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px;">${product.sku}</span>
+                                <span>${product.units} units sold</span>
                             </div>
                         </div>
-                        <div style="text-align: right;">
+                        <div class="champs-product-revenue" style="text-align: right; flex-shrink: 0;">
                             <div style="font-weight: 700; font-size: 18px; color: #10b981;">$${product.revenue.toFixed(2)}</div>
                             <div style="font-size: 12px; color: var(--text-muted);">$${(product.revenue / product.units).toFixed(2)}/unit</div>
                         </div>
@@ -41415,24 +41421,24 @@ async function renderActivityLog() {
     const dashboard = document.querySelector('.dashboard');
 
     dashboard.innerHTML = `
-        <div class="page-header">
+        <div class="page-header activity-log-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
             <div class="page-header-left">
                 <h2 class="section-title"><i class="fas fa-history" style="color: var(--accent-primary);"></i> Activity Log</h2>
                 <p class="section-subtitle">Track all system activities and user actions</p>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-secondary" onclick="exportActivityLog()">
-                    <i class="fas fa-download"></i> Export
+                    <i class="fas fa-download"></i> <span class="btn-text">Export</span>
                 </button>
                 <button class="btn-secondary" onclick="renderActivityLog()">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                    <i class="fas fa-sync-alt"></i> <span class="btn-text">Refresh</span>
                 </button>
             </div>
         </div>
 
         <!-- Filters -->
         <div class="card" style="margin-bottom: 20px; padding: 16px;">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <div class="activity-filters" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
                 <div class="search-filter" style="flex: 1; min-width: 200px;">
                     <i class="fas fa-search"></i>
                     <input type="text" id="activity-search" placeholder="Search by user, action..." onkeyup="filterActivityLogs()">
@@ -41463,29 +41469,29 @@ async function renderActivityLog() {
         </div>
 
         <!-- Stats Cards -->
-        <div class="stats-grid" id="activity-stats" style="margin-bottom: 20px;">
-            <div class="stat-card">
+        <div class="stats-grid activity-stats-grid" id="activity-stats" style="margin-bottom: 20px;">
+            <div class="stat-card activity-stat-card">
                 <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fas fa-sign-in-alt"></i></div>
                 <div class="stat-content">
                     <span class="stat-value" id="stat-logins">-</span>
                     <span class="stat-label">Logins Today</span>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card activity-stat-card">
                 <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);"><i class="fas fa-clock"></i></div>
                 <div class="stat-content">
                     <span class="stat-value" id="stat-clockins">-</span>
                     <span class="stat-label">Clock Ins Today</span>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card activity-stat-card">
                 <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-edit"></i></div>
                 <div class="stat-content">
                     <span class="stat-value" id="stat-changes">-</span>
                     <span class="stat-label">Changes Today</span>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card activity-stat-card">
                 <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"><i class="fas fa-users"></i></div>
                 <div class="stat-content">
                     <span class="stat-value" id="stat-active-users">-</span>
@@ -41616,7 +41622,7 @@ function renderActivityTable(logs) {
     };
 
     container.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
+        <table class="activity-log-table" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: var(--bg-secondary);">
                     <th style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-muted);">Time</th>
@@ -41634,7 +41640,7 @@ function renderActivityTable(logs) {
                         </td>
                         <td style="padding: 12px 16px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                                <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600; flex-shrink: 0;">
                                     ${log.userName ? log.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'}
                                 </div>
                                 <div>
