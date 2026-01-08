@@ -1226,8 +1226,33 @@ function openAITransferModal() {
                             </div>
                         </div>
 
+                        <!-- Photo Upload Section -->
+                        <div id="aiTransferPhotoSection" style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">
+                                <i class="fas fa-camera" style="margin-right: 4px;"></i> Scan products with photo
+                            </label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <label for="aiTransferPhotoInput" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 14px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                                    <i class="fas fa-camera"></i> Take Photo / Upload
+                                </label>
+                                <input type="file" id="aiTransferPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="processTransferPhoto(this)">
+                            </div>
+                            <div id="aiTransferPhotoPreview" style="display: none; margin-top: 12px; position: relative;">
+                                <img id="aiTransferPhotoImg" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; border: 1px solid var(--border-color);">
+                                <button onclick="clearTransferPhoto()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                            <span style="font-size: 12px; color: var(--text-muted);">or type manually</span>
+                            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                        </div>
+
                         <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Products (one per line or comma separated)</label>
-                        <textarea id="aiTransferInput" class="form-control" rows="4" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry&#10;3 Geek Bar Grape..." style="font-size: 14px; resize: vertical;"></textarea>
+                        <textarea id="aiTransferInput" class="form-control" rows="3" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry&#10;3 Geek Bar Grape..." style="font-size: 14px; resize: vertical;"></textarea>
                     </div>
 
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -1552,3 +1577,174 @@ function startVoiceInput() {
 
     recognition.start();
 }
+
+// ========================================
+// PHOTO VISION AI FOR TRANSFERS
+// ========================================
+
+// Process photo with OpenAI Vision
+async function processTransferPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const origin = document.getElementById('aiTransferOrigin').value;
+    const destination = document.getElementById('aiTransferDestination').value;
+
+    if (!origin || !destination) {
+        alert('Please select origin and destination stores first');
+        input.value = '';
+        return;
+    }
+
+    if (origin === destination) {
+        alert('Origin and destination cannot be the same');
+        input.value = '';
+        return;
+    }
+
+    // Show preview
+    const preview = document.getElementById('aiTransferPhotoPreview');
+    const img = document.getElementById('aiTransferPhotoImg');
+    const reader = new FileReader();
+
+    reader.onload = async function(e) {
+        const base64Image = e.target.result;
+        img.src = base64Image;
+        preview.style.display = 'block';
+
+        // Show loading
+        document.getElementById('aiTransferLoading').style.display = 'block';
+        document.getElementById('aiTransferResults').style.display = 'none';
+
+        try {
+            // Get API key
+            const apiKey = await getOpenAIKeyForTransfers();
+            if (!apiKey) {
+                alert('OpenAI API key not configured. Go to Settings > Celeste AI to set it up.');
+                document.getElementById('aiTransferLoading').style.display = 'none';
+                return;
+            }
+
+            // Call OpenAI Vision
+            const items = await analyzeTransferPhotoWithVision(base64Image, apiKey);
+
+            if (items.length === 0) {
+                alert('No products detected in the image. Try taking a clearer photo.');
+                document.getElementById('aiTransferLoading').style.display = 'none';
+                return;
+            }
+
+            aiTransferState.parsedItems = items;
+            renderParsedItems();
+
+        } catch (error) {
+            console.error('Photo analysis error:', error);
+            alert('Error analyzing photo: ' + error.message);
+        }
+
+        document.getElementById('aiTransferLoading').style.display = 'none';
+    };
+
+    reader.readAsDataURL(file);
+}
+
+// Clear transfer photo
+function clearTransferPhoto() {
+    const preview = document.getElementById('aiTransferPhotoPreview');
+    const input = document.getElementById('aiTransferPhotoInput');
+    if (preview) preview.style.display = 'none';
+    if (input) input.value = '';
+}
+
+// Get OpenAI API key
+async function getOpenAIKeyForTransfers() {
+    // Try from Firebase settings first
+    if (window.celesteFirebaseSettings?.openai_api_key) {
+        return window.celesteFirebaseSettings.openai_api_key;
+    }
+    // Try from localStorage
+    const localKey = localStorage.getItem('openai_api_key_custom');
+    if (localKey) return localKey;
+    // Try from window
+    if (window.OPENAI_API_KEY) return window.OPENAI_API_KEY;
+    return null;
+}
+
+// Analyze photo with OpenAI Vision API
+async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are a product identification assistant for a vape shop inventory transfer system.
+Analyze the image and identify vape products (disposable vapes, e-liquids, devices, accessories).
+For each product you can identify, extract:
+- Product name/brand (e.g., "Lost Mary", "Elf Bar", "Geek Bar", "SWFT", "Breeze", etc.)
+- Flavor if visible
+- Quantity (count how many of each you see, default to 1 if unclear)
+
+Return ONLY a JSON array with the products found. Example format:
+[{"name": "Lost Mary Watermelon", "quantity": 5}, {"name": "Elf Bar Blueberry Ice", "quantity": 3}]
+
+If you cannot identify any products clearly, return an empty array: []
+Be concise with product names. Do not include SKUs or prices.`
+                },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: 'Identify all vape products in this image for an inventory transfer. List each product with quantity.'
+                        },
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: base64Image,
+                                detail: 'high'
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens: 1000,
+            temperature: 0.3
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'OpenAI API error');
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '[]';
+
+    // Parse JSON from response
+    try {
+        // Extract JSON array from response (might have extra text)
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const items = JSON.parse(jsonMatch[0]);
+            return items.map(item => ({
+                name: item.name || 'Unknown Product',
+                quantity: parseInt(item.quantity) || 1,
+                sku: 'PHOTO-SCAN'
+            }));
+        }
+    } catch (parseError) {
+        console.error('Error parsing AI response:', parseError, content);
+    }
+
+    return [];
+}
+
+// Make functions globally available
+window.processTransferPhoto = processTransferPhoto;
+window.clearTransferPhoto = clearTransferPhoto;
