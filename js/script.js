@@ -4856,10 +4856,69 @@
         // ==========================================
 
         // Clock In attendance records storage
-        let clockinAttendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+        let clockinAttendanceRecords = [];
         let currentClockAction = '';
         let clockInterval = null;
         let clockPollingInterval = null; // For real-time AJAX polling
+
+        // Load attendance records from Firebase
+        async function loadAttendanceRecordsFromFirebase() {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('attendanceRecords').orderBy('timestamp', 'desc').limit(500).get();
+                    clockinAttendanceRecords = [];
+                    snapshot.forEach(doc => {
+                        clockinAttendanceRecords.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log('✅ Attendance records loaded from Firebase:', clockinAttendanceRecords.length);
+                } else {
+                    // Fallback to localStorage
+                    clockinAttendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+                }
+            } catch (error) {
+                console.error('Error loading attendance from Firebase:', error);
+                clockinAttendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+            }
+        }
+
+        // Save attendance record to Firebase
+        async function saveAttendanceRecordToFirebase(record) {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const docRef = await db.collection('attendanceRecords').add({
+                        ...record,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    record.id = docRef.id;
+                    console.log('✅ Attendance record saved to Firebase:', docRef.id);
+                }
+                // Also save to localStorage as backup
+                localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+            } catch (error) {
+                console.error('Error saving attendance to Firebase:', error);
+                localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+            }
+        }
+
+        // Update attendance record in Firebase
+        async function updateAttendanceRecordInFirebase(recordId, updates) {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore && recordId) {
+                    const db = firebase.firestore();
+                    await db.collection('attendanceRecords').doc(recordId).update(updates);
+                    console.log('✅ Attendance record updated in Firebase:', recordId);
+                }
+                localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+            } catch (error) {
+                console.error('Error updating attendance in Firebase:', error);
+                localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+            }
+        }
+
+        // Initialize attendance records on load
+        loadAttendanceRecordsFromFirebase();
 
         // ==========================================
         // GEOFENCING FUNCTIONS FOR CLOCK IN/OUT
@@ -5402,7 +5461,8 @@
                         });
 
                         clockinAttendanceRecords = updatedRecords;
-                        localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+                        // Sync to Firebase in background
+                        saveAttendanceRecordsToFirebaseAll();
 
                         // Update UI with visual feedback
                         showRealtimeUpdateNotification();
