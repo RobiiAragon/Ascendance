@@ -37673,11 +37673,11 @@ window.renderProjectAnalytics = function() {
 
 // The Champs - Top Selling Products Module
 window.renderTheChamps = function() {
-    const pageContent = document.getElementById('page-content');
-    if (!pageContent) return;
+    const dashboard = document.querySelector('.dashboard');
+    if (!dashboard) return;
 
-    pageContent.innerHTML = `
-        <div class="page-content" style="padding: 24px; max-width: 1200px; margin: 0 auto;">
+    dashboard.innerHTML = `
+        <div style="padding: 24px; max-width: 1200px; margin: 0 auto;">
             <!-- Header -->
             <div class="page-header" style="margin-bottom: 24px;">
                 <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
