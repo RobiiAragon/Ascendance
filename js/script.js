@@ -37699,6 +37699,8 @@ window.renderTheChamps = function() {
                         <option value="month">This Month</option>
                         <option value="week">This Week</option>
                         <option value="today">Today</option>
+                        <option value="lastmonth">Last Month</option>
+                        <option value="3months">Last 3 Months</option>
                     </select>
                     <button onclick="loadChampsData()" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
                         <i class="fas fa-sync-alt"></i> Refresh
@@ -37775,7 +37777,14 @@ window.loadChampsData = async function() {
         } else if (period === 'week') {
             startDate = new Date(now);
             startDate.setDate(now.getDate() - now.getDay());
+        } else if (period === 'lastmonth') {
+            // Last month: from 1st of last month to last day of last month
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        } else if (period === '3months') {
+            // Last 3 months
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
         } else {
+            // This month (default)
             startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         }
 
