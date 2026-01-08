@@ -1187,101 +1187,119 @@ function openAITransferModal() {
         modal.id = 'aiTransferModal';
         modal.className = 'modal';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 600px;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-                    <h3 style="color: white; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-robot"></i> AI Transfer Assistant
-                    </h3>
-                    <button class="close-modal" onclick="closeAITransferModal()" style="color: white;">&times;</button>
+            <div class="modal-content" style="max-width: 520px; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 24px; position: relative;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-wand-magic-sparkles" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">AI Transfer</h3>
+                            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 12px;">Scan products with AI vision</p>
+                        </div>
+                    </div>
+                    <button class="close-modal" onclick="closeAITransferModal()" style="color: white; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); opacity: 0.8;">&times;</button>
                 </div>
                 <div class="modal-body" style="padding: 24px;">
-                    <div style="margin-bottom: 20px;">
-                        <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                            Describe your transfer naturally. Example:<br>
-                            <em style="color: var(--accent-primary);">"5 Lost Mary Watermelon, 10 Elf Bar Blueberry, 3 Geek Bar from Morena to Chula Vista"</em>
-                        </p>
-
-                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">From (Warehouse)</label>
-                                <select id="aiTransferOrigin" class="form-control" style="width: 100%;">
-                                    <option value="loyalvaper" selected>Loyal Vaper (Warehouse)</option>
-                                </select>
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">To (VSU Location)</label>
-                                <select id="aiTransferDestination" class="form-control" style="width: 100%;">
-                                    <option value="">Select Destination</option>
-                                    <option value="1">VSU Miramar</option>
-                                    <option value="2">VSU Morena</option>
-                                    <option value="3">VSU Kearny Mesa</option>
-                                    <option value="4">VSU Chula Vista</option>
-                                    <option value="5">VSU North Park</option>
+                    <!-- Location Selectors -->
+                    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; margin-bottom: 24px;">
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">From</label>
+                            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-warehouse" style="color: #667eea; font-size: 16px;"></i>
+                                <select id="aiTransferOrigin" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
+                                    <option value="loyalvaper" selected>Loyal Vaper</option>
                                 </select>
                             </div>
                         </div>
-
-                        <!-- Photo Upload Section -->
-                        <div id="aiTransferPhotoSection" style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">
-                                <i class="fas fa-camera" style="margin-right: 4px;"></i> Scan products with photo
-                            </label>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <label for="aiTransferPhotoInput" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 14px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
-                                    <i class="fas fa-camera"></i> Take Photo / Upload
-                                </label>
-                                <input type="file" id="aiTransferPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="processTransferPhoto(this)">
+                        <div style="padding-bottom: 8px;">
+                            <i class="fas fa-arrow-right" style="color: var(--text-muted); font-size: 14px;"></i>
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">To</label>
+                            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-store" style="color: #10b981; font-size: 16px;"></i>
+                                <select id="aiTransferDestination" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
+                                    <option value="">Select store</option>
+                                    <option value="1">Miramar</option>
+                                    <option value="2">Morena</option>
+                                    <option value="3">Kearny Mesa</option>
+                                    <option value="4">Chula Vista</option>
+                                    <option value="5">North Park</option>
+                                </select>
                             </div>
-                            <div id="aiTransferPhotoPreview" style="display: none; margin-top: 12px; position: relative;">
-                                <img id="aiTransferPhotoImg" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; border: 1px solid var(--border-color);">
-                                <button onclick="clearTransferPhoto()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer;">
-                                    <i class="fas fa-times"></i>
+                        </div>
+                    </div>
+
+                    <!-- Photo Scan Section -->
+                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 20px; position: relative;" id="aiTransferPhotoSection">
+                        <input type="file" id="aiTransferPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="processTransferPhoto(this)">
+                        <div id="aiTransferPhotoPreview" style="display: none; position: relative;">
+                            <img id="aiTransferPhotoImg" style="width: 100%; max-height: 180px; object-fit: contain; border-radius: 12px;">
+                            <button onclick="clearTransferPhoto()" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(239,68,68,0.4);">
+                                <i class="fas fa-times" style="font-size: 12px;"></i>
+                            </button>
+                        </div>
+                        <div id="aiTransferPhotoPlaceholder">
+                            <label for="aiTransferPhotoInput" style="cursor: pointer; display: block;">
+                                <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                                    <i class="fas fa-camera" style="color: white; font-size: 24px;"></i>
+                                </div>
+                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Scan Products</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Take a photo or upload image</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Manual Input (Collapsed) -->
+                    <details style="margin-bottom: 20px;">
+                        <summary style="font-size: 12px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                            <i class="fas fa-keyboard"></i> Or type manually
+                        </summary>
+                        <div style="display: flex; gap: 8px; margin-top: 12px;">
+                            <textarea id="aiTransferInput" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry..." style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; font-size: 13px; resize: none; height: 80px; color: var(--text-primary);"></textarea>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button onclick="parseAITransferInput()" style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Parse">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                </button>
+                                <button onclick="startVoiceInput()" style="width: 44px; height: 36px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Voice">
+                                    <i class="fas fa-microphone" style="color: var(--text-muted);"></i>
                                 </button>
                             </div>
                         </div>
+                    </details>
 
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-                            <span style="font-size: 12px; color: var(--text-muted);">or type manually</span>
-                            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-                        </div>
-
-                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Products (one per line or comma separated)</label>
-                        <textarea id="aiTransferInput" class="form-control" rows="3" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry&#10;3 Geek Bar Grape..." style="font-size: 14px; resize: vertical;"></textarea>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <button onclick="parseAITransferInput()" style="flex: 1; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <i class="fas fa-magic"></i> Parse Items
-                        </button>
-                        <button onclick="startVoiceInput()" style="width: 48px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Voice Input">
-                            <i class="fas fa-microphone" style="color: var(--accent-primary);"></i>
-                        </button>
-                    </div>
-
+                    <!-- Results Section -->
                     <div id="aiTransferResults" style="display: none;">
-                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-clipboard-list" style="color: #10b981;"></i> Parsed Items
-                        </h4>
-                        <div id="aiTransferItemsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px;"></div>
-
-                        <!-- Shopify Sync Option -->
-                        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" id="aiTransferSyncShopify" style="width: 18px; height: 18px; cursor: pointer;">
-                                <div>
-                                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">
-                                        <i class="fab fa-shopify" style="color: #96bf48; margin-right: 4px;"></i> Sync with Shopify
-                                    </div>
-                                    <div style="font-size: 12px; color: var(--text-muted);">Update inventory levels in Shopify automatically</div>
-                                </div>
-                            </label>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <h4 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-box-open" style="color: #10b981;"></i> Products Found
+                            </h4>
+                            <span id="aiTransferItemCount" style="background: var(--bg-secondary); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: var(--text-muted);"></span>
                         </div>
+                        <div id="aiTransferItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
 
-                        <div style="display: flex; gap: 10px;">
-                            <button onclick="closeAITransferModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
-                            <button onclick="createAITransfers()" class="btn-primary" style="flex: 1; background: #10b981;">
-                                <i class="fas fa-check"></i> Create Transfers
+                        <!-- Shopify Sync Toggle -->
+                        <label style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fab fa-shopify" style="color: #96bf48; font-size: 20px;"></i>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Sync with Shopify</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Auto-update inventory levels</div>
+                                </div>
+                            </div>
+                            <div style="position: relative;">
+                                <input type="checkbox" id="aiTransferSyncShopify" style="opacity: 0; position: absolute;">
+                                <div class="toggle-track" style="width: 44px; height: 24px; background: var(--border-color); border-radius: 12px; transition: all 0.2s;"></div>
+                                <div class="toggle-thumb" style="position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 10px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                            </div>
+                        </label>
+
+                        <!-- Action Buttons -->
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                            <button onclick="closeAITransferModal()" style="padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">Cancel</button>
+                            <button onclick="createAITransfers()" style="padding: 14px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fas fa-paper-plane"></i> Create Transfer
                             </button>
                         </div>
                     </div>
@@ -1448,24 +1466,27 @@ async function parseTransferWithAI(input) {
 function renderParsedItems() {
     const listEl = document.getElementById('aiTransferItemsList');
     const resultsEl = document.getElementById('aiTransferResults');
+    const countEl = document.getElementById('aiTransferItemCount');
 
     if (!listEl || !resultsEl) return;
 
+    // Update count badge
+    const totalItems = aiTransferState.parsedItems.reduce((sum, item) => sum + item.quantity, 0);
+    if (countEl) {
+        countEl.textContent = `${aiTransferState.parsedItems.length} items · ${totalItems} units`;
+    }
+
     listEl.innerHTML = aiTransferState.parsedItems.map((item, index) => `
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 8px; border-left: 4px solid ${item.matched ? '#10b981' : '#f59e0b'};">
-            <div style="width: 40px; height: 40px; background: ${item.matched ? '#10b98120' : '#f59e0b20'}; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: ${item.matched ? '#10b981' : '#f59e0b'};">
-                ${item.quantity}
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--bg-secondary); border-radius: 12px;">
+            <div style="min-width: 36px; height: 36px; background: linear-gradient(135deg, #667eea20, #764ba220); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #667eea;">
+                ${item.quantity}x
             </div>
-            <div style="flex: 1;">
-                <div style="font-weight: 600; color: var(--text-primary);">${item.productName}</div>
-                ${item.matched ? `
-                    <div style="font-size: 12px; color: #10b981;"><i class="fas fa-check-circle"></i> Matched: ${item.matchedProduct.productName}</div>
-                ` : `
-                    <div style="font-size: 12px; color: #f59e0b;"><i class="fas fa-exclamation-triangle"></i> No exact match - will create as entered</div>
-                `}
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${item.sku || 'No SKU'}</div>
             </div>
-            <button onclick="removeAIParsedItem(${index})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
-                <i class="fas fa-times"></i>
+            <button onclick="removeAIParsedItem(${index})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
+                <i class="fas fa-trash-alt" style="font-size: 12px;"></i>
             </button>
         </div>
     `).join('');
@@ -1726,6 +1747,7 @@ async function processTransferPhoto(input) {
 
     // Show preview
     const preview = document.getElementById('aiTransferPhotoPreview');
+    const placeholder = document.getElementById('aiTransferPhotoPlaceholder');
     const img = document.getElementById('aiTransferPhotoImg');
     const reader = new FileReader();
 
@@ -1733,6 +1755,7 @@ async function processTransferPhoto(input) {
         const base64Image = e.target.result;
         img.src = base64Image;
         preview.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
 
         // Show loading
         document.getElementById('aiTransferLoading').style.display = 'block';
@@ -1773,8 +1796,10 @@ async function processTransferPhoto(input) {
 // Clear transfer photo
 function clearTransferPhoto() {
     const preview = document.getElementById('aiTransferPhotoPreview');
+    const placeholder = document.getElementById('aiTransferPhotoPlaceholder');
     const input = document.getElementById('aiTransferPhotoInput');
     if (preview) preview.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'block';
     if (input) input.value = '';
 }
 
