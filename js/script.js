@@ -37801,9 +37801,19 @@ window.loadChampsData = async function() {
 
         // Process products
         const productSales = {};
+        // Excluded items (CRV deposits, tips, fees, etc.)
+        const excludedPatterns = ['crv', 'tip', 'fee', 'donation', 'deposit', 'bag fee', 'tax'];
+
         (result.data?.orders?.edges || []).forEach(o => {
             (o.node.lineItems?.edges || []).forEach(i => {
                 const item = i.node;
+                const itemNameLower = (item.name || '').toLowerCase();
+
+                // Skip excluded items
+                if (excludedPatterns.some(pattern => itemNameLower.includes(pattern))) {
+                    return;
+                }
+
                 const key = item.sku || item.name;
                 if (!productSales[key]) {
                     productSales[key] = { name: item.name, sku: item.sku || 'N/A', units: 0, revenue: 0 };
