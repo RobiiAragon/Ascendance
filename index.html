@@ -650,19 +650,6 @@
                     <div class="stat-label">Total Employees</div>
                 </div>
 
-                <div class="stat-card" onclick="window.navigateTo && window.navigateTo('analytics')" style="cursor: pointer;" id="monthly-revenue-card">
-                    <div class="stat-header">
-                        <div class="stat-icon green">
-                            <i class="fas fa-dollar-sign"></i>
-                        </div>
-                        <div class="stat-trend up" id="revenue-trend">
-                            <i class="fas fa-sync fa-spin"></i> Loading...
-                        </div>
-                    </div>
-                    <div class="stat-value" id="revenue-value">--</div>
-                    <div class="stat-label">Monthly Revenue</div>
-                </div>
-
                 <div class="stat-card" onclick="window.navigateTo && window.navigateTo('training')" style="cursor: pointer;">
                     <div class="stat-header">
                         <div class="stat-icon blue">
@@ -1175,12 +1162,6 @@
                     }, 300);
                 }
             }, 100);
-
-            // Load monthly revenue for the dashboard card (if on dashboard and function exists)
-            // This is called in addition to renderDashboard() for initial page load
-            if (typeof loadMonthlyRevenueFromShopify === 'function') {
-                loadMonthlyRevenueFromShopify();
-            }
 
             // Check if redirected from 404 page with Celeste flag
             if (sessionStorage.getItem('openCeleste') === 'true') {
