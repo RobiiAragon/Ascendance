@@ -1429,7 +1429,7 @@
                     renderActivityLog();
                     break;
                 case 'thechamps':
-                    renderTheChamps();
+                    window.renderTheChamps();
                     break;
                 case 'salesperformance':
                     renderSalesPerformance();
@@ -37612,7 +37612,7 @@ window.renderProjectAnalytics = function() {
 }
 
 // The Champs - Top Selling Products Module
-function renderTheChamps() {
+window.renderTheChamps = function() {
     const pageContent = document.getElementById('page-content');
     if (!pageContent) return;
 
