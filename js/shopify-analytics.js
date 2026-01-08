@@ -2323,3 +2323,262 @@ async function diagnoseBulkOperation(storeKey = 'vsu') {
 
 window.diagnoseBulkOperation = diagnoseBulkOperation;
 
+// =============================================================================
+// INVENTORY ADJUSTMENT FUNCTIONS (for Transfers)
+// =============================================================================
+
+/**
+ * Search for a product by name in Shopify
+ * @param {string} searchTerm - Product name to search
+ * @param {string} storeKey - Store key (vsu, loyalvaper, miramarwine)
+ * @returns {Array} - Array of matching products with inventory info
+ */
+async function searchProductForInventory(searchTerm, storeKey = 'vsu') {
+    const storeConfig = STORES_CONFIG[storeKey];
+    if (!storeConfig) {
+        throw new Error(`Invalid store key: ${storeKey}`);
+    }
+
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const query = `
+        query searchProducts($query: String!) {
+            products(first: 10, query: $query) {
+                edges {
+                    node {
+                        id
+                        title
+                        variants(first: 10) {
+                            edges {
+                                node {
+                                    id
+                                    title
+                                    sku
+                                    inventoryItem {
+                                        id
+                                        inventoryLevels(first: 10) {
+                                            edges {
+                                                node {
+                                                    id
+                                                    available
+                                                    location {
+                                                        id
+                                                        name
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    `;
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query,
+                variables: { query: searchTerm }
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+            console.error('GraphQL errors:', result.errors);
+            return [];
+        }
+
+        const products = [];
+        (result.data?.products?.edges || []).forEach(productEdge => {
+            const product = productEdge.node;
+            (product.variants?.edges || []).forEach(variantEdge => {
+                const variant = variantEdge.node;
+                const inventoryLevels = variant.inventoryItem?.inventoryLevels?.edges || [];
+
+                products.push({
+                    productId: product.id,
+                    productTitle: product.title,
+                    variantId: variant.id,
+                    variantTitle: variant.title,
+                    sku: variant.sku,
+                    inventoryItemId: variant.inventoryItem?.id,
+                    inventoryLevels: inventoryLevels.map(level => ({
+                        locationId: level.node.location.id,
+                        locationName: level.node.location.name,
+                        available: level.node.available
+                    }))
+                });
+            });
+        });
+
+        return products;
+    } catch (error) {
+        console.error('Error searching products:', error);
+        return [];
+    }
+}
+
+/**
+ * Adjust inventory level at a location
+ * @param {string} inventoryItemId - Shopify inventory item ID (gid://shopify/InventoryItem/xxx)
+ * @param {string} locationId - Shopify location ID (gid://shopify/Location/xxx)
+ * @param {number} adjustment - Amount to adjust (positive to add, negative to subtract)
+ * @param {string} storeKey - Store key
+ * @returns {Object} - Result of the adjustment
+ */
+async function adjustInventoryLevel(inventoryItemId, locationId, adjustment, storeKey = 'vsu') {
+    const storeConfig = STORES_CONFIG[storeKey];
+    if (!storeConfig) {
+        throw new Error(`Invalid store key: ${storeKey}`);
+    }
+
+    const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+    const mutation = `
+        mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
+            inventoryAdjustQuantities(input: $input) {
+                inventoryAdjustmentGroup {
+                    createdAt
+                    reason
+                    changes {
+                        name
+                        delta
+                    }
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+    `;
+
+    const input = {
+        reason: "correction",
+        name: "available",
+        changes: [
+            {
+                inventoryItemId: inventoryItemId,
+                locationId: locationId,
+                delta: adjustment
+            }
+        ]
+    };
+
+    try {
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query: mutation,
+                variables: { input }
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+            console.error('GraphQL errors:', result.errors);
+            return { success: false, error: result.errors[0]?.message };
+        }
+
+        const userErrors = result.data?.inventoryAdjustQuantities?.userErrors || [];
+        if (userErrors.length > 0) {
+            console.error('User errors:', userErrors);
+            return { success: false, error: userErrors[0]?.message };
+        }
+
+        return {
+            success: true,
+            adjustment: result.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup
+        };
+    } catch (error) {
+        console.error('Error adjusting inventory:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Transfer inventory between locations
+ * @param {string} inventoryItemId - Shopify inventory item ID
+ * @param {string} fromLocationId - Source location ID
+ * @param {string} toLocationId - Destination location ID
+ * @param {number} quantity - Quantity to transfer (positive number)
+ * @param {string} storeKey - Store key
+ * @returns {Object} - Result of the transfer
+ */
+async function transferInventoryBetweenLocations(inventoryItemId, fromLocationId, toLocationId, quantity, storeKey = 'vsu') {
+    console.log(`[Inventory Transfer] Moving ${quantity} units from ${fromLocationId} to ${toLocationId}`);
+
+    // Step 1: Subtract from source location
+    const subtractResult = await adjustInventoryLevel(
+        inventoryItemId,
+        fromLocationId,
+        -Math.abs(quantity), // Ensure negative
+        storeKey
+    );
+
+    if (!subtractResult.success) {
+        console.error('[Inventory Transfer] Failed to subtract from source:', subtractResult.error);
+        return { success: false, error: `Failed to subtract from source: ${subtractResult.error}` };
+    }
+
+    // Step 2: Add to destination location
+    const addResult = await adjustInventoryLevel(
+        inventoryItemId,
+        toLocationId,
+        Math.abs(quantity), // Ensure positive
+        storeKey
+    );
+
+    if (!addResult.success) {
+        // Try to rollback the subtraction
+        console.error('[Inventory Transfer] Failed to add to destination, rolling back...');
+        await adjustInventoryLevel(inventoryItemId, fromLocationId, Math.abs(quantity), storeKey);
+        return { success: false, error: `Failed to add to destination: ${addResult.error}` };
+    }
+
+    console.log('[Inventory Transfer] Transfer completed successfully');
+    return { success: true };
+}
+
+/**
+ * Get VSU location IDs mapped by store number
+ * @returns {Object} - Map of store number to location ID
+ */
+async function getVSULocationMap() {
+    const locations = await fetchStoreLocations('vsu');
+    const map = {};
+
+    locations.forEach(loc => {
+        // Map location names to store numbers used in transfers
+        const name = loc.name.toLowerCase();
+        if (name.includes('miramar')) map['1'] = `gid://shopify/Location/${loc.id}`;
+        else if (name.includes('morena')) map['2'] = `gid://shopify/Location/${loc.id}`;
+        else if (name.includes('kearny')) map['3'] = `gid://shopify/Location/${loc.id}`;
+        else if (name.includes('chula')) map['4'] = `gid://shopify/Location/${loc.id}`;
+        else if (name.includes('north park')) map['5'] = `gid://shopify/Location/${loc.id}`;
+    });
+
+    return map;
+}
+
+// Export inventory functions
+window.searchProductForInventory = searchProductForInventory;
+window.adjustInventoryLevel = adjustInventoryLevel;
+window.transferInventoryBetweenLocations = transferInventoryBetweenLocations;
+window.getVSULocationMap = getVSULocationMap;
+

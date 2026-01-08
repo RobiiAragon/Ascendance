@@ -1268,7 +1268,20 @@ function openAITransferModal() {
                         <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-clipboard-list" style="color: #10b981;"></i> Parsed Items
                         </h4>
-                        <div id="aiTransferItemsList" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;"></div>
+                        <div id="aiTransferItemsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px;"></div>
+
+                        <!-- Shopify Sync Option -->
+                        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="aiTransferSyncShopify" style="width: 18px; height: 18px; cursor: pointer;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">
+                                        <i class="fab fa-shopify" style="color: #96bf48; margin-right: 4px;"></i> Sync with Shopify
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Update inventory levels in Shopify automatically</div>
+                                </div>
+                            </label>
+                        </div>
 
                         <div style="display: flex; gap: 10px;">
                             <button onclick="closeAITransferModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
@@ -1479,6 +1492,7 @@ function removeAIParsedItem(index) {
 async function createAITransfers() {
     const origin = document.getElementById('aiTransferOrigin').value;
     const destination = document.getElementById('aiTransferDestination').value;
+    const syncShopify = document.getElementById('aiTransferSyncShopify')?.checked || false;
 
     if (aiTransferState.parsedItems.length === 0) {
         alert('No items to transfer');
@@ -1496,6 +1510,20 @@ async function createAITransfers() {
 
     const today = new Date().toISOString().split('T')[0];
     let createdCount = 0;
+    let shopifySyncResults = [];
+
+    // Get location map if syncing with Shopify
+    let locationMap = null;
+    if (syncShopify && window.getVSULocationMap) {
+        try {
+            document.getElementById('aiTransferLoading').style.display = 'block';
+            document.getElementById('aiTransferResults').style.display = 'none';
+            locationMap = await window.getVSULocationMap();
+            console.log('[AI Transfer] Location map:', locationMap);
+        } catch (e) {
+            console.error('Failed to get location map:', e);
+        }
+    }
 
     for (const item of aiTransferState.parsedItems) {
         const transfer = {
@@ -1504,34 +1532,92 @@ async function createAITransfers() {
             storeOrigin: origin,
             storeDestination: destination,
             productId: item.matchedProduct?.id || null,
-            productName: item.matchedProduct?.productName || item.productName,
-            productSku: item.matchedProduct?.sku || '',
+            productName: item.name || item.matchedProduct?.productName || item.productName,
+            productSku: item.sku || item.matchedProduct?.sku || '',
             quantity: item.quantity,
             shipDate: today,
             sentBy: sentBy,
-            notes: 'Created via AI Transfer',
+            notes: syncShopify ? 'Created via AI Transfer + Shopify Sync' : 'Created via AI Transfer',
             status: 'pending',
             createdAt: new Date().toISOString(),
             receivedAt: null,
-            receivedBy: null
+            receivedBy: null,
+            shopifySynced: false
         };
+
+        // Try to sync with Shopify if enabled
+        if (syncShopify && locationMap && window.searchProductForInventory) {
+            try {
+                const productName = item.name || item.productName || '';
+                console.log(`[AI Transfer] Searching Shopify for: ${productName}`);
+
+                // Search for the product in Shopify
+                const products = await window.searchProductForInventory(productName, 'vsu');
+
+                if (products.length > 0) {
+                    const product = products[0]; // Use first match
+                    const fromLocationId = locationMap[origin];
+                    const toLocationId = locationMap[destination];
+
+                    if (product.inventoryItemId && fromLocationId && toLocationId) {
+                        console.log(`[AI Transfer] Syncing ${item.quantity} units of ${product.productTitle}`);
+
+                        const result = await window.transferInventoryBetweenLocations(
+                            product.inventoryItemId,
+                            fromLocationId,
+                            toLocationId,
+                            item.quantity,
+                            'vsu'
+                        );
+
+                        if (result.success) {
+                            transfer.shopifySynced = true;
+                            transfer.shopifyProductId = product.productId;
+                            transfer.notes = `Synced with Shopify: ${product.productTitle}`;
+                            shopifySyncResults.push({ name: productName, success: true });
+                        } else {
+                            shopifySyncResults.push({ name: productName, success: false, error: result.error });
+                        }
+                    } else {
+                        shopifySyncResults.push({ name: productName, success: false, error: 'Missing location IDs' });
+                    }
+                } else {
+                    shopifySyncResults.push({ name: productName, success: false, error: 'Product not found in Shopify' });
+                }
+            } catch (syncError) {
+                console.error('[AI Transfer] Shopify sync error:', syncError);
+                shopifySyncResults.push({ name: item.name || item.productName, success: false, error: syncError.message });
+            }
+        }
 
         transfersState.transfers.push(transfer);
         createdCount++;
 
         // Small delay to ensure unique IDs
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise(r => setTimeout(r, 50));
     }
 
     // Save to localStorage
     saveTransfers();
 
+    // Hide loading
+    document.getElementById('aiTransferLoading').style.display = 'none';
+
     // Close modal and refresh
     closeAITransferModal();
     renderTransfersPage();
 
-    // Show success message
-    alert(`${createdCount} transfer(s) created successfully!`);
+    // Show success message with Shopify sync results
+    let message = `${createdCount} transfer(s) created successfully!`;
+    if (syncShopify && shopifySyncResults.length > 0) {
+        const synced = shopifySyncResults.filter(r => r.success).length;
+        const failed = shopifySyncResults.filter(r => !r.success);
+        message += `\n\nShopify Sync: ${synced}/${shopifySyncResults.length} products synced.`;
+        if (failed.length > 0) {
+            message += `\n\nFailed to sync:\n${failed.map(f => `- ${f.name}: ${f.error}`).join('\n')}`;
+        }
+    }
+    alert(message);
 }
 
 // Voice input for AI transfer
