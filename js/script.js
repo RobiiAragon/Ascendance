@@ -37681,8 +37681,8 @@ window.renderTheChamps = function() {
             <!-- Header -->
             <div class="page-header champs-header" style="margin-bottom: 24px;">
                 <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fas fa-crown" style="color: #FFD700; font-size: 28px;"></i>
-                    The Champs
+                    <i class="fas fa-trophy" style="color: #FFD700; font-size: 28px;"></i>
+                    Best Sellers
                 </h2>
                 <p class="section-subtitle">Top selling products across all stores</p>
             </div>
