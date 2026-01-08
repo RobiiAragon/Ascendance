@@ -1220,6 +1220,7 @@
                 risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
                 projectanalytics: 'Project Analytics',
+                thechamps: 'The Champs',
                 restock: 'Product Requests',
                 supplies: 'Supplies',
                 dailychecklist: 'Daily Checklist',
@@ -1426,6 +1427,9 @@
                     break;
                 case 'activitylog':
                     renderActivityLog();
+                    break;
+                case 'thechamps':
+                    renderTheChamps();
                     break;
                 case 'salesperformance':
                     renderSalesPerformance();
@@ -37605,6 +37609,206 @@ window.renderProjectAnalytics = function() {
 
     // Animate counters after render
     setTimeout(() => animateCounters(), 100);
+}
+
+// The Champs - Top Selling Products Module
+function renderTheChamps() {
+    const pageContent = document.getElementById('page-content');
+    if (!pageContent) return;
+
+    pageContent.innerHTML = `
+        <div class="page-content" style="padding: 24px; max-width: 1200px; margin: 0 auto;">
+            <!-- Header -->
+            <div class="page-header" style="margin-bottom: 24px;">
+                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-crown" style="color: #FFD700; font-size: 28px;"></i>
+                    The Champs - Loyal Vaper
+                </h2>
+                <p class="section-subtitle">Top selling products from Loyal Vaper store</p>
+            </div>
+
+            <!-- Controls -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select id="champs-period" onchange="loadChampsData()" style="padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; min-width: 150px;">
+                        <option value="month">This Month</option>
+                        <option value="week">This Week</option>
+                        <option value="today">Today</option>
+                    </select>
+                    <button onclick="loadChampsData()" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='var(--bg-secondary)'">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div id="champs-summary" style="display: none; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05)); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.2);">
+                    <span style="font-size: 13px; color: var(--text-muted);">Total Revenue:</span>
+                    <span id="champs-total-revenue" style="font-size: 18px; font-weight: 700; color: #10b981; margin-left: 8px;">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="champs-loading" style="text-align: center; padding: 80px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
+                <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: #FFD700; margin-bottom: 16px;"></i>
+                <div style="font-size: 16px; color: var(--text-muted);">Loading top products...</div>
+            </div>
+
+            <!-- Content -->
+            <div id="champs-content" style="display: none;">
+                <div id="champs-list" style="display: grid; gap: 16px;">
+                    <!-- Products will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="champs-error" style="display: none; text-align: center; padding: 80px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: #f59e0b; margin-bottom: 16px;"></i>
+                <div style="font-size: 16px; color: var(--text-primary); margin-bottom: 8px;">Failed to load data</div>
+                <div style="font-size: 14px; color: var(--text-muted);">Click refresh to try again</div>
+            </div>
+        </div>
+    `;
+
+    // Load data
+    loadChampsData();
+}
+
+// Load The Champs data from Loyal Vaper API
+window.loadChampsData = async function() {
+    const loadingEl = document.getElementById('champs-loading');
+    const contentEl = document.getElementById('champs-content');
+    const errorEl = document.getElementById('champs-error');
+    const listEl = document.getElementById('champs-list');
+    const summaryEl = document.getElementById('champs-summary');
+    const totalRevenueEl = document.getElementById('champs-total-revenue');
+    const periodSelect = document.getElementById('champs-period');
+
+    if (!loadingEl || !contentEl || !listEl) return;
+
+    // Show loading
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    if (summaryEl) summaryEl.style.display = 'none';
+
+    try {
+        const storeConfig = window.STORES_CONFIG?.loyalvaper;
+        if (!storeConfig) {
+            throw new Error('Loyal Vaper config not found');
+        }
+
+        const CORS_PROXY = 'https://corsproxy.io/?';
+        const API_VERSION = '2024-01';
+
+        // Calculate date range based on selected period
+        const now = new Date();
+        let startDate;
+        const period = periodSelect?.value || 'month';
+
+        if (period === 'today') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (period === 'week') {
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - now.getDay());
+        } else {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+
+        const formatDate = (d) => d.toISOString().split('T')[0];
+        const graphqlUrl = `https://${storeConfig.storeUrl}/admin/api/${API_VERSION}/graphql.json`;
+
+        const response = await fetch(CORS_PROXY + encodeURIComponent(graphqlUrl), {
+            method: 'POST',
+            headers: {
+                'X-Shopify-Access-Token': storeConfig.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query: `{ orders(first: 250, query: "created_at:>=${formatDate(startDate)}") { edges { node { lineItems(first: 50) { edges { node { name sku quantity originalUnitPriceSet { shopMoney { amount } } } } } } } } }`
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+            throw new Error(result.errors[0]?.message || 'API Error');
+        }
+
+        // Process products
+        const productSales = {};
+        (result.data?.orders?.edges || []).forEach(o => {
+            (o.node.lineItems?.edges || []).forEach(i => {
+                const item = i.node;
+                const key = item.sku || item.name;
+                if (!productSales[key]) {
+                    productSales[key] = { name: item.name, sku: item.sku || 'N/A', units: 0, revenue: 0 };
+                }
+                productSales[key].units += item.quantity;
+                productSales[key].revenue += parseFloat(item.originalUnitPriceSet?.shopMoney?.amount || 0) * item.quantity;
+            });
+        });
+
+        const topProducts = Object.values(productSales)
+            .sort((a, b) => b.units - a.units)
+            .slice(0, 20);
+
+        // Calculate total revenue
+        const totalRevenue = topProducts.reduce((sum, p) => sum + p.revenue, 0);
+
+        // Render products
+        if (topProducts.length === 0) {
+            listEl.innerHTML = `
+                <div style="text-align: center; padding: 60px 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color);">
+                    <i class="fas fa-box-open" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                    <div style="font-size: 16px; color: var(--text-primary);">No sales data found for this period</div>
+                </div>
+            `;
+        } else {
+            listEl.innerHTML = topProducts.map((product, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                const isTop3 = index < 3;
+                const bgColor = index === 0 ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05))'
+                              : index === 1 ? 'linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05))'
+                              : index === 2 ? 'linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05))'
+                              : 'var(--bg-secondary)';
+                const borderColor = index === 0 ? 'rgba(255, 215, 0, 0.4)'
+                                  : index === 1 ? 'rgba(192, 192, 192, 0.4)'
+                                  : index === 2 ? 'rgba(205, 127, 50, 0.4)'
+                                  : 'var(--border-color)';
+                const scale = isTop3 ? 'transform: scale(1.02);' : '';
+
+                return `
+                    <div style="display: flex; align-items: center; gap: 20px; padding: 20px 24px; background: ${bgColor}; border-radius: 16px; border: 1px solid ${borderColor}; ${scale} transition: all 0.2s;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='${isTop3 ? 'scale(1.02)' : 'scale(1)'}'">
+                        <div style="width: 48px; height: 48px; background: var(--bg-primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: ${medal ? '24px' : '18px'}; color: var(--text-primary); border: 2px solid ${borderColor};">
+                            ${medal || (index + 1)}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.name}</div>
+                            <div style="font-size: 13px; color: var(--text-muted);">
+                                <span style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${product.sku}</span>
+                                ${product.units} units sold
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; font-size: 18px; color: #10b981;">$${product.revenue.toFixed(2)}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">$${(product.revenue / product.units).toFixed(2)}/unit</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Show content and summary
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+        if (summaryEl && totalRevenueEl && topProducts.length > 0) {
+            summaryEl.style.display = 'block';
+            totalRevenueEl.textContent = '$' + totalRevenue.toFixed(2);
+        }
+
+    } catch (error) {
+        console.error('The Champs load error:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+    }
 }
 
 // Show module details modal
