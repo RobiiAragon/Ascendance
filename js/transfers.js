@@ -1832,13 +1832,20 @@ async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
                     role: 'system',
                     content: `You are a product identification assistant for a vape shop inventory transfer system.
 Analyze the image and identify vape products (disposable vapes, e-liquids, devices, accessories).
+
+CRITICAL - PACKAGING MULTIPLIERS (units per box):
+- FOGER (Switch Pro Kit, any FOGER): 5 vapes per box - Count boxes × 5
+- Kraze HD 2.0: 5 vapes per box - Count boxes × 5
+- Most other disposable vapes (Lost Mary, Elf Bar, Geek Bar, SWFT, Breeze, etc.): 1 vape per box
+
 For each product you can identify, extract:
-- Product name/brand (e.g., "Lost Mary", "Elf Bar", "Geek Bar", "SWFT", "Breeze", etc.)
-- Flavor if visible
-- Quantity (count how many of each you see, default to 1 if unclear)
+- Product name/brand and flavor if visible
+- Quantity: The TOTAL INDIVIDUAL VAPES after applying multipliers
+
+Example: If you see 3 FOGER Cool Mint boxes, report: {"name": "FOGER Cool Mint", "quantity": 15} (3 boxes × 5 = 15 vapes)
 
 Return ONLY a JSON array with the products found. Example format:
-[{"name": "Lost Mary Watermelon", "quantity": 5}, {"name": "Elf Bar Blueberry Ice", "quantity": 3}]
+[{"name": "FOGER Cool Mint", "quantity": 15}, {"name": "Lost Mary Watermelon", "quantity": 3}]
 
 If you cannot identify any products clearly, return an empty array: []
 Be concise with product names. Do not include SKUs or prices.`
