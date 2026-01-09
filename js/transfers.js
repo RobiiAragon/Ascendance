@@ -2893,7 +2893,12 @@ FOGER SWITCH PRO (×5): Large colorful boxes, "30K 18K" visible, "3000" on front
 - Pink=Grape Slush/Watermelon Bubble Gum, Holographic=Coffee, Blue=Blue Rancher
 - Red=Cola Slush/Cherry Bomb, Green=Sour Apple, Mint=Miami Mint
 
-GEEK BAR (×1): Small boxes, blue=Blue Rancher, green=Sour Apple
+GEEK BAR (×1): All sizes (Regular, Pulse, Pulse X) = 1 vape each
+- Pulse X: Large boxes - Dualicious (green/rainbow), Orange Dragon (orange/black),
+  Orange Mint (purple/rainbow), Strawberry Colada (black/red-yellow), Blue Rancher (blue/black)
+- Pulse: Medium boxes - Blue Rancher, Sour Apple, Strawberry, Grape
+- Regular: Small boxes
+
 KRAZE HD 2.0 (×5): Medium boxes with KRAZE branding
 OTHER BRANDS (×1): Lost Mary, Elf Bar, SWFT, Breeze, Hyde
 
@@ -2986,11 +2991,27 @@ FLAVORS BY COLOR:
 - White/Gray = White Gummy
 
 === GEEK BAR (×1 vape per box) ===
-Small individual boxes OR larger "Pulse" boxes
-- Blue packaging = Blue Rancher
-- Green/Yellow = Sour Apple Ice
+Small individual boxes, larger "Pulse" boxes, or "Pulse X" boxes
+All Geek Bar variants = 1 vape per box
+
+GEEK BAR PULSE X FLAVORS (large boxes with "PULSE X" branding):
+- Green/Rainbow holographic = Dualicious
+- Orange/Black with dragon = Orange Dragon
+- Purple/Rainbow gradient = Orange Mint
+- Black/Red-Yellow gradient = Strawberry Colada
+- Blue/Black = Blue Rancher
+- Pink/Black = Strawberry Watermelon
+- Green/Black = Sour Apple Ice
+- Purple/Black = Grape Ice
+
+GEEK BAR PULSE FLAVORS (medium boxes):
+- Blue = Blue Rancher
+- Green = Sour Apple Ice
 - Pink = Strawberry
 - Purple = Grape
+
+GEEK BAR REGULAR (small boxes):
+- Various colors matching flavor
 
 === KRAZE HD 2.0 (×5 vapes per box) ===
 Medium boxes with "KRAZE" branding
