@@ -1050,11 +1050,6 @@ function viewTransferDetails(transferId) {
                 'received': 'Received'
     };
 
-    const storeNames = {
-        '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa',
-        '4': 'Chula Vista', '5': 'North Park', 'loyalvaper': 'Loyal Vaper'
-    };
-
     const hasMultipleItems = transfer.items && transfer.items.length > 0;
     const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
     const productCount = hasMultipleItems ? transfer.items.length : 1;
@@ -1204,19 +1199,14 @@ function closeTransferDetailsModal() {
 function confirmReceiveTransfer(transferId) {
     const transfer = transfersState.transfers.find(t => t.id === transferId);
     if (!transfer) {
-        alert('Transfer not found');
+        showTransferToast('Transfer not found', 'error');
         return;
     }
 
     if (transfer.status === 'received') {
-        alert('This transfer has already been received');
+        showTransferToast('This transfer has already been received', 'warning');
         return;
     }
-
-    const storeNames = {
-        '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa',
-        '4': 'Chula Vista', '5': 'North Park', 'loyalvaper': 'Loyal Vaper'
-    };
 
     const hasMultipleItems = transfer.items && transfer.items.length > 0;
     const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
@@ -1272,9 +1262,9 @@ function confirmReceiveTransfer(transferId) {
                 <!-- Transfer Info -->
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 10px;">
                     <span style="font-size: 13px; color: var(--text-muted);">From</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">${storeNames[transfer.storeOrigin] || transfer.storeOrigin}</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">${getStoreName(transfer.storeOrigin)}</span>
                     <i class="fas fa-arrow-right" style="color: var(--text-muted); margin: 0 4px;"></i>
-                    <span style="font-weight: 600; color: #10b981;">${storeNames[transfer.storeDestination] || transfer.storeDestination}</span>
+                    <span style="font-weight: 600; color: #10b981;">${getStoreName(transfer.storeDestination)}</span>
                 </div>
 
                 <!-- Items List -->
@@ -1399,7 +1389,7 @@ async function processReceiveTransfer(transferId) {
     if (typeof showNotification === 'function') {
         showNotification(`Transfer ${transfer.folio} received!`, 'success');
     } else {
-        alert(`Transfer ${transfer.folio} received successfully!`);
+        showTransferToast(`Transfer ${transfer.folio} received!`, 'success');
     }
 
     // Refresh page
@@ -1650,17 +1640,17 @@ async function parseAITransferInput() {
     const destination = document.getElementById('aiTransferDestination').value;
 
     if (!input) {
-        alert('Please enter the products to transfer');
+        showTransferToast('Please enter the products to transfer', 'warning');
         return;
     }
 
     if (!origin || !destination) {
-        alert('Please select origin and destination stores');
+        showTransferToast('Please select origin and destination stores', 'warning');
         return;
     }
 
     if (origin === destination) {
-        alert('Origin and destination cannot be the same');
+        showTransferToast('Origin and destination cannot be the same', 'error');
         return;
     }
 
@@ -1673,7 +1663,7 @@ async function parseAITransferInput() {
         const items = await parseTransferWithAI(input);
 
         if (items.length === 0) {
-            alert('Could not parse any items. Please check the format.');
+            showTransferToast('Could not parse any items. Check the format.', 'error');
             document.getElementById('aiTransferLoading').style.display = 'none';
             return;
         }
@@ -1689,7 +1679,7 @@ async function parseAITransferInput() {
             aiTransferState.parsedItems = items;
             renderParsedItems();
         } else {
-            alert('Error parsing items. Please try again.');
+            showTransferToast('Error parsing items. Please try again.', 'error');
         }
     }
 
@@ -1847,12 +1837,12 @@ async function createAITransfers() {
     const destination = document.getElementById('aiTransferDestination').value;
 
     if (!destination) {
-        alert('Please select a destination store');
+        showTransferToast('Please select a destination store', 'warning');
         return;
     }
 
     if (aiTransferState.parsedItems.length === 0) {
-        alert('No items to transfer');
+        showTransferToast('No items to transfer', 'warning');
         return;
     }
 
@@ -1909,18 +1899,17 @@ async function createAITransfers() {
     renderTransfersPage();
 
     // Show success message
-    const storeNames = { '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa', '4': 'Chula Vista', '5': 'North Park' };
     if (typeof showNotification === 'function') {
-        showNotification(`Transfer ${transfer.folio} sent to ${storeNames[destination] || destination}!`, 'success');
+        showNotification(`Transfer ${transfer.folio} sent to ${getStoreName(destination)}!`, 'success');
     } else {
-        alert(`Transfer ${transfer.folio} created!\n\n${transfer.totalProducts} products (${transfer.totalItems} units)\nDestination: ${storeNames[destination] || destination}`);
+        showTransferToast(`Transfer ${transfer.folio} created! ${transfer.totalProducts} products → ${getStoreName(destination)}`, 'success');
     }
 }
 
 // Voice input for AI transfer
 function startVoiceInput() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('Voice recognition is not supported in this browser. Try Chrome.');
+        showTransferToast('Voice recognition not supported. Try Chrome.', 'warning');
         return;
     }
 
@@ -1955,7 +1944,7 @@ function startVoiceInput() {
 
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
-        alert('Voice recognition error: ' + event.error);
+        showTransferToast('Voice recognition error: ' + event.error, 'error');
     };
 
     recognition.start();
@@ -1974,13 +1963,13 @@ async function processTransferPhoto(input) {
     const destination = document.getElementById('aiTransferDestination').value;
 
     if (!origin || !destination) {
-        alert('Please select origin and destination stores first');
+        showTransferToast('Please select origin and destination stores first', 'warning');
         input.value = '';
         return;
     }
 
     if (origin === destination) {
-        alert('Origin and destination cannot be the same');
+        showTransferToast('Origin and destination cannot be the same', 'error');
         input.value = '';
         return;
     }
@@ -2005,7 +1994,7 @@ async function processTransferPhoto(input) {
             // Get API key
             const apiKey = await getOpenAIKeyForTransfers();
             if (!apiKey) {
-                alert('OpenAI API key not configured. Go to Settings > Celeste AI to set it up.');
+                showTransferToast('OpenAI API key not configured. Go to Settings > Celeste AI', 'error');
                 document.getElementById('aiTransferLoading').style.display = 'none';
                 return;
             }
@@ -2014,7 +2003,7 @@ async function processTransferPhoto(input) {
             const items = await analyzeTransferPhotoWithVision(base64Image, apiKey);
 
             if (items.length === 0) {
-                alert('No products detected in the image. Try taking a clearer photo.');
+                showTransferToast('No products detected. Try a clearer photo.', 'warning');
                 document.getElementById('aiTransferLoading').style.display = 'none';
                 return;
             }
@@ -2024,7 +2013,7 @@ async function processTransferPhoto(input) {
 
         } catch (error) {
             console.error('Photo analysis error:', error);
-            alert('Error analyzing photo: ' + error.message);
+            showTransferToast('Error analyzing photo: ' + error.message, 'error');
         }
 
         document.getElementById('aiTransferLoading').style.display = 'none';
@@ -2184,7 +2173,7 @@ function handleDrop(e) {
     });
 
     if (validFiles.length === 0) {
-        alert('Please drop image, video, or audio files only.');
+        showTransferToast('Please drop image, video, or audio files only', 'warning');
         return;
     }
 
@@ -2206,13 +2195,13 @@ function handleDrop(e) {
 // Process all media with AI
 async function processAllTransferMedia() {
     if (aiTransferState.mediaFiles.length === 0) {
-        alert('No files to process');
+        showTransferToast('No files to process', 'warning');
         return;
     }
 
     const apiKey = await getOpenAIKeyForTransfers();
     if (!apiKey) {
-        alert('OpenAI API key not configured. Go to Settings > Celeste AI to set it up.');
+        showTransferToast('OpenAI API key not configured. Go to Settings > Celeste AI', 'error');
         return;
     }
 
@@ -2242,7 +2231,7 @@ async function processAllTransferMedia() {
         }
 
         if (allItems.length === 0) {
-            alert('No products detected. Try clearer images or speak product names clearly in audio.');
+            showTransferToast('No products detected. Try clearer images or clearer audio.', 'warning');
         } else {
             aiTransferState.parsedItems = allItems;
             renderParsedItems();
@@ -2250,7 +2239,7 @@ async function processAllTransferMedia() {
 
     } catch (error) {
         console.error('Media analysis error:', error);
-        alert('Error analyzing media: ' + error.message);
+        showTransferToast('Error analyzing media: ' + error.message, 'error');
     }
 
     document.getElementById('aiTransferLoading').style.display = 'none';
