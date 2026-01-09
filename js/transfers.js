@@ -2170,7 +2170,8 @@ function startVoiceInput() {
 
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
-        showTransferToast('Voice recognition error: ' + event.error, 'error');
+        const voiceErr = event?.error || 'Unknown error';
+        showTransferToast('Voice recognition error: ' + voiceErr, 'error');
     };
 
     recognition.start();
@@ -2239,7 +2240,8 @@ async function processTransferPhoto(input) {
 
         } catch (error) {
             console.error('Photo analysis error:', error);
-            showTransferToast('Error analyzing photo: ' + error.message, 'error');
+            const photoErr = error?.message || error || 'Unknown error';
+            showTransferToast('Error analyzing photo: ' + photoErr, 'error');
         }
 
         document.getElementById('aiTransferLoading').style.display = 'none';
@@ -2465,7 +2467,8 @@ async function processAllTransferMedia() {
 
     } catch (error) {
         console.error('Media analysis error:', error);
-        showTransferToast('Error analyzing media: ' + error.message, 'error');
+        const errorMsg = error?.message || error || 'Unknown error';
+        showTransferToast('Error analyzing media: ' + errorMsg, 'error');
     }
 
     document.getElementById('aiTransferLoading').style.display = 'none';
