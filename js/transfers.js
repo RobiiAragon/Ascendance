@@ -2433,6 +2433,9 @@ async function processAllTransferMedia() {
         return;
     }
 
+    // Clear previous results before processing new files
+    aiTransferState.parsedItems = [];
+
     document.getElementById('aiTransferLoading').style.display = 'block';
     document.getElementById('aiTransferResults').style.display = 'none';
 
@@ -2463,6 +2466,11 @@ async function processAllTransferMedia() {
         } else {
             aiTransferState.parsedItems = allItems;
             renderParsedItems();
+
+            // Clear media files after successful processing to avoid re-processing
+            aiTransferState.mediaFiles.forEach(m => URL.revokeObjectURL(m.url));
+            aiTransferState.mediaFiles = [];
+            renderMediaPreview();
         }
 
     } catch (error) {
