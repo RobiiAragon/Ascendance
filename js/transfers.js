@@ -1822,11 +1822,11 @@ function openAITransferModal() {
                         </div>
                         <div id="aiTransferItemsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
 
-                        <!-- Action Buttons - Always visible -->
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding-top: 8px; border-top: 1px solid var(--border-color);">
-                            <button onclick="closeAITransferModal()" style="padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">Cancel</button>
-                            <button id="aiTransferSubmitBtn" onclick="createAITransfers()" style="padding: 14px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                <i class="fas fa-check-circle"></i> Confirm & Create Transfer
+                        <!-- Action Buttons - Mobile friendly (min 48px height) -->
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <button onclick="closeAITransferModal()" style="padding: 16px; min-height: 52px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; font-size: 15px; color: var(--text-secondary); cursor: pointer; -webkit-tap-highlight-color: transparent;">Cancel</button>
+                            <button id="aiTransferSubmitBtn" onclick="createAITransfers()" style="padding: 16px; min-height: 52px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; font-size: 15px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; -webkit-tap-highlight-color: transparent;">
+                                <i class="fas fa-check-circle"></i> Create Transfer
                             </button>
                         </div>
                     </div>
@@ -2017,23 +2017,24 @@ function renderParsedItems() {
         countEl.textContent = `${aiTransferState.parsedItems.length} items · ${totalItems} units`;
     }
 
+    // Mobile-friendly buttons (44px minimum touch target)
     listEl.innerHTML = aiTransferState.parsedItems.map((item, index) => `
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--bg-secondary); border-radius: 12px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <button onclick="updateAIItemQty(${index}, -1)" style="width: 28px; height: 28px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
-                    <i class="fas fa-minus" style="font-size: 10px;"></i>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 14px; background: var(--bg-secondary); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button onclick="updateAIItemQty(${index}, -1)" style="width: 44px; height: 44px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; -webkit-tap-highlight-color: transparent;">
+                    <i class="fas fa-minus"></i>
                 </button>
-                <input type="number" value="${item.quantity}" min="1" onchange="setAIItemQty(${index}, this.value)" style="width: 45px; height: 28px; background: linear-gradient(135deg, #667eea20, #764ba220); border: none; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13px; color: #667eea;">
-                <button onclick="updateAIItemQty(${index}, 1)" style="width: 28px; height: 28px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
-                    <i class="fas fa-plus" style="font-size: 10px;"></i>
+                <input type="number" value="${item.quantity}" min="1" onchange="setAIItemQty(${index}, this.value)" style="width: 50px; height: 44px; background: linear-gradient(135deg, #667eea20, #764ba220); border: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 16px; color: #667eea;">
+                <button onclick="updateAIItemQty(${index}, 1)" style="width: 44px; height: 44px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; -webkit-tap-highlight-color: transparent;">
+                    <i class="fas fa-plus"></i>
                 </button>
             </div>
             <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">PHOTO-SCAN</div>
+                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">PHOTO-SCAN</div>
             </div>
-            <button onclick="removeAIParsedItem(${index})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
-                <i class="fas fa-trash-alt" style="font-size: 12px;"></i>
+            <button onclick="removeAIParsedItem(${index})" style="width: 44px; height: 44px; background: rgba(239,68,68,0.1); border: none; cursor: pointer; color: #ef4444; border-radius: 10px; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">
+                <i class="fas fa-trash-alt" style="font-size: 14px;"></i>
             </button>
         </div>
     `).join('');
@@ -2072,76 +2073,103 @@ function setAIItemQty(index, value) {
 
 // Create transfers from parsed items - NOW CREATES A SINGLE TRANSFER WITH MULTIPLE ITEMS
 async function createAITransfers() {
-    const origin = document.getElementById('aiTransferOrigin').value;
-    const destination = document.getElementById('aiTransferDestination').value;
-
-    if (!destination) {
-        showTransferToast('Please select a destination store', 'warning');
-        return;
-    }
-
-    if (aiTransferState.parsedItems.length === 0) {
-        showTransferToast('No items to transfer', 'warning');
-        return;
-    }
-
-    // Get current user
-    let sentBy = 'Staff';
     try {
-        const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
-        sentBy = user.name || user.email || 'Staff';
-    } catch (e) {
-        console.warn('Could not get current user');
-    }
+        const origin = document.getElementById('aiTransferOrigin')?.value || 'LoyalVaper';
+        const destination = document.getElementById('aiTransferDestination')?.value;
 
-    const today = new Date().toISOString().split('T')[0];
-    const totalItems = aiTransferState.parsedItems.reduce((sum, item) => sum + item.quantity, 0);
+        if (!destination) {
+            showTransferToast('Please select a destination store', 'warning');
+            return;
+        }
 
-    // Create a SINGLE transfer with multiple items
-    const transfer = {
-        id: Date.now().toString(),
-        folio: generateTransferFolio(),
-        storeOrigin: origin,
-        storeDestination: destination,
-        // NEW: Array of items instead of single product
-        items: aiTransferState.parsedItems.map(item => ({
-            productId: item.matchedProduct?.id || null,
-            productName: item.name || item.matchedProduct?.productName || item.productName,
-            productSku: item.sku || item.matchedProduct?.sku || 'SCAN',
-            quantity: item.quantity,
-            received: false,
-            receivedQty: 0
-        })),
-        totalItems: totalItems,
-        totalProducts: aiTransferState.parsedItems.length,
-        shipDate: today,
-        sentBy: sentBy,
-        notes: 'Created via AI Transfer',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        receivedAt: null,
-        receivedBy: null
-    };
+        if (!aiTransferState.parsedItems || aiTransferState.parsedItems.length === 0) {
+            showTransferToast('No items to transfer', 'warning');
+            return;
+        }
 
-    // Add transfer to state
-    transfersState.transfers.unshift(transfer);
+        // Disable button to prevent double-click
+        const submitBtn = document.getElementById('aiTransferSubmitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        }
 
-    // Save to localStorage and Firebase
-    saveTransfers();
-    await saveTransferToFirebase(transfer);
+        // Get current user
+        let sentBy = 'Staff';
+        try {
+            const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+            sentBy = user.name || user.email || 'Staff';
+        } catch (e) {
+            console.warn('Could not get current user');
+        }
 
-    // Send notification to destination store
-    await sendTransferNotification(transfer, 'created');
+        const today = new Date().toISOString().split('T')[0];
+        const totalItems = aiTransferState.parsedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-    // Close modal and refresh
-    closeAITransferModal();
-    renderTransfersPage();
+        // Create a SINGLE transfer with multiple items
+        const transfer = {
+            id: Date.now().toString(),
+            folio: generateTransferFolio(),
+            storeOrigin: origin,
+            storeDestination: destination,
+            // Array of items
+            items: aiTransferState.parsedItems.map(item => ({
+                productId: item.matchedProduct?.id || null,
+                productName: item.name || item.matchedProduct?.productName || item.productName || 'Unknown Product',
+                productSku: item.sku || item.matchedProduct?.sku || 'SCAN',
+                quantity: item.quantity || 1,
+                received: false,
+                receivedQty: 0
+            })),
+            totalItems: totalItems,
+            totalProducts: aiTransferState.parsedItems.length,
+            shipDate: today,
+            sentBy: sentBy,
+            notes: 'Created via AI Transfer',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            receivedAt: null,
+            receivedBy: null
+        };
 
-    // Show success message
-    if (typeof showNotification === 'function') {
-        showNotification(`Transfer ${transfer.folio} sent to ${getStoreName(destination)}!`, 'success');
-    } else {
+        console.log('Creating transfer:', transfer);
+
+        // Add transfer to state
+        transfersState.transfers.unshift(transfer);
+
+        // Save to localStorage and Firebase
+        saveTransfers();
+
+        try {
+            await saveTransferToFirebase(transfer);
+        } catch (fbError) {
+            console.warn('Firebase save failed, but localStorage saved:', fbError);
+        }
+
+        // Send notification to destination store
+        try {
+            await sendTransferNotification(transfer, 'created');
+        } catch (notifError) {
+            console.warn('Notification failed:', notifError);
+        }
+
+        // Close modal and refresh
+        closeAITransferModal();
+        renderTransfersPage();
+
+        // Show success message
         showTransferToast(`Transfer ${transfer.folio} created! ${transfer.totalProducts} products → ${getStoreName(destination)}`, 'success');
+
+    } catch (error) {
+        console.error('Error creating transfer:', error);
+        showTransferToast('Error creating transfer: ' + error.message, 'error');
+
+        // Re-enable button
+        const submitBtn = document.getElementById('aiTransferSubmitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Create Transfer';
+        }
     }
 }
 
@@ -3004,11 +3032,15 @@ GEEK BAR PULSE X FLAVORS (large boxes with "PULSE X" branding):
 - Green/Black = Sour Apple Ice
 - Purple/Black = Grape Ice
 
-GEEK BAR PULSE FLAVORS (medium boxes):
+GEEK BAR PULSE FLAVORS (medium yellow/colorful boxes, 7500/15000 puffs):
+- Blue/Pink gradient = Fcuking Fab
+- Yellow/Green gradient = Pineapple Savers
 - Blue = Blue Rancher
 - Green = Sour Apple Ice
 - Pink = Strawberry
 - Purple = Grape
+- Orange = Orange Creamsicle
+- Red = Watermelon Ice
 
 GEEK BAR REGULAR (small boxes):
 - Various colors matching flavor
