@@ -1400,6 +1400,15 @@ function viewTransferDetails(transferId) {
             </div>
         ` : ''}
 
+        ${transfer.photo ? `
+            <div class="order-detail-section">
+                <h3>Photo</h3>
+                <div style="border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
+                    <img src="${transfer.photo}" alt="Transfer photo" style="width: 100%; height: auto; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                </div>
+            </div>
+        ` : ''}
+
         ${transfer.status !== 'received' ? `
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
                 <button class="btn-primary" onclick="confirmReceiveTransfer('${transfer.id}'); closeTransferDetailsModal();" style="width: 100%;">
@@ -2107,6 +2116,16 @@ async function createAITransfers() {
         const today = new Date().toISOString().split('T')[0];
         const totalItems = aiTransferState.parsedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
+        // Get first image from media files for the transfer photo
+        let transferPhoto = null;
+        if (aiTransferState.mediaFiles && aiTransferState.mediaFiles.length > 0) {
+            const imageFile = aiTransferState.mediaFiles.find(m => m.type === 'image');
+            if (imageFile && imageFile.base64) {
+                // Compress photo for storage (max 800px, 60% quality)
+                transferPhoto = await compressImageForStorage(imageFile.base64);
+            }
+        }
+
         // Create a SINGLE transfer with multiple items
         const transfer = {
             id: Date.now().toString(),
@@ -2130,7 +2149,8 @@ async function createAITransfers() {
             status: 'pending',
             createdAt: new Date().toISOString(),
             receivedAt: null,
-            receivedBy: null
+            receivedBy: null,
+            photo: transferPhoto // Store the photo
         };
 
         console.log('Creating transfer:', transfer);
@@ -2486,20 +2506,36 @@ async function processAllTransferMedia() {
     // Clear previous results before processing new files
     aiTransferState.parsedItems = [];
 
-    document.getElementById('aiTransferLoading').style.display = 'block';
-    document.getElementById('aiTransferResults').style.display = 'none';
+    const loadingEl = document.getElementById('aiTransferLoading');
+    const resultsEl = document.getElementById('aiTransferResults');
+
+    loadingEl.style.display = 'block';
+    resultsEl.style.display = 'none';
 
     let allItems = [];
+    const totalFiles = aiTransferState.mediaFiles.length;
 
     try {
-        // Process each media file
-        for (const media of aiTransferState.mediaFiles) {
+        // Process each media file with progress updates
+        for (let i = 0; i < aiTransferState.mediaFiles.length; i++) {
+            const media = aiTransferState.mediaFiles[i];
             let items = [];
+
+            // Update loading message
+            loadingEl.innerHTML = `
+                <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #8b5cf6;"></i>
+                <p style="margin-top: 10px; color: var(--text-muted);">Processing ${i + 1}/${totalFiles}...</p>
+                <p style="font-size: 11px; color: var(--text-muted);">${media.type === 'image' ? 'Analyzing image' : media.type === 'video' ? 'Processing video' : 'Transcribing audio'}</p>
+            `;
+
+            // Allow UI to update
+            await new Promise(r => setTimeout(r, 50));
 
             if (media.type === 'image') {
                 // Process image with Vision
-                const base64 = await fileToBase64(media.file);
-                items = await analyzeTransferPhotoWithVision(base64, apiKey);
+                // Store base64 for later use (photo in transfer)
+                media.base64 = await fileToBase64(media.file);
+                items = await analyzeTransferPhotoWithVision(media.base64, apiKey);
             } else if (media.type === 'video') {
                 // Extract frames from video and analyze + transcribe audio
                 items = await analyzeTransferVideo(media.file, apiKey);
@@ -2509,6 +2545,9 @@ async function processAllTransferMedia() {
             }
 
             allItems = mergeTransferItems(allItems, items);
+
+            // Allow UI to breathe between files
+            await new Promise(r => setTimeout(r, 50));
         }
 
         if (allItems.length === 0) {
@@ -2764,6 +2803,37 @@ async function analyzeTransferVideo(file, apiKey) {
     }
 
     return allItems;
+}
+
+// Compress image for storage (smaller than API version)
+function compressImageForStorage(base64Image) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const maxSize = 800; // Smaller for storage
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxSize || height > maxSize) {
+                if (width > height) {
+                    height = Math.round((height * maxSize) / width);
+                    width = maxSize;
+                } else {
+                    width = Math.round((width * maxSize) / height);
+                    height = maxSize;
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.6)); // 60% quality for storage
+        };
+        img.onerror = () => resolve(null);
+        img.src = base64Image;
+    });
 }
 
 // Extract frames from video
@@ -3169,26 +3239,32 @@ Lost Mary, Elf Bar, SWFT, Breeze, Puff Bar, Hyde, Vuse, NJOY
 3. When boxes are stacked, count rows × columns
 4. Partially visible boxes at edges - count if >50% visible
 5. Group by EXACT flavor name
-6. VERIFY count by re-scanning before finalizing
+
+=== CRITICAL: MULTIPLY BOXES × VAPES PER BOX ===
+- FOGER box = 5 vapes → 2 FOGER boxes = 10 vapes
+- KRAZE HD 2.0 box = 5 vapes → 3 KRAZE boxes = 15 vapes
+- Geek Bar (any) = 1 vape → 4 Geek Bar boxes = 4 vapes
+- SUONON = 1 vape → 3 SUONON boxes = 3 vapes
+- Other brands = 1 vape per box
 
 === OUTPUT FORMAT ===
-Return JSON array: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES_NUMBER}]
+Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES_AFTER_MULTIPLICATION}]
 
-EXAMPLE - Photo shows shelf with FOGER products:
-- Back row: 8 boxes (Watermelon Ice, Meta Moon, Pineapple Coconut, Grape Slush, Watermelon Bubble Gum, Juicy Peach Ice visible)
-- Middle row: 7 boxes (Coffee, Blue Rancher B-Pop, Cola Slush, Sour Apple visible)
-- Front row: 6 boxes (Strawberry Cupcake, Miami Mint, Cherry Bomb, Gummy Bear visible)
+EXAMPLE 1 - FOGER:
+See 2 boxes of FOGER Coffee → 2 boxes × 5 vapes = {"name": "FOGER Coffee", "quantity": 10}
 
-Count each flavor, multiply by 5:
+EXAMPLE 2 - Geek Bar:
+See 3 boxes Geek Bar Pulse X Blue Rancher → 3 boxes × 1 vape = {"name": "GEEK BAR Pulse X Blue Rancher", "quantity": 3}
+
+EXAMPLE 3 - Mixed:
+See 4 FOGER Watermelon + 2 Geek Bar Grape:
 [
-  {"name": "FOGER Watermelon Ice", "quantity": 10},
-  {"name": "FOGER Meta Moon", "quantity": 5},
-  {"name": "FOGER Coffee", "quantity": 15},
-  {"name": "FOGER Strawberry Cupcake", "quantity": 10}
+  {"name": "FOGER Watermelon Ice", "quantity": 20},
+  {"name": "GEEK BAR Pulse Grape", "quantity": 2}
 ]
 
-If image is blurry/unreadable: {"error": "NEED_BETTER_PHOTO", "reason": "description of issue"}
-If no products visible: []`
+If blurry: {"error": "NEED_BETTER_PHOTO", "reason": "..."}
+If nothing visible: []`
                 },
                 {
                     role: 'user',
