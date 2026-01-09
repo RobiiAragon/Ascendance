@@ -157,30 +157,33 @@ window.reloadFirebaseAPISettings = async function() {
     return celesteFirebaseSettings;
 };
 
-// Celeste AI Configuration (uses selected provider)
+// Celeste AI Configuration (uses OpenAI)
 const CELESTE_CONFIG = {
     name: 'Celeste',
     version: '1.0',
     get provider() {
-        return AI_PROVIDER;
+        return 'openai';
     },
     get providerConfig() {
-        return AI_PROVIDERS[AI_PROVIDER];
+        return AI_CONFIG;
     },
     get apiEndpoint() {
-        return this.providerConfig.apiEndpoint;
+        return AI_CONFIG.apiEndpoint;
     },
     get model() {
-        return this.providerConfig.model;
+        return AI_CONFIG.model;
     },
     get maxTokens() {
-        return this.providerConfig.maxTokens;
+        return AI_CONFIG.maxTokens;
     },
     get apiKey() {
-        return this.providerConfig.getApiKey();
+        // Priority: Firebase settings > localStorage > default
+        return celesteFirebaseSettings?.openai_api_key ||
+               localStorage.getItem('openai_api_key_custom') ||
+               DEFAULT_OPENAI_API_KEY;
     },
     get providerName() {
-        return this.providerConfig.name;
+        return AI_CONFIG.name;
     }
 };
 

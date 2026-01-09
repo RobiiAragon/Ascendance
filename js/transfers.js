@@ -3160,17 +3160,27 @@ async function sendTransferNotification(transfer, type) {
     notifications.unshift(notification);
     localStorage.setItem('transfer_notifications', JSON.stringify(notifications.slice(0, 100))); // Keep last 100
 
-    // Show toast notification if on same page
-    showTransferToast(notification);
+    // Show notification popup if on same page
+    showTransferNotificationPopup(notification);
 
     return notification;
 }
 
-// Show toast notification
-function showTransferToast(notification) {
+// Show notification popup (for transfer notifications with title/message)
+function showTransferNotificationPopup(notification) {
+    // Validate notification object has required fields
+    if (!notification || !notification.title || !notification.message) {
+        console.warn('Invalid notification object:', notification);
+        return;
+    }
+
     // Remove existing toast
     const existingToast = document.getElementById('transferToast');
     if (existingToast) existingToast.remove();
+
+    // Default values for optional fields
+    const color = notification.color || '#667eea';
+    const icon = notification.icon || 'fa-bell';
 
     const toast = document.createElement('div');
     toast.id = 'transferToast';
@@ -3188,12 +3198,12 @@ function showTransferToast(notification) {
         z-index: 10000;
         animation: slideIn 0.3s ease;
         max-width: 350px;
-        border-left: 4px solid ${notification.color};
+        border-left: 4px solid ${color};
     `;
 
     toast.innerHTML = `
-        <div style="width: 40px; height: 40px; background: ${notification.color}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-            <i class="fas ${notification.icon}" style="color: ${notification.color}; font-size: 18px;"></i>
+        <div style="width: 40px; height: 40px; background: ${color}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas ${icon}" style="color: ${color}; font-size: 18px;"></i>
         </div>
         <div style="flex: 1;">
             <div style="font-weight: 600; font-size: 14px; color: #1f2937;">${notification.title}</div>
