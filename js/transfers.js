@@ -3086,29 +3086,19 @@ async function analyzeVideoFramePermissive(base64Image, apiKey) {
                     role: 'system',
                     content: `Count vape BOXES in this video frame for inventory. May be blurry - do your best.
 
-=== PRODUCTS (vapes per box) ===
-FOGER SWITCH PRO (×5): Large colorful boxes, "30K 18K" visible, "3000" on front
-- Colors: Purple/Green=Watermelon Ice, Orange=Meta Moon, Teal=Pineapple Coconut
-- Pink=Grape Slush/Watermelon Bubble Gum, Holographic=Coffee, Blue=Blue Rancher
-- Red=Cola Slush/Cherry Bomb, Green=Sour Apple, Mint=Miami Mint
-
-GEEK BAR (×1): All sizes (Regular, Pulse, Pulse X) = 1 vape each
-- Pulse X: Large boxes - Dualicious (green/rainbow), Orange Dragon (orange/black),
-  Orange Mint (purple/rainbow), Strawberry Colada (black/red-yellow), Blue Rancher (blue/black)
-- Pulse: Medium boxes - Blue Rancher, Sour Apple, Strawberry, Grape
-- Regular: Small boxes
-
-SUONON DONETE (×1): Colorful boxes "50K PUFFS" - The Mighty Peach (pink/yellow), Miami Mint (green), B Burst (pink), Fizz (blue)
+=== ALL MAIN BRANDS = 5 VAPES PER BOX ===
+FOGER (×5): Large colorful boxes "30K 18K", "3000" on front
+GEEK BAR (×5): All sizes (Regular, Pulse, Pulse X)
+SUONON DONETE (×5): Colorful boxes "50K PUFFS"
 KRAZE HD 2.0 (×5): Medium boxes with KRAZE branding
 OTHER BRANDS (×1): Lost Mary, Elf Bar, SWFT, Breeze, Hyde
 
-=== COUNTING TIPS ===
-- Count rows × columns for stacked products
-- Ignore reflections/shadows
-- When unsure, be conservative
-- Group by flavor when identifiable
+=== MULTIPLY: boxes × 5 ===
+2 FOGER boxes = 10 vapes
+3 Geek Bar boxes = 15 vapes
+4 SUONON boxes = 20 vapes
 
-Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
+Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES_AFTER_MULTIPLY}]
 If nothing visible: []`
                 },
                 {
@@ -3190,9 +3180,9 @@ FLAVORS BY COLOR:
 - Multicolor candy = Gummy Bear
 - White/Gray = White Gummy
 
-=== GEEK BAR (×1 vape per box) ===
+=== GEEK BAR (×5 vapes per box) ===
 Small individual boxes, larger "Pulse" boxes, or "Pulse X" boxes
-All Geek Bar variants = 1 vape per box
+All Geek Bar variants = 5 vapes per box
 
 GEEK BAR PULSE X FLAVORS (large boxes with "PULSE X" branding):
 - Green/Rainbow holographic = Dualicious
@@ -3217,7 +3207,7 @@ GEEK BAR PULSE FLAVORS (medium yellow/colorful boxes, 7500/15000 puffs):
 GEEK BAR REGULAR (small boxes):
 - Various colors matching flavor
 
-=== SUONON DONETE (×1 vape per box) ===
+=== SUONON DONETE (×5 vapes per box) ===
 Colorful boxes with "SUONON Donete" branding, "50K PUFFS" indicator
 - Pink/Yellow drip design = The Mighty Peach
 - Pink/Magenta = B Burst
@@ -3241,26 +3231,31 @@ Lost Mary, Elf Bar, SWFT, Breeze, Puff Bar, Hyde, Vuse, NJOY
 5. Group by EXACT flavor name
 
 === CRITICAL: MULTIPLY BOXES × VAPES PER BOX ===
+ALL MAIN BRANDS = 5 VAPES PER BOX:
 - FOGER box = 5 vapes → 2 FOGER boxes = 10 vapes
+- GEEK BAR box = 5 vapes → 3 Geek Bar boxes = 15 vapes
+- SUONON box = 5 vapes → 2 SUONON boxes = 10 vapes
 - KRAZE HD 2.0 box = 5 vapes → 3 KRAZE boxes = 15 vapes
-- Geek Bar (any) = 1 vape → 4 Geek Bar boxes = 4 vapes
-- SUONON = 1 vape → 3 SUONON boxes = 3 vapes
-- Other brands = 1 vape per box
+- Other brands (Lost Mary, Elf Bar, etc.) = 1 vape per box
 
 === OUTPUT FORMAT ===
 Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES_AFTER_MULTIPLICATION}]
 
 EXAMPLE 1 - FOGER:
-See 2 boxes of FOGER Coffee → 2 boxes × 5 vapes = {"name": "FOGER Coffee", "quantity": 10}
+See 2 boxes of FOGER Coffee → 2 × 5 = {"name": "FOGER Coffee", "quantity": 10}
 
 EXAMPLE 2 - Geek Bar:
-See 3 boxes Geek Bar Pulse X Blue Rancher → 3 boxes × 1 vape = {"name": "GEEK BAR Pulse X Blue Rancher", "quantity": 3}
+See 3 boxes Geek Bar Pulse X Blue Rancher → 3 × 5 = {"name": "GEEK BAR Pulse X Blue Rancher", "quantity": 15}
 
-EXAMPLE 3 - Mixed:
-See 4 FOGER Watermelon + 2 Geek Bar Grape:
+EXAMPLE 3 - SUONON:
+See 4 boxes SUONON Mighty Peach → 4 × 5 = {"name": "SUONON The Mighty Peach", "quantity": 20}
+
+EXAMPLE 4 - Mixed:
+See 4 FOGER Watermelon + 2 Geek Bar Grape + 1 SUONON Miami Mint:
 [
   {"name": "FOGER Watermelon Ice", "quantity": 20},
-  {"name": "GEEK BAR Pulse Grape", "quantity": 2}
+  {"name": "GEEK BAR Pulse Grape", "quantity": 10},
+  {"name": "SUONON Miami Mint", "quantity": 5}
 ]
 
 If blurry: {"error": "NEED_BETTER_PHOTO", "reason": "..."}
