@@ -12546,6 +12546,12 @@ window.viewChecklistHistory = async function() {
         }
 
         function openTimeEditor(scheduleId) {
+            // Only admins and managers can edit schedules
+            if (!canEditSchedule()) {
+                showNotification('Only managers and admins can edit schedules', 'error');
+                return;
+            }
+
             const schedule = schedules.find(s => s.id === scheduleId);
             if (!schedule) return;
 
@@ -13428,6 +13434,11 @@ window.viewChecklistHistory = async function() {
 
         // Clone modal functions
         function openCloneModal() {
+            // Only admins and managers can clone schedules
+            if (!canEditSchedule()) {
+                showNotification('Only managers and admins can edit schedules', 'error');
+                return;
+            }
             document.getElementById('cloneModalOverlay').classList.add('active');
         }
 
@@ -13609,7 +13620,19 @@ window.viewChecklistHistory = async function() {
         // Employee picker functions
         let currentPickerContext = null;
 
+        // Check if user can edit schedules (admin or manager only)
+        function canEditSchedule() {
+            const user = getCurrentUser();
+            return user?.role === 'admin' || user?.role === 'manager';
+        }
+
         function openEmployeePicker(dateKey, shiftType, storeFilter) {
+            // Only admins and managers can assign employees to schedules
+            if (!canEditSchedule()) {
+                showNotification('Only managers and admins can edit schedules', 'error');
+                return;
+            }
+
             currentPickerContext = { dateKey, shiftType, storeFilter };
 
             const overlay = document.getElementById('employeePickerOverlay');
@@ -14103,6 +14126,12 @@ window.viewChecklistHistory = async function() {
 
         // Legacy function kept for modal compatibility
         async function saveSchedule(isQuick = false) {
+            // Only admins and managers can save schedules
+            if (!canEditSchedule()) {
+                showNotification('Only managers and admins can edit schedules', 'error');
+                return;
+            }
+
             const employeeId = document.getElementById('schedule-employee')?.value;
             const store = document.getElementById('schedule-store')?.value;
             const date = document.getElementById('schedule-date')?.value;
@@ -14206,6 +14235,12 @@ window.viewChecklistHistory = async function() {
         }
 
         async function deleteSchedule(scheduleId) {
+            // Only admins and managers can delete schedules
+            if (!canEditSchedule()) {
+                showNotification('Only managers and admins can edit schedules', 'error');
+                return;
+            }
+
             showConfirmModal({
                 title: 'Delete Shift',
                 message: 'Are you sure you want to delete this shift?',
