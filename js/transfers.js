@@ -449,7 +449,7 @@ function renderTransfersPage() {
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 id="transferDetailsTitle">Transfer Details</h3>
-                    <button class="close-modal" onclick="closeTransferDetailsModal()">&times;</button>
+                    <button class="close-modal" onclick="closeTransferDetailsModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); padding: 8px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body" id="transferDetailsBody"></div>
             </div>
@@ -3086,19 +3086,19 @@ async function analyzeVideoFramePermissive(base64Image, apiKey) {
                     role: 'system',
                     content: `Count vape BOXES in this video frame for inventory. May be blurry - do your best.
 
-=== MASTER BOX (tall, no WARNING) = 5 vapes ===
-=== INDIVIDUAL BOX (small, white WARNING label) = 1 vape ===
+=== LARGE BOX (tall, no WARNING) = 5 vapes ===
+=== SMALL BOX (compact, white WARNING label) = 1 vape ===
 
 FOGER, GEEK BAR, SUONON, KRAZE - check box SIZE:
-- MASTER (tall) = 5 vapes
-- INDIVIDUAL (small with WARNING) = 1 vape
+- LARGE (tall, ~15-20cm) = 5 vapes
+- SMALL (compact with WARNING, ~8-10cm) = 1 vape
 
 OTHER BRANDS (Lost Mary, Elf Bar, etc.) = always 1 vape
 
 EXAMPLES:
-2 MASTER FOGER = 10 vapes
-3 INDIVIDUAL Geek Bar = 3 vapes
-1 MASTER + 2 INDIVIDUAL same flavor = 7 vapes
+2 LARGE BOX FOGER = 10 vapes (2 × 5)
+3 SMALL BOX Geek Bar = 3 vapes (3 × 1)
+1 LARGE + 2 SMALL same flavor = 7 vapes (5 + 2)
 
 Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
 If nothing visible: []`
@@ -3155,29 +3155,29 @@ async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
                     role: 'system',
                     content: `You are an expert vape product counter for inventory management. Count ALL boxes visible with precision.
 
-=== CRITICAL: DISTINGUISH MASTER BOX vs INDIVIDUAL BOX BY SIZE ===
+=== CRITICAL: COUNT BY BOX SIZE/DIMENSIONS ===
 
-MASTER BOX (5 vapes) - LARGE/TALL box:
-- Much taller and wider
-- Has "3000 PUFFS" or large puff number at bottom
-- Flavor name printed on TOP of box
+LARGE BOX (5 vapes):
+- Tall rectangular box (approximately 15-20cm tall)
+- Usually has product info/puffs on TOP of box
 - NO white WARNING label at bottom
+- Contains 5 individual vapes inside
 
-INDIVIDUAL BOX (1 vape) - SMALL/COMPACT box:
-- Smaller, more compact/square shape
-- Has white WARNING label at bottom ("This product contains nicotine...")
-- Flavor name on FRONT only
-- About HALF the height of master box
+SMALL BOX (1 vape):
+- Compact square-ish box (approximately 8-10cm tall)
+- Has white WARNING label at bottom: "This product contains nicotine..."
+- About HALF the height of large box
+- Contains 1 single vape
 
 === COUNTING METHODOLOGY ===
-1. FIRST determine if each box is MASTER (tall) or INDIVIDUAL (small with WARNING)
-2. MASTER box = 5 vapes, INDIVIDUAL box = 1 vape
-3. Count by rows × columns when stacked
-4. Group by brand + flavor
+1. Look at PHYSICAL SIZE of each box
+2. LARGE/TALL box = 5 vapes
+3. SMALL box (with WARNING label) = 1 vape
+4. Count rows × columns when stacked
+5. Group by brand + flavor
 
 === FOGER SWITCH PRO ===
-MASTER BOX (tall, "3000 PUFFS" at bottom) = 5 vapes
-INDIVIDUAL BOX (small, white WARNING label) = 1 vape
+LARGE BOX = 5 vapes | SMALL BOX = 1 vape
 FLAVORS BY COLOR:
 - Purple/Green gradient = Watermelon Ice
 - Orange/Yellow sunset = Meta Moon
@@ -3198,8 +3198,7 @@ FLAVORS BY COLOR:
 - White/Gray = White Gummy
 
 === GEEK BAR ===
-MASTER BOX (tall, "MAY THE PULSE DANCE WITH YOU") = 5 vapes
-INDIVIDUAL BOX (small, white WARNING label) = 1 vape
+LARGE BOX = 5 vapes | SMALL BOX = 1 vape
 
 GEEK BAR PULSE X FLAVORS:
 - Green/Rainbow holographic = Dualicious
@@ -3223,8 +3222,7 @@ GEEK BAR PULSE FLAVORS:
 - Red = Watermelon Ice
 
 === SUONON DONETE ===
-MASTER BOX (tall) = 5 vapes
-INDIVIDUAL BOX (small, white WARNING label) = 1 vape
+LARGE BOX = 5 vapes | SMALL BOX = 1 vape
 Colorful boxes with "SUONON Donete" branding, "50K PUFFS" indicator
 - Pink/Yellow drip design = The Mighty Peach
 - Pink/Magenta = B Burst
@@ -3234,41 +3232,37 @@ Colorful boxes with "SUONON Donete" branding, "50K PUFFS" indicator
 - Red = Strawberry
 - Orange = Orange Creamsicle
 
-=== KRAZE HD 2.0 (×5 vapes per box) ===
-Medium boxes with "KRAZE" branding
+=== KRAZE HD 2.0 ===
+LARGE BOX = 5 vapes | SMALL BOX = 1 vape
 
-=== OTHER BRANDS (×1 vape per box) ===
-Lost Mary, Elf Bar, SWFT, Breeze, Puff Bar, Hyde, Vuse, NJOY
+=== OTHER BRANDS ===
+Lost Mary, Elf Bar, SWFT, Breeze, Puff Bar, Hyde, Vuse, NJOY = 1 vape per box (usually only small boxes)
 
 === COUNTING RULES ===
-1. FIRST identify box SIZE: MASTER (tall) vs INDIVIDUAL (small with WARNING label)
-2. Count PHYSICAL BOXES only - NOT images printed on packaging
-3. Do NOT count reflections or shadows
-4. Partially visible boxes - count if >50% visible
-5. Group by brand + flavor
-
-=== VAPES PER BOX ===
-MASTER BOX (tall, no WARNING label) = 5 vapes
-INDIVIDUAL BOX (small, white WARNING label at bottom) = 1 vape
+1. Look at PHYSICAL DIMENSIONS of each box
+2. LARGE/TALL box = 5 vapes
+3. SMALL/COMPACT box (with WARNING label) = 1 vape
+4. Count PHYSICAL BOXES only - NOT images printed on packaging
+5. Do NOT count reflections or shadows
 
 === OUTPUT FORMAT ===
 Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
 
-EXAMPLE 1 - Master boxes only:
-See 2 MASTER boxes of FOGER Coffee → 2 × 5 = {"name": "FOGER Coffee", "quantity": 10}
+EXAMPLE 1 - Large boxes only:
+See 2 LARGE boxes of FOGER Coffee (tall, no WARNING) → 2 × 5 = {"name": "FOGER Coffee", "quantity": 10}
 
-EXAMPLE 2 - Individual boxes only:
-See 3 INDIVIDUAL boxes (small, with WARNING) Geek Bar Blue Rancher → 3 × 1 = {"name": "GEEK BAR Blue Rancher", "quantity": 3}
+EXAMPLE 2 - Small boxes only:
+See 3 SMALL boxes (compact, with WARNING label) Geek Bar Blue Rancher → 3 × 1 = {"name": "GEEK BAR Blue Rancher", "quantity": 3}
 
-EXAMPLE 3 - Mixed master and individual:
-See 1 MASTER FOGER Strawberry (tall) + 2 INDIVIDUAL FOGER Coffee (small with WARNING):
+EXAMPLE 3 - Mixed large and small:
+See 1 LARGE FOGER Strawberry (tall) + 2 SMALL FOGER Coffee (compact with WARNING):
 [
   {"name": "FOGER Strawberry Cupcake", "quantity": 5},
   {"name": "FOGER Coffee", "quantity": 2}
 ]
 
 EXAMPLE 4 - Multiple brands:
-See 2 MASTER Geek Bar Lemon Heads + 3 INDIVIDUAL SUONON Mighty Peach:
+See 2 LARGE Geek Bar Lemon Heads (tall) + 3 SMALL SUONON Mighty Peach (compact with WARNING):
 [
   {"name": "GEEK BAR Lemon Heads", "quantity": 10},
   {"name": "SUONON The Mighty Peach", "quantity": 3}
