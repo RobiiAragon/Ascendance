@@ -2817,23 +2817,25 @@ async function analyzeVideoFramePermissive(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are a product identification assistant for a vape shop. This is a VIDEO FRAME so expect some motion blur.
+                    content: `You are a product counter for a vape shop inventory transfer.
 
-DO YOUR BEST to identify products even if the image is not perfect. Video frames are often blurry - that's OK, just do your best guess.
+CRITICAL: Count PHYSICAL BOXES you can clearly see. Do NOT count reflections, shadows, or guess hidden products.
 
-PACKAGING MULTIPLIERS:
-- FOGER boxes: 5 vapes per box
-- Kraze HD 2.0 boxes: 5 vapes per box
-- Most other vapes: 1 per box
+STEP 1: Count the BOXES you see for each product type
+STEP 2: Apply multiplier ONLY for FOGER/Kraze (5 per box). All others = 1 per box.
 
-Try to identify:
-- Brand name (Lost Mary, Elf Bar, FOGER, Geek Bar, SWFT, etc.)
-- Flavor if readable
-- Approximate quantity
+MULTIPLIERS:
+- FOGER box (any color/flavor): 1 box = 5 vapes
+- Kraze HD 2.0 box: 1 box = 5 vapes
+- Geek Bar, Lost Mary, Elf Bar, etc.: 1 box = 1 vape
 
-Return a JSON array: [{"name": "Brand Flavor", "quantity": X}]
-If you really can't see ANY products at all, return: []
-DO NOT return errors - just do your best or return empty array.`
+BE CONSERVATIVE: If unsure, count LESS not more. Only count what you can clearly see.
+
+Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
+Example: 2 FOGER boxes = {"name": "FOGER Strawberry", "quantity": 10}
+Example: 3 Geek Bar boxes = {"name": "Geek Bar Blue", "quantity": 3}
+
+If no products visible, return: []`
                 },
                 {
                     role: 'user',
@@ -2885,31 +2887,31 @@ async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are a product identification assistant for a vape shop inventory transfer system.
-Analyze the image and identify vape products (disposable vapes, e-liquids, devices, accessories).
+                    content: `You are a product counter for a vape shop inventory transfer.
 
-CRITICAL - PACKAGING MULTIPLIERS (units per box):
-- FOGER (Switch Pro Kit, any FOGER): 5 vapes per box - Count boxes × 5
-- Kraze HD 2.0: 5 vapes per box - Count boxes × 5
-- Most other disposable vapes (Lost Mary, Elf Bar, Geek Bar, SWFT, Breeze, etc.): 1 vape per box
+YOUR JOB: Count the PHYSICAL BOXES visible in the image, then calculate total vapes.
 
-IMPORTANT - IMAGE QUALITY:
-- If the image is blurry, dark, has glare, or products are not clearly visible, return: {"error": "NEED_BETTER_PHOTO", "reason": "brief description of issue"}
-- If you see reflections or duplicates that might cause double-counting, be CONSERVATIVE - count only what you're 100% sure of
-- When in doubt about quantity, use the LOWER count
+STEP 1 - COUNT BOXES: Only count boxes you can CLEARLY see. Do NOT count:
+- Reflections or shadows
+- Partially hidden boxes
+- Boxes you're guessing might be there
 
-For each product you can clearly identify, extract:
-- Product name/brand and flavor if visible
-- Quantity: The TOTAL INDIVIDUAL VAPES after applying multipliers (be conservative)
+STEP 2 - APPLY MULTIPLIER:
+- FOGER box (any flavor, usually colorful): 1 box = 5 vapes
+- Kraze HD 2.0 box: 1 box = 5 vapes
+- Geek Bar (blue boxes): 1 box = 1 vape
+- Lost Mary, Elf Bar, SWFT, etc.: 1 box = 1 vape
 
-Example: If you see 3 FOGER Cool Mint boxes, report: {"name": "FOGER Cool Mint", "quantity": 15} (3 boxes × 5 = 15 vapes)
+CRITICAL: BE CONSERVATIVE. When in doubt, count FEWER boxes, not more.
 
-Return ONLY a JSON array with the products found. Example format:
-[{"name": "FOGER Cool Mint", "quantity": 15}, {"name": "Lost Mary Watermelon", "quantity": 3}]
+IMAGE QUALITY: If too blurry/dark to count accurately, return: {"error": "NEED_BETTER_PHOTO", "reason": "brief issue"}
 
-If image quality is too poor: {"error": "NEED_BETTER_PHOTO", "reason": "description"}
-If no products visible: []
-Be concise with product names. Do not include SKUs or prices.`
+Return JSON array: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
+
+Example: You see 1 FOGER Strawberry box = {"name": "FOGER Strawberry Cupcake", "quantity": 5}
+Example: You see 4 Geek Bar boxes = {"name": "Geek Bar Blue Razz", "quantity": 4}
+
+If no products: []`
                 },
                 {
                     role: 'user',
