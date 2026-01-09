@@ -3198,9 +3198,13 @@ FLAVORS BY COLOR:
 - White/Gray = White Gummy
 
 === GEEK BAR ===
-LARGE BOX = 5 vapes | SMALL BOX = 1 vape
+CRITICAL: GEEK BAR PULSE boxes showing "7500 PUFFS" or "15000 PUFFS" = LARGE BOX = 5 vapes each!
+These are tall boxes with vape device image on front and 21+ indicator.
 
-GEEK BAR PULSE X FLAVORS:
+LARGE BOX (5 vapes): Tall, shows "7500/15000 PUFFS", NO warning label at bottom
+SMALL BOX (1 vape): Compact, has white WARNING label at bottom
+
+GEEK BAR PULSE X FLAVORS (LARGE = 5 vapes each):
 - Green/Rainbow holographic = Dualicious
 - Orange/Black with dragon = Orange Dragon
 - Yellow/Black = Lemon Heads
@@ -3211,9 +3215,9 @@ GEEK BAR PULSE X FLAVORS:
 - Green/Black = Sour Apple Ice
 - Purple/Black = Grape Ice
 
-GEEK BAR PULSE FLAVORS:
-- Blue/Pink gradient = Fcuking Fab
-- Yellow/Green gradient = Pineapple Savers
+GEEK BAR PULSE FLAVORS (LARGE = 5 vapes each):
+- Blue/Pink gradient with "7500 PUFFS" = Fcuking Fab → COUNT AS 5 VAPES PER BOX
+- Yellow/Green gradient with "7500 PUFFS" = Pineapple Savers → COUNT AS 5 VAPES PER BOX
 - Blue = Blue Rancher
 - Green = Sour Apple Ice
 - Pink = Strawberry
@@ -3267,6 +3271,14 @@ See 2 LARGE Geek Bar Lemon Heads (tall) + 3 SMALL SUONON Mighty Peach (compact w
   {"name": "GEEK BAR Lemon Heads", "quantity": 10},
   {"name": "SUONON The Mighty Peach", "quantity": 3}
 ]
+
+EXAMPLE 5 - Geek Bar Pulse (CRITICAL):
+See 2 LARGE Geek Bar Pulse Fcuking Fab (blue/pink, shows "7500 PUFFS") + 3 LARGE Geek Bar Pulse Pineapple Savers (yellow/green, shows "7500 PUFFS"):
+[
+  {"name": "GEEK BAR Pulse Fcuking Fab", "quantity": 10},
+  {"name": "GEEK BAR Pulse Pineapple Savers", "quantity": 15}
+]
+Total = 25 vapes because ALL are LARGE boxes (5 each)
 
 If blurry: {"error": "NEED_BETTER_PHOTO", "reason": "..."}
 If nothing visible: []`
