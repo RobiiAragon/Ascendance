@@ -9,7 +9,8 @@ let transfersState = {
     currentFilter: 'all',
     selectedProduct: null,
     productsCache: [],
-    isLoadingProducts: false
+    isLoadingProducts: false,
+    viewMode: 'table' // 'table' or 'grid'
 };
 
 // Store names mapping
@@ -282,34 +283,50 @@ function renderTransfersPage() {
             </div>
         </div>
 
-        <!-- Filter Tabs -->
-        <div class="transfers-filter-tabs">
-            <button class="filter-tab ${transfersState.currentFilter === 'all' ? 'active' : ''}" onclick="filterTransfers('all')">
-                <i class="fas fa-border-all"></i>
-                <span>All</span>
-            </button>
-            <button class="filter-tab ${transfersState.currentFilter === 'pending' ? 'active' : ''}" onclick="filterTransfers('pending')">
-                <i class="fas fa-clock"></i>
-                <span>Pending</span>
-            </button>
-            <button class="filter-tab ${transfersState.currentFilter === 'received' ? 'active' : ''}" onclick="filterTransfers('received')">
-                <i class="fas fa-check-circle"></i>
-                <span>Received</span>
-            </button>
+        <!-- Filter Tabs & View Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="transfers-filter-tabs" style="margin-bottom: 0;">
+                <button class="filter-tab ${transfersState.currentFilter === 'all' ? 'active' : ''}" onclick="filterTransfers('all')">
+                    <i class="fas fa-border-all"></i>
+                    <span>All</span>
+                </button>
+                <button class="filter-tab ${transfersState.currentFilter === 'pending' ? 'active' : ''}" onclick="filterTransfers('pending')">
+                    <i class="fas fa-clock"></i>
+                    <span>Pending</span>
+                </button>
+                <button class="filter-tab ${transfersState.currentFilter === 'received' ? 'active' : ''}" onclick="filterTransfers('received')">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Received</span>
+                </button>
+            </div>
+            <div style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 10px;">
+                <button onclick="setTransferViewMode('table')" style="padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; ${transfersState.viewMode === 'table' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}">
+                    <i class="fas fa-list"></i>
+                </button>
+                <button onclick="setTransferViewMode('grid')" style="padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; ${transfersState.viewMode === 'grid' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}">
+                    <i class="fas fa-th-large"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Transfers Table -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-list"></i>
-                    Transfer History
-                </h3>
+        <!-- Transfers Content -->
+        ${transfersState.viewMode === 'table' ? `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-list"></i>
+                        Transfer History
+                    </h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    ${renderTransfersTable()}
+                </div>
             </div>
-            <div class="card-body" style="padding: 0;">
-                ${renderTransfersTable()}
+        ` : `
+            <div class="transfers-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                ${renderTransfersGrid()}
             </div>
-        </div>
+        `}
 
         <!-- New Transfer Modal - Redesigned -->
         <div class="modal" id="transferModal">
@@ -493,6 +510,126 @@ function renderTransfersTable() {
     `;
 }
 
+// Set view mode (table or grid)
+function setTransferViewMode(mode) {
+    transfersState.viewMode = mode;
+    renderTransfersPage();
+}
+
+// Render transfers grid view
+function renderTransfersGrid() {
+    let transfers = [...transfersState.transfers];
+
+    // Apply filter
+    if (transfersState.currentFilter !== 'all') {
+        transfers = transfers.filter(t => t.status === transfersState.currentFilter);
+    }
+
+    // Sort by date (newest first)
+    transfers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    if (transfers.length === 0) {
+        return `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <i class="fas fa-exchange-alt"></i>
+                <h3>No transfers</h3>
+                <p>Transfers will appear here once created</p>
+            </div>
+        `;
+    }
+
+    return transfers.map(transfer => renderTransferCard(transfer)).join('');
+}
+
+// Render single transfer card for grid view
+function renderTransferCard(transfer) {
+    const statusLabels = {
+        'pending': 'Pending',
+        'received': 'Received'
+    };
+
+    const statusColors = {
+        'pending': { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', icon: 'fa-clock' },
+        'received': { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', icon: 'fa-check-circle' }
+    };
+
+    const status = statusColors[transfer.status] || statusColors.pending;
+
+    const formattedDate = new Date(transfer.shipDate).toLocaleDateString('en-US', {
+        day: '2-digit',
+        month: 'short'
+    });
+
+    // Check if new multi-item format or old single-item format
+    const hasMultipleItems = transfer.items && transfer.items.length > 0;
+    const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
+    const productCount = hasMultipleItems ? transfer.items.length : 1;
+
+    // Product display
+    let productName = '';
+    if (hasMultipleItems) {
+        productName = productCount === 1
+            ? transfer.items[0].productName
+            : `${productCount} products`;
+    } else {
+        productName = transfer.productName;
+    }
+
+    return `
+        <div class="transfer-card" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'" onclick="viewTransferDetails('${transfer.id}')">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div>
+                    <div style="font-weight: 700; color: var(--accent-primary); font-size: 14px; font-family: 'Space Mono', monospace;">${transfer.folio}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${formattedDate}</div>
+                </div>
+                <div style="background: ${status.bg}; color: ${status.color}; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    <i class="fas ${status.icon}"></i>
+                    ${statusLabels[transfer.status]}
+                </div>
+            </div>
+
+            <!-- Route -->
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 10px;">
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">From</div>
+                    <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${getStoreName(transfer.storeOrigin)}</div>
+                </div>
+                <i class="fas fa-arrow-right" style="color: var(--accent-primary);"></i>
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">To</div>
+                    <div style="font-weight: 600; font-size: 13px; color: #10b981;">${getStoreName(transfer.storeDestination)}</div>
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div style="margin-bottom: 16px;">
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${productName}</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                    <span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #667eea; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px;">${totalQty} units</span>
+                    ${hasMultipleItems && productCount > 1 ? `<span style="font-size: 12px; color: var(--text-muted);">${productCount} items</span>` : ''}
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div style="display: flex; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 12px;" onclick="event.stopPropagation()">
+                ${transfer.status !== 'received' ? `
+                    <button onclick="confirmReceiveTransfer('${transfer.id}')" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="fas fa-check"></i> Receive
+                    </button>
+                ` : `
+                    <div style="flex: 1; padding: 10px; text-align: center; color: var(--text-muted); font-size: 12px;">
+                        <i class="fas fa-check-circle" style="color: #10b981; margin-right: 4px;"></i> Received
+                    </div>
+                `}
+                <button onclick="confirmDeleteTransfer('${transfer.id}')" style="padding: 10px 14px; border: none; border-radius: 8px; background: rgba(239,68,68,0.1); color: #ef4444; cursor: pointer;" onmouseover="this.style.background='#ef4444'; this.style.color='white'" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444'">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 // Render single transfer row - supports both old (single product) and new (multiple items) format
 function renderTransferRow(transfer) {
     const statusClass = transfer.status;
@@ -655,11 +792,13 @@ async function executeDeleteTransfer(transferId) {
 
     // Try to delete from Firebase
     try {
-        if (window.db) {
-            await window.db.collection('transfers').doc(transferId).delete();
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            await db.collection('transfers').doc(transferId).delete();
+            console.log('✅ Transfer deleted from Firebase');
         }
     } catch (error) {
-        console.error('Error deleting from Firebase:', error);
+        console.warn('⚠️ Could not delete from Firebase:', error.message);
     }
 
     // Close modal and refresh

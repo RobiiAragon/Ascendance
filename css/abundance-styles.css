@@ -1183,11 +1183,80 @@ textarea.form-input {
     }
 
     .transfer-stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .transfer-stat-card {
+        padding: 12px;
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .transfer-stat-card .stat-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+
+    .transfer-stat-card .stat-value {
+        font-size: 20px;
+    }
+
+    .transfer-stat-card .stat-label {
+        font-size: 10px;
     }
 
     .transfers-filter-tabs {
         flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .transfers-filter-tabs .filter-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    /* Transfers Page Header - Mobile */
+    .page-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch !important;
+    }
+
+    .page-header .page-header-left {
+        text-align: center;
+    }
+
+    .page-header .page-header-left .section-title {
+        font-size: 20px;
+    }
+
+    .page-header .page-header-left .section-subtitle {
+        font-size: 12px;
+    }
+
+    /* Header Buttons - Mobile Grid */
+    .page-header > div:last-child {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px !important;
+    }
+
+    .page-header > div:last-child button {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+        justify-content: center;
+    }
+
+    .page-header > div:last-child button i {
+        font-size: 14px;
+    }
+
+    /* Hide button text on very small screens */
+    .page-header > div:last-child button span {
+        display: none;
     }
 
     /* Mobile table card view */
@@ -1201,33 +1270,203 @@ textarea.form-input {
     }
 
     .transfers-table tbody {
-        display: block;
-        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
     }
 
     .transfers-table tbody tr {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px 12px;
+        flex-direction: column;
+        gap: 12px;
         background: var(--bg-card);
         border: 1px solid var(--border-color);
-        border-radius: 10px;
-        margin-bottom: 10px;
+        border-radius: 14px;
         padding: 16px;
-        align-items: flex-start;
     }
 
     .transfers-table tbody tr td {
         border: none !important;
         padding: 0 !important;
+        font-size: 13px;
+    }
+
+    /* Folio - Full width header */
+    .transfers-table tbody tr td:nth-child(1) {
+        order: 1;
+    }
+
+    .transfers-table tbody tr td:nth-child(1) .transfer-folio {
+        font-size: 16px;
+    }
+
+    /* Route - Full width */
+    .transfers-table tbody tr td:nth-child(2) {
+        order: 2;
+        background: var(--bg-secondary);
+        padding: 12px !important;
+        border-radius: 10px;
+        margin: 4px 0;
+    }
+
+    .transfers-table tbody tr td:nth-child(2) .transfer-route {
+        justify-content: center;
+    }
+
+    /* Product info */
+    .transfers-table tbody tr td:nth-child(3) {
+        order: 3;
+    }
+
+    /* Quantity */
+    .transfers-table tbody tr td:nth-child(4) {
+        order: 4;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .transfers-table tbody tr td:nth-child(4)::before {
+        content: 'Qty: ';
+        color: var(--text-muted);
+        font-size: 11px;
+    }
+
+    /* Date */
+    .transfers-table tbody tr td:nth-child(5) {
+        order: 5;
+        color: var(--text-muted);
+        font-size: 11px;
+    }
+
+    /* Sent by - hide on mobile */
+    .transfers-table tbody tr td:nth-child(6) {
+        display: none;
+    }
+
+    /* Status */
+    .transfers-table tbody tr td:nth-child(7) {
+        order: 6;
+        position: absolute;
+        top: 16px;
+        right: 16px;
+    }
+
+    .transfers-table tbody tr {
+        position: relative;
+    }
+
+    /* Actions */
+    .transfers-table tbody tr td:nth-child(8) {
+        order: 7;
+        width: 100%;
+        border-top: 1px solid var(--border-color) !important;
+        padding-top: 12px !important;
+        margin-top: 4px;
+    }
+
+    .transfers-table tbody tr td:nth-child(8) .order-actions {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .transfers-table tbody tr td:nth-child(8) .order-actions button {
+        flex: 1;
+        justify-content: center;
+        padding: 10px !important;
+    }
+
+    /* Grid View Mobile */
+    .transfers-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        padding: 0 4px;
+    }
+
+    .transfer-card {
+        padding: 16px !important;
+    }
+
+    /* View Toggle Mobile */
+    .transfers-view-toggle {
+        padding: 3px !important;
+    }
+
+    .transfers-view-toggle button {
+        padding: 6px 10px !important;
+    }
+
+    /* Modal Mobile Improvements */
+    #transferModal .modal-content,
+    #aiTransferModal .modal-content,
+    #deleteTransferModal .modal-content {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        border-radius: 16px !important;
+    }
+
+    /* AI Transfer Modal Mobile */
+    #aiTransferModal .modal-content {
+        max-width: calc(100vw - 20px) !important;
+    }
+
+    /* Transfer Form Mobile */
+    #transferForm input,
+    #transferForm select,
+    #transferForm textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+
+    /* Receive Modal Mobile */
+    #receiveTransferModal .modal-content {
+        margin: 10px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .transfer-stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .transfer-stat-card {
+        padding: 10px 8px;
+    }
+
+    .transfer-stat-card .stat-icon {
+        width: 32px;
+        height: 32px;
         font-size: 12px;
     }
 
-    .transfers-table tbody tr td:first-child {
-        width: 100%;
-        margin-bottom: 8px;
-        padding-bottom: 8px !important;
-        border-bottom: 1px solid var(--border-color) !important;
+    .transfer-stat-card .stat-value {
+        font-size: 18px;
+    }
+
+    .transfer-stat-card .stat-label {
+        font-size: 9px;
+    }
+
+    .page-header > div:last-child {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .page-header > div:last-child button {
+        padding: 8px 10px !important;
+        font-size: 11px !important;
+    }
+
+    .transfers-filter-tabs .filter-tab {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .transfers-filter-tabs .filter-tab span {
+        display: none;
     }
 }
 
