@@ -2927,6 +2927,7 @@ GEEK BAR (×1): All sizes (Regular, Pulse, Pulse X) = 1 vape each
 - Pulse: Medium boxes - Blue Rancher, Sour Apple, Strawberry, Grape
 - Regular: Small boxes
 
+SUONON DONETE (×1): Colorful boxes "50K PUFFS" - The Mighty Peach (pink/yellow), Miami Mint (green), B Burst (pink), Fizz (blue)
 KRAZE HD 2.0 (×5): Medium boxes with KRAZE branding
 OTHER BRANDS (×1): Lost Mary, Elf Bar, SWFT, Breeze, Hyde
 
@@ -3044,6 +3045,16 @@ GEEK BAR PULSE FLAVORS (medium yellow/colorful boxes, 7500/15000 puffs):
 
 GEEK BAR REGULAR (small boxes):
 - Various colors matching flavor
+
+=== SUONON DONETE (×1 vape per box) ===
+Colorful boxes with "SUONON Donete" branding, "50K PUFFS" indicator
+- Pink/Yellow drip design = The Mighty Peach
+- Pink/Magenta = B Burst
+- Green/Turquoise mint = Miami Mint
+- Blue/Yellow = Fizz
+- Purple = Grape
+- Red = Strawberry
+- Orange = Orange Creamsicle
 
 === KRAZE HD 2.0 (×5 vapes per box) ===
 Medium boxes with "KRAZE" branding
