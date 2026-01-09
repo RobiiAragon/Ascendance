@@ -2551,33 +2551,133 @@ function fileToBase64(file) {
     });
 }
 
-// Convert HEIC to JPEG (browsers that support it will decode, others need library)
-function convertHeicToJpeg(file) {
+// Convert HEIC to JPEG and compress large images
+async function convertHeicToJpeg(file) {
+    console.log(`[HEIC] Processing ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+
+    // First try native browser support (Safari/iOS)
+    try {
+        const result = await tryNativeHeicConversion(file);
+        if (result) return result;
+    } catch (e) {
+        console.log('[HEIC] Native conversion failed, trying heic2any library');
+    }
+
+    // Try heic2any library if available
+    if (typeof heic2any !== 'undefined') {
+        try {
+            const blob = await heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.8
+            });
+            const result = await blobToBase64(blob);
+            console.log('[HEIC] Converted via heic2any');
+            return result;
+        } catch (e) {
+            console.log('[HEIC] heic2any failed:', e.message);
+        }
+    }
+
+    // Load heic2any dynamically if not available
+    if (typeof heic2any === 'undefined') {
+        try {
+            await loadHeic2AnyLibrary();
+            const blob = await heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.8
+            });
+            const result = await blobToBase64(blob);
+            console.log('[HEIC] Converted via dynamically loaded heic2any');
+            return result;
+        } catch (e) {
+            console.log('[HEIC] Dynamic heic2any failed:', e.message);
+        }
+    }
+
+    // Last resort - just read as-is and hope the API can handle it
+    console.log('[HEIC] All conversions failed, sending raw file');
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Try native HEIC conversion (works on Safari/iOS)
+function tryNativeHeicConversion(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         const url = URL.createObjectURL(file);
 
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+        const timeout = setTimeout(() => {
             URL.revokeObjectURL(url);
-            resolve(canvas.toDataURL('image/jpeg', 0.9));
+            reject(new Error('Timeout'));
+        }, 10000); // 10 second timeout
+
+        img.onload = () => {
+            clearTimeout(timeout);
+            // Resize if too large (max 2048px on longest side for API)
+            let width = img.width;
+            let height = img.height;
+            const maxSize = 2048;
+
+            if (width > maxSize || height > maxSize) {
+                if (width > height) {
+                    height = Math.round((height * maxSize) / width);
+                    width = maxSize;
+                } else {
+                    width = Math.round((width * maxSize) / height);
+                    height = maxSize;
+                }
+                console.log(`[HEIC] Resizing from ${img.width}x${img.height} to ${width}x${height}`);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            URL.revokeObjectURL(url);
+
+            // Compress to 80% quality JPEG
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
 
         img.onerror = () => {
+            clearTimeout(timeout);
             URL.revokeObjectURL(url);
-            // If browser can't decode HEIC, try reading as blob anyway
-            // Safari and newer browsers support HEIC natively
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
+            reject(new Error('Cannot decode HEIC'));
         };
 
         img.src = url;
+    });
+}
+
+// Load heic2any library dynamically
+function loadHeic2AnyLibrary() {
+    return new Promise((resolve, reject) => {
+        if (typeof heic2any !== 'undefined') {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load heic2any'));
+        document.head.appendChild(script);
+    });
+}
+
+// Convert blob to base64
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
     });
 }
 
