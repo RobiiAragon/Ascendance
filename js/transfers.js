@@ -2500,30 +2500,52 @@ function mergeTransferItems(existing, newItems) {
 // Analyze video - extract frames + transcribe audio
 async function analyzeTransferVideo(file, apiKey) {
     let allItems = [];
+    let frameErrors = [];
 
     // 1. Extract frames from video and analyze
     try {
         const frames = await extractVideoFrames(file, 3); // Extract 3 frames
-        for (const frame of frames) {
-            const items = await analyzeTransferPhotoWithVision(frame, apiKey);
-            allItems = mergeTransferItems(allItems, items);
+        console.log(`[AI Transfer] Extracted ${frames.length} frames from video`);
+
+        for (let i = 0; i < frames.length; i++) {
+            try {
+                const items = await analyzeTransferPhotoWithVision(frames[i], apiKey);
+                if (items && items.length > 0) {
+                    allItems = mergeTransferItems(allItems, items);
+                    console.log(`[AI Transfer] Frame ${i + 1}: Found ${items.length} products`);
+                }
+            } catch (frameError) {
+                // Don't fail on individual frame errors (blurry, etc.)
+                console.warn(`[AI Transfer] Frame ${i + 1} skipped:`, frameError.message);
+                frameErrors.push(frameError.message);
+            }
         }
     } catch (e) {
-        console.warn('Could not extract video frames:', e);
+        console.warn('Could not extract video frames:', e.message);
     }
 
     // 2. Extract and transcribe audio from video
     try {
         const audioBlob = await extractAudioFromVideo(file);
         if (audioBlob) {
+            console.log('[AI Transfer] Extracted audio from video, transcribing...');
             const transcript = await transcribeAudio(audioBlob, apiKey);
             if (transcript) {
+                console.log('[AI Transfer] Transcription:', transcript);
                 const items = await parseProductsFromText(transcript, apiKey);
-                allItems = mergeTransferItems(allItems, items);
+                if (items && items.length > 0) {
+                    allItems = mergeTransferItems(allItems, items);
+                    console.log(`[AI Transfer] Audio: Found ${items.length} products`);
+                }
             }
         }
     } catch (e) {
-        console.warn('Could not extract video audio:', e);
+        console.warn('Could not extract video audio:', e.message);
+    }
+
+    // If no items found and all frames had errors, show a helpful message
+    if (allItems.length === 0 && frameErrors.length > 0) {
+        console.log('[AI Transfer] No products found. Frame issues:', frameErrors);
     }
 
     return allItems;
