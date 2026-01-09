@@ -144,11 +144,14 @@ function renderTransfersPage() {
                 <p class="section-subtitle">Manage inventory movement between locations</p>
             </div>
             <div style="display: flex; gap: 12px;">
+                <button onclick="openTransferReports()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-primary);">
+                    <i class="fas fa-chart-bar" style="color: #8b5cf6;"></i> Reports
+                </button>
                 <button class="btn-secondary" onclick="loadTransfers(); renderTransfersPage();">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
                 <button onclick="openAITransferModal()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-robot"></i> AI Transfer
+                    <i class="fas fa-wand-magic-sparkles"></i> AI Transfer
                 </button>
                 <button class="btn-primary" onclick="openTransferModal()">
                     <i class="fas fa-plus"></i> New Transfer
@@ -177,15 +180,6 @@ function renderTransfersPage() {
                 </div>
             </div>
             <div class="transfer-stat-card">
-                <div class="stat-icon transit">
-                    <i class="fas fa-truck"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-value">${stats.inTransit}</div>
-                    <div class="stat-label">In Transit</div>
-                </div>
-            </div>
-            <div class="transfer-stat-card">
                 <div class="stat-icon received">
                     <i class="fas fa-check-circle"></i>
                 </div>
@@ -205,10 +199,6 @@ function renderTransfersPage() {
             <button class="filter-tab ${transfersState.currentFilter === 'pending' ? 'active' : ''}" onclick="filterTransfers('pending')">
                 <i class="fas fa-clock"></i>
                 <span>Pending</span>
-            </button>
-            <button class="filter-tab ${transfersState.currentFilter === 'in-transit' ? 'active' : ''}" onclick="filterTransfers('in-transit')">
-                <i class="fas fa-truck"></i>
-                <span>In Transit</span>
             </button>
             <button class="filter-tab ${transfersState.currentFilter === 'received' ? 'active' : ''}" onclick="filterTransfers('received')">
                 <i class="fas fa-check-circle"></i>
@@ -380,7 +370,6 @@ function calculateTransferStats() {
     return {
         total: transfers.length,
         pending: transfers.filter(t => t.status === 'pending').length,
-        inTransit: transfers.filter(t => t.status === 'in-transit').length,
         received: transfers.filter(t => t.status === 'received').length
     };
 }
@@ -433,8 +422,7 @@ function renderTransferRow(transfer) {
     const statusClass = transfer.status;
     const statusLabels = {
         'pending': 'Pending',
-        'in-transit': 'In Transit',
-        'received': 'Received'
+                'received': 'Received'
     };
 
     const formattedDate = new Date(transfer.shipDate).toLocaleDateString('en-US', {
@@ -990,8 +978,7 @@ function viewTransferDetails(transferId) {
 
     const statusLabels = {
         'pending': 'Pending',
-        'in-transit': 'In Transit',
-        'received': 'Received'
+                'received': 'Received'
     };
 
     const storeNames = {
@@ -1144,8 +1131,8 @@ function closeTransferDetailsModal() {
     }
 }
 
-// Confirm receive transfer
-async function confirmReceiveTransfer(transferId) {
+// Open receive transfer modal with photo capture
+function confirmReceiveTransfer(transferId) {
     const transfer = transfersState.transfers.find(t => t.id === transferId);
     if (!transfer) {
         alert('Transfer not found');
@@ -1155,6 +1142,141 @@ async function confirmReceiveTransfer(transferId) {
     if (transfer.status === 'received') {
         alert('This transfer has already been received');
         return;
+    }
+
+    const storeNames = {
+        '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa',
+        '4': 'Chula Vista', '5': 'North Park', 'loyalvaper': 'Loyal Vaper'
+    };
+
+    const hasMultipleItems = transfer.items && transfer.items.length > 0;
+    const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
+    const productCount = hasMultipleItems ? transfer.items.length : 1;
+
+    // Build items list
+    let itemsHtml = '';
+    if (hasMultipleItems) {
+        itemsHtml = transfer.items.map(item => `
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 6px;">
+                <div style="min-width: 35px; height: 35px; background: linear-gradient(135deg, #10b98120, #05966920); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #10b981;">
+                    ${item.quantity}x
+                </div>
+                <div style="flex: 1; font-size: 13px; font-weight: 500;">${item.productName}</div>
+            </div>
+        `).join('');
+    } else {
+        itemsHtml = `
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                <div style="min-width: 35px; height: 35px; background: linear-gradient(135deg, #10b98120, #05966920); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #10b981;">
+                    ${transfer.quantity}x
+                </div>
+                <div style="flex: 1; font-size: 13px; font-weight: 500;">${transfer.productName}</div>
+            </div>
+        `;
+    }
+
+    // Create modal
+    let modal = document.getElementById('receiveTransferModal');
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = 'receiveTransferModal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 450px; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px 24px; position: relative;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-box-open" style="color: white; font-size: 20px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">Receive Transfer</h3>
+                        <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 12px;">${transfer.folio} • ${productCount} product${productCount > 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+                <button onclick="closeReceiveModal()" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-times" style="color: white; font-size: 16px;"></i>
+                </button>
+            </div>
+
+            <div style="padding: 20px;">
+                <!-- Transfer Info -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 10px;">
+                    <span style="font-size: 13px; color: var(--text-muted);">From</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">${storeNames[transfer.storeOrigin] || transfer.storeOrigin}</span>
+                    <i class="fas fa-arrow-right" style="color: var(--text-muted); margin: 0 4px;"></i>
+                    <span style="font-weight: 600; color: #10b981;">${storeNames[transfer.storeDestination] || transfer.storeDestination}</span>
+                </div>
+
+                <!-- Items List -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Products to receive (${totalQty} units)</div>
+                    <div style="max-height: 150px; overflow-y: auto;">
+                        ${itemsHtml}
+                    </div>
+                </div>
+
+                <!-- Photo Capture -->
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+                        <i class="fas fa-camera"></i> Photo Confirmation
+                    </div>
+                    <div id="receivePhotoSection" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.08)); border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer;" onclick="document.getElementById('receivePhotoInput').click()">
+                        <input type="file" id="receivePhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="previewReceivePhoto(this)">
+                        <div id="receivePhotoPreview" style="display: none;">
+                            <img id="receivePhotoImg" style="max-width: 100%; max-height: 150px; border-radius: 8px; margin-bottom: 8px;">
+                            <div style="font-size: 12px; color: #10b981;"><i class="fas fa-check-circle"></i> Photo added</div>
+                        </div>
+                        <div id="receivePhotoPlaceholder">
+                            <i class="fas fa-camera" style="font-size: 32px; color: #10b981; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600; color: var(--text-primary);">Take photo of received products</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Tap to open camera</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirm Button -->
+                <button onclick="processReceiveTransfer('${transferId}')" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fas fa-check-circle"></i> Confirm Receipt
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Preview receive photo
+function previewReceivePhoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('receivePhotoImg').src = e.target.result;
+            document.getElementById('receivePhotoPreview').style.display = 'block';
+            document.getElementById('receivePhotoPlaceholder').style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Close receive modal
+function closeReceiveModal() {
+    const modal = document.getElementById('receiveTransferModal');
+    if (modal) modal.remove();
+}
+
+// Process the actual receive
+async function processReceiveTransfer(transferId) {
+    const transfer = transfersState.transfers.find(t => t.id === transferId);
+    if (!transfer) return;
+
+    // Get photo if taken
+    const photoInput = document.getElementById('receivePhotoInput');
+    let receivePhotoUrl = null;
+
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+        // Convert to base64 for storage
+        receivePhotoUrl = document.getElementById('receivePhotoImg').src;
     }
 
     // Get current user
@@ -1170,6 +1292,9 @@ async function confirmReceiveTransfer(transferId) {
     transfer.status = 'received';
     transfer.receivedAt = new Date().toISOString();
     transfer.receivedBy = receivedBy;
+    if (receivePhotoUrl) {
+        transfer.receivePhoto = receivePhotoUrl;
+    }
 
     // Save to localStorage
     saveTransfers();
@@ -1178,20 +1303,35 @@ async function confirmReceiveTransfer(transferId) {
     try {
         if (typeof firebase !== 'undefined' && firebase.firestore) {
             const db = firebase.firestore();
-            await db.collection('transfers').doc(transfer.id).update({
+            const updateData = {
                 status: 'received',
                 receivedAt: transfer.receivedAt,
                 receivedBy: transfer.receivedBy
-            });
-            console.log('✅ Transfer updated in Firebase:', transfer.folio);
+            };
+            // Don't save base64 photo to Firebase (too large), just mark as hasPhoto
+            if (receivePhotoUrl) {
+                updateData.hasReceivePhoto = true;
+            }
+            await db.collection('transfers').doc(transfer.id).update(updateData);
+            console.log('✅ Transfer received in Firebase:', transfer.folio);
         }
     } catch (error) {
         console.warn('⚠️ Could not update transfer in Firebase:', error);
-        // Continue anyway - localStorage has the data
     }
 
-    // Show confirmation
-    alert(`Transfer ${transfer.folio} received successfully!`);
+    // Send notification to sender (Loyal Vaper)
+    await sendTransferNotification(transfer, 'received');
+
+    // Close modal
+    closeReceiveModal();
+    closeTransferDetailsModal();
+
+    // Show success
+    if (typeof showNotification === 'function') {
+        showNotification(`Transfer ${transfer.folio} received!`, 'success');
+    } else {
+        alert(`Transfer ${transfer.folio} received successfully!`);
+    }
 
     // Refresh page
     renderTransfersPage();
@@ -1270,7 +1410,9 @@ function openAITransferModal() {
                             <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 12px;">Scan products with AI vision</p>
                         </div>
                     </div>
-                    <button class="close-modal" onclick="closeAITransferModal()" style="color: white; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); opacity: 0.8;">&times;</button>
+                    <button onclick="closeAITransferModal()" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            <i class="fas fa-times" style="color: white; font-size: 16px;"></i>
+                        </button>
                 </div>
                 <div class="modal-body" style="padding: 24px; overflow-y: auto; flex: 1;">
                     <!-- Location Selectors -->
@@ -1690,13 +1832,20 @@ async function createAITransfers() {
     saveTransfers();
     await saveTransferToFirebase(transfer);
 
+    // Send notification to destination store
+    await sendTransferNotification(transfer, 'created');
+
     // Close modal and refresh
     closeAITransferModal();
     renderTransfersPage();
 
     // Show success message
     const storeNames = { '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa', '4': 'Chula Vista', '5': 'North Park' };
-    alert(`Transfer ${transfer.folio} created!\n\n${transfer.totalProducts} products (${transfer.totalItems} units)\nDestination: ${storeNames[destination] || destination}`);
+    if (typeof showNotification === 'function') {
+        showNotification(`Transfer ${transfer.folio} sent to ${storeNames[destination] || destination}!`, 'success');
+    } else {
+        alert(`Transfer ${transfer.folio} created!\n\n${transfer.totalProducts} products (${transfer.totalItems} units)\nDestination: ${storeNames[destination] || destination}`);
+    }
 }
 
 // Voice input for AI transfer
@@ -2352,16 +2501,22 @@ CRITICAL - PACKAGING MULTIPLIERS (units per box):
 - Kraze HD 2.0: 5 vapes per box - Count boxes × 5
 - Most other disposable vapes (Lost Mary, Elf Bar, Geek Bar, SWFT, Breeze, etc.): 1 vape per box
 
-For each product you can identify, extract:
+IMPORTANT - IMAGE QUALITY:
+- If the image is blurry, dark, has glare, or products are not clearly visible, return: {"error": "NEED_BETTER_PHOTO", "reason": "brief description of issue"}
+- If you see reflections or duplicates that might cause double-counting, be CONSERVATIVE - count only what you're 100% sure of
+- When in doubt about quantity, use the LOWER count
+
+For each product you can clearly identify, extract:
 - Product name/brand and flavor if visible
-- Quantity: The TOTAL INDIVIDUAL VAPES after applying multipliers
+- Quantity: The TOTAL INDIVIDUAL VAPES after applying multipliers (be conservative)
 
 Example: If you see 3 FOGER Cool Mint boxes, report: {"name": "FOGER Cool Mint", "quantity": 15} (3 boxes × 5 = 15 vapes)
 
 Return ONLY a JSON array with the products found. Example format:
 [{"name": "FOGER Cool Mint", "quantity": 15}, {"name": "Lost Mary Watermelon", "quantity": 3}]
 
-If you cannot identify any products clearly, return an empty array: []
+If image quality is too poor: {"error": "NEED_BETTER_PHOTO", "reason": "description"}
+If no products visible: []
 Be concise with product names. Do not include SKUs or prices.`
                 },
                 {
@@ -2396,6 +2551,16 @@ Be concise with product names. Do not include SKUs or prices.`
 
     // Parse JSON from response
     try {
+        // Check for NEED_BETTER_PHOTO error first
+        if (content.includes('NEED_BETTER_PHOTO')) {
+            const errorMatch = content.match(/\{[^}]*"error"[^}]*\}/);
+            if (errorMatch) {
+                const errorObj = JSON.parse(errorMatch[0]);
+                throw new Error(`📸 ${errorObj.reason || 'Please take a clearer photo'}`);
+            }
+            throw new Error('📸 Photo quality is too low. Please take a clearer photo with better lighting.');
+        }
+
         // Extract JSON array from response (might have extra text)
         const jsonMatch = content.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -2407,10 +2572,404 @@ Be concise with product names. Do not include SKUs or prices.`
             }));
         }
     } catch (parseError) {
+        // Re-throw if it's our custom error
+        if (parseError.message.startsWith('📸')) {
+            throw parseError;
+        }
         console.error('Error parsing AI response:', parseError, content);
     }
 
     return [];
+}
+
+// ========================================
+// NOTIFICATIONS SYSTEM
+// ========================================
+
+const STORE_NAMES = {
+    '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa',
+    '4': 'Chula Vista', '5': 'North Park', 'loyalvaper': 'Loyal Vaper'
+};
+
+// Send transfer notification (creates in-app notification)
+async function sendTransferNotification(transfer, type) {
+    const hasMultipleItems = transfer.items && transfer.items.length > 0;
+    const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
+    const productCount = hasMultipleItems ? transfer.items.length : 1;
+
+    let notification = {
+        id: Date.now().toString(),
+        type: 'transfer',
+        transferId: transfer.id,
+        folio: transfer.folio,
+        createdAt: new Date().toISOString(),
+        read: false
+    };
+
+    if (type === 'created') {
+        // Notification for destination store
+        notification.title = '📦 Transfer incoming!';
+        notification.message = `${transfer.folio}: ${productCount} product${productCount > 1 ? 's' : ''} (${totalQty} units) from ${STORE_NAMES[transfer.storeOrigin] || transfer.storeOrigin}`;
+        notification.targetStore = transfer.storeDestination;
+        notification.icon = 'fa-truck';
+        notification.color = '#667eea';
+    } else if (type === 'received') {
+        // Notification for sender (Loyal Vaper)
+        notification.title = '✅ Transfer received!';
+        notification.message = `${transfer.folio} received by ${transfer.receivedBy} at ${STORE_NAMES[transfer.storeDestination] || transfer.storeDestination}`;
+        notification.targetStore = transfer.storeOrigin;
+        notification.icon = 'fa-check-circle';
+        notification.color = '#10b981';
+    }
+
+    // Save notification to Firebase
+    try {
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            await db.collection('transfer_notifications').add(notification);
+            console.log('✅ Notification saved:', notification.title);
+        }
+    } catch (error) {
+        console.warn('Could not save notification to Firebase:', error);
+    }
+
+    // Also save locally
+    const notifications = JSON.parse(localStorage.getItem('transfer_notifications') || '[]');
+    notifications.unshift(notification);
+    localStorage.setItem('transfer_notifications', JSON.stringify(notifications.slice(0, 100))); // Keep last 100
+
+    // Show toast notification if on same page
+    showTransferToast(notification);
+
+    return notification;
+}
+
+// Show toast notification
+function showTransferToast(notification) {
+    // Remove existing toast
+    const existingToast = document.getElementById('transferToast');
+    if (existingToast) existingToast.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'transferToast';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+        max-width: 350px;
+        border-left: 4px solid ${notification.color};
+    `;
+
+    toast.innerHTML = `
+        <div style="width: 40px; height: 40px; background: ${notification.color}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas ${notification.icon}" style="color: ${notification.color}; font-size: 18px;"></i>
+        </div>
+        <div style="flex: 1;">
+            <div style="font-weight: 600; font-size: 14px; color: #1f2937;">${notification.title}</div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${notification.message}</div>
+        </div>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; cursor: pointer; color: #9ca3af; padding: 4px;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    // Add animation styles if not exists
+    if (!document.getElementById('toastStyles')) {
+        const style = document.createElement('style');
+        style.id = 'toastStyles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
+}
+
+// ========================================
+// REPORTS SYSTEM
+// ========================================
+
+// Open reports modal
+function openTransferReports() {
+    let modal = document.getElementById('transferReportsModal');
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = 'transferReportsModal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 700px; max-height: 90vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+            <div style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); padding: 20px 24px; position: relative;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chart-bar" style="color: white; font-size: 20px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">Transfer Reports</h3>
+                        <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 12px;">View history and export data</p>
+                    </div>
+                </div>
+                <button onclick="closeTransferReports()" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-times" style="color: white; font-size: 16px;"></i>
+                </button>
+            </div>
+
+            <div style="padding: 20px; overflow-y: auto; flex: 1;">
+                <!-- Filters -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Store</label>
+                        <select id="reportFilterStore" onchange="updateTransferReport()" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px;">
+                            <option value="all">All Stores</option>
+                            <option value="1">Miramar</option>
+                            <option value="2">Morena</option>
+                            <option value="3">Kearny Mesa</option>
+                            <option value="4">Chula Vista</option>
+                            <option value="5">North Park</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">From</label>
+                        <input type="date" id="reportFilterFrom" onchange="updateTransferReport()" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">To</label>
+                        <input type="date" id="reportFilterTo" onchange="updateTransferReport()" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px;">
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div id="reportSummary" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <!-- Filled by JS -->
+                </div>
+
+                <!-- Results Table -->
+                <div id="reportResults" style="background: var(--bg-secondary); border-radius: 12px; overflow: hidden;">
+                    <!-- Filled by JS -->
+                </div>
+
+                <!-- Export Button -->
+                <div style="margin-top: 16px; display: flex; gap: 12px;">
+                    <button onclick="exportTransferReport('csv')" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-primary);">
+                        <i class="fas fa-file-csv" style="color: #10b981;"></i> Export CSV
+                    </button>
+                    <button onclick="exportTransferReport('print')" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-primary);">
+                        <i class="fas fa-print" style="color: #6366f1;"></i> Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Set default dates (last 30 days)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    document.getElementById('reportFilterTo').value = today.toISOString().split('T')[0];
+    document.getElementById('reportFilterFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+
+    updateTransferReport();
+}
+
+// Update report based on filters
+function updateTransferReport() {
+    const storeFilter = document.getElementById('reportFilterStore').value;
+    const fromDate = document.getElementById('reportFilterFrom').value;
+    const toDate = document.getElementById('reportFilterTo').value;
+
+    // Filter transfers
+    let filtered = transfersState.transfers.filter(t => {
+        // Store filter
+        if (storeFilter !== 'all' && t.storeDestination !== storeFilter) {
+            return false;
+        }
+        // Date filter
+        if (fromDate && t.shipDate < fromDate) return false;
+        if (toDate && t.shipDate > toDate) return false;
+        return true;
+    });
+
+    // Calculate summary
+    const totalTransfers = filtered.length;
+    const totalProducts = filtered.reduce((sum, t) => {
+        if (t.items) return sum + t.items.length;
+        return sum + 1;
+    }, 0);
+    const totalUnits = filtered.reduce((sum, t) => {
+        if (t.totalItems) return sum + t.totalItems;
+        return sum + (t.quantity || 0);
+    }, 0);
+    const pendingCount = filtered.filter(t => t.status === 'pending').length;
+    const receivedCount = filtered.filter(t => t.status === 'received').length;
+
+    // Render summary
+    document.getElementById('reportSummary').innerHTML = `
+        <div style="background: linear-gradient(135deg, #667eea20, #764ba220); padding: 16px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #667eea;">${totalTransfers}</div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Transfers</div>
+        </div>
+        <div style="background: linear-gradient(135deg, #8b5cf620, #6366f120); padding: 16px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #8b5cf6;">${totalProducts}</div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Products</div>
+        </div>
+        <div style="background: linear-gradient(135deg, #10b98120, #05966920); padding: 16px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #10b981;">${totalUnits}</div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Units</div>
+        </div>
+        <div style="background: linear-gradient(135deg, #f59e0b20, #d9770620); padding: 16px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">${pendingCount}</div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Pending</div>
+        </div>
+    `;
+
+    // Render table
+    if (filtered.length === 0) {
+        document.getElementById('reportResults').innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-search" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <div>No transfers found for selected filters</div>
+            </div>
+        `;
+        return;
+    }
+
+    document.getElementById('reportResults').innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+                <tr style="background: var(--bg-primary);">
+                    <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Folio</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase;">To</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Products</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Units</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Date</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${filtered.slice(0, 50).map(t => {
+                    const hasItems = t.items && t.items.length > 0;
+                    const productName = hasItems
+                        ? (t.items.length === 1 ? t.items[0].productName : `${t.items.length} products`)
+                        : t.productName;
+                    const units = hasItems ? t.totalItems : t.quantity;
+                    const statusColor = t.status === 'received' ? '#10b981' : '#f59e0b';
+                    const statusBg = t.status === 'received' ? '#10b98120' : '#f59e0b20';
+
+                    return `
+                        <tr style="border-top: 1px solid var(--border-color);">
+                            <td style="padding: 12px; font-weight: 600; color: #667eea;">${t.folio}</td>
+                            <td style="padding: 12px;">${STORE_NAMES[t.storeDestination] || t.storeDestination}</td>
+                            <td style="padding: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${productName}</td>
+                            <td style="padding: 12px; text-align: center; font-weight: 600;">${units}</td>
+                            <td style="padding: 12px; color: var(--text-muted);">${new Date(t.shipDate).toLocaleDateString()}</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <span style="background: ${statusBg}; color: ${statusColor}; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${t.status}</span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+        ${filtered.length > 50 ? `<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 12px;">Showing 50 of ${filtered.length} transfers</div>` : ''}
+    `;
+}
+
+// Export report
+function exportTransferReport(format) {
+    const storeFilter = document.getElementById('reportFilterStore').value;
+    const fromDate = document.getElementById('reportFilterFrom').value;
+    const toDate = document.getElementById('reportFilterTo').value;
+
+    let filtered = transfersState.transfers.filter(t => {
+        if (storeFilter !== 'all' && t.storeDestination !== storeFilter) return false;
+        if (fromDate && t.shipDate < fromDate) return false;
+        if (toDate && t.shipDate > toDate) return false;
+        return true;
+    });
+
+    if (format === 'csv') {
+        // Build CSV
+        let csv = 'Folio,From,To,Products,Units,Date,Status,Sent By,Received By\n';
+
+        filtered.forEach(t => {
+            const hasItems = t.items && t.items.length > 0;
+            const products = hasItems ? t.items.map(i => `${i.productName} (${i.quantity})`).join('; ') : t.productName;
+            const units = hasItems ? t.totalItems : t.quantity;
+
+            csv += `"${t.folio}","${STORE_NAMES[t.storeOrigin] || t.storeOrigin}","${STORE_NAMES[t.storeDestination] || t.storeDestination}","${products}",${units},"${t.shipDate}","${t.status}","${t.sentBy || ''}","${t.receivedBy || ''}"\n`;
+        });
+
+        // Download
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `transfers_report_${fromDate}_to_${toDate}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        if (typeof showNotification === 'function') {
+            showNotification('Report exported!', 'success');
+        }
+    } else if (format === 'print') {
+        // Open print dialog
+        const printContent = document.getElementById('reportResults').innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Transfer Report</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                    th { background: #f3f4f6; font-weight: 600; }
+                    h1 { font-size: 18px; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <h1>Transfer Report (${fromDate} to ${toDate})</h1>
+                ${printContent}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+}
+
+// Close reports modal
+function closeTransferReports() {
+    const modal = document.getElementById('transferReportsModal');
+    if (modal) modal.remove();
 }
 
 // Make functions globally available
@@ -2425,3 +2984,11 @@ window.setAIItemQty = setAIItemQty;
 window.handleDragOver = handleDragOver;
 window.handleDragLeave = handleDragLeave;
 window.handleDrop = handleDrop;
+window.previewReceivePhoto = previewReceivePhoto;
+window.closeReceiveModal = closeReceiveModal;
+window.processReceiveTransfer = processReceiveTransfer;
+window.sendTransferNotification = sendTransferNotification;
+window.openTransferReports = openTransferReports;
+window.closeTransferReports = closeTransferReports;
+window.updateTransferReport = updateTransferReport;
+window.exportTransferReport = exportTransferReport;
