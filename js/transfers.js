@@ -428,7 +428,7 @@ function renderTransfersTable() {
     `;
 }
 
-// Render single transfer row
+// Render single transfer row - supports both old (single product) and new (multiple items) format
 function renderTransferRow(transfer) {
     const statusClass = transfer.status;
     const statusLabels = {
@@ -443,6 +443,32 @@ function renderTransferRow(transfer) {
         year: 'numeric'
     });
 
+    // Check if new multi-item format or old single-item format
+    const hasMultipleItems = transfer.items && transfer.items.length > 0;
+    const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
+    const productCount = hasMultipleItems ? transfer.items.length : 1;
+
+    // Product display - show summary for multi-item transfers
+    let productDisplay;
+    if (hasMultipleItems) {
+        if (productCount === 1) {
+            productDisplay = `
+                <div style="font-weight: 600;">${transfer.items[0].productName}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${transfer.items[0].productSku || ''}</div>
+            `;
+        } else {
+            productDisplay = `
+                <div style="font-weight: 600;">${productCount} products</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${transfer.items.slice(0, 2).map(i => i.productName).join(', ')}${productCount > 2 ? '...' : ''}</div>
+            `;
+        }
+    } else {
+        productDisplay = `
+            <div style="font-weight: 600;">${transfer.productName}</div>
+            ${transfer.productSku ? `<div style="font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace;">${transfer.productSku}</div>` : ''}
+        `;
+    }
+
     return `
         <tr>
             <td>
@@ -456,11 +482,11 @@ function renderTransferRow(transfer) {
                 </div>
             </td>
             <td>
-                <div style="font-weight: 600;">${transfer.productName}</div>
-                ${transfer.productSku ? `<div style="font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace;">${transfer.productSku}</div>` : ''}
+                ${productDisplay}
             </td>
             <td>
-                <span style="font-weight: 700; font-size: 16px;">${transfer.quantity}</span>
+                <span style="font-weight: 700; font-size: 16px;">${totalQty}</span>
+                ${hasMultipleItems && productCount > 1 ? `<div style="font-size: 10px; color: var(--text-muted);">${productCount} items</div>` : ''}
             </td>
             <td>
                 ${formattedDate}
@@ -951,7 +977,7 @@ function showTransferMessage(message, type) {
     }
 }
 
-// View transfer details
+// View transfer details - supports both old (single product) and new (multiple items) format
 function viewTransferDetails(transferId) {
     const transfer = transfersState.transfers.find(t => t.id === transferId);
     if (!transfer) return;
@@ -968,7 +994,70 @@ function viewTransferDetails(transferId) {
         'received': 'Received'
     };
 
+    const storeNames = {
+        '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa',
+        '4': 'Chula Vista', '5': 'North Park', 'loyalvaper': 'Loyal Vaper'
+    };
+
+    const hasMultipleItems = transfer.items && transfer.items.length > 0;
+    const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
+    const productCount = hasMultipleItems ? transfer.items.length : 1;
+
     title.innerHTML = `<i class="fas fa-exchange-alt" style="color: var(--accent-primary); margin-right: 10px;"></i> ${transfer.folio}`;
+
+    // Build items list HTML for multi-item transfers
+    let itemsHtml = '';
+    if (hasMultipleItems) {
+        itemsHtml = `
+            <div class="order-detail-section">
+                <h3 style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Products (${productCount})</span>
+                    <span style="font-size: 14px; color: var(--accent-primary);">${totalQty} units total</span>
+                </h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    ${transfer.items.map(item => `
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 8px;">
+                            <div style="min-width: 40px; height: 40px; background: linear-gradient(135deg, #667eea20, #764ba220); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #667eea;">
+                                ${item.quantity}x
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--text-primary);">${item.productName}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">${item.productSku || ''}</div>
+                            </div>
+                            ${transfer.status !== 'received' ? `
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    ${item.received ? '<i class="fas fa-check-circle" style="color: #10b981;"></i>' : '<i class="fas fa-clock" style="color: #f59e0b;"></i>'}
+                                </div>
+                            ` : '<i class="fas fa-check-circle" style="color: #10b981;"></i>'}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        // Old single-product format
+        itemsHtml = `
+            <div class="order-detail-section">
+                <h3>Product</h3>
+                <div class="order-detail-grid">
+                    <div class="order-detail-item" style="grid-column: 1 / -1;">
+                        <span class="order-detail-label">Name</span>
+                        <span class="order-detail-value">${transfer.productName}</span>
+                    </div>
+                    ${transfer.productSku ? `
+                        <div class="order-detail-item">
+                            <span class="order-detail-label">SKU</span>
+                            <span class="order-detail-value" style="font-family: 'Space Mono', monospace;">${transfer.productSku}</span>
+                        </div>
+                    ` : ''}
+                    <div class="order-detail-item">
+                        <span class="order-detail-label">Quantity</span>
+                        <span class="order-detail-value" style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">${transfer.quantity}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
     body.innerHTML = `
         <div class="order-detail-section">
@@ -985,35 +1074,17 @@ function viewTransferDetails(transferId) {
                     </span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Origin Store</span>
-                    <span class="order-detail-value">VSU ${transfer.storeOrigin}</span>
+                    <span class="order-detail-label">From</span>
+                    <span class="order-detail-value">${storeNames[transfer.storeOrigin] || transfer.storeOrigin}</span>
                 </div>
                 <div class="order-detail-item">
-                    <span class="order-detail-label">Destination Store</span>
-                    <span class="order-detail-value">VSU ${transfer.storeDestination}</span>
+                    <span class="order-detail-label">To</span>
+                    <span class="order-detail-value">${storeNames[transfer.storeDestination] || 'VSU ' + transfer.storeDestination}</span>
                 </div>
             </div>
         </div>
 
-        <div class="order-detail-section">
-            <h3>Product</h3>
-            <div class="order-detail-grid">
-                <div class="order-detail-item" style="grid-column: 1 / -1;">
-                    <span class="order-detail-label">Name</span>
-                    <span class="order-detail-value">${transfer.productName}</span>
-                </div>
-                ${transfer.productSku ? `
-                    <div class="order-detail-item">
-                        <span class="order-detail-label">SKU</span>
-                        <span class="order-detail-value" style="font-family: 'Space Mono', monospace;">${transfer.productSku}</span>
-                    </div>
-                ` : ''}
-                <div class="order-detail-item">
-                    <span class="order-detail-label">Quantity</span>
-                    <span class="order-detail-value" style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">${transfer.quantity}</span>
-                </div>
-            </div>
-        </div>
+        ${itemsHtml}
 
         <div class="order-detail-section">
             <h3>Shipping</h3>
@@ -1056,7 +1127,7 @@ function viewTransferDetails(transferId) {
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
                 <button class="btn-primary" onclick="confirmReceiveTransfer('${transfer.id}'); closeTransferDetailsModal();" style="width: 100%;">
                     <i class="fas fa-check"></i>
-                    Confirm Receipt
+                    Confirm Receipt of All Items
                 </button>
             </div>
         ` : ''}
@@ -1175,7 +1246,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // State for AI transfer
 let aiTransferState = {
     parsedItems: [],
-    isProcessing: false
+    isProcessing: false,
+    mediaFiles: [] // Store multiple media files (images, videos, audio)
 };
 
 // Open AI Transfer Modal
@@ -1187,7 +1259,7 @@ function openAITransferModal() {
         modal.id = 'aiTransferModal';
         modal.className = 'modal';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 520px; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div class="modal-content" style="max-width: 520px; max-height: 90vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
                 <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 24px; position: relative;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -1200,7 +1272,7 @@ function openAITransferModal() {
                     </div>
                     <button class="close-modal" onclick="closeAITransferModal()" style="color: white; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); opacity: 0.8;">&times;</button>
                 </div>
-                <div class="modal-body" style="padding: 24px;">
+                <div class="modal-body" style="padding: 24px; overflow-y: auto; flex: 1;">
                     <!-- Location Selectors -->
                     <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; margin-bottom: 24px;">
                         <div>
@@ -1231,24 +1303,44 @@ function openAITransferModal() {
                         </div>
                     </div>
 
-                    <!-- Photo Scan Section -->
-                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 20px; position: relative;" id="aiTransferPhotoSection">
-                        <input type="file" id="aiTransferPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="processTransferPhoto(this)">
-                        <div id="aiTransferPhotoPreview" style="display: none; position: relative;">
-                            <img id="aiTransferPhotoImg" style="width: 100%; max-height: 180px; object-fit: contain; border-radius: 12px;">
-                            <button onclick="clearTransferPhoto()" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(239,68,68,0.4);">
-                                <i class="fas fa-times" style="font-size: 12px;"></i>
-                            </button>
+                    <!-- Media Scan Section - Photos, Videos, Audio -->
+                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 20px;" id="aiTransferMediaSection">
+                        <input type="file" id="aiTransferMediaInput" accept="image/*,video/*,audio/*" multiple capture="environment" style="display: none;" onchange="processTransferMedia(this)">
+
+                        <!-- Preview Container for multiple files -->
+                        <div id="aiTransferMediaPreview" style="display: none; margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);" id="aiTransferMediaCount">0 files</span>
+                                <button onclick="clearTransferMedia()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                                    <i class="fas fa-trash"></i> Clear All
+                                </button>
+                            </div>
+                            <div id="aiTransferMediaGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; max-height: 150px; overflow-y: auto;"></div>
                         </div>
-                        <div id="aiTransferPhotoPlaceholder">
-                            <label for="aiTransferPhotoInput" style="cursor: pointer; display: block;">
-                                <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-                                    <i class="fas fa-camera" style="color: white; font-size: 24px;"></i>
+
+                        <!-- Upload Placeholder -->
+                        <div id="aiTransferMediaPlaceholder">
+                            <label for="aiTransferMediaInput" style="cursor: pointer; display: block; text-align: center;">
+                                <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 12px;">
+                                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-camera" style="color: white; font-size: 18px;"></i>
+                                    </div>
+                                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-video" style="color: white; font-size: 18px;"></i>
+                                    </div>
+                                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-microphone" style="color: white; font-size: 18px;"></i>
+                                    </div>
                                 </div>
                                 <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Scan Products</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Take a photo or upload image</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Photos, Videos or Audio - Select multiple!</div>
                             </label>
                         </div>
+
+                        <!-- Process Button -->
+                        <button id="aiTransferProcessBtn" onclick="processAllTransferMedia()" style="display: none; width: 100%; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-wand-magic-sparkles"></i> Analyze with AI
+                        </button>
                     </div>
 
                     <!-- Manual Input (Collapsed) -->
@@ -1277,29 +1369,13 @@ function openAITransferModal() {
                             </h4>
                             <span id="aiTransferItemCount" style="background: var(--bg-secondary); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: var(--text-muted);"></span>
                         </div>
-                        <div id="aiTransferItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
+                        <div id="aiTransferItemsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
 
-                        <!-- Shopify Sync Toggle -->
-                        <label style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <i class="fab fa-shopify" style="color: #96bf48; font-size: 20px;"></i>
-                                <div>
-                                    <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Sync with Shopify</div>
-                                    <div style="font-size: 11px; color: var(--text-muted);">Auto-update inventory levels</div>
-                                </div>
-                            </div>
-                            <div style="position: relative;">
-                                <input type="checkbox" id="aiTransferSyncShopify" style="opacity: 0; position: absolute;">
-                                <div class="toggle-track" style="width: 44px; height: 24px; background: var(--border-color); border-radius: 12px; transition: all 0.2s;"></div>
-                                <div class="toggle-thumb" style="position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 10px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-                            </div>
-                        </label>
-
-                        <!-- Action Buttons -->
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                        <!-- Action Buttons - Always visible -->
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding-top: 8px; border-top: 1px solid var(--border-color);">
                             <button onclick="closeAITransferModal()" style="padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">Cancel</button>
-                            <button onclick="createAITransfers()" style="padding: 14px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                <i class="fas fa-paper-plane"></i> Create Transfer
+                            <button id="aiTransferSubmitBtn" onclick="createAITransfers()" style="padding: 14px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fas fa-check-circle"></i> Confirm & Create Transfer
                             </button>
                         </div>
                     </div>
@@ -1316,9 +1392,23 @@ function openAITransferModal() {
 
     // Reset state
     aiTransferState.parsedItems = [];
+    aiTransferState.mediaFiles.forEach(m => URL.revokeObjectURL(m.url));
+    aiTransferState.mediaFiles = [];
+
     document.getElementById('aiTransferInput').value = '';
     document.getElementById('aiTransferResults').style.display = 'none';
     document.getElementById('aiTransferLoading').style.display = 'none';
+
+    // Reset media section
+    const mediaPreview = document.getElementById('aiTransferMediaPreview');
+    const mediaPlaceholder = document.getElementById('aiTransferMediaPlaceholder');
+    const mediaInput = document.getElementById('aiTransferMediaInput');
+    const processBtn = document.getElementById('aiTransferProcessBtn');
+
+    if (mediaPreview) mediaPreview.style.display = 'none';
+    if (mediaPlaceholder) mediaPlaceholder.style.display = 'block';
+    if (mediaInput) mediaInput.value = '';
+    if (processBtn) processBtn.style.display = 'none';
 
     modal.classList.add('active');
 }
@@ -1478,12 +1568,18 @@ function renderParsedItems() {
 
     listEl.innerHTML = aiTransferState.parsedItems.map((item, index) => `
         <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--bg-secondary); border-radius: 12px;">
-            <div style="min-width: 36px; height: 36px; background: linear-gradient(135deg, #667eea20, #764ba220); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #667eea;">
-                ${item.quantity}x
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button onclick="updateAIItemQty(${index}, -1)" style="width: 28px; height: 28px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                    <i class="fas fa-minus" style="font-size: 10px;"></i>
+                </button>
+                <input type="number" value="${item.quantity}" min="1" onchange="setAIItemQty(${index}, this.value)" style="width: 45px; height: 28px; background: linear-gradient(135deg, #667eea20, #764ba220); border: none; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13px; color: #667eea;">
+                <button onclick="updateAIItemQty(${index}, 1)" style="width: 28px; height: 28px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                    <i class="fas fa-plus" style="font-size: 10px;"></i>
+                </button>
             </div>
             <div style="flex: 1; min-width: 0;">
                 <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">${item.sku || 'No SKU'}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">PHOTO-SCAN</div>
             </div>
             <button onclick="removeAIParsedItem(${index})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
                 <i class="fas fa-trash-alt" style="font-size: 12px;"></i>
@@ -1504,11 +1600,34 @@ function removeAIParsedItem(index) {
     }
 }
 
-// Create transfers from parsed items
+// Update item quantity with +/- buttons
+function updateAIItemQty(index, delta) {
+    const item = aiTransferState.parsedItems[index];
+    if (item) {
+        item.quantity = Math.max(1, item.quantity + delta);
+        renderParsedItems();
+    }
+}
+
+// Set item quantity directly from input
+function setAIItemQty(index, value) {
+    const item = aiTransferState.parsedItems[index];
+    if (item) {
+        const qty = parseInt(value) || 1;
+        item.quantity = Math.max(1, qty);
+        renderParsedItems();
+    }
+}
+
+// Create transfers from parsed items - NOW CREATES A SINGLE TRANSFER WITH MULTIPLE ITEMS
 async function createAITransfers() {
     const origin = document.getElementById('aiTransferOrigin').value;
     const destination = document.getElementById('aiTransferDestination').value;
-    const syncShopify = document.getElementById('aiTransferSyncShopify')?.checked || false;
+
+    if (!destination) {
+        alert('Please select a destination store');
+        return;
+    }
 
     if (aiTransferState.parsedItems.length === 0) {
         alert('No items to transfer');
@@ -1525,156 +1644,48 @@ async function createAITransfers() {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    let createdCount = 0;
-    let shopifySyncResults = [];
+    const totalItems = aiTransferState.parsedItems.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Get location map if syncing with Shopify
-    let locationMap = null;
-    if (syncShopify && window.getVSULocationMap) {
-        try {
-            document.getElementById('aiTransferLoading').style.display = 'block';
-            document.getElementById('aiTransferResults').style.display = 'none';
-            locationMap = await window.getVSULocationMap();
-            console.log('[AI Transfer] Location map:', locationMap);
-        } catch (e) {
-            console.error('Failed to get location map:', e);
-        }
-    }
-
-    for (const item of aiTransferState.parsedItems) {
-        const transfer = {
-            id: Date.now().toString() + '_' + createdCount,
-            folio: generateTransferFolio(),
-            storeOrigin: origin,
-            storeDestination: destination,
+    // Create a SINGLE transfer with multiple items
+    const transfer = {
+        id: Date.now().toString(),
+        folio: generateTransferFolio(),
+        storeOrigin: origin,
+        storeDestination: destination,
+        // NEW: Array of items instead of single product
+        items: aiTransferState.parsedItems.map(item => ({
             productId: item.matchedProduct?.id || null,
             productName: item.name || item.matchedProduct?.productName || item.productName,
-            productSku: item.sku || item.matchedProduct?.sku || '',
+            productSku: item.sku || item.matchedProduct?.sku || 'SCAN',
             quantity: item.quantity,
-            shipDate: today,
-            sentBy: sentBy,
-            notes: syncShopify ? 'Created via AI Transfer + Shopify Sync' : 'Created via AI Transfer',
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            receivedAt: null,
-            receivedBy: null,
-            shopifySynced: false
-        };
+            received: false,
+            receivedQty: 0
+        })),
+        totalItems: totalItems,
+        totalProducts: aiTransferState.parsedItems.length,
+        shipDate: today,
+        sentBy: sentBy,
+        notes: 'Created via AI Transfer',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        receivedAt: null,
+        receivedBy: null
+    };
 
-        // Try to sync with Shopify if enabled
-        // Flow: Loyal Vaper (bodega) -> VSU Location
-        if (syncShopify && locationMap && window.searchProductForInventory) {
-            try {
-                const productName = item.name || item.productName || '';
-                console.log(`[AI Transfer] Searching for: ${productName}`);
+    // Add transfer to state
+    transfersState.transfers.unshift(transfer);
 
-                // Step 1: Search product in Loyal Vaper (source/bodega)
-                const loyalVaperProducts = await window.searchProductForInventory(productName, 'loyalvaper');
-
-                // Step 2: Search product in VSU (destination)
-                const vsuProducts = await window.searchProductForInventory(productName, 'vsu');
-
-                const toLocationId = locationMap[destination]; // VSU location
-
-                if (loyalVaperProducts.length > 0 && vsuProducts.length > 0 && toLocationId) {
-                    const lvProduct = loyalVaperProducts[0];
-                    const vsuProduct = vsuProducts[0];
-
-                    console.log(`[AI Transfer] Found in Loyal Vaper: ${lvProduct.productTitle}`);
-                    console.log(`[AI Transfer] Found in VSU: ${vsuProduct.productTitle}`);
-
-                    let syncSuccess = true;
-                    let syncErrors = [];
-
-                    // Step 3: Subtract from Loyal Vaper inventory
-                    if (lvProduct.inventoryItemId && lvProduct.inventoryLevels.length > 0) {
-                        const lvLocationId = lvProduct.inventoryLevels[0].locationId;
-                        console.log(`[AI Transfer] Subtracting ${item.quantity} from Loyal Vaper`);
-
-                        const subtractResult = await window.adjustInventoryLevel(
-                            lvProduct.inventoryItemId,
-                            `gid://shopify/Location/${lvLocationId}`,
-                            -Math.abs(item.quantity),
-                            'loyalvaper'
-                        );
-
-                        if (!subtractResult.success) {
-                            syncSuccess = false;
-                            syncErrors.push(`Loyal Vaper: ${subtractResult.error}`);
-                        }
-                    } else {
-                        syncSuccess = false;
-                        syncErrors.push('Loyal Vaper: No inventory location found');
-                    }
-
-                    // Step 4: Add to VSU location inventory
-                    if (vsuProduct.inventoryItemId) {
-                        console.log(`[AI Transfer] Adding ${item.quantity} to VSU ${destination}`);
-
-                        const addResult = await window.adjustInventoryLevel(
-                            vsuProduct.inventoryItemId,
-                            toLocationId,
-                            Math.abs(item.quantity),
-                            'vsu'
-                        );
-
-                        if (!addResult.success) {
-                            syncSuccess = false;
-                            syncErrors.push(`VSU: ${addResult.error}`);
-                        }
-                    } else {
-                        syncSuccess = false;
-                        syncErrors.push('VSU: No inventory item found');
-                    }
-
-                    if (syncSuccess) {
-                        transfer.shopifySynced = true;
-                        transfer.notes = `Synced: ${lvProduct.productTitle} (LV→VSU)`;
-                        shopifySyncResults.push({ name: productName, success: true });
-                    } else {
-                        shopifySyncResults.push({ name: productName, success: false, error: syncErrors.join('; ') });
-                    }
-                } else {
-                    let error = '';
-                    if (loyalVaperProducts.length === 0) error += 'Not found in Loyal Vaper. ';
-                    if (vsuProducts.length === 0) error += 'Not found in VSU. ';
-                    if (!toLocationId) error += 'Invalid VSU location.';
-                    shopifySyncResults.push({ name: productName, success: false, error: error.trim() });
-                }
-            } catch (syncError) {
-                console.error('[AI Transfer] Shopify sync error:', syncError);
-                shopifySyncResults.push({ name: item.name || item.productName, success: false, error: syncError.message });
-            }
-        }
-
-        transfersState.transfers.push(transfer);
-        createdCount++;
-
-        // Small delay to ensure unique IDs
-        await new Promise(r => setTimeout(r, 50));
-    }
-
-    // Save to localStorage
+    // Save to localStorage and Firebase
     saveTransfers();
-
-    // Hide loading
-    document.getElementById('aiTransferLoading').style.display = 'none';
+    await saveTransferToFirebase(transfer);
 
     // Close modal and refresh
     closeAITransferModal();
     renderTransfersPage();
 
-    // Show success message with Shopify sync results
-    let message = `${createdCount} transfer(s) created successfully!`;
-    if (syncShopify && shopifySyncResults.length > 0) {
-        const synced = shopifySyncResults.filter(r => r.success).length;
-        const failed = shopifySyncResults.filter(r => !r.success);
-        message += `\n\nShopify Sync: ${synced}/${shopifySyncResults.length} products synced.`;
-        if (failed.length > 0) {
-            message += `\n\nFailed to sync:\n${failed.map(f => `- ${f.name}: ${f.error}`).join('\n')}`;
-        }
-    }
-    alert(message);
+    // Show success message
+    const storeNames = { '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa', '4': 'Chula Vista', '5': 'North Park' };
+    alert(`Transfer ${transfer.folio} created!\n\n${transfer.totalProducts} products (${transfer.totalItems} units)\nDestination: ${storeNames[destination] || destination}`);
 }
 
 // Voice input for AI transfer
@@ -1803,6 +1814,427 @@ function clearTransferPhoto() {
     if (input) input.value = '';
 }
 
+// ========================================
+// MULTI-MEDIA SUPPORT (Photos, Videos, Audio)
+// ========================================
+
+// Process multiple media files when selected
+function processTransferMedia(input) {
+    const files = Array.from(input.files);
+    if (files.length === 0) return;
+
+    // Add files to state
+    for (const file of files) {
+        const fileData = {
+            file: file,
+            type: file.type.split('/')[0], // image, video, audio
+            name: file.name,
+            url: URL.createObjectURL(file)
+        };
+        aiTransferState.mediaFiles.push(fileData);
+    }
+
+    renderMediaPreview();
+}
+
+// Render media preview grid
+function renderMediaPreview() {
+    const preview = document.getElementById('aiTransferMediaPreview');
+    const placeholder = document.getElementById('aiTransferMediaPlaceholder');
+    const grid = document.getElementById('aiTransferMediaGrid');
+    const count = document.getElementById('aiTransferMediaCount');
+    const processBtn = document.getElementById('aiTransferProcessBtn');
+
+    if (aiTransferState.mediaFiles.length === 0) {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+        processBtn.style.display = 'none';
+        return;
+    }
+
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+    processBtn.style.display = 'block';
+
+    const images = aiTransferState.mediaFiles.filter(f => f.type === 'image').length;
+    const videos = aiTransferState.mediaFiles.filter(f => f.type === 'video').length;
+    const audios = aiTransferState.mediaFiles.filter(f => f.type === 'audio').length;
+
+    let countText = [];
+    if (images) countText.push(`${images} foto${images > 1 ? 's' : ''}`);
+    if (videos) countText.push(`${videos} video${videos > 1 ? 's' : ''}`);
+    if (audios) countText.push(`${audios} audio${audios > 1 ? 's' : ''}`);
+    count.textContent = countText.join(', ');
+
+    grid.innerHTML = aiTransferState.mediaFiles.map((media, index) => {
+        if (media.type === 'image') {
+            return `<div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--bg-secondary);">
+                <img src="${media.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                <button onclick="removeTransferMedia(${index})" style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 10px;">×</button>
+            </div>`;
+        } else if (media.type === 'video') {
+            return `<div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-video" style="color: white; font-size: 24px;"></i>
+                <button onclick="removeTransferMedia(${index})" style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 10px;">×</button>
+                <span style="position: absolute; bottom: 4px; left: 4px; right: 4px; font-size: 8px; color: white; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${media.name}</span>
+            </div>`;
+        } else {
+            return `<div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-microphone" style="color: white; font-size: 24px;"></i>
+                <button onclick="removeTransferMedia(${index})" style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 10px;">×</button>
+                <span style="position: absolute; bottom: 4px; left: 4px; right: 4px; font-size: 8px; color: white; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${media.name}</span>
+            </div>`;
+        }
+    }).join('');
+}
+
+// Remove single media file
+function removeTransferMedia(index) {
+    URL.revokeObjectURL(aiTransferState.mediaFiles[index].url);
+    aiTransferState.mediaFiles.splice(index, 1);
+    renderMediaPreview();
+}
+
+// Clear all media
+function clearTransferMedia() {
+    aiTransferState.mediaFiles.forEach(m => URL.revokeObjectURL(m.url));
+    aiTransferState.mediaFiles = [];
+    document.getElementById('aiTransferMediaInput').value = '';
+    renderMediaPreview();
+}
+
+// Process all media with AI
+async function processAllTransferMedia() {
+    if (aiTransferState.mediaFiles.length === 0) {
+        alert('No files to process');
+        return;
+    }
+
+    const apiKey = await getOpenAIKeyForTransfers();
+    if (!apiKey) {
+        alert('OpenAI API key not configured. Go to Settings > Celeste AI to set it up.');
+        return;
+    }
+
+    document.getElementById('aiTransferLoading').style.display = 'block';
+    document.getElementById('aiTransferResults').style.display = 'none';
+
+    let allItems = [];
+
+    try {
+        // Process each media file
+        for (const media of aiTransferState.mediaFiles) {
+            let items = [];
+
+            if (media.type === 'image') {
+                // Process image with Vision
+                const base64 = await fileToBase64(media.file);
+                items = await analyzeTransferPhotoWithVision(base64, apiKey);
+            } else if (media.type === 'video') {
+                // Extract frames from video and analyze + transcribe audio
+                items = await analyzeTransferVideo(media.file, apiKey);
+            } else if (media.type === 'audio') {
+                // Transcribe audio and parse products
+                items = await analyzeTransferAudio(media.file, apiKey);
+            }
+
+            allItems = mergeTransferItems(allItems, items);
+        }
+
+        if (allItems.length === 0) {
+            alert('No products detected. Try clearer images or speak product names clearly in audio.');
+        } else {
+            aiTransferState.parsedItems = allItems;
+            renderParsedItems();
+        }
+
+    } catch (error) {
+        console.error('Media analysis error:', error);
+        alert('Error analyzing media: ' + error.message);
+    }
+
+    document.getElementById('aiTransferLoading').style.display = 'none';
+}
+
+// Convert file to base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Merge items, combining quantities for same products
+function mergeTransferItems(existing, newItems) {
+    const merged = [...existing];
+    for (const item of newItems) {
+        const existingItem = merged.find(e =>
+            e.name.toLowerCase().replace(/\s+/g, '') === item.name.toLowerCase().replace(/\s+/g, '')
+        );
+        if (existingItem) {
+            existingItem.quantity += item.quantity;
+        } else {
+            merged.push(item);
+        }
+    }
+    return merged;
+}
+
+// Analyze video - extract frames + transcribe audio
+async function analyzeTransferVideo(file, apiKey) {
+    let allItems = [];
+
+    // 1. Extract frames from video and analyze
+    try {
+        const frames = await extractVideoFrames(file, 3); // Extract 3 frames
+        for (const frame of frames) {
+            const items = await analyzeTransferPhotoWithVision(frame, apiKey);
+            allItems = mergeTransferItems(allItems, items);
+        }
+    } catch (e) {
+        console.warn('Could not extract video frames:', e);
+    }
+
+    // 2. Extract and transcribe audio from video
+    try {
+        const audioBlob = await extractAudioFromVideo(file);
+        if (audioBlob) {
+            const transcript = await transcribeAudio(audioBlob, apiKey);
+            if (transcript) {
+                const items = await parseProductsFromText(transcript, apiKey);
+                allItems = mergeTransferItems(allItems, items);
+            }
+        }
+    } catch (e) {
+        console.warn('Could not extract video audio:', e);
+    }
+
+    return allItems;
+}
+
+// Extract frames from video
+function extractVideoFrames(file, numFrames) {
+    return new Promise((resolve, reject) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.muted = true;
+
+        video.onloadedmetadata = async () => {
+            const duration = video.duration;
+            const frames = [];
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            for (let i = 0; i < numFrames; i++) {
+                const time = (duration / (numFrames + 1)) * (i + 1);
+                video.currentTime = time;
+
+                await new Promise(r => video.onseeked = r);
+
+                ctx.drawImage(video, 0, 0);
+                frames.push(canvas.toDataURL('image/jpeg', 0.8));
+            }
+
+            URL.revokeObjectURL(video.src);
+            resolve(frames);
+        };
+
+        video.onerror = reject;
+        video.src = URL.createObjectURL(file);
+    });
+}
+
+// Extract audio from video file
+async function extractAudioFromVideo(file) {
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(file);
+        video.muted = false;
+
+        video.onloadedmetadata = async () => {
+            try {
+                const audioContext = new AudioContext();
+                const response = await fetch(video.src);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                // Convert to WAV blob
+                const wavBlob = audioBufferToWav(audioBuffer);
+                URL.revokeObjectURL(video.src);
+                resolve(wavBlob);
+            } catch (e) {
+                console.warn('Audio extraction failed:', e);
+                URL.revokeObjectURL(video.src);
+                resolve(null);
+            }
+        };
+
+        video.onerror = () => {
+            URL.revokeObjectURL(video.src);
+            resolve(null);
+        };
+    });
+}
+
+// Convert AudioBuffer to WAV Blob
+function audioBufferToWav(buffer) {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+
+    const bytesPerSample = bitDepth / 8;
+    const blockAlign = numChannels * bytesPerSample;
+
+    const samples = buffer.length;
+    const dataSize = samples * blockAlign;
+    const bufferSize = 44 + dataSize;
+
+    const arrayBuffer = new ArrayBuffer(bufferSize);
+    const view = new DataView(arrayBuffer);
+
+    // WAV header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    // Audio data
+    const channelData = [];
+    for (let i = 0; i < numChannels; i++) {
+        channelData.push(buffer.getChannelData(i));
+    }
+
+    let offset = 44;
+    for (let i = 0; i < samples; i++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+            const sample = Math.max(-1, Math.min(1, channelData[ch][i]));
+            view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+            offset += 2;
+        }
+    }
+
+    return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
+}
+
+// Analyze audio file
+async function analyzeTransferAudio(file, apiKey) {
+    const transcript = await transcribeAudio(file, apiKey);
+    if (!transcript) return [];
+
+    return await parseProductsFromText(transcript, apiKey);
+}
+
+// Transcribe audio using OpenAI Whisper
+async function transcribeAudio(audioFile, apiKey) {
+    const formData = new FormData();
+    formData.append('file', audioFile, 'audio.wav');
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'es'); // Spanish
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Transcription failed');
+        }
+
+        const data = await response.json();
+        console.log('[AI Transfer] Transcription:', data.text);
+        return data.text;
+    } catch (e) {
+        console.error('Transcription error:', e);
+        return null;
+    }
+}
+
+// Parse products from transcribed text using GPT
+async function parseProductsFromText(text, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are parsing spoken inventory transfer information for a vape shop.
+The user is dictating products they are transferring. Extract product names and quantities.
+
+IMPORTANT PACKAGING MULTIPLIERS:
+- FOGER products: 5 vapes per box
+- Kraze HD 2.0: 5 vapes per box
+- Most other vapes: 1 per box
+
+When someone says "3 cajas de FOGER mint" = 15 units (3 boxes × 5)
+When someone says "5 Lost Mary watermelon" = 5 units
+
+Return ONLY a JSON array:
+[{"name": "Product Name Flavor", "quantity": X}]
+
+If no products found, return: []`
+                },
+                {
+                    role: 'user',
+                    content: `Parse products from this spoken inventory: "${text}"`
+                }
+            ],
+            max_tokens: 500,
+            temperature: 0.3
+        })
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '[]';
+
+    try {
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const items = JSON.parse(jsonMatch[0]);
+            return items.map(item => ({
+                name: item.name || 'Unknown Product',
+                quantity: parseInt(item.quantity) || 1,
+                sku: 'VOICE-SCAN'
+            }));
+        }
+    } catch (e) {
+        console.error('Parse error:', e);
+    }
+
+    return [];
+}
+
 // Get OpenAI API key
 async function getOpenAIKeyForTransfers() {
     // Try from Firebase settings first
@@ -1902,3 +2334,9 @@ Be concise with product names. Do not include SKUs or prices.`
 // Make functions globally available
 window.processTransferPhoto = processTransferPhoto;
 window.clearTransferPhoto = clearTransferPhoto;
+window.processTransferMedia = processTransferMedia;
+window.clearTransferMedia = clearTransferMedia;
+window.removeTransferMedia = removeTransferMedia;
+window.processAllTransferMedia = processAllTransferMedia;
+window.updateAIItemQty = updateAIItemQty;
+window.setAIItemQty = setAIItemQty;
