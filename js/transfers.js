@@ -565,12 +565,28 @@ function renderTransferCard(transfer) {
     const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
     const productCount = hasMultipleItems ? transfer.items.length : 1;
 
+    // Calculate boxes
+    let totalBoxes = 0;
+    if (hasMultipleItems) {
+        transfer.items.forEach(item => {
+            const name = (item.productName || '').toUpperCase();
+            const isLargeBoxBrand = name.includes('GEEK BAR') || name.includes('FOGER') || name.includes('SUONON') || name.includes('KRAZE');
+            if (isLargeBoxBrand && item.quantity >= 5) {
+                totalBoxes += Math.round(item.quantity / 5);
+            } else {
+                totalBoxes += item.quantity;
+            }
+        });
+    } else {
+        totalBoxes = transfer.quantity || 1;
+    }
+
     // Product display
     let productName = '';
     if (hasMultipleItems) {
         productName = productCount === 1
             ? transfer.items[0].productName
-            : `${productCount} products`;
+            : `${productCount} flavors`;
     } else {
         productName = transfer.productName;
     }
@@ -606,8 +622,8 @@ function renderTransferCard(transfer) {
             <div style="margin-bottom: 16px;">
                 <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${productName}</div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-                    <span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #667eea; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px;">${totalQty} units</span>
-                    ${hasMultipleItems && productCount > 1 ? `<span style="font-size: 12px; color: var(--text-muted);">${productCount} items</span>` : ''}
+                    <span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #667eea; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px;">${totalQty} vapes</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">${totalBoxes} box${totalBoxes !== 1 ? 'es' : ''}</span>
                 </div>
             </div>
 
@@ -649,6 +665,25 @@ function renderTransferRow(transfer) {
     const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
     const productCount = hasMultipleItems ? transfer.items.length : 1;
 
+    // Calculate total boxes (each item tracks its own quantity which may be boxes×5 or individual)
+    // For display, we show: flavors, boxes, total vapes
+    let totalBoxes = 0;
+    if (hasMultipleItems) {
+        // Each item.quantity is already the total vapes (e.g., 10 = 2 boxes × 5)
+        // We need to figure out boxes - assume large box brands are ×5
+        transfer.items.forEach(item => {
+            const name = (item.productName || '').toUpperCase();
+            const isLargeBoxBrand = name.includes('GEEK BAR') || name.includes('FOGER') || name.includes('SUONON') || name.includes('KRAZE');
+            if (isLargeBoxBrand && item.quantity >= 5) {
+                totalBoxes += Math.round(item.quantity / 5);
+            } else {
+                totalBoxes += item.quantity;
+            }
+        });
+    } else {
+        totalBoxes = transfer.quantity || 1;
+    }
+
     // Product display - show summary for multi-item transfers
     let productDisplay;
     if (hasMultipleItems) {
@@ -659,7 +694,7 @@ function renderTransferRow(transfer) {
             `;
         } else {
             productDisplay = `
-                <div style="font-weight: 600;">${productCount} products</div>
+                <div style="font-weight: 600;">${productCount} flavors</div>
                 <div style="font-size: 11px; color: var(--text-muted);">${transfer.items.slice(0, 2).map(i => i.productName).join(', ')}${productCount > 2 ? '...' : ''}</div>
             `;
         }
@@ -687,7 +722,7 @@ function renderTransferRow(transfer) {
             </td>
             <td>
                 <span style="font-weight: 700; font-size: 16px;">${totalQty}</span>
-                ${hasMultipleItems && productCount > 1 ? `<div style="font-size: 10px; color: var(--text-muted);">${productCount} items</div>` : ''}
+                <div style="font-size: 10px; color: var(--text-muted);">${totalBoxes} box${totalBoxes !== 1 ? 'es' : ''}</div>
             </td>
             <td>
                 ${formattedDate}
@@ -1280,6 +1315,22 @@ function viewTransferDetails(transferId) {
     const totalQty = hasMultipleItems ? transfer.totalItems : transfer.quantity;
     const productCount = hasMultipleItems ? transfer.items.length : 1;
 
+    // Calculate boxes for detail view
+    let totalBoxes = 0;
+    if (hasMultipleItems) {
+        transfer.items.forEach(item => {
+            const name = (item.productName || '').toUpperCase();
+            const isLargeBoxBrand = name.includes('GEEK BAR') || name.includes('FOGER') || name.includes('SUONON') || name.includes('KRAZE');
+            if (isLargeBoxBrand && item.quantity >= 5) {
+                totalBoxes += Math.round(item.quantity / 5);
+            } else {
+                totalBoxes += item.quantity;
+            }
+        });
+    } else {
+        totalBoxes = transfer.quantity || 1;
+    }
+
     title.innerHTML = `<i class="fas fa-exchange-alt" style="color: var(--accent-primary); margin-right: 10px;"></i> ${transfer.folio}`;
 
     // Build items list HTML for multi-item transfers
@@ -1288,8 +1339,8 @@ function viewTransferDetails(transferId) {
         itemsHtml = `
             <div class="order-detail-section">
                 <h3 style="display: flex; align-items: center; justify-content: space-between;">
-                    <span>Products (${productCount})</span>
-                    <span style="font-size: 14px; color: var(--accent-primary);">${totalQty} units total</span>
+                    <span>Products (${productCount} flavors)</span>
+                    <span style="font-size: 14px; color: var(--accent-primary);">${totalQty} vapes · ${totalBoxes} boxes</span>
                 </h3>
                 <div style="max-height: 300px; overflow-y: auto;">
                     ${transfer.items.map(item => `
@@ -1729,7 +1780,6 @@ function openAITransferModal() {
                                 <i class="fas fa-store" style="color: #10b981; font-size: 16px;"></i>
                                 <select id="aiTransferDestination" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
                                     <option value="">Select store</option>
-                                    <option value="1">Miramar</option>
                                     <option value="2">Morena</option>
                                     <option value="3">Kearny Mesa</option>
                                     <option value="4">Chula Vista</option>
