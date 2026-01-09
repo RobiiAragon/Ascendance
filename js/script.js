@@ -6841,17 +6841,15 @@
                 <!-- Filters -->
                 <div class="filters-bar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                        ${isMiramar ? `
-                            <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
-                                <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
-                                ${vsuStores.map(store => `
-                                    <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
-                                `).join('')}
-                                ${otherStores.map(store => `
-                                    <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
-                                `).join('')}
-                            </select>
-                        ` : ''}
+                        <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
+                            <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
+                            ${vsuStores.map(store => `
+                                <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
+                            `).join('')}
+                            ${otherStores.map(store => `
+                                <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
+                            `).join('')}
+                        </select>
                         <input type="month" class="form-input" id="supplies-month-filter" value="${suppliesCurrentMonth}" onchange="filterSuppliesByMonth(this.value)" style="width: auto;">
                     </div>
                     <div style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 8px;">
