@@ -296,34 +296,45 @@
             console.log(`Remember Me: ${remember}`);
             console.log('='.repeat(50));
 
-            // Attempt login (handle async authentication)
-            authenticateUser(email, password).then(user => {
-                if (user) {
-                    console.log('🎉 Login successful!');
-                    console.log('User:', user);
-                    
-                    // Store session
-                    storeUserSession(user, remember);
-                    
-                    // Show success message
-                    showLoginSuccess('Login successful! Redirecting...');
-                    
-                    // Redirect after short delay
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1000);
-                } else {
-                    console.log('❌ Login failed - Invalid credentials');
-                    showLoginError('Invalid email or password');
+            // Attempt login with timeout (handle async authentication)
+            const loginTimeout = 15000; // 15 seconds timeout
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Login timeout - Firebase took too long')), loginTimeout);
+            });
+
+            Promise.race([authenticateUser(email, password), timeoutPromise])
+                .then(user => {
+                    if (user) {
+                        console.log('🎉 Login successful!');
+                        console.log('User:', user);
+
+                        // Store session
+                        storeUserSession(user, remember);
+
+                        // Show success message
+                        showLoginSuccess('Login successful! Redirecting...');
+
+                        // Redirect after short delay
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1000);
+                    } else {
+                        console.log('❌ Login failed - Invalid credentials');
+                        showLoginError('Invalid email or password. Please check your credentials.');
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Login error:', error);
+                    if (error.message.includes('timeout')) {
+                        showLoginError('Connection timeout. Please check your internet and try again.');
+                    } else {
+                        showLoginError('Login error: ' + (error.message || 'Unknown error'));
+                    }
                     loginBtn.disabled = false;
                     loginBtn.innerHTML = originalText;
-                }
-            }).catch(error => {
-                console.error('❌ Unexpected login error:', error);
-                showLoginError('An error occurred during login. Check console for details.');
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = originalText;
-            });
+                });
         }
 
         /**
@@ -331,27 +342,33 @@
          */
         async function authenticateUser(email, password) {
             try {
-                // Ensure Firebase is initialized
-                console.log('🔐 Starting authentication process...');
+                console.log('🔐 [1/4] Starting authentication process...');
+                console.log('🔐 [2/4] Checking firebaseEmployeeManager...');
+
+                // Check if Firebase is loaded
+                if (typeof firebase === 'undefined') {
+                    console.error('❌ Firebase SDK not loaded!');
+                    throw new Error('Firebase SDK not loaded. Please refresh the page.');
+                }
 
                 // Authenticate against Firebase Auth (cloud only - no local fallback)
                 if (typeof firebaseEmployeeManager !== 'undefined') {
-                    console.log('✓ firebaseEmployeeManager available');
+                    console.log('✓ [3/4] firebaseEmployeeManager available, calling authenticateFromFirestore...');
 
                     const user = await authenticateFromFirestore(email, password);
                     if (user) {
-                        console.log('✅ Authentication successful from Firebase');
+                        console.log('✅ [4/4] Authentication successful from Firebase');
                         return user;
                     }
-                    console.log('❌ Firebase authentication failed');
+                    console.log('❌ Firebase authentication failed - check credentials');
                     return null;
                 } else {
                     console.error('❌ firebaseEmployeeManager not available - cannot authenticate');
-                    return null;
+                    throw new Error('Firebase not initialized. Please refresh the page.');
                 }
             } catch (error) {
                 console.error('❌ Authentication error:', error);
-                return null;
+                throw error; // Re-throw to be caught by the timeout handler
             }
         }
 
