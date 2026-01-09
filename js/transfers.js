@@ -2825,25 +2825,21 @@ async function analyzeVideoFramePermissive(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are a product counter for a vape shop inventory transfer.
+                    content: `Count vape BOXES in this video frame. This is from a video so may be blurry.
 
-CRITICAL: Count PHYSICAL BOXES you can clearly see. Do NOT count reflections, shadows, or guess hidden products.
+WHAT IS A BOX:
+- FOGER = large colorful box (red, green, holographic). 1 box = 5 vapes
+- Geek Bar = small blue box. 1 box = 1 vape
+- Other brands = 1 box = 1 vape
 
-STEP 1: Count the BOXES you see for each product type
-STEP 2: Apply multiplier ONLY for FOGER/Kraze (5 per box). All others = 1 per box.
+RULES:
+- Count each box ONCE (don't count same box from different angles)
+- Ignore reflections and shadows
+- When unsure, count LESS
+- Do your best even if blurry
 
-MULTIPLIERS:
-- FOGER box (any color/flavor): 1 box = 5 vapes
-- Kraze HD 2.0 box: 1 box = 5 vapes
-- Geek Bar, Lost Mary, Elf Bar, etc.: 1 box = 1 vape
-
-BE CONSERVATIVE: If unsure, count LESS not more. Only count what you can clearly see.
-
-Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
-Example: 2 FOGER boxes = {"name": "FOGER Strawberry", "quantity": 10}
-Example: 3 Geek Bar boxes = {"name": "Geek Bar Blue", "quantity": 3}
-
-If no products visible, return: []`
+Return JSON: [{"name": "Brand", "quantity": TOTAL_VAPES}]
+If nothing visible: []`
                 },
                 {
                     role: 'user',
@@ -2895,31 +2891,31 @@ async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are a product counter for a vape shop inventory transfer.
+                    content: `You are a product counter for a vape shop. Count BOXES, not individual vapes.
 
-YOUR JOB: Count the PHYSICAL BOXES visible in the image, then calculate total vapes.
+IMPORTANT - WHAT IS A "BOX":
+- A BOX is a single retail package/container
+- If you see one box from multiple angles, it's still ONE box
+- FOGER boxes are large colorful boxes (red, green, holographic) - each contains 5 vapes
+- Geek Bar boxes are small blue boxes - each contains 1 vape
 
-STEP 1 - COUNT BOXES: Only count boxes you can CLEARLY see. Do NOT count:
-- Reflections or shadows
-- Partially hidden boxes
-- Boxes you're guessing might be there
+COUNTING RULES:
+1. Count each PHYSICAL BOX only ONCE
+2. Do NOT count the same box twice from different angles
+3. Do NOT count reflections, shadows, or images on packaging
+4. When unsure, count LESS
 
-STEP 2 - APPLY MULTIPLIER:
-- FOGER box (any flavor, usually colorful): 1 box = 5 vapes
-- Kraze HD 2.0 box: 1 box = 5 vapes
-- Geek Bar (blue boxes): 1 box = 1 vape
-- Lost Mary, Elf Bar, SWFT, etc.: 1 box = 1 vape
+MULTIPLIERS:
+- FOGER/Kraze box: boxes × 5 = total vapes
+- All other brands: boxes × 1 = total vapes
 
-CRITICAL: BE CONSERVATIVE. When in doubt, count FEWER boxes, not more.
+Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
 
-IMAGE QUALITY: If too blurry/dark to count accurately, return: {"error": "NEED_BETTER_PHOTO", "reason": "brief issue"}
+EXAMPLE: Photo shows 1 large red FOGER box + 3 small blue Geek Bar boxes
+Result: [{"name": "FOGER Strawberry", "quantity": 5}, {"name": "Geek Bar", "quantity": 3}]
 
-Return JSON array: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
-
-Example: You see 1 FOGER Strawberry box = {"name": "FOGER Strawberry Cupcake", "quantity": 5}
-Example: You see 4 Geek Bar boxes = {"name": "Geek Bar Blue Razz", "quantity": 4}
-
-If no products: []`
+If image too blurry: {"error": "NEED_BETTER_PHOTO", "reason": "description"}
+If no products visible: []`
                 },
                 {
                     role: 'user',
