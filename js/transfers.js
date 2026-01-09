@@ -12,6 +12,98 @@ let transfersState = {
     isLoadingProducts: false
 };
 
+// Store names mapping
+const STORE_NAMES = {
+    '1': 'Miramar',
+    '2': 'Morena',
+    '3': 'Kearny Mesa',
+    '4': 'Chula Vista',
+    '5': 'North Park',
+    'loyalvaper': 'Loyal Vaper',
+    'Miramar': 'Miramar',
+    'Morena': 'Morena',
+    'Kearny Mesa': 'Kearny Mesa',
+    'Chula Vista': 'Chula Vista',
+    'North Park': 'North Park',
+    'Loyal Vaper': 'Loyal Vaper'
+};
+
+// Get store name from ID
+function getStoreName(storeId) {
+    return STORE_NAMES[storeId] || storeId;
+}
+
+// Show styled toast notification
+function showTransferToast(message, type = 'info') {
+    // Remove existing toasts
+    const existingToast = document.querySelector('.transfer-toast');
+    if (existingToast) existingToast.remove();
+
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+
+    const colors = {
+        success: { bg: '#10b981', icon: '#fff' },
+        error: { bg: '#ef4444', icon: '#fff' },
+        warning: { bg: '#f59e0b', icon: '#fff' },
+        info: { bg: '#6366f1', icon: '#fff' }
+    };
+
+    const toast = document.createElement('div');
+    toast.className = 'transfer-toast';
+    toast.innerHTML = `
+        <i class="fas ${icons[type]}" style="font-size: 18px;"></i>
+        <span>${message}</span>
+    `;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${colors[type].bg};
+        color: white;
+        padding: 14px 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: slideInToast 0.3s ease-out;
+        max-width: 350px;
+    `;
+
+    // Add animation styles if not exists
+    if (!document.getElementById('transfer-toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'transfer-toast-styles';
+        style.textContent = `
+            @keyframes slideInToast {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutToast {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+
+    // Auto dismiss after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOutToast 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
 // Generate unique transfer folio
 function generateTransferFolio() {
     try {
@@ -295,36 +387,20 @@ function renderTransfersPage() {
                             <input type="hidden" id="transferProductId">
                         </div>
 
-                        <!-- Quantity and Date Row -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
-                                    <i class="fas fa-hashtag" style="margin-right: 6px;"></i>Quantity
-                                </label>
-                                <div style="display: flex; align-items: center; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 12px; overflow: hidden;">
-                                    <button type="button" onclick="adjustQuantity(-1)" style="width: 44px; height: 48px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 18px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='#ef4444'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                    <input type="number" id="transferQuantity" min="1" value="1" required style="flex: 1; text-align: center; border: none; background: none; font-size: 18px; font-weight: 700; color: var(--text-primary); padding: 10px 0; -moz-appearance: textfield;" oninput="this.value = Math.max(1, parseInt(this.value) || 1)">
-                                    <button type="button" onclick="adjustQuantity(1)" style="width: 44px; height: 48px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 18px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='#10b981'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
-                                    <i class="fas fa-calendar" style="margin-right: 6px;"></i>Ship Date
-                                </label>
-                                <input type="date" id="transferShipDate" required style="width: 100%; padding: 12px 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; box-sizing: border-box; cursor: pointer;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
-                            </div>
-                        </div>
-
-                        <!-- Sent By -->
+                        <!-- Quantity -->
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
-                                <i class="fas fa-user" style="margin-right: 6px;"></i>Sent By
+                                <i class="fas fa-hashtag" style="margin-right: 6px;"></i>Quantity
                             </label>
-                            <input type="text" id="transferSentBy" required placeholder="Your name" style="width: 100%; padding: 12px 14px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; box-sizing: border-box;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
+                            <div style="display: flex; align-items: center; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 12px; overflow: hidden; max-width: 200px;">
+                                <button type="button" onclick="adjustQuantity(-1)" style="width: 50px; height: 52px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 20px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='#ef4444'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" id="transferQuantity" min="1" value="1" required style="flex: 1; text-align: center; border: none; background: none; font-size: 22px; font-weight: 700; color: var(--text-primary); padding: 12px 0; -moz-appearance: textfield;" oninput="this.value = Math.max(1, parseInt(this.value) || 1)">
+                                <button type="button" onclick="adjustQuantity(1)" style="width: 50px; height: 52px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 20px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='#10b981'" onmouseout="this.style.background='none'; this.style.color='var(--text-muted)'">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Notes (Collapsible) -->
@@ -464,9 +540,9 @@ function renderTransferRow(transfer) {
             </td>
             <td>
                 <div class="transfer-route">
-                    <span class="store-name">${transfer.storeOrigin}</span>
+                    <span class="store-name">${getStoreName(transfer.storeOrigin)}</span>
                     <i class="fas fa-arrow-right route-arrow"></i>
-                    <span class="store-name">${transfer.storeDestination}</span>
+                    <span class="store-name">${getStoreName(transfer.storeDestination)}</span>
                 </div>
             </td>
             <td>
@@ -835,9 +911,12 @@ async function submitTransfer() {
     const storeOrigin = document.getElementById('transferStoreOrigin')?.value;
     const storeDestination = document.getElementById('transferStoreDestination')?.value;
     const quantity = document.getElementById('transferQuantity')?.value;
-    const shipDate = document.getElementById('transferShipDate')?.value;
-    const sentBy = document.getElementById('transferSentBy')?.value;
     const notes = document.getElementById('transferNotes')?.value || '';
+
+    // Auto-fill date (today) and sentBy (logged in user)
+    const shipDate = new Date().toISOString().split('T')[0];
+    const currentUser = window.authManager?.getCurrentUser?.();
+    const sentBy = currentUser?.name || currentUser?.email || 'System';
 
     console.log('📝 Form values:', { storeOrigin, storeDestination, quantity, shipDate, sentBy, notes });
 
@@ -867,16 +946,6 @@ async function submitTransfer() {
 
     if (!quantity || parseInt(quantity) < 1) {
         showTransferMessage('Please enter a valid quantity', 'error');
-        return;
-    }
-
-    if (!shipDate) {
-        showTransferMessage('Please select a ship date', 'error');
-        return;
-    }
-
-    if (!sentBy) {
-        showTransferMessage('Please enter who is sending', 'error');
         return;
     }
 
@@ -2585,11 +2654,6 @@ Be concise with product names. Do not include SKUs or prices.`
 // ========================================
 // NOTIFICATIONS SYSTEM
 // ========================================
-
-const STORE_NAMES = {
-    '1': 'Miramar', '2': 'Morena', '3': 'Kearny Mesa',
-    '4': 'Chula Vista', '5': 'North Park', 'loyalvaper': 'Loyal Vaper'
-};
 
 // Send transfer notification (creates in-app notification)
 async function sendTransferNotification(transfer, type) {
