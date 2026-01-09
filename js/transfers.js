@@ -1303,8 +1303,11 @@ function openAITransferModal() {
                         </div>
                     </div>
 
-                    <!-- Media Scan Section - Photos, Videos, Audio -->
-                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 20px;" id="aiTransferMediaSection">
+                    <!-- Media Scan Section - Photos, Videos, Audio with DRAG & DROP -->
+                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 20px; transition: all 0.3s ease;" id="aiTransferMediaSection"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)">
                         <input type="file" id="aiTransferMediaInput" accept="image/*,video/*,audio/*" multiple capture="environment" style="display: none;" onchange="processTransferMedia(this)">
 
                         <!-- Preview Container for multiple files -->
@@ -1333,8 +1336,16 @@ function openAITransferModal() {
                                     </div>
                                 </div>
                                 <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Scan Products</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Photos, Videos or Audio - Select multiple!</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Drag & drop or click to select files</div>
                             </label>
+                        </div>
+
+                        <!-- Drag overlay indicator -->
+                        <div id="aiTransferDragOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(102, 126, 234, 0.15); border-radius: 14px; display: none; align-items: center; justify-content: center; pointer-events: none;">
+                            <div style="text-align: center;">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #667eea; margin-bottom: 8px;"></i>
+                                <div style="font-weight: 600; color: #667eea;">Drop files here!</div>
+                            </div>
                         </div>
 
                         <!-- Process Button -->
@@ -1903,6 +1914,77 @@ function clearTransferMedia() {
     renderMediaPreview();
 }
 
+// ========================================
+// DRAG & DROP HANDLERS
+// ========================================
+
+// Handle drag over
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const section = document.getElementById('aiTransferMediaSection');
+    if (section) {
+        section.style.borderColor = '#667eea';
+        section.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15))';
+        section.style.transform = 'scale(1.02)';
+    }
+}
+
+// Handle drag leave
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const section = document.getElementById('aiTransferMediaSection');
+    if (section) {
+        section.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+        section.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08))';
+        section.style.transform = 'scale(1)';
+    }
+}
+
+// Handle drop
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Reset styles
+    const section = document.getElementById('aiTransferMediaSection');
+    if (section) {
+        section.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+        section.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08))';
+        section.style.transform = 'scale(1)';
+    }
+
+    // Get dropped files
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    // Filter for valid file types
+    const validFiles = files.filter(file => {
+        const type = file.type.split('/')[0];
+        return type === 'image' || type === 'video' || type === 'audio';
+    });
+
+    if (validFiles.length === 0) {
+        alert('Please drop image, video, or audio files only.');
+        return;
+    }
+
+    // Add files to state
+    for (const file of validFiles) {
+        const fileData = {
+            file: file,
+            type: file.type.split('/')[0],
+            name: file.name,
+            url: URL.createObjectURL(file)
+        };
+        aiTransferState.mediaFiles.push(fileData);
+    }
+
+    renderMediaPreview();
+    console.log(`[AI Transfer] Dropped ${validFiles.length} files`);
+}
+
 // Process all media with AI
 async function processAllTransferMedia() {
     if (aiTransferState.mediaFiles.length === 0) {
@@ -2340,3 +2422,6 @@ window.removeTransferMedia = removeTransferMedia;
 window.processAllTransferMedia = processAllTransferMedia;
 window.updateAIItemQty = updateAIItemQty;
 window.setAIItemQty = setAIItemQty;
+window.handleDragOver = handleDragOver;
+window.handleDragLeave = handleDragLeave;
+window.handleDrop = handleDrop;
