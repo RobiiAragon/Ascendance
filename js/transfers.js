@@ -36,9 +36,8 @@ function getStoreName(storeId) {
 
 // Show styled toast notification
 function showTransferToast(message, type = 'info') {
-    // Remove existing toasts
-    const existingToast = document.querySelector('.transfer-toast');
-    if (existingToast) existingToast.remove();
+    // Remove ALL existing toasts (both types)
+    document.querySelectorAll('.transfer-toast, #transferToast').forEach(t => t.remove());
 
     const icons = {
         success: 'fa-check-circle',
@@ -56,6 +55,7 @@ function showTransferToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = 'transfer-toast';
+    toast.id = 'transferToast';
     toast.innerHTML = `
         <i class="fas ${icons[type]}" style="font-size: 18px;"></i>
         <span>${message}</span>
@@ -74,7 +74,7 @@ function showTransferToast(message, type = 'info') {
         font-size: 14px;
         font-weight: 500;
         box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        z-index: 10000;
+        z-index: 10001;
         animation: slideInToast 0.3s ease-out;
         max-width: 350px;
     `;
@@ -2017,25 +2017,26 @@ function renderParsedItems() {
         countEl.textContent = `${aiTransferState.parsedItems.length} items · ${totalItems} units`;
     }
 
-    // Mobile-friendly buttons (44px minimum touch target)
+    // Mobile-friendly layout - product name on top, controls below
     listEl.innerHTML = aiTransferState.parsedItems.map((item, index) => `
-        <div style="display: flex; align-items: center; gap: 10px; padding: 14px; background: var(--bg-secondary); border-radius: 12px;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <button onclick="updateAIItemQty(${index}, -1)" style="width: 44px; height: 44px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; -webkit-tap-highlight-color: transparent;">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <input type="number" value="${item.quantity}" min="1" onchange="setAIItemQty(${index}, this.value)" style="width: 50px; height: 44px; background: linear-gradient(135deg, #667eea20, #764ba220); border: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 16px; color: #667eea;">
-                <button onclick="updateAIItemQty(${index}, 1)" style="width: 44px; height: 44px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; -webkit-tap-highlight-color: transparent;">
-                    <i class="fas fa-plus"></i>
+        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="flex: 1; min-width: 0; padding-right: 10px;">
+                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
+                </div>
+                <button onclick="removeAIParsedItem(${index})" style="width: 36px; height: 36px; background: rgba(239,68,68,0.1); border: none; cursor: pointer; color: #ef4444; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; -webkit-tap-highlight-color: transparent;">
+                    <i class="fas fa-trash-alt" style="font-size: 12px;"></i>
                 </button>
             </div>
-            <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
-                <div style="font-size: 12px; color: var(--text-muted);">PHOTO-SCAN</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <button onclick="updateAIItemQty(${index}, -1)" style="width: 48px; height: 48px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-primary); font-size: 18px; font-weight: bold; -webkit-tap-highlight-color: transparent;">
+                    −
+                </button>
+                <input type="number" value="${item.quantity}" min="1" onchange="setAIItemQty(${index}, this.value)" style="width: 70px; height: 48px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; border-radius: 12px; text-align: center; font-weight: 700; font-size: 20px; color: white;">
+                <button onclick="updateAIItemQty(${index}, 1)" style="width: 48px; height: 48px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-primary); font-size: 18px; font-weight: bold; -webkit-tap-highlight-color: transparent;">
+                    +
+                </button>
             </div>
-            <button onclick="removeAIParsedItem(${index})" style="width: 44px; height: 44px; background: rgba(239,68,68,0.1); border: none; cursor: pointer; color: #ef4444; border-radius: 10px; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">
-                <i class="fas fa-trash-alt" style="font-size: 14px;"></i>
-            </button>
         </div>
     `).join('');
 
@@ -3203,8 +3204,8 @@ async function sendTransferNotification(transfer, type) {
     notifications.unshift(notification);
     localStorage.setItem('transfer_notifications', JSON.stringify(notifications.slice(0, 100))); // Keep last 100
 
-    // Show notification popup if on same page
-    showTransferNotificationPopup(notification);
+    // Don't show popup here - the calling function shows its own toast
+    // showTransferNotificationPopup is only for incoming transfers from other stores
 
     return notification;
 }
