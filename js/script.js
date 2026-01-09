@@ -1,3 +1,22 @@
+        // Activity types - defined early to avoid "before initialization" errors
+        const ACTIVITY_TYPES = {
+            LOGIN: 'login',
+            LOGOUT: 'logout',
+            CLOCK_IN: 'clock_in',
+            CLOCK_OUT: 'clock_out',
+            CREATE: 'create',
+            UPDATE: 'update',
+            DELETE: 'delete',
+            VIEW: 'view',
+            EXPORT: 'export',
+            SCHEDULE: 'schedule',
+            ANNOUNCEMENT: 'announcement',
+            INVOICE: 'invoice',
+            INVENTORY: 'inventory',
+            RESTOCK: 'restock',
+            TRANSFER: 'transfer'
+        };
+
         // Page/View System
         const pages = {
             dashboard: document.getElementById('page-dashboard'),
@@ -29,6 +48,7 @@
 
         // Current state
         let currentPage = 'dashboard';
+        let thieves = []; // Thieves database - initialized early to avoid "before initialization" errors
         let employees = [
             { id: 1, name: 'Marcus Rodriguez', initials: 'MR', role: 'Store Manager', store: 'Miramar', status: 'active', email: 'marcus@vsu.com', phone: '(619) 555-0101', emergencyContact: 'Maria Rodriguez - (619) 555-0102', allergies: 'None', hireDate: '2023-01-15', color: 'a' },
             { id: 2, name: 'Lauren Barrantes', initials: 'LB', role: 'Admin', store: 'Miramar', status: 'active', email: 'lauren@vsu.com', phone: '(619) 555-0103', emergencyContact: 'Emergency Contact - (619) 555-0104', allergies: 'None', hireDate: '2023-03-20', color: 'b' },
@@ -7297,18 +7317,6 @@
             }
         }
 
-        // Initialize supplies badge on page load
-        (function initSuppliesBadgeOnLoad() {
-            // Wait for DOM and Firebase to be ready
-            setTimeout(async () => {
-                try {
-                    await loadSuppliesFromFirebase();
-                } catch (e) {
-                    console.log('Supplies badge init - will load on navigate');
-                }
-            }, 2000);
-        })();
-
 // =============================================================================
 // DAILY CHECKLIST MODULE
 // =============================================================================
@@ -14228,8 +14236,7 @@ window.viewChecklistHistory = async function() {
             });
         }
 
-        // Thieves database
-        let thieves = [];
+        // Note: thieves array is initialized at the top of this file
 
         /**
          * Initialize Firebase and load thieves from Firestore
@@ -41754,24 +41761,7 @@ async function glabsGetSavedMonths() {
 // ACTIVITY LOG MODULE
 // ==========================================
 
-// Activity types
-const ACTIVITY_TYPES = {
-    LOGIN: 'login',
-    LOGOUT: 'logout',
-    CLOCK_IN: 'clock_in',
-    CLOCK_OUT: 'clock_out',
-    CREATE: 'create',
-    UPDATE: 'update',
-    DELETE: 'delete',
-    VIEW: 'view',
-    EXPORT: 'export',
-    SCHEDULE: 'schedule',
-    ANNOUNCEMENT: 'announcement',
-    INVOICE: 'invoice',
-    INVENTORY: 'inventory',
-    RESTOCK: 'restock',
-    TRANSFER: 'transfer'
-};
+// Note: ACTIVITY_TYPES is defined at the top of this file to avoid initialization errors
 
 // Log activity to Firebase
 async function logActivity(type, details = {}, entityType = null, entityId = null) {
