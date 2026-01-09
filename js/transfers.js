@@ -1732,7 +1732,8 @@ document.addEventListener('DOMContentLoaded', function() {
 let aiTransferState = {
     parsedItems: [],
     isProcessing: false,
-    mediaFiles: [] // Store multiple media files (images, videos, audio)
+    mediaFiles: [], // Store multiple media files (images, videos, audio)
+    processedPhoto: null // Store the photo after processing for transfer record
 };
 
 // Open AI Transfer Modal
@@ -1904,6 +1905,7 @@ function openAITransferModal() {
     aiTransferState.parsedItems = [];
     aiTransferState.mediaFiles.forEach(m => URL.revokeObjectURL(m.url));
     aiTransferState.mediaFiles = [];
+    aiTransferState.processedPhoto = null;
 
     document.getElementById('aiTransferInput').value = '';
     document.getElementById('aiTransferResults').style.display = 'none';
@@ -2166,15 +2168,8 @@ async function createAITransfers() {
         const today = new Date().toISOString().split('T')[0];
         const totalItems = aiTransferState.parsedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-        // Get first image from media files for the transfer photo
-        let transferPhoto = null;
-        if (aiTransferState.mediaFiles && aiTransferState.mediaFiles.length > 0) {
-            const imageFile = aiTransferState.mediaFiles.find(m => m.type === 'image');
-            if (imageFile && imageFile.base64) {
-                // Compress photo for storage (max 800px, 60% quality)
-                transferPhoto = await compressImageForStorage(imageFile.base64);
-            }
-        }
+        // Use the processed photo that was saved before clearing mediaFiles
+        const transferPhoto = aiTransferState.processedPhoto || null;
 
         // Create a SINGLE transfer with multiple items
         const transfer = {
@@ -2604,6 +2599,13 @@ async function processAllTransferMedia() {
             showTransferToast('No products detected. Try clearer images or clearer audio.', 'warning');
         } else {
             aiTransferState.parsedItems = allItems;
+
+            // Save the first image's base64 for the transfer record BEFORE clearing
+            const imageFile = aiTransferState.mediaFiles.find(m => m.type === 'image' && m.base64);
+            if (imageFile) {
+                aiTransferState.processedPhoto = await compressImageForStorage(imageFile.base64);
+            }
+
             renderParsedItems();
 
             // Clear media files after successful processing to avoid re-processing
