@@ -31,7 +31,7 @@
         let currentPage = 'dashboard';
         let employees = [
             { id: 1, name: 'Marcus Rodriguez', initials: 'MR', role: 'Store Manager', store: 'Miramar', status: 'active', email: 'marcus@vsu.com', phone: '(619) 555-0101', emergencyContact: 'Maria Rodriguez - (619) 555-0102', allergies: 'None', hireDate: '2023-01-15', color: 'a' },
-            { id: 2, name: 'Lauren Barrantes', initials: 'LB', role: 'Sales Associate', store: 'Morena', status: 'active', email: 'lauren@vsu.com', phone: '(619) 555-0103', emergencyContact: 'Emergency Contact - (619) 555-0104', allergies: 'None', hireDate: '2023-03-20', color: 'b' },
+            { id: 2, name: 'Lauren Barrantes', initials: 'LB', role: 'Admin', store: 'Miramar', status: 'active', email: 'lauren@mwwineliquor.com', phone: '(619) 555-0103', emergencyContact: 'Emergency Contact - (619) 555-0104', allergies: 'None', hireDate: '2023-03-20', color: 'b' },
             { id: 3, name: 'James Thompson', initials: 'JT', role: 'Shift Lead', store: 'Kearny Mesa', status: 'active', email: 'james@vsu.com', phone: '(619) 555-0105', emergencyContact: 'Lisa Thompson - (619) 555-0106', allergies: 'None', hireDate: '2023-02-10', color: 'c' },
             { id: 4, name: 'Amanda Lopez', initials: 'AL', role: 'Sales Associate', store: 'Chula Vista', status: 'inactive', email: 'amanda@vsu.com', phone: '(619) 555-0107', emergencyContact: 'Carlos Lopez - (619) 555-0108', allergies: 'Shellfish', hireDate: '2023-05-01', color: 'd' },
             { id: 5, name: 'David Nguyen', initials: 'DN', role: 'Inventory Specialist', store: 'Miramar', status: 'active', email: 'david@vsu.com', phone: '(619) 555-0109', emergencyContact: 'Linh Nguyen - (619) 555-0110', allergies: 'None', hireDate: '2023-04-15', color: 'e' }

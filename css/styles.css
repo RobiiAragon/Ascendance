@@ -5201,6 +5201,130 @@
     .attendance-table tbody tr td {
         padding: 12px;
     }
+
+    .card-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .card-header > div {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+/* Attendance Table Responsive Container */
+@media (max-width: 1200px) {
+    #attendanceTableContainer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .attendance-table {
+        min-width: 900px;
+    }
+}
+
+@media (max-width: 576px) {
+    .attendance-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .attendance-stat-card {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .stat-icon-container {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        border-radius: 10px;
+    }
+
+    .stat-details .stat-value {
+        font-size: 24px;
+    }
+
+    .stat-details .stat-label {
+        font-size: 11px;
+    }
+
+    .clock-action-btn {
+        padding: 16px;
+    }
+
+    .clock-action-btn .action-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+    }
+
+    .clock-action-btn span {
+        font-size: 13px;
+    }
+
+    .time-display-card {
+        padding: 20px;
+    }
+
+    .current-clock {
+        font-size: 28px !important;
+    }
+
+    .current-date {
+        font-size: 13px;
+    }
+
+    /* Table adjustments for very small screens */
+    .attendance-table {
+        min-width: 800px;
+    }
+
+    .attendance-table thead tr th,
+    .attendance-table tbody tr td {
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+
+    .employee-table-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 11px;
+    }
+
+    .employee-table-name {
+        font-size: 12px;
+    }
+
+    .employee-table-role {
+        font-size: 10px;
+    }
+
+    .store-badge {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    .time-cell {
+        font-size: 11px;
+    }
+
+    .total-hours {
+        font-size: 11px;
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    .table-action-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
 }
 
 /* ==========================================
