@@ -2504,18 +2504,19 @@ async function analyzeTransferVideo(file, apiKey) {
 
     // 1. Extract frames from video and analyze
     try {
-        const frames = await extractVideoFrames(file, 3); // Extract 3 frames
+        const frames = await extractVideoFrames(file, 8); // Extract 8 frames for better coverage
         console.log(`[AI Transfer] Extracted ${frames.length} frames from video`);
 
         for (let i = 0; i < frames.length; i++) {
             try {
-                const items = await analyzeTransferPhotoWithVision(frames[i], apiKey);
+                // Use permissive analysis for video frames (they're often blurry)
+                const items = await analyzeVideoFramePermissive(frames[i], apiKey);
                 if (items && items.length > 0) {
                     allItems = mergeTransferItems(allItems, items);
                     console.log(`[AI Transfer] Frame ${i + 1}: Found ${items.length} products`);
                 }
             } catch (frameError) {
-                // Don't fail on individual frame errors (blurry, etc.)
+                // Don't fail on individual frame errors
                 console.warn(`[AI Transfer] Frame ${i + 1} skipped:`, frameError.message);
                 frameErrors.push(frameError.message);
             }
@@ -2786,7 +2787,75 @@ async function getOpenAIKeyForTransfers() {
     return null;
 }
 
-// Analyze photo with OpenAI Vision API
+// Analyze VIDEO FRAME with permissive settings (video frames are often blurry/motion-blurred)
+async function analyzeVideoFramePermissive(base64Image, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are a product identification assistant for a vape shop. This is a VIDEO FRAME so expect some motion blur.
+
+DO YOUR BEST to identify products even if the image is not perfect. Video frames are often blurry - that's OK, just do your best guess.
+
+PACKAGING MULTIPLIERS:
+- FOGER boxes: 5 vapes per box
+- Kraze HD 2.0 boxes: 5 vapes per box
+- Most other vapes: 1 per box
+
+Try to identify:
+- Brand name (Lost Mary, Elf Bar, FOGER, Geek Bar, SWFT, etc.)
+- Flavor if readable
+- Approximate quantity
+
+Return a JSON array: [{"name": "Brand Flavor", "quantity": X}]
+If you really can't see ANY products at all, return: []
+DO NOT return errors - just do your best or return empty array.`
+                },
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: 'What vape products do you see? Best guess is fine.' },
+                        { type: 'image_url', image_url: { url: base64Image, detail: 'high' } }
+                    ]
+                }
+            ],
+            max_tokens: 500,
+            temperature: 0.5
+        })
+    });
+
+    if (!response.ok) {
+        return []; // Don't throw on API errors for video frames
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '[]';
+
+    try {
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const items = JSON.parse(jsonMatch[0]);
+            return items.map(item => ({
+                name: item.name || 'Unknown Product',
+                quantity: parseInt(item.quantity) || 1,
+                sku: 'VIDEO-SCAN'
+            }));
+        }
+    } catch (e) {
+        console.warn('Could not parse video frame response');
+    }
+
+    return [];
+}
+
+// Analyze photo with OpenAI Vision API (strict mode for photos)
 async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
