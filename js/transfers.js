@@ -3300,9 +3300,12 @@ Lost Mary, Elf Bar, SWFT, Breeze, Puff Bar, Hyde, Vuse, NJOY = 1 vape per box (u
 3. SMALL/COMPACT box (with WARNING label) = 1 vape
 4. Count PHYSICAL BOXES only - NOT images printed on packaging
 5. Do NOT count reflections or shadows
+6. OPEN/DISPLAY BOXES: If a box is open (showing the vape inside, lid open, or used as display), STILL COUNT IT but add "hasOpenBoxes": true to the response
 
 === OUTPUT FORMAT ===
-Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
+Return JSON: {"items": [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}], "hasOpenBoxes": true/false, "openBoxNote": "X open/display boxes detected"}
+
+If no open boxes, just return: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
 
 EXAMPLE 1 - Large boxes only:
 See 2 LARGE boxes of FOGER Coffee (tall, no WARNING) → 2 × 5 = {"name": "FOGER Coffee", "quantity": 10}
@@ -3377,7 +3380,24 @@ If nothing visible: []`
             throw new Error('📸 Photo quality is too low. Please take a clearer photo with better lighting.');
         }
 
-        // Extract JSON array from response (might have extra text)
+        // Check for new format with hasOpenBoxes
+        const objectMatch = content.match(/\{[\s\S]*"items"[\s\S]*\}/);
+        if (objectMatch) {
+            const parsed = JSON.parse(objectMatch[0]);
+            if (parsed.items) {
+                // Show warning if open boxes detected
+                if (parsed.hasOpenBoxes && parsed.openBoxNote) {
+                    showTransferToast(`⚠️ ${parsed.openBoxNote}`, 'warning');
+                }
+                return parsed.items.map(item => ({
+                    name: item.name || 'Unknown Product',
+                    quantity: parseInt(item.quantity) || 1,
+                    sku: 'PHOTO-SCAN'
+                }));
+            }
+        }
+
+        // Fallback: Extract JSON array from response (might have extra text)
         const jsonMatch = content.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
             const items = JSON.parse(jsonMatch[0]);
