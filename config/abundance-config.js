@@ -152,9 +152,9 @@ window.EMPLOYEE_ROLES = {
 // Users Database (In-memory - for demo, normally in Firebase)
 window.USERS_DATABASE = {
     // === ADMINISTRATORS ===
-    'giselle@mmwineliquor.com': {
+    'gisellebrambila89@gmail.com': {
         id: 'admin-giselle',
-        email: 'giselle@mmwineliquor.com',
+        email: 'gisellebrambila89@gmail.com',
         password: 'Giselle2024!',
         name: 'Giselle Brambila',
         role: 'admin',
@@ -162,9 +162,9 @@ window.USERS_DATABASE = {
         store: 'Miramar',
         status: 'active'
     },
-    'lauren@mmwineliquor.com': {
+    'lauren@vsu.com': {
         id: 'admin-lauren',
-        email: 'lauren@mmwineliquor.com',
+        email: 'lauren@vsu.com',
         password: 'Lauren2024!',
         name: 'Lauren Barrantes',
         role: 'admin',
@@ -177,6 +177,16 @@ window.USERS_DATABASE = {
         email: 'carlos@calidevs.com',
         password: 'Carlos2024!',
         name: 'Carlos Armando',
+        role: 'admin',
+        employeeType: 'admin',
+        store: 'Miramar',
+        status: 'active'
+    },
+    'ian@calidevs.com': {
+        id: 'admin-ian',
+        email: 'ian@calidevs.com',
+        password: 'Ian2024!',
+        name: 'Ian',
         role: 'admin',
         employeeType: 'admin',
         store: 'Miramar',
