@@ -6585,6 +6585,10 @@
                             ...doc.data()
                         });
                     });
+                    // Update badge after loading
+                    if (typeof updateSuppliesBadge === 'function') {
+                        updateSuppliesBadge();
+                    }
                 }
             } catch (error) {
                 console.error('Error loading supplies:', error);
@@ -6635,13 +6639,17 @@
 
         window.renderSupplies = async function() {
             const dashboard = document.querySelector('.dashboard');
+            const currentUser = getCurrentUser();
+            const userStore = currentUser?.store || 'Miramar';
+            const isAdmin = currentUser?.role === 'admin';
+            const isMiramar = userStore === 'Miramar' || isAdmin;
 
             // Show loading state
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Supplies</h2>
-                        <p class="section-subtitle">Track everyday supplies needed per store</p>
+                        <p class="section-subtitle">${isMiramar ? 'Distribution Center - Manage all store requests' : 'Request supplies from Miramar'}</p>
                     </div>
                 </div>
                 <div class="loading-state">
@@ -6665,33 +6673,165 @@
                 return matchStore && matchMonth;
             });
 
-            // Separate pending and purchased
+            // Separate by status
             const pendingSupplies = filteredSupplies.filter(s => s.status === 'pending');
-            const purchasedSupplies = filteredSupplies.filter(s => s.status === 'purchased');
+            const inProgressSupplies = filteredSupplies.filter(s => s.status === 'in_progress');
+            const partialSupplies = filteredSupplies.filter(s => s.status === 'partial');
+            const completedSupplies = filteredSupplies.filter(s => s.status === 'completed' || s.status === 'purchased');
+            const cancelledSupplies = filteredSupplies.filter(s => s.status === 'cancelled');
+
+            // Status colors and labels
+            const statusConfig = {
+                pending: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: 'clock', label: 'Pending' },
+                in_progress: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: 'spinner fa-spin', label: 'In Progress' },
+                partial: { color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)', icon: 'exclamation-triangle', label: 'Partial' },
+                completed: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: 'check-circle', label: 'Completed' },
+                purchased: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: 'check-circle', label: 'Completed' },
+                cancelled: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: 'times-circle', label: 'Cancelled' }
+            };
+
+            // Helper function to render supply card
+            const renderSupplyCard = (item, showActions = true) => {
+                const status = statusConfig[item.status] || statusConfig.pending;
+                const canProcess = isMiramar && (item.status === 'pending' || item.status === 'in_progress');
+                const canConfirm = item.store === userStore && item.status === 'partial';
+
+                return `
+                    <div class="supply-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); border-left: 4px solid ${status.color}; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                        <div style="padding: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                <div style="background: ${status.bg}; color: ${status.color}; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                                    <i class="fas fa-${status.icon}"></i> ${status.label}
+                                </div>
+                                <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
+                                    <i class="fas fa-store"></i> ${item.store}
+                                </span>
+                            </div>
+                            <div style="white-space: pre-wrap; font-size: 14px; line-height: 1.5; margin-bottom: 12px; max-height: 100px; overflow-y: auto;">${item.name || item.description}</div>
+                            ${item.addedBy ? `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;"><i class="fas fa-user"></i> ${item.addedBy}</div>` : ''}
+                            ${item.notes ? `<div style="font-size: 12px; color: #f97316; background: rgba(249, 115, 22, 0.1); padding: 8px; border-radius: 6px; margin-bottom: 12px;"><i class="fas fa-sticky-note"></i> ${item.notes}</div>` : ''}
+                            ${item.createdAt ? `<div style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-calendar"></i> ${formatDate(item.createdAt.toDate ? item.createdAt.toDate() : item.createdAt)}</div>` : ''}
+
+                            ${showActions ? `
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                    ${canProcess && item.status === 'pending' ? `
+                                        <button onclick="processSupply('${item.id}')" style="flex: 1; min-width: 100px; padding: 8px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                                            <i class="fas fa-play"></i> Process
+                                        </button>
+                                    ` : ''}
+                                    ${canProcess && item.status === 'in_progress' ? `
+                                        <button onclick="markSupplyCompleted('${item.id}')" style="flex: 1; min-width: 80px; padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                                            <i class="fas fa-check"></i> Complete
+                                        </button>
+                                        <button onclick="openPartialModal('${item.id}')" style="flex: 1; min-width: 80px; padding: 8px 12px; background: #f97316; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                                            <i class="fas fa-exclamation"></i> Partial
+                                        </button>
+                                    ` : ''}
+                                    ${canConfirm ? `
+                                        <button onclick="confirmSupplyReception('${item.id}')" style="flex: 1; min-width: 100px; padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                                            <i class="fas fa-box-check"></i> Confirm Reception
+                                        </button>
+                                    ` : ''}
+                                    ${item.status === 'pending' || item.status === 'in_progress' ? `
+                                        <button onclick="editSupply('${item.id}')" style="padding: 8px 12px; background: var(--bg-tertiary); color: var(--accent-primary); border: none; border-radius: 6px; cursor: pointer; font-size: 12px;" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        ${isMiramar ? `
+                                            <button onclick="cancelSupply('${item.id}')" style="padding: 8px 12px; background: var(--bg-tertiary); color: #ef4444; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;" title="Cancel">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        ` : ''}
+                                    ` : ''}
+                                    ${item.status === 'completed' || item.status === 'purchased' || item.status === 'cancelled' ? `
+                                        <button onclick="deleteSupply('${item.id}')" style="padding: 8px 12px; background: var(--bg-tertiary); color: var(--text-muted); border: none; border-radius: 6px; cursor: pointer; font-size: 12px;" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            };
+
+            // Helper function to render supply list item
+            const renderSupplyListItem = (item) => {
+                const status = statusConfig[item.status] || statusConfig.pending;
+                const canProcess = isMiramar && (item.status === 'pending' || item.status === 'in_progress');
+                const canConfirm = item.store === userStore && item.status === 'partial';
+
+                return `
+                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${status.color};">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                            <div style="width: 36px; height: 36px; background: ${status.bg}; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-${status.icon}" style="color: ${status.color}; font-size: 14px;"></i>
+                            </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${(item.name || item.description).split('\n')[0]}</div>
+                                <div style="font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px;">
+                                    <span><i class="fas fa-store"></i> ${item.store}</span>
+                                    ${item.addedBy ? `<span><i class="fas fa-user"></i> ${item.addedBy}</span>` : ''}
+                                </div>
+                                ${item.notes ? `<div style="font-size: 11px; color: #f97316; margin-top: 4px;"><i class="fas fa-sticky-note"></i> ${item.notes}</div>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                            ${canProcess && item.status === 'pending' ? `
+                                <button class="btn-icon" onclick="processSupply('${item.id}')" title="Process" style="color: #3b82f6;">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            ` : ''}
+                            ${canProcess && item.status === 'in_progress' ? `
+                                <button class="btn-icon" onclick="markSupplyCompleted('${item.id}')" title="Complete" style="color: #10b981;">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-icon" onclick="openPartialModal('${item.id}')" title="Mark Partial" style="color: #f97316;">
+                                    <i class="fas fa-exclamation"></i>
+                                </button>
+                            ` : ''}
+                            ${canConfirm ? `
+                                <button class="btn-icon" onclick="confirmSupplyReception('${item.id}')" title="Confirm Reception" style="color: #10b981;">
+                                    <i class="fas fa-box"></i>
+                                </button>
+                            ` : ''}
+                            ${item.status === 'pending' || item.status === 'in_progress' ? `
+                                <button class="btn-icon" onclick="editSupply('${item.id}')" title="Edit" style="color: var(--accent-primary);">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
+                            <button class="btn-icon" onclick="deleteSupply('${item.id}')" title="Delete" style="color: ${item.status === 'completed' || item.status === 'cancelled' ? 'var(--text-muted)' : '#ef4444'};">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            };
 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Supplies</h2>
-                        <p class="section-subtitle">Track everyday supplies needed per store</p>
+                        <h2 class="section-title"><i class="fas fa-${isMiramar ? 'warehouse' : 'clipboard-list'}" style="margin-right: 10px;"></i>Supplies</h2>
+                        <p class="section-subtitle">${isMiramar ? 'Distribution Center - Manage all store requests' : 'Request supplies from Miramar'}</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('add-supply')">
-                        <i class="fas fa-plus"></i> Add Item
+                        <i class="fas fa-plus"></i> Request Supplies
                     </button>
                 </div>
 
                 <!-- Filters -->
                 <div class="filters-bar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                        <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
-                            <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
-                            ${vsuStores.map(store => `
-                                <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
-                            `).join('')}
-                            ${otherStores.map(store => `
-                                <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
-                            `).join('')}
-                        </select>
+                        ${isMiramar ? `
+                            <select class="filter-select" id="supplies-store-filter" onchange="filterSuppliesByStore(this.value)">
+                                <option value="all" ${suppliesCurrentStore === 'all' ? 'selected' : ''}>All Stores</option>
+                                ${vsuStores.map(store => `
+                                    <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>VSU ${store}</option>
+                                `).join('')}
+                                ${otherStores.map(store => `
+                                    <option value="${store}" ${suppliesCurrentStore === store ? 'selected' : ''}>${store}</option>
+                                `).join('')}
+                            </select>
+                        ` : ''}
                         <input type="month" class="form-input" id="supplies-month-filter" value="${suppliesCurrentMonth}" onchange="filterSuppliesByMonth(this.value)" style="width: auto;">
                     </div>
                     <div style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 8px;">
@@ -6705,130 +6845,124 @@
                 </div>
 
                 <!-- Stats Cards -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <div class="stat-card">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                    <div class="stat-card" style="cursor: pointer;" onclick="filterSuppliesByStatus('pending')">
                         <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
                             <span class="stat-value">${pendingSupplies.length}</span>
-                            <span class="stat-label">Pending Items</span>
+                            <span class="stat-label">Pending</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" style="cursor: pointer;" onclick="filterSuppliesByStatus('in_progress')">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            <i class="fas fa-spinner"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value">${inProgressSupplies.length}</span>
+                            <span class="stat-label">In Progress</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="cursor: pointer;" onclick="filterSuppliesByStatus('partial')">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f97316, #ea580c);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value">${partialSupplies.length}</span>
+                            <span class="stat-label">Partial</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="cursor: pointer;" onclick="filterSuppliesByStatus('completed')">
                         <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-info">
-                            <span class="stat-value">${purchasedSupplies.length}</span>
-                            <span class="stat-label">Purchased This Month</span>
+                            <span class="stat-value">${completedSupplies.length}</span>
+                            <span class="stat-label">Completed</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Pending Items -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Pending Items (${pendingSupplies.length})</h3>
+                <!-- Pending Items - Most Important -->
+                ${pendingSupplies.length > 0 ? `
+                    <div class="card" style="margin-bottom: 24px; border: 2px solid #f59e0b;">
+                        <div class="card-header" style="background: rgba(245, 158, 11, 0.1);">
+                            <h3 class="card-title" style="color: #f59e0b;"><i class="fas fa-clock"></i> Pending Requests (${pendingSupplies.length})</h3>
+                        </div>
+                        <div class="card-body">
+                            ${suppliesViewMode === 'gallery' ? `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                                    ${pendingSupplies.map(item => renderSupplyCard(item)).join('')}
+                                </div>
+                            ` : `
+                                <div class="supplies-list">
+                                    ${pendingSupplies.map(item => renderSupplyListItem(item)).join('')}
+                                </div>
+                            `}
+                        </div>
                     </div>
-                    <div class="card-body">
-                        ${pendingSupplies.length > 0 ? (suppliesViewMode === 'gallery' ? `
-                            <!-- Gallery View -->
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                                ${pendingSupplies.map(item => `
-                                    <div class="supply-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                        <div style="height: 100px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; position: relative;">
-                                            <i class="fas fa-box-open" style="font-size: 40px; color: white; opacity: 0.9;"></i>
-                                            <div style="position: absolute; top: 12px; right: 12px; background: #f59e0b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
-                                                <i class="fas fa-clock"></i> Pending
-                                            </div>
-                                            <div style="position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">
-                                                Qty: ${item.quantity}
-                                            </div>
-                                        </div>
-                                        <div style="padding: 16px;">
-                                            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${item.name}</h3>
-                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                                <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
-                                                    <i class="fas fa-store"></i> ${item.store}
-                                                </span>
-                                            </div>
-                                            ${item.addedBy ? `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;"><i class="fas fa-user"></i> ${item.addedBy}</div>` : ''}
-                                            <div style="display: flex; gap: 8px;">
-                                                <button onclick="markSupplyPurchased('${item.id}')" style="flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                                    <i class="fas fa-check"></i> Purchased
-                                                </button>
-                                                <button onclick="editSupply('${item.id}')" style="padding: 10px 14px; background: var(--bg-tertiary); color: var(--accent-primary); border: none; border-radius: 8px; cursor: pointer;" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button onclick="deleteSupply('${item.id}')" style="padding: 10px 14px; background: var(--bg-tertiary); color: #ef4444; border: none; border-radius: 8px; cursor: pointer;" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : `
-                            <!-- List View -->
-                            <div class="supplies-list">
-                                ${pendingSupplies.map(item => `
-                                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-box" style="color: white;"></i>
-                                            </div>
-                                            <div>
-                                                <div style="font-weight: 600;">${item.name}</div>
-                                                <div style="font-size: 12px; color: var(--text-muted);">
-                                                    Qty: ${item.quantity} • ${item.store}
-                                                    ${item.addedBy ? ` • Added by ${item.addedBy}` : ''}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style="display: flex; gap: 8px;">
-                                            <button class="btn-icon" onclick="markSupplyPurchased('${item.id}')" title="Mark as Purchased" style="color: #10b981;">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                            <button class="btn-icon" onclick="editSupply('${item.id}')" title="Edit" style="color: var(--accent-primary);">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn-icon" onclick="deleteSupply('${item.id}')" title="Delete" style="color: #ef4444;">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `) : `
-                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                <i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                                <p>No pending items. All caught up!</p>
-                            </div>
-                        `}
-                    </div>
-                </div>
+                ` : ''}
 
-                <!-- Purchased History -->
+                <!-- In Progress -->
+                ${inProgressSupplies.length > 0 ? `
+                    <div class="card" style="margin-bottom: 24px; border: 2px solid #3b82f6;">
+                        <div class="card-header" style="background: rgba(59, 130, 246, 0.1);">
+                            <h3 class="card-title" style="color: #3b82f6;"><i class="fas fa-spinner fa-spin"></i> Being Prepared (${inProgressSupplies.length})</h3>
+                        </div>
+                        <div class="card-body">
+                            ${suppliesViewMode === 'gallery' ? `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                                    ${inProgressSupplies.map(item => renderSupplyCard(item)).join('')}
+                                </div>
+                            ` : `
+                                <div class="supplies-list">
+                                    ${inProgressSupplies.map(item => renderSupplyListItem(item)).join('')}
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Partial - Needs Attention -->
+                ${partialSupplies.length > 0 ? `
+                    <div class="card" style="margin-bottom: 24px; border: 2px solid #f97316;">
+                        <div class="card-header" style="background: rgba(249, 115, 22, 0.1);">
+                            <h3 class="card-title" style="color: #f97316;"><i class="fas fa-exclamation-triangle"></i> Partial Delivery - Confirm Reception (${partialSupplies.length})</h3>
+                        </div>
+                        <div class="card-body">
+                            ${suppliesViewMode === 'gallery' ? `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                                    ${partialSupplies.map(item => renderSupplyCard(item)).join('')}
+                                </div>
+                            ` : `
+                                <div class="supplies-list">
+                                    ${partialSupplies.map(item => renderSupplyListItem(item)).join('')}
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Completed History -->
                 <div class="card">
                     <div class="card-header" style="cursor: pointer;" onclick="togglePurchasedHistory()">
-                        <h3 class="card-title"><i class="fas fa-history"></i> Purchased History (${purchasedSupplies.length})</h3>
+                        <h3 class="card-title"><i class="fas fa-history"></i> Completed (${completedSupplies.length})</h3>
                         <i class="fas fa-chevron-down" id="purchased-history-chevron"></i>
                     </div>
                     <div class="card-body" id="purchased-history-body" style="display: none;">
-                        ${purchasedSupplies.length > 0 ? `
+                        ${completedSupplies.length > 0 ? `
                             <div class="supplies-list">
-                                ${purchasedSupplies.map(item => `
-                                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px; opacity: 0.8;">
+                                ${completedSupplies.map(item => `
+                                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px; opacity: 0.7;">
                                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                            <div style="width: 40px; height: 40px; background: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-check" style="color: white;"></i>
+                                            <div style="width: 36px; height: 36px; background: rgba(16, 185, 129, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-check" style="color: #10b981;"></i>
                                             </div>
                                             <div>
-                                                <div style="font-weight: 600; text-decoration: line-through; color: var(--text-muted);">${item.name}</div>
+                                                <div style="font-weight: 500; color: var(--text-muted);">${(item.name || item.description).split('\n')[0]}</div>
                                                 <div style="font-size: 12px; color: var(--text-muted);">
-                                                    Qty: ${item.quantity} • ${item.store}
-                                                    ${item.purchasedAt ? ` • Purchased ${formatDate(item.purchasedAt.toDate ? item.purchasedAt.toDate() : item.purchasedAt)}` : ''}
+                                                    ${item.store} ${item.completedAt ? ` • ${formatDate(item.completedAt.toDate ? item.completedAt.toDate() : item.completedAt)}` : ''}
                                                 </div>
                                             </div>
                                         </div>
@@ -6840,12 +6974,23 @@
                             </div>
                         ` : `
                             <div style="text-align: center; padding: 20px; color: var(--text-muted);">
-                                <p>No purchased items this month.</p>
+                                <p>No completed requests this month.</p>
                             </div>
                         `}
                     </div>
                 </div>
+
+                ${pendingSupplies.length === 0 && inProgressSupplies.length === 0 && partialSupplies.length === 0 ? `
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fas fa-box-open" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <h3 style="margin-bottom: 8px;">No Active Requests</h3>
+                        <p>All supply requests have been fulfilled. Click "Request Supplies" to create a new request.</p>
+                    </div>
+                ` : ''}
             `;
+
+            // Update sidebar badge
+            updateSuppliesBadge();
         }
 
         window.togglePurchasedHistory = function() {
@@ -6980,6 +7125,189 @@
                 showNotification('Item deleted', 'success');
             }
         }
+
+        // Process supply - Miramar starts working on the request
+        window.processSupply = async function(id) {
+            const user = getCurrentUser();
+            const success = await updateSupplyInFirebase(id, {
+                status: 'in_progress',
+                processedBy: user?.name || 'Unknown',
+                processedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.status = 'in_progress';
+                    item.processedBy = user?.name || 'Unknown';
+                    item.processedAt = new Date();
+                }
+                renderSupplies();
+                showNotification('Request is now being processed!', 'success');
+            }
+        }
+
+        // Mark supply as completed - fully delivered
+        window.markSupplyCompleted = async function(id) {
+            const user = getCurrentUser();
+            const success = await updateSupplyInFirebase(id, {
+                status: 'completed',
+                completedBy: user?.name || 'Unknown',
+                completedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.status = 'completed';
+                    item.completedBy = user?.name || 'Unknown';
+                    item.completedAt = new Date();
+                }
+                renderSupplies();
+                showNotification('Request marked as completed!', 'success');
+                updateSuppliesBadge();
+            }
+        }
+
+        // Open modal to add notes for partial delivery
+        window.openPartialModal = function(id) {
+            const supply = suppliesData.find(s => s.id === id);
+            if (supply) {
+                openModal('partial-supply', supply);
+            }
+        }
+
+        // Mark supply as partial with notes
+        window.markSupplyPartial = async function() {
+            const id = document.getElementById('partial-supply-id').value;
+            const notes = document.getElementById('partial-supply-notes').value.trim();
+
+            if (!notes) {
+                showNotification('Please explain what could not be delivered', 'error');
+                return;
+            }
+
+            const user = getCurrentUser();
+            const success = await updateSupplyInFirebase(id, {
+                status: 'partial',
+                notes: notes,
+                partialBy: user?.name || 'Unknown',
+                partialAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.status = 'partial';
+                    item.notes = notes;
+                    item.partialBy = user?.name || 'Unknown';
+                    item.partialAt = new Date();
+                }
+                closeModal();
+                renderSupplies();
+                showNotification('Marked as partial delivery. Store will be notified.', 'success');
+            }
+        }
+
+        // Confirm reception of partial delivery - store confirms they received what was sent
+        window.confirmSupplyReception = async function(id) {
+            if (!confirm('Confirm you received this partial delivery?')) return;
+
+            const user = getCurrentUser();
+            const success = await updateSupplyInFirebase(id, {
+                status: 'completed',
+                confirmedBy: user?.name || 'Unknown',
+                confirmedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.status = 'completed';
+                    item.confirmedBy = user?.name || 'Unknown';
+                    item.confirmedAt = new Date();
+                }
+                renderSupplies();
+                showNotification('Reception confirmed!', 'success');
+                updateSuppliesBadge();
+            }
+        }
+
+        // Cancel a supply request
+        window.cancelSupply = async function(id) {
+            if (!confirm('Cancel this supply request?')) return;
+
+            const user = getCurrentUser();
+            const success = await updateSupplyInFirebase(id, {
+                status: 'cancelled',
+                cancelledBy: user?.name || 'Unknown',
+                cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.status = 'cancelled';
+                    item.cancelledBy = user?.name || 'Unknown';
+                    item.cancelledAt = new Date();
+                }
+                renderSupplies();
+                showNotification('Request cancelled', 'success');
+                updateSuppliesBadge();
+            }
+        }
+
+        // Filter supplies by status (clicking on stat cards)
+        let suppliesCurrentStatus = 'all';
+        window.filterSuppliesByStatus = function(status) {
+            suppliesCurrentStatus = status;
+            renderSupplies();
+        }
+
+        // Update supplies badge in sidebar
+        window.updateSuppliesBadge = async function() {
+            const currentUser = getCurrentUser();
+            const isMiramar = currentUser?.store === 'Miramar' || currentUser?.role === 'admin';
+
+            // Count pending items that need attention
+            let badgeCount = 0;
+            if (isMiramar) {
+                // Miramar sees all pending requests
+                badgeCount = suppliesData.filter(s => s.status === 'pending' || s.status === 'in_progress').length;
+            } else {
+                // Other stores see their partial deliveries waiting confirmation
+                badgeCount = suppliesData.filter(s => s.store === currentUser?.store && s.status === 'partial').length;
+            }
+
+            // Update badge in sidebar
+            const suppliesLink = document.querySelector('.sidebar a[data-page="supplies"]');
+            if (suppliesLink) {
+                let badge = suppliesLink.querySelector('.supplies-badge');
+                if (badgeCount > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'supplies-badge';
+                        badge.style.cssText = 'background: #f59e0b; color: white; font-size: 11px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; font-weight: 600;';
+                        suppliesLink.appendChild(badge);
+                    }
+                    badge.textContent = badgeCount;
+                } else if (badge) {
+                    badge.remove();
+                }
+            }
+        }
+
+        // Initialize supplies badge on page load
+        (function initSuppliesBadgeOnLoad() {
+            // Wait for DOM and Firebase to be ready
+            setTimeout(async () => {
+                try {
+                    await loadSuppliesFromFirebase();
+                } catch (e) {
+                    console.log('Supplies badge init - will load on navigate');
+                }
+            }, 2000);
+        })();
 
 // =============================================================================
 // DAILY CHECKLIST MODULE
@@ -25750,6 +26078,38 @@ Return ONLY the JSON object, no additional text.`
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
                             <button class="btn-primary" onclick="saveSupplyEdit()">
                                 <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'partial-supply':
+                    const partialSupply = data;
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-exclamation-triangle" style="margin-right: 10px; color: #f97316;"></i>Partial Delivery</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="partial-supply-id" value="${partialSupply.id}">
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                                <div style="font-weight: 600; margin-bottom: 4px;">Original Request:</div>
+                                <div style="white-space: pre-wrap; color: var(--text-secondary);">${partialSupply.name || partialSupply.description}</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                                    <i class="fas fa-store"></i> ${partialSupply.store} • <i class="fas fa-user"></i> ${partialSupply.addedBy || 'Unknown'}
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-sticky-note" style="color: #f97316;"></i> What couldn't be delivered? *</label>
+                                <textarea class="form-input" id="partial-supply-notes" rows="4" placeholder="Explain what items couldn't be sent and why...&#10;&#10;Example:&#10;Solo enviamos 3 de 5 cajas - no hay stock&#10;El Windex se agoto, llega el martes" style="resize: vertical;"></textarea>
+                            </div>
+                            <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid #f97316; padding: 12px; border-radius: 8px; font-size: 13px; color: #f97316;">
+                                <i class="fas fa-info-circle"></i> The store will see this note and must confirm reception of the partial delivery.
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="markSupplyPartial()" style="background: #f97316;">
+                                <i class="fas fa-exclamation-triangle"></i> Mark as Partial
                             </button>
                         </div>
                     `;
