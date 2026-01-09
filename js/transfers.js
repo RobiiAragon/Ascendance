@@ -1735,7 +1735,7 @@ function openAITransferModal() {
                          ondragover="handleDragOver(event)"
                          ondragleave="handleDragLeave(event)"
                          ondrop="handleDrop(event)">
-                        <input type="file" id="aiTransferMediaInput" accept="image/*,video/*,audio/*" multiple capture="environment" style="display: none;" onchange="processTransferMedia(this)">
+                        <input type="file" id="aiTransferMediaInput" accept="image/*,image/heic,image/heif,.heic,.heif,video/*,audio/*" multiple capture="environment" style="display: none;" onchange="processTransferMedia(this)">
 
                         <!-- Preview Container for multiple files -->
                         <div id="aiTransferMediaPreview" style="display: none; margin-bottom: 16px;">
@@ -1763,9 +1763,22 @@ function openAITransferModal() {
                                     </div>
                                 </div>
                                 <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Scan Products</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Drag & drop or click to select files</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Tap to select files</div>
                             </label>
+
+                            <!-- Quick action buttons for mobile -->
+                            <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center;">
+                                <button onclick="openCameraForTransfer()" style="flex: 1; max-width: 140px; padding: 12px 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 13px;">
+                                    <i class="fas fa-camera"></i> Camera
+                                </button>
+                                <button onclick="document.getElementById('aiTransferMediaInput').click()" style="flex: 1; max-width: 140px; padding: 12px 16px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 13px;">
+                                    <i class="fas fa-images"></i> Gallery
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- Hidden camera input -->
+                        <input type="file" id="aiTransferCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="processTransferMedia(this)">
 
                         <!-- Drag overlay indicator -->
                         <div id="aiTransferDragOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(102, 126, 234, 0.15); border-radius: 14px; display: none; align-items: center; justify-content: center; pointer-events: none;">
@@ -2482,13 +2495,52 @@ async function processAllTransferMedia() {
     document.getElementById('aiTransferLoading').style.display = 'none';
 }
 
-// Convert file to base64
+// Convert file to base64 (handles HEIC conversion)
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+        // Check if HEIC - need to convert to JPEG via canvas
+        const isHeic = file.type === 'image/heic' || file.type === 'image/heif' ||
+                       file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+
+        if (isHeic) {
+            // Convert HEIC to JPEG using canvas
+            convertHeicToJpeg(file).then(resolve).catch(reject);
+        } else {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Convert HEIC to JPEG (browsers that support it will decode, others need library)
+function convertHeicToJpeg(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL('image/jpeg', 0.9));
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            // If browser can't decode HEIC, try reading as blob anyway
+            // Safari and newer browsers support HEIC natively
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        };
+
+        img.src = url;
     });
 }
 
