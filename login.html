@@ -333,50 +333,25 @@
             try {
                 // Ensure Firebase is initialized
                 console.log('🔐 Starting authentication process...');
-                
-                // First try to authenticate against Firebase employees collection
+
+                // Authenticate against Firebase Auth (cloud only - no local fallback)
                 if (typeof firebaseEmployeeManager !== 'undefined') {
                     console.log('✓ firebaseEmployeeManager available');
-                    
+
                     const user = await authenticateFromFirestore(email, password);
                     if (user) {
-                        console.log('✅ Authentication successful from Firestore');
+                        console.log('✅ Authentication successful from Firebase');
                         return user;
                     }
-                    console.log('⚠️  Firestore authentication failed, trying fallback...');
+                    console.log('❌ Firebase authentication failed');
+                    return null;
                 } else {
-                    console.warn('⚠️  firebaseEmployeeManager not available');
-                }
-                
-                // Fallback to USERS_DATABASE for backward compatibility
-                console.log('📚 Attempting USERS_DATABASE fallback...');
-                const usersDB = window.USERS_DATABASE || {};
-                const user = usersDB[email];
-
-                if (!user) {
-                    console.warn('❌ User not found in USERS_DATABASE:', email);
+                    console.error('❌ firebaseEmployeeManager not available - cannot authenticate');
                     return null;
                 }
-
-                // Simple password check
-                if (user.password !== password) {
-                    console.warn('❌ Password mismatch for user in USERS_DATABASE:', email);
-                    return null;
-                }
-
-                console.log('✅ User authenticated from USERS_DATABASE:', email, 'Role:', user.role);
-                return user;
             } catch (error) {
                 console.error('❌ Authentication error:', error);
-                // Last resort fallback to USERS_DATABASE
-                const usersDB = window.USERS_DATABASE || {};
-                const user = usersDB[email];
-                
-                if (!user || user.password !== password) {
-                    return null;
-                }
-                
-                return user;
+                return null;
             }
         }
 
