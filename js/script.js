@@ -6758,7 +6758,10 @@
                                                 <button onclick="markSupplyPurchased('${item.id}')" style="flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                                     <i class="fas fa-check"></i> Purchased
                                                 </button>
-                                                <button onclick="deleteSupply('${item.id}')" style="padding: 10px 14px; background: var(--bg-tertiary); color: #ef4444; border: none; border-radius: 8px; cursor: pointer;">
+                                                <button onclick="editSupply('${item.id}')" style="padding: 10px 14px; background: var(--bg-tertiary); color: var(--accent-primary); border: none; border-radius: 8px; cursor: pointer;" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="deleteSupply('${item.id}')" style="padding: 10px 14px; background: var(--bg-tertiary); color: #ef4444; border: none; border-radius: 8px; cursor: pointer;" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -6786,6 +6789,9 @@
                                         <div style="display: flex; gap: 8px;">
                                             <button class="btn-icon" onclick="markSupplyPurchased('${item.id}')" title="Mark as Purchased" style="color: #10b981;">
                                                 <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn-icon" onclick="editSupply('${item.id}')" title="Edit" style="color: var(--accent-primary);">
+                                                <i class="fas fa-edit"></i>
                                             </button>
                                             <button class="btn-icon" onclick="deleteSupply('${item.id}')" title="Delete" style="color: #ef4444;">
                                                 <i class="fas fa-trash"></i>
@@ -6872,24 +6878,24 @@
         }
 
         window.addSupply = async function() {
-            const name = document.getElementById('supply-name').value.trim();
-            const quantity = parseInt(document.getElementById('supply-quantity').value) || 1;
+            const description = document.getElementById('supply-description').value.trim();
             const store = document.getElementById('supply-store').value;
 
-            if (!name) {
-                alert('Please enter an item name');
+            if (!description) {
+                showNotification('Please describe what you need', 'error');
                 return;
             }
 
             if (!store) {
-                alert('Please select a store');
+                showNotification('Please select a store', 'error');
                 return;
             }
 
             const user = getCurrentUser();
             const supply = {
-                name,
-                quantity,
+                name: description,
+                description: description,
+                quantity: 1,
                 store,
                 status: 'pending',
                 month: suppliesCurrentMonth,
@@ -6902,9 +6908,48 @@
                 suppliesData.push(supply);
                 closeModal();
                 renderSupplies();
-                showNotification('Item added successfully!', 'success');
+                showNotification('Added to supplies list!', 'success');
             } else {
-                alert('Error adding item. Please try again.');
+                showNotification('Error adding item. Please try again.', 'error');
+            }
+        }
+
+        window.editSupply = function(id) {
+            const supply = suppliesData.find(s => s.id === id);
+            if (supply) {
+                openModal('edit-supply', supply);
+            }
+        }
+
+        window.saveSupplyEdit = async function() {
+            const id = document.getElementById('edit-supply-id').value;
+            const description = document.getElementById('edit-supply-description').value.trim();
+            const store = document.getElementById('edit-supply-store').value;
+
+            if (!description) {
+                showNotification('Please enter a description', 'error');
+                return;
+            }
+
+            const success = await updateSupplyInFirebase(id, {
+                name: description,
+                description: description,
+                store: store,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (success) {
+                const item = suppliesData.find(s => s.id === id);
+                if (item) {
+                    item.name = description;
+                    item.description = description;
+                    item.store = store;
+                }
+                closeModal();
+                renderSupplies();
+                showNotification('Supply updated!', 'success');
+            } else {
+                showNotification('Error updating. Please try again.', 'error');
             }
         }
 
@@ -25630,40 +25675,79 @@ Return ONLY the JSON object, no additional text.`
                     `;
                     break;
                 case 'add-supply':
+                    const userStore = getCurrentUserStore() || 'Miramar';
+                    const isAdmin = getCurrentUserRole() === 'admin';
                     content = `
                         <div class="modal-header">
-                            <h2>Add Supply Item</h2>
+                            <h2><i class="fas fa-clipboard-list" style="margin-right: 10px; color: var(--accent-primary);"></i>Add Supplies</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label>Item Name *</label>
-                                <input type="text" class="form-input" id="supply-name" placeholder="e.g., Paper towels, Cleaning supplies...">
+                                <label>What do you need?</label>
+                                <textarea class="form-input" id="supply-description" rows="5" placeholder="Write your list here...&#10;&#10;Example:&#10;5 cajas grandes&#10;Bolsas negras para basura&#10;Papel para impresora&#10;Windex" style="resize: vertical; min-height: 120px;"></textarea>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Quantity</label>
-                                    <input type="number" class="form-input" id="supply-quantity" value="1" min="1">
-                                </div>
-                                <div class="form-group">
-                                    <label>Store *</label>
+                            <div class="form-group">
+                                <label>Store</label>
+                                ${isAdmin ? `
                                     <select class="form-input" id="supply-store">
-                                        <option value="">Select store...</option>
-                                        <option value="Miramar">VSU Miramar</option>
-                                        <option value="Morena">VSU Morena</option>
-                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                        <option value="Chula Vista">VSU Chula Vista</option>
-                                        <option value="North Park">VSU North Park</option>
-                                        <option value="Loyal Vaper">Loyal Vaper</option>
-                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                        <option value="Miramar" ${userStore === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                        <option value="Morena" ${userStore === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                        <option value="Kearny Mesa" ${userStore === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                        <option value="Chula Vista" ${userStore === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="North Park" ${userStore === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                        <option value="Loyal Vaper" ${userStore === 'Loyal Vaper' ? 'selected' : ''}>Loyal Vaper</option>
+                                        <option value="Miramar Wine & Liquor" ${userStore === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                                     </select>
-                                </div>
+                                ` : `
+                                    <input type="text" class="form-input" id="supply-store" value="${userStore}" readonly style="background: var(--bg-secondary); cursor: not-allowed;">
+                                `}
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
                             <button class="btn-primary" onclick="addSupply()">
-                                <i class="fas fa-plus"></i> Add Item
+                                <i class="fas fa-plus"></i> Add to List
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'edit-supply':
+                    const supply = data;
+                    const editUserStore = getCurrentUserStore() || 'Miramar';
+                    const isEditAdmin = getCurrentUserRole() === 'admin';
+                    content = `
+                        <div class="modal-header">
+                            <h2><i class="fas fa-edit" style="margin-right: 10px; color: var(--accent-primary);"></i>Edit Supply</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="edit-supply-id" value="${supply.id}">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-input" id="edit-supply-description" rows="5" style="resize: vertical; min-height: 120px;">${supply.name || supply.description || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Store</label>
+                                ${isEditAdmin ? `
+                                    <select class="form-input" id="edit-supply-store">
+                                        <option value="Miramar" ${supply.store === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                                        <option value="Morena" ${supply.store === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                                        <option value="Kearny Mesa" ${supply.store === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                                        <option value="Chula Vista" ${supply.store === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                                        <option value="North Park" ${supply.store === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                                        <option value="Loyal Vaper" ${supply.store === 'Loyal Vaper' ? 'selected' : ''}>Loyal Vaper</option>
+                                        <option value="Miramar Wine & Liquor" ${supply.store === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
+                                    </select>
+                                ` : `
+                                    <input type="text" class="form-input" id="edit-supply-store" value="${supply.store}" readonly style="background: var(--bg-secondary); cursor: not-allowed;">
+                                `}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveSupplyEdit()">
+                                <i class="fas fa-save"></i> Save Changes
                             </button>
                         </div>
                     `;
