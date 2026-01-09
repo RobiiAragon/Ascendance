@@ -25139,7 +25139,7 @@ Return ONLY the JSON object, no additional text.`
             }
         }
 
-        function openModal(type, data = null) {
+        window.openModal = function(type, data = null) {
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
 
