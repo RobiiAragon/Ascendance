@@ -2885,20 +2885,25 @@ async function analyzeVideoFramePermissive(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `Count vape BOXES in this video frame. This is from a video so may be blurry.
+                    content: `Count vape BOXES in this video frame for inventory. May be blurry - do your best.
 
-WHAT IS A BOX:
-- FOGER = large colorful box (red, green, holographic). 1 box = 5 vapes
-- Geek Bar = small blue box. 1 box = 1 vape
-- Other brands = 1 box = 1 vape
+=== PRODUCTS (vapes per box) ===
+FOGER SWITCH PRO (×5): Large colorful boxes, "30K 18K" visible, "3000" on front
+- Colors: Purple/Green=Watermelon Ice, Orange=Meta Moon, Teal=Pineapple Coconut
+- Pink=Grape Slush/Watermelon Bubble Gum, Holographic=Coffee, Blue=Blue Rancher
+- Red=Cola Slush/Cherry Bomb, Green=Sour Apple, Mint=Miami Mint
 
-RULES:
-- Count each box ONCE (don't count same box from different angles)
-- Ignore reflections and shadows
-- When unsure, count LESS
-- Do your best even if blurry
+GEEK BAR (×1): Small boxes, blue=Blue Rancher, green=Sour Apple
+KRAZE HD 2.0 (×5): Medium boxes with KRAZE branding
+OTHER BRANDS (×1): Lost Mary, Elf Bar, SWFT, Breeze, Hyde
 
-Return JSON: [{"name": "Brand", "quantity": TOTAL_VAPES}]
+=== COUNTING TIPS ===
+- Count rows × columns for stacked products
+- Ignore reflections/shadows
+- When unsure, be conservative
+- Group by flavor when identifiable
+
+Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
 If nothing visible: []`
                 },
                 {
@@ -2951,46 +2956,74 @@ async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are a vape product counter. Count ALL boxes visible.
+                    content: `You are an expert vape product counter for inventory management. Count ALL boxes visible with precision.
 
-PRODUCT IDENTIFICATION:
+=== COUNTING METHODOLOGY ===
+1. SCAN systematically: left-to-right, top-to-bottom
+2. COUNT by rows and columns when products are stacked (e.g., 5 rows × 8 columns = 40 boxes)
+3. IDENTIFY each unique product by brand + flavor
+4. MULTIPLY box count × vapes-per-box for total
 
-FOGER (×5 vapes per box):
-- Large boxes, colorful packaging
-- Red = Strawberry Cupcake
-- Holographic/rainbow = Coffee
-- Green = Sour Apple
-- Each FOGER box = 5 vapes
+=== FOGER SWITCH PRO (×5 vapes per box) ===
+Large colorful boxes with "FOGER" branding, "30K 18K" puff indicators, "3000" on front
+FLAVORS BY COLOR:
+- Purple/Green gradient = Watermelon Ice
+- Orange/Yellow sunset = Meta Moon
+- Teal/Turquoise = Pineapple Coconut
+- Purple/Pink = Grape Slush
+- Pink/Magenta = Watermelon Bubble Gum
+- Peach/Brown = Juicy Peach Ice
+- Rainbow/Holographic silver = Coffee
+- Purple/Red dragon = Kiwi Dragon Berry
+- Yellow/Orange = Banana Taffy Freeze
+- Blue gradient = Blue Rancher B-Pop
+- Red/Dark red = Cola Slush
+- Green/Lime = Sour Apple Ice
+- Red/Pink = Strawberry Cupcake
+- Mint green/Teal = Miami Mint
+- Red/Orange bomb = Cherry Bomb
+- Multicolor candy = Gummy Bear
+- White/Gray = White Gummy
 
-GEEK BAR (×1 vape per box):
-- Small boxes AND large "Pulse" boxes
-- Blue boxes = Blue Rancher flavor
-- Green/yellow boxes = Sour Apple Ice flavor
-- Each Geek Bar box (small or Pulse) = 1 vape
+=== GEEK BAR (×1 vape per box) ===
+Small individual boxes OR larger "Pulse" boxes
+- Blue packaging = Blue Rancher
+- Green/Yellow = Sour Apple Ice
+- Pink = Strawberry
+- Purple = Grape
 
-KRAZE HD 2.0 (×5 per box)
+=== KRAZE HD 2.0 (×5 vapes per box) ===
+Medium boxes with "KRAZE" branding
 
-OTHER BRANDS - Lost Mary, Elf Bar, SWFT, Breeze, etc (×1 per box)
+=== OTHER BRANDS (×1 vape per box) ===
+Lost Mary, Elf Bar, SWFT, Breeze, Puff Bar, Hyde, Vuse, NJOY
 
-COUNTING RULES:
-1. Count ALL boxes - both small individual boxes AND larger boxes
-2. Separate by flavor/color (Blue Rancher vs Sour Apple Ice)
-3. Do NOT count images printed ON boxes as separate products
-4. Do NOT count reflections
+=== COUNTING RULES ===
+1. Count PHYSICAL BOXES only - NOT images printed on packaging
+2. Do NOT count reflections or shadows
+3. When boxes are stacked, count rows × columns
+4. Partially visible boxes at edges - count if >50% visible
+5. Group by EXACT flavor name
+6. VERIFY count by re-scanning before finalizing
 
-Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
+=== OUTPUT FORMAT ===
+Return JSON array: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES_NUMBER}]
 
-EXAMPLE:
-Photo shows: 3 small blue Geek Bar + 1 Geek Bar Pulse Blue + 3 small green Geek Bar + 1 Geek Bar Pulse Green + 2 FOGER Coffee + 1 FOGER Strawberry
-Result: [
-  {"name": "Geek Bar Blue Rancher", "quantity": 4},
-  {"name": "Geek Bar Sour Apple Ice", "quantity": 4},
-  {"name": "FOGER Coffee", "quantity": 10},
-  {"name": "FOGER Strawberry Cupcake", "quantity": 5}
+EXAMPLE - Photo shows shelf with FOGER products:
+- Back row: 8 boxes (Watermelon Ice, Meta Moon, Pineapple Coconut, Grape Slush, Watermelon Bubble Gum, Juicy Peach Ice visible)
+- Middle row: 7 boxes (Coffee, Blue Rancher B-Pop, Cola Slush, Sour Apple visible)
+- Front row: 6 boxes (Strawberry Cupcake, Miami Mint, Cherry Bomb, Gummy Bear visible)
+
+Count each flavor, multiply by 5:
+[
+  {"name": "FOGER Watermelon Ice", "quantity": 10},
+  {"name": "FOGER Meta Moon", "quantity": 5},
+  {"name": "FOGER Coffee", "quantity": 15},
+  {"name": "FOGER Strawberry Cupcake", "quantity": 10}
 ]
 
-If blurry: {"error": "NEED_BETTER_PHOTO", "reason": "..."}
-If nothing visible: []`
+If image is blurry/unreadable: {"error": "NEED_BETTER_PHOTO", "reason": "description of issue"}
+If no products visible: []`
                 },
                 {
                     role: 'user',
