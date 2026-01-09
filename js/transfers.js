@@ -575,10 +575,97 @@ function renderTransferRow(transfer) {
                             Receive
                         </button>
                     ` : ''}
+                    <button class="order-action-btn delete" onclick="confirmDeleteTransfer('${transfer.id}')" style="background: rgba(239,68,68,0.1); color: #ef4444;" onmouseover="this.style.background='#ef4444'; this.style.color='white'" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444'">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </td>
         </tr>
     `;
+}
+
+// Confirm delete transfer with modal
+function confirmDeleteTransfer(transferId) {
+    const transfer = transfersState.transfers.find(t => t.id === transferId);
+    if (!transfer) {
+        showTransferToast('Transfer not found', 'error');
+        return;
+    }
+
+    // Create confirmation modal
+    const existingModal = document.getElementById('deleteTransferModal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'deleteTransferModal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px; border-radius: 20px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 24px; text-align: center;">
+                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                    <i class="fas fa-trash-alt" style="color: white; font-size: 24px;"></i>
+                </div>
+                <h3 style="margin: 0; color: white; font-size: 18px;">Delete Transfer?</h3>
+            </div>
+            <div style="padding: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; color: var(--text-primary); font-weight: 600;">${transfer.folio}</p>
+                <p style="margin: 0 0 20px; color: var(--text-muted); font-size: 14px;">
+                    ${getStoreName(transfer.storeOrigin)} → ${getStoreName(transfer.storeDestination)}
+                </p>
+                <p style="margin: 0 0 24px; color: var(--text-muted); font-size: 13px;">
+                    This action cannot be undone
+                </p>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="closeDeleteModal()" style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button onclick="executeDeleteTransfer('${transferId}')" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: #ef4444; color: white; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-trash" style="margin-right: 6px;"></i>Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Close delete confirmation modal
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteTransferModal');
+    if (modal) modal.remove();
+}
+
+// Execute delete transfer
+async function executeDeleteTransfer(transferId) {
+    const transfer = transfersState.transfers.find(t => t.id === transferId);
+    if (!transfer) {
+        showTransferToast('Transfer not found', 'error');
+        closeDeleteModal();
+        return;
+    }
+
+    const folio = transfer.folio;
+
+    // Remove from state
+    transfersState.transfers = transfersState.transfers.filter(t => t.id !== transferId);
+
+    // Save to localStorage
+    saveTransfers();
+
+    // Try to delete from Firebase
+    try {
+        if (window.db) {
+            await window.db.collection('transfers').doc(transferId).delete();
+        }
+    } catch (error) {
+        console.error('Error deleting from Firebase:', error);
+    }
+
+    // Close modal and refresh
+    closeDeleteModal();
+    renderTransfersPage();
+    showTransferToast(`Transfer ${folio} deleted`, 'success');
 }
 
 // Filter transfers
@@ -1126,11 +1213,11 @@ function viewTransferDetails(transferId) {
                 </div>
                 <div class="order-detail-item">
                     <span class="order-detail-label">From</span>
-                    <span class="order-detail-value">${storeNames[transfer.storeOrigin] || transfer.storeOrigin}</span>
+                    <span class="order-detail-value">${getStoreName(transfer.storeOrigin)}</span>
                 </div>
                 <div class="order-detail-item">
                     <span class="order-detail-label">To</span>
-                    <span class="order-detail-value">${storeNames[transfer.storeDestination] || 'VSU ' + transfer.storeDestination}</span>
+                    <span class="order-detail-value">${getStoreName(transfer.storeDestination)}</span>
                 </div>
             </div>
         </div>
