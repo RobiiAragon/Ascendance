@@ -25675,8 +25675,9 @@ Return ONLY the JSON object, no additional text.`
                     `;
                     break;
                 case 'add-supply':
-                    const userStore = getCurrentUserStore() || 'Miramar';
-                    const isAdmin = getCurrentUserRole() === 'admin';
+                    const supplyUser = getCurrentUser();
+                    const userStore = supplyUser?.store || 'Miramar';
+                    const isAdmin = supplyUser?.role === 'admin';
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-clipboard-list" style="margin-right: 10px; color: var(--accent-primary);"></i>Add Supplies</h2>
@@ -25714,8 +25715,9 @@ Return ONLY the JSON object, no additional text.`
                     break;
                 case 'edit-supply':
                     const supply = data;
-                    const editUserStore = getCurrentUserStore() || 'Miramar';
-                    const isEditAdmin = getCurrentUserRole() === 'admin';
+                    const editSupplyUser = getCurrentUser();
+                    const editUserStore = editSupplyUser?.store || 'Miramar';
+                    const isEditAdmin = editSupplyUser?.role === 'admin';
                     content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-edit" style="margin-right: 10px; color: var(--accent-primary);"></i>Edit Supply</h2>
