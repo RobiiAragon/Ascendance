@@ -2378,6 +2378,14 @@ function handleDragOver(e) {
     }
 }
 
+// Open camera directly for photo
+function openCameraForTransfer() {
+    const cameraInput = document.getElementById('aiTransferCameraInput');
+    if (cameraInput) {
+        cameraInput.click();
+    }
+}
+
 // Handle drag leave
 function handleDragLeave(e) {
     e.preventDefault();
@@ -2943,31 +2951,46 @@ async function analyzeTransferPhotoWithVision(base64Image, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are a product counter for a vape shop. Count BOXES, not individual vapes.
+                    content: `You are a vape product counter. Count ALL boxes visible.
 
-IMPORTANT - WHAT IS A "BOX":
-- A BOX is a single retail package/container
-- If you see one box from multiple angles, it's still ONE box
-- FOGER boxes are large colorful boxes (red, green, holographic) - each contains 5 vapes
-- Geek Bar boxes are small blue boxes - each contains 1 vape
+PRODUCT IDENTIFICATION:
+
+FOGER (×5 vapes per box):
+- Large boxes, colorful packaging
+- Red = Strawberry Cupcake
+- Holographic/rainbow = Coffee
+- Green = Sour Apple
+- Each FOGER box = 5 vapes
+
+GEEK BAR (×1 vape per box):
+- Small boxes AND large "Pulse" boxes
+- Blue boxes = Blue Rancher flavor
+- Green/yellow boxes = Sour Apple Ice flavor
+- Each Geek Bar box (small or Pulse) = 1 vape
+
+KRAZE HD 2.0 (×5 per box)
+
+OTHER BRANDS - Lost Mary, Elf Bar, SWFT, Breeze, etc (×1 per box)
 
 COUNTING RULES:
-1. Count each PHYSICAL BOX only ONCE
-2. Do NOT count the same box twice from different angles
-3. Do NOT count reflections, shadows, or images on packaging
-4. When unsure, count LESS
-
-MULTIPLIERS:
-- FOGER/Kraze box: boxes × 5 = total vapes
-- All other brands: boxes × 1 = total vapes
+1. Count ALL boxes - both small individual boxes AND larger boxes
+2. Separate by flavor/color (Blue Rancher vs Sour Apple Ice)
+3. Do NOT count images printed ON boxes as separate products
+4. Do NOT count reflections
 
 Return JSON: [{"name": "Brand Flavor", "quantity": TOTAL_VAPES}]
 
-EXAMPLE: Photo shows 1 large red FOGER box + 3 small blue Geek Bar boxes
-Result: [{"name": "FOGER Strawberry", "quantity": 5}, {"name": "Geek Bar", "quantity": 3}]
+EXAMPLE:
+Photo shows: 3 small blue Geek Bar + 1 Geek Bar Pulse Blue + 3 small green Geek Bar + 1 Geek Bar Pulse Green + 2 FOGER Coffee + 1 FOGER Strawberry
+Result: [
+  {"name": "Geek Bar Blue Rancher", "quantity": 4},
+  {"name": "Geek Bar Sour Apple Ice", "quantity": 4},
+  {"name": "FOGER Coffee", "quantity": 10},
+  {"name": "FOGER Strawberry Cupcake", "quantity": 5}
+]
 
-If image too blurry: {"error": "NEED_BETTER_PHOTO", "reason": "description"}
-If no products visible: []`
+If blurry: {"error": "NEED_BETTER_PHOTO", "reason": "..."}
+If nothing visible: []`
                 },
                 {
                     role: 'user',
