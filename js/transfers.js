@@ -1735,7 +1735,7 @@ function openAITransferModal() {
                          ondragover="handleDragOver(event)"
                          ondragleave="handleDragLeave(event)"
                          ondrop="handleDrop(event)">
-                        <input type="file" id="aiTransferMediaInput" accept="image/*,image/heic,image/heif,.heic,.heif,video/*,audio/*" multiple capture="environment" style="display: none;" onchange="processTransferMedia(this)">
+                        <input type="file" id="aiTransferMediaInput" accept="image/*,image/heic,image/heif,.heic,.heif,video/*,audio/*" multiple style="display: none;" onchange="processTransferMedia(this)">
 
                         <!-- Preview Container for multiple files -->
                         <div id="aiTransferMediaPreview" style="display: none; margin-bottom: 16px;">
