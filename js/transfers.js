@@ -2507,15 +2507,18 @@ async function analyzeTransferVideo(file, apiKey) {
 
     // 1. Extract frames from video and analyze
     try {
-        const frames = await extractVideoFrames(file, 8); // Extract 8 frames for better coverage
+        const frames = await extractVideoFrames(file, 3); // Extract 3 frames (start, middle, end)
         console.log(`[AI Transfer] Extracted ${frames.length} frames from video`);
+
+        // Collect results from each frame separately
+        let frameResults = [];
 
         for (let i = 0; i < frames.length; i++) {
             try {
                 // Use permissive analysis for video frames (they're often blurry)
                 const items = await analyzeVideoFramePermissive(frames[i], apiKey);
                 if (items && items.length > 0) {
-                    allItems = mergeTransferItems(allItems, items);
+                    frameResults.push(items);
                     console.log(`[AI Transfer] Frame ${i + 1}: Found ${items.length} products`);
                 }
             } catch (frameError) {
@@ -2523,6 +2526,17 @@ async function analyzeTransferVideo(file, apiKey) {
                 console.warn(`[AI Transfer] Frame ${i + 1} skipped:`, frameError.message);
                 frameErrors.push(frameError.message);
             }
+        }
+
+        // For video: take the BEST frame result (most items detected) instead of merging/summing
+        // This avoids counting the same products multiple times across frames
+        if (frameResults.length > 0) {
+            // Pick the frame with the most products detected
+            const bestFrame = frameResults.reduce((best, current) =>
+                current.length > best.length ? current : best
+            , frameResults[0]);
+            allItems = bestFrame;
+            console.log(`[AI Transfer] Using best frame with ${allItems.length} products`);
         }
     } catch (e) {
         console.warn('Could not extract video frames:', e.message);
