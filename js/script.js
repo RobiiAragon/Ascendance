@@ -5602,11 +5602,14 @@
                 return;
             }
 
-            // Get current time in HH:MM format
+            // Get current time in 12-hour format (h:MM AM/PM)
             const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
+            let hours = now.getHours();
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const time = `${hours}:${minutes}`;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // Convert 0 to 12
+            const time = `${hours}:${minutes} ${ampm}`;
 
             // Get employee info from current user
             // Priority: Name (main identifier) -> ID -> Email -> Create fallback
@@ -6083,8 +6086,24 @@
 
         function parseAttendanceTime(timeString) {
             const today = new Date();
-            const [hours, minutes] = timeString.split(':');
-            today.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            // Handle 12-hour format (e.g., "2:30 PM") or 24-hour format (e.g., "14:30")
+            const match = timeString.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+            if (!match) return today;
+
+            let hours = parseInt(match[1]);
+            const minutes = parseInt(match[2]);
+            const period = match[3];
+
+            if (period) {
+                // 12-hour format
+                if (period.toUpperCase() === 'PM' && hours !== 12) {
+                    hours += 12;
+                } else if (period.toUpperCase() === 'AM' && hours === 12) {
+                    hours = 0;
+                }
+            }
+
+            today.setHours(hours, minutes, 0, 0);
             return today;
         }
 
@@ -12281,12 +12300,16 @@ window.viewChecklistHistory = async function() {
                             <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
                                 <option value="all">All Stores</option>
                                 <option value="employees">Employees Hours</option>
-                                <option value="Miramar">VSU Miramar</option>
-                                <option value="Morena">VSU Morena</option>
-                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                <option value="Chula Vista">VSU Chula Vista</option>
-                                <option value="North Park">VSU North Park</option>
-                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                <optgroup label="By Store">
+                                    <option value="Miramar">VSU Miramar</option>
+                                    <option value="Morena">VSU Morena</option>
+                                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                    <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="North Park">VSU North Park</option>
+                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                </optgroup>
+                                <optgroup label="By Employee" id="schedule-employee-options">
+                                </optgroup>
                             </select>
                         </div>
                     </div>
@@ -12441,6 +12464,20 @@ window.viewChecklistHistory = async function() {
             loadScheduleData();
         }
 
+        function populateEmployeeOptions() {
+            const optgroup = document.getElementById('schedule-employee-options');
+            if (!optgroup) return;
+
+            // Get active employees sorted by name
+            const activeEmployees = employees
+                .filter(e => e.status === 'active')
+                .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            optgroup.innerHTML = activeEmployees.map(emp =>
+                `<option value="emp_${emp.id}">${emp.name}</option>`
+            ).join('');
+        }
+
         async function loadScheduleData() {
             const container = document.getElementById('schedule-container');
             if (!container) return;
@@ -12450,6 +12487,9 @@ window.viewChecklistHistory = async function() {
                 if (employees.length === 0) {
                     await loadEmployeesFromFirebase();
                 }
+
+                // Populate employee dropdown options
+                populateEmployeeOptions();
 
                 const db = firebase.firestore();
 
@@ -12502,6 +12542,13 @@ window.viewChecklistHistory = async function() {
             // If "Employees Hours" is selected, show the employees worked hours view
             if (storeFilter === 'employees') {
                 renderEmployeesHoursView(container, weekDates, today);
+                return;
+            }
+
+            // If individual employee is selected, show their personal schedule
+            if (storeFilter.startsWith('emp_')) {
+                const employeeId = parseInt(storeFilter.split('_')[1]);
+                renderEmployeeScheduleView(container, weekDates, today, employeeId);
                 return;
             }
 
@@ -12915,6 +12962,346 @@ window.viewChecklistHistory = async function() {
                 console.error('Error removing schedule:', error);
                 showNotification('Error removing shift', 'error');
             }
+        }
+
+        // Individual Employee Schedule View
+        function renderEmployeeScheduleView(container, weekDates, today, employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+
+            if (!employee) {
+                container.innerHTML = `
+                    <div style="padding: 60px; text-align: center;">
+                        <i class="fas fa-user-slash" style="font-size: 48px; color: var(--text-muted); margin-bottom: 20px;"></i>
+                        <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Employee Not Found</h3>
+                        <p style="color: var(--text-muted);">Unable to find the selected employee.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get employee's schedules for the week (from all stores)
+            const weekKeys = weekDates.map(d => formatDateKey(d));
+            const employeeSchedules = schedules.filter(s =>
+                weekKeys.includes(s.date) && s.employeeId === employeeId
+            );
+
+            // Get employee's days off for the week
+            const employeeDaysOff = daysOff.filter(d =>
+                weekKeys.includes(d.date) && d.employeeId === employeeId
+            );
+
+            // Calculate total hours
+            let totalWeekMinutes = 0;
+            employeeSchedules.forEach(schedule => {
+                const hours = calculateHours(schedule.startTime, schedule.endTime);
+                totalWeekMinutes += (hours.hours * 60) + hours.minutes;
+            });
+            const totalHours = Math.floor(totalWeekMinutes / 60);
+            const totalMins = totalWeekMinutes % 60;
+
+            let html = `
+                <div class="employee-schedule-view">
+                    <div class="employee-schedule-header-card">
+                        <div class="employee-header-info">
+                            <div class="employee-header-avatar" style="background: ${employee.color || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}">${employee.initials || employee.name?.substring(0, 2).toUpperCase() || '?'}</div>
+                            <div class="employee-header-details">
+                                <h3>${employee.name || 'Unknown'}</h3>
+                                <p><i class="fas fa-briefcase"></i> ${employee.role || 'Employee'}</p>
+                                <p><i class="fas fa-store"></i> ${employee.store || 'Not assigned'}</p>
+                            </div>
+                        </div>
+                        <div class="employee-header-stats">
+                            <div class="stat-box">
+                                <span class="stat-value">${employeeSchedules.length}</span>
+                                <span class="stat-label">Shifts</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-value">${totalHours}h ${totalMins}m</span>
+                                <span class="stat-label">Total Hours</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-value">${employeeDaysOff.length}</span>
+                                <span class="stat-label">Days Off</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="employee-week-grid">
+            `;
+
+            weekDates.forEach(date => {
+                const dateKey = formatDateKey(date);
+                const isToday = dateKey === today;
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNumber = date.getDate();
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+
+                // Find schedules for this day
+                const daySchedules = employeeSchedules.filter(s => s.date === dateKey);
+
+                // Check if day off
+                const isDayOff = employeeDaysOff.some(d => d.date === dateKey);
+
+                html += `
+                    <div class="employee-day-card ${isToday ? 'today' : ''} ${isDayOff ? 'day-off' : ''}">
+                        <div class="employee-day-header">
+                            <span class="day-name">${dayName}</span>
+                            <span class="day-date">${monthName} ${dayNumber}</span>
+                        </div>
+                        <div class="employee-day-content">
+                `;
+
+                if (isDayOff) {
+                    html += `
+                        <div class="day-off-badge">
+                            <i class="fas fa-umbrella-beach"></i>
+                            <span>Day Off</span>
+                        </div>
+                    `;
+                } else if (daySchedules.length === 0) {
+                    html += `
+                        <div class="no-shift">
+                            <i class="fas fa-minus"></i>
+                            <span>No shift</span>
+                        </div>
+                    `;
+                } else {
+                    daySchedules.forEach(schedule => {
+                        const shiftConfig = SHIFT_TYPES[schedule.shiftType] || SHIFT_TYPES.opening;
+                        const hours = calculateHours(schedule.startTime, schedule.endTime);
+
+                        html += `
+                            <div class="employee-shift-card ${schedule.shiftType}">
+                                <div class="shift-type-badge" style="background: ${shiftConfig.gradient}">
+                                    <i class="fas ${shiftConfig.icon}"></i>
+                                    ${shiftConfig.name}
+                                </div>
+                                <div class="shift-store">
+                                    <i class="fas fa-store"></i>
+                                    ${schedule.store || 'Unknown'}
+                                </div>
+                                <div class="shift-time">
+                                    <i class="fas fa-clock"></i>
+                                    ${formatTimeShort(schedule.startTime)} - ${formatTimeShort(schedule.endTime)}
+                                </div>
+                                <div class="shift-hours">
+                                    ${hours.hours}h ${hours.minutes}m
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+
+                <style>
+                    .employee-schedule-view {
+                        padding: 0;
+                    }
+                    .employee-schedule-header-card {
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        padding: 24px;
+                        margin-bottom: 24px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 20px;
+                        border: 1px solid var(--border-color);
+                    }
+                    .employee-header-info {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                    }
+                    .employee-header-avatar {
+                        width: 64px;
+                        height: 64px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: white;
+                    }
+                    .employee-header-details h3 {
+                        font-size: 20px;
+                        font-weight: 700;
+                        margin-bottom: 8px;
+                    }
+                    .employee-header-details p {
+                        color: var(--text-muted);
+                        font-size: 14px;
+                        margin-bottom: 4px;
+                    }
+                    .employee-header-details p i {
+                        width: 16px;
+                        margin-right: 8px;
+                        color: var(--accent-primary);
+                    }
+                    .employee-header-stats {
+                        display: flex;
+                        gap: 24px;
+                    }
+                    .stat-box {
+                        text-align: center;
+                        padding: 12px 20px;
+                        background: var(--bg-main);
+                        border-radius: 12px;
+                        min-width: 80px;
+                    }
+                    .stat-value {
+                        display: block;
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: var(--accent-primary);
+                    }
+                    .stat-label {
+                        display: block;
+                        font-size: 12px;
+                        color: var(--text-muted);
+                        margin-top: 4px;
+                    }
+                    .employee-week-grid {
+                        display: grid;
+                        grid-template-columns: repeat(7, 1fr);
+                        gap: 12px;
+                    }
+                    @media (max-width: 1200px) {
+                        .employee-week-grid {
+                            grid-template-columns: repeat(4, 1fr);
+                        }
+                    }
+                    @media (max-width: 768px) {
+                        .employee-week-grid {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
+                        .employee-schedule-header-card {
+                            flex-direction: column;
+                            text-align: center;
+                        }
+                        .employee-header-info {
+                            flex-direction: column;
+                        }
+                        .employee-header-stats {
+                            flex-wrap: wrap;
+                            justify-content: center;
+                        }
+                    }
+                    .employee-day-card {
+                        background: var(--bg-card);
+                        border-radius: 12px;
+                        border: 1px solid var(--border-color);
+                        overflow: hidden;
+                        min-height: 180px;
+                    }
+                    .employee-day-card.today {
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+                    }
+                    .employee-day-card.day-off {
+                        background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%);
+                    }
+                    .employee-day-header {
+                        padding: 12px 16px;
+                        background: var(--bg-main);
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .employee-day-card.today .employee-day-header {
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+                    }
+                    .day-name {
+                        font-weight: 600;
+                        font-size: 14px;
+                    }
+                    .day-date {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                    }
+                    .employee-day-content {
+                        padding: 12px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    .day-off-badge {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 20px;
+                        color: #ef4444;
+                        font-weight: 600;
+                    }
+                    .day-off-badge i {
+                        font-size: 20px;
+                    }
+                    .no-shift {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 20px;
+                        color: var(--text-muted);
+                        font-size: 14px;
+                    }
+                    .employee-shift-card {
+                        background: var(--bg-main);
+                        border-radius: 8px;
+                        padding: 12px;
+                        border-left: 3px solid var(--accent-primary);
+                    }
+                    .employee-shift-card.opening {
+                        border-left-color: #f59e0b;
+                    }
+                    .employee-shift-card.closing {
+                        border-left-color: #6366f1;
+                    }
+                    .shift-type-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 4px 10px;
+                        border-radius: 20px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: white;
+                        margin-bottom: 8px;
+                    }
+                    .shift-store, .shift-time {
+                        font-size: 13px;
+                        color: var(--text-secondary);
+                        margin-bottom: 4px;
+                    }
+                    .shift-store i, .shift-time i {
+                        width: 14px;
+                        margin-right: 6px;
+                        color: var(--text-muted);
+                    }
+                    .shift-hours {
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--accent-primary);
+                        text-align: right;
+                        margin-top: 6px;
+                    }
+                </style>
+            `;
+
+            container.innerHTML = html;
         }
 
         // All Stores View
@@ -13454,8 +13841,24 @@ window.viewChecklistHistory = async function() {
         function parseClockTime(timeString) {
             if (!timeString) return null;
             const today = new Date();
-            const [hours, minutes] = timeString.split(':');
-            today.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            // Handle 12-hour format (e.g., "2:30 PM") or 24-hour format (e.g., "14:30")
+            const match = timeString.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+            if (!match) return null;
+
+            let hours = parseInt(match[1]);
+            const minutes = parseInt(match[2]);
+            const period = match[3];
+
+            if (period) {
+                // 12-hour format
+                if (period.toUpperCase() === 'PM' && hours !== 12) {
+                    hours += 12;
+                } else if (period.toUpperCase() === 'AM' && hours === 12) {
+                    hours = 0;
+                }
+            }
+
+            today.setHours(hours, minutes, 0, 0);
             return today;
         }
 
