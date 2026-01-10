@@ -14806,7 +14806,10 @@ window.viewChecklistHistory = async function() {
 
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
-            const today = new Date().toISOString().split('T')[0];
+            // Minimum date is 30 days from today
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 30);
+            const minDateStr = minDate.toISOString().split('T')[0];
 
             modalContent.innerHTML = `
                 <div class="modal-header">
@@ -14814,6 +14817,15 @@ window.viewChecklistHistory = async function() {
                     <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
+                    <div style="padding: 12px 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 18px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: #f59e0b;">30-Day Advance Notice Required</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Time off requests must be submitted at least 30 days in advance.</div>
+                            </div>
+                        </div>
+                    </div>
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px; background: var(--bg-main); border-radius: 8px;">
                         <div style="width: 48px; height: 48px; border-radius: 50%; background: ${emp.color || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
                             ${emp.initials || emp.name?.substring(0, 2).toUpperCase() || '?'}
@@ -14840,11 +14852,11 @@ window.viewChecklistHistory = async function() {
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
                             <label>Start Date *</label>
-                            <input type="date" class="form-input" id="pto-start-date" min="${today}" onchange="updatePTODuration()">
+                            <input type="date" class="form-input" id="pto-start-date" min="${minDateStr}" onchange="updatePTODuration()">
                         </div>
                         <div class="form-group">
                             <label>End Date *</label>
-                            <input type="date" class="form-input" id="pto-end-date" min="${today}" onchange="updatePTODuration()">
+                            <input type="date" class="form-input" id="pto-end-date" min="${minDateStr}" onchange="updatePTODuration()">
                         </div>
                     </div>
 
