@@ -8502,29 +8502,28 @@ window.openPhotoForTask = function(taskId, store, shift) {
     openCameraModal('checklist-photo-preview', 'checklist-photo-input');
 }
 
-// View checklist history
+// View checklist history - Admin sees all stores, others see their store only
 window.viewChecklistHistory = async function() {
+    const user = getCurrentUser();
+    const isAdmin = user?.role === 'admin' || user?.role === 'manager';
+    const userStore = user?.store || 'Miramar';
+
     const modal = document.createElement('div');
     modal.id = 'checklist-history-modal';
     modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
     modal.onmousedown = (e) => { if (e.target === modal) modal.remove(); };
 
-    // Get last 7 days of completions
-    const db = firebase.firestore();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
     let historyHtml = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
 
     modal.innerHTML = `
-        <div style="background: var(--bg-primary); border-radius: 20px; max-width: 600px; width: 100%; max-height: 80vh; overflow: hidden; animation: modalSlideIn 0.3s ease;">
+        <div style="background: var(--bg-primary); border-radius: 20px; max-width: 700px; width: 100%; max-height: 85vh; overflow: hidden; animation: modalSlideIn 0.3s ease;">
             <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-history" style="color: var(--accent-primary); margin-right: 8px;"></i> Checklist History</h3>
+                <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-history" style="color: var(--accent-primary); margin-right: 8px;"></i> ${isAdmin ? 'All Stores Activity' : 'Checklist History'}</h3>
                 <button onclick="document.getElementById('checklist-history-modal').remove()" style="background: none; border: none; cursor: pointer; padding: 8px;">
                     <i class="fas fa-times" style="color: var(--text-muted);"></i>
                 </button>
             </div>
-            <div id="history-content" style="padding: 16px; max-height: 500px; overflow-y: auto;">
+            <div id="history-content" style="padding: 16px; max-height: 600px; overflow-y: auto;">
                 ${historyHtml}
             </div>
         </div>
@@ -8533,24 +8532,85 @@ window.viewChecklistHistory = async function() {
 
     // Load history
     try {
+        const db = firebase.firestore();
         const snapshot = await db.collection('checklistCompletions')
             .orderBy('completedAt', 'desc')
-            .limit(50)
+            .limit(100)
             .get();
 
-        const completions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let completions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Group by date
-        const grouped = {};
-        completions.forEach(c => {
-            const date = c.date || 'Unknown';
-            if (!grouped[date]) grouped[date] = [];
-            grouped[date].push(c);
-        });
+        // Filter by store if not admin
+        if (!isAdmin) {
+            completions = completions.filter(c => c.store === userStore);
+        }
 
-        if (Object.keys(grouped).length === 0) {
-            historyHtml = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No history yet</div>';
+        if (completions.length === 0) {
+            historyHtml = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No activity yet</div>';
+        } else if (isAdmin) {
+            // Admin view: Group by date, then by store
+            const grouped = {};
+            completions.forEach(c => {
+                const date = c.date || 'Unknown';
+                if (!grouped[date]) grouped[date] = {};
+                if (!grouped[date][c.store]) grouped[date][c.store] = [];
+                grouped[date][c.store].push(c);
+            });
+
+            // Store colors for visual distinction
+            const storeColors = {
+                'Miramar': '#3b82f6',
+                'Morena': '#06b6d4',
+                'Kearny Mesa': '#f97316',
+                'Chula Vista': '#10b981',
+                'North Park': '#8b5cf6'
+            };
+
+            historyHtml = Object.entries(grouped).map(([date, stores]) => `
+                <div style="margin-bottom: 24px;">
+                    <div style="font-weight: 600; margin-bottom: 16px; color: var(--text-primary); font-size: 15px; padding-bottom: 8px; border-bottom: 2px solid var(--border-color);">
+                        <i class="fas fa-calendar-day" style="margin-right: 8px; color: var(--accent-primary);"></i>
+                        ${new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                    </div>
+                    ${Object.entries(stores).map(([store, items]) => `
+                        <div style="margin-bottom: 16px; margin-left: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <div style="width: 12px; height: 12px; border-radius: 50%; background: ${storeColors[store] || '#6b7280'};"></div>
+                                <span style="font-weight: 600; color: ${storeColors[store] || '#6b7280'};">${store}</span>
+                                <span style="font-size: 12px; color: var(--text-muted);">(${items.length} tasks)</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px; margin-left: 20px;">
+                                ${items.map(item => {
+                                    const task = checklistData.tasks.find(t => t.id === item.taskId);
+                                    const time = item.completedAt?.toDate ? item.completedAt.toDate().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : '';
+                                    return `
+                                        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid ${storeColors[store] || '#6b7280'};">
+                                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 14px;"></i>
+                                            <div style="flex: 1;">
+                                                <div style="font-size: 13px; color: var(--text-primary);">${task?.task || 'Unknown task'}</div>
+                                                <div style="font-size: 11px; color: var(--text-muted);">
+                                                    <i class="fas fa-user" style="margin-right: 4px;"></i>${item.completedBy}
+                                                    ${time ? `<span style="margin-left: 8px;"><i class="fas fa-clock" style="margin-right: 4px;"></i>${time}</span>` : ''}
+                                                    <span style="margin-left: 8px; text-transform: uppercase; font-size: 10px; background: var(--bg-hover); padding: 2px 6px; border-radius: 4px;">${item.shift}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
         } else {
+            // Regular user view: Group by date only
+            const grouped = {};
+            completions.forEach(c => {
+                const date = c.date || 'Unknown';
+                if (!grouped[date]) grouped[date] = [];
+                grouped[date].push(c);
+            });
+
             historyHtml = Object.entries(grouped).map(([date, items]) => `
                 <div style="margin-bottom: 20px;">
                     <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-muted); font-size: 13px; text-transform: uppercase;">${new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
@@ -8562,7 +8622,7 @@ window.viewChecklistHistory = async function() {
                                     <i class="fas fa-check-circle" style="color: #10b981;"></i>
                                     <div style="flex: 1;">
                                         <div style="font-size: 14px;">${task?.task || 'Unknown task'}</div>
-                                        <div style="font-size: 12px; color: var(--text-muted);">${item.store} - ${item.shift} - ${item.completedBy}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">${item.shift} - ${item.completedBy}</div>
                                     </div>
                                 </div>
                             `;
@@ -8574,6 +8634,7 @@ window.viewChecklistHistory = async function() {
 
         document.getElementById('history-content').innerHTML = historyHtml;
     } catch (error) {
+        console.error('Error loading checklist history:', error);
         document.getElementById('history-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading history</div>';
     }
 }
