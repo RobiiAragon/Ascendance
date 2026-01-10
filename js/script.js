@@ -18907,6 +18907,7 @@ Return ONLY the JSON object, no additional text.`
                                     <option value="Morena">VSU Morena</option>
                                     <option value="Kearny Mesa">VSU Kearny Mesa</option>
                                     <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="North Park">VSU North Park</option>
                                     <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                 </select>
                             </div>
