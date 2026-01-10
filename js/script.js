@@ -12298,20 +12298,18 @@ window.viewChecklistHistory = async function() {
                                 <i class="fas fa-clone"></i>
                             </button>
                             <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
-                                <optgroup label="── Overview ──">
-                                    <option value="all">All Stores</option>
-                                    <option value="employees">Employees Hours</option>
-                                </optgroup>
-                                <optgroup label="── By Store ──">
-                                    <option value="Miramar">VSU Miramar</option>
-                                    <option value="Morena">VSU Morena</option>
-                                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                    <option value="Chula Vista">VSU Chula Vista</option>
-                                    <option value="North Park">VSU North Park</option>
-                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                                </optgroup>
-                                <optgroup label="── By Employee ──" id="schedule-employee-options">
-                                </optgroup>
+                                <option value="all">All Stores</option>
+                                <option value="all-employees">All Employees</option>
+                                <option value="employees">Employees Hours</option>
+                                <option value="Miramar">VSU Miramar</option>
+                                <option value="Morena">VSU Morena</option>
+                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                <option value="Chula Vista">VSU Chula Vista</option>
+                                <option value="North Park">VSU North Park</option>
+                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                            </select>
+                            <select class="store-filter-select" id="schedule-employee-filter" onchange="renderScheduleGrid()" style="min-width: 180px;">
+                                <option value="">-- By Employee --</option>
                             </select>
                         </div>
                     </div>
@@ -12467,17 +12465,28 @@ window.viewChecklistHistory = async function() {
         }
 
         function populateEmployeeOptions() {
-            const optgroup = document.getElementById('schedule-employee-options');
-            if (!optgroup) return;
+            const employeeSelect = document.getElementById('schedule-employee-filter');
+            if (!employeeSelect) {
+                console.log('Employee filter not found');
+                return;
+            }
 
-            // Get active employees sorted by name
+            // Get active employees sorted by name (include employees without status or with active status)
             const activeEmployees = employees
-                .filter(e => e.status === 'active')
+                .filter(e => !e.status || e.status === 'active')
                 .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-            optgroup.innerHTML = activeEmployees.map(emp =>
-                `<option value="emp_${emp.id}">${emp.name}</option>`
-            ).join('');
+            console.log('Total employees:', employees.length, '| Active:', activeEmployees.length);
+
+            let optionsHtml = '<option value="">-- By Employee --</option>';
+
+            if (activeEmployees.length > 0) {
+                optionsHtml += activeEmployees.map(emp =>
+                    `<option value="emp_${emp.id}">${emp.name}</option>`
+                ).join('');
+            }
+
+            employeeSelect.innerHTML = optionsHtml;
         }
 
         async function loadScheduleData() {
@@ -12532,8 +12541,21 @@ window.viewChecklistHistory = async function() {
             if (!container) return;
 
             const storeFilter = document.getElementById('schedule-store-filter')?.value || 'all';
+            const employeeFilter = document.getElementById('schedule-employee-filter')?.value || '';
             const weekDates = getWeekDates(currentWeekStart);
             const today = formatDateKey(new Date());
+
+            // If employee is selected from the employee dropdown, show their personal schedule
+            if (employeeFilter && employeeFilter.startsWith('emp_')) {
+                // Reset store filter display
+                const storeSelect = document.getElementById('schedule-store-filter');
+                if (storeSelect && storeSelect.value !== 'all') {
+                    storeSelect.value = 'all';
+                }
+                const employeeId = employeeFilter.substring(4);
+                renderEmployeeScheduleView(container, weekDates, today, employeeId);
+                return;
+            }
 
             // If "All Stores" is selected, show the stores grid view
             if (storeFilter === 'all') {
@@ -12541,16 +12563,15 @@ window.viewChecklistHistory = async function() {
                 return;
             }
 
-            // If "Employees Hours" is selected, show the employees worked hours view
-            if (storeFilter === 'employees') {
-                renderEmployeesHoursView(container, weekDates, today);
+            // If "All Employees" is selected, show all employees grid view
+            if (storeFilter === 'all-employees') {
+                renderAllEmployeesView(container, weekDates, today);
                 return;
             }
 
-            // If individual employee is selected, show their personal schedule
-            if (storeFilter.startsWith('emp_')) {
-                const employeeId = storeFilter.substring(4); // Remove 'emp_' prefix, keep as string
-                renderEmployeeScheduleView(container, weekDates, today, employeeId);
+            // If "Employees Hours" is selected, show the employees worked hours view
+            if (storeFilter === 'employees') {
+                renderEmployeesHoursView(container, weekDates, today);
                 return;
             }
 
@@ -12966,6 +12987,210 @@ window.viewChecklistHistory = async function() {
             }
         }
 
+        // All Employees View - Shows all employees with their weekly schedules
+        function renderAllEmployeesView(container, weekDates, today) {
+            // Get active employees sorted by name
+            const activeEmployees = employees
+                .filter(e => !e.status || e.status === 'active')
+                .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            if (activeEmployees.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 60px; text-align: center;">
+                        <i class="fas fa-users" style="font-size: 48px; color: var(--text-muted); margin-bottom: 20px;"></i>
+                        <h3 style="color: var(--text-secondary); margin-bottom: 10px;">No Employees</h3>
+                        <p style="color: var(--text-muted);">No active employees found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const weekKeys = weekDates.map(d => formatDateKey(d));
+
+            let html = `
+                <div class="all-employees-grid">
+                    ${activeEmployees.map(employee => {
+                        const empId = employee.id;
+                        const employeeSchedules = schedules.filter(s =>
+                            weekKeys.includes(s.date) && (s.employeeId === empId || s.employeeId === employee.firestoreId)
+                        );
+                        const employeeDaysOff = daysOff.filter(d =>
+                            weekKeys.includes(d.date) && (d.employeeId === empId || d.employeeId === employee.firestoreId)
+                        );
+
+                        // Calculate total hours
+                        let totalWeekHours = 0;
+                        employeeSchedules.forEach(schedule => {
+                            const hours = parseFloat(calculateHours(schedule.startTime, schedule.endTime)) || 0;
+                            totalWeekHours += hours;
+                        });
+                        const totalHrs = Math.floor(totalWeekHours);
+                        const totalMins = Math.round((totalWeekHours - totalHrs) * 60);
+
+                        return `
+                            <div class="employee-week-card" onclick="document.getElementById('schedule-employee-filter').value='emp_${employee.id}'; renderScheduleGrid();">
+                                <div class="emp-card-header">
+                                    <div class="emp-card-avatar" style="background: ${employee.color || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}">
+                                        ${employee.initials || employee.name?.substring(0, 2).toUpperCase() || '?'}
+                                    </div>
+                                    <div class="emp-card-info">
+                                        <h4>${employee.name || 'Unknown'}</h4>
+                                        <span class="emp-card-role">${employee.role || 'Employee'}</span>
+                                    </div>
+                                    <div class="emp-card-hours">
+                                        <span class="hours-value">${totalHrs}h ${totalMins}m</span>
+                                        <span class="hours-label">this week</span>
+                                    </div>
+                                </div>
+                                <div class="emp-card-week">
+                                    ${weekDates.map(date => {
+                                        const dateKey = formatDateKey(date);
+                                        const isToday = dateKey === today;
+                                        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                                        const daySchedules = employeeSchedules.filter(s => s.date === dateKey);
+                                        const isDayOff = employeeDaysOff.some(d => d.date === dateKey);
+
+                                        let dayContent = '';
+                                        let dayClass = '';
+
+                                        if (isDayOff) {
+                                            dayContent = '<i class="fas fa-umbrella-beach" style="color: #ef4444;"></i>';
+                                            dayClass = 'day-off';
+                                        } else if (daySchedules.length === 0) {
+                                            dayContent = '<span style="color: var(--text-muted);">-</span>';
+                                            dayClass = 'no-shift';
+                                        } else {
+                                            dayContent = daySchedules.map(s => {
+                                                const icon = s.shiftType === 'opening' ? 'fa-sun' : 'fa-moon';
+                                                const color = s.shiftType === 'opening' ? '#f59e0b' : '#6366f1';
+                                                return `<i class="fas ${icon}" style="color: ${color}; font-size: 12px;" title="${s.store}: ${formatTimeShort(s.startTime)}-${formatTimeShort(s.endTime)}"></i>`;
+                                            }).join(' ');
+                                            dayClass = 'has-shift';
+                                        }
+
+                                        return `
+                                            <div class="emp-day ${dayClass} ${isToday ? 'today' : ''}">
+                                                <span class="emp-day-name">${dayName}</span>
+                                                <div class="emp-day-indicator">${dayContent}</div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                <style>
+                    .all-employees-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+                        gap: 16px;
+                    }
+                    .employee-week-card {
+                        background: var(--bg-card);
+                        border-radius: 12px;
+                        border: 1px solid var(--border-color);
+                        padding: 16px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    .employee-week-card:hover {
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+                        transform: translateY(-2px);
+                    }
+                    .emp-card-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        margin-bottom: 16px;
+                    }
+                    .emp-card-avatar {
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .emp-card-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .emp-card-info h4 {
+                        font-size: 15px;
+                        font-weight: 600;
+                        margin: 0 0 2px 0;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .emp-card-role {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                    }
+                    .emp-card-hours {
+                        text-align: right;
+                    }
+                    .hours-value {
+                        display: block;
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: var(--accent-primary);
+                    }
+                    .hours-label {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                    }
+                    .emp-card-week {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    .emp-day {
+                        flex: 1;
+                        text-align: center;
+                        padding: 8px 4px;
+                        background: var(--bg-main);
+                        border-radius: 8px;
+                    }
+                    .emp-day.today {
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
+                        border: 1px solid var(--accent-primary);
+                    }
+                    .emp-day.day-off {
+                        background: rgba(239, 68, 68, 0.1);
+                    }
+                    .emp-day-name {
+                        display: block;
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: var(--text-muted);
+                        margin-bottom: 4px;
+                        text-transform: uppercase;
+                    }
+                    .emp-day-indicator {
+                        min-height: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 4px;
+                    }
+                    @media (max-width: 768px) {
+                        .all-employees-grid {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+                </style>
+            `;
+
+            container.innerHTML = html;
+        }
+
         // Individual Employee Schedule View
         function renderEmployeeScheduleView(container, weekDates, today, employeeId) {
             const employee = employees.find(e => e.id === employeeId || e.firestoreId === employeeId || String(e.id) === String(employeeId));
@@ -12995,13 +13220,13 @@ window.viewChecklistHistory = async function() {
             );
 
             // Calculate total hours
-            let totalWeekMinutes = 0;
+            let totalWeekHours = 0;
             employeeSchedules.forEach(schedule => {
-                const hours = calculateHours(schedule.startTime, schedule.endTime);
-                totalWeekMinutes += (hours.hours * 60) + hours.minutes;
+                const hours = parseFloat(calculateHours(schedule.startTime, schedule.endTime)) || 0;
+                totalWeekHours += hours;
             });
-            const totalHours = Math.floor(totalWeekMinutes / 60);
-            const totalMins = totalWeekMinutes % 60;
+            const totalHours = Math.floor(totalWeekHours);
+            const totalMins = Math.round((totalWeekHours - totalHours) * 60);
 
             let html = `
                 <div class="employee-schedule-view">
@@ -13072,7 +13297,9 @@ window.viewChecklistHistory = async function() {
                 } else {
                     daySchedules.forEach(schedule => {
                         const shiftConfig = SHIFT_TYPES[schedule.shiftType] || SHIFT_TYPES.opening;
-                        const hours = calculateHours(schedule.startTime, schedule.endTime);
+                        const hoursDecimal = parseFloat(calculateHours(schedule.startTime, schedule.endTime)) || 0;
+                        const hoursInt = Math.floor(hoursDecimal);
+                        const minsInt = Math.round((hoursDecimal - hoursInt) * 60);
 
                         html += `
                             <div class="employee-shift-card ${schedule.shiftType}">
@@ -13089,7 +13316,7 @@ window.viewChecklistHistory = async function() {
                                     ${formatTimeShort(schedule.startTime)} - ${formatTimeShort(schedule.endTime)}
                                 </div>
                                 <div class="shift-hours">
-                                    ${hours.hours}h ${hours.minutes}m
+                                    ${hoursInt}h ${minsInt}m
                                 </div>
                             </div>
                         `;
