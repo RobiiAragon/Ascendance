@@ -14877,19 +14877,69 @@ window.viewChecklistHistory = async function() {
 
         function formatTimeShort(time) {
             if (!time) return '--';
-            const [hours, minutes] = time.split(':');
-            const h = parseInt(hours);
-            const ampm = h >= 12 ? 'p' : 'a';
-            const h12 = h % 12 || 12;
-            return `${h12}:${minutes}${ampm}`;
+
+            const t = time.toString().toLowerCase().trim();
+
+            // Check if already in short format like "9:00a" or "5:00p"
+            if (t.match(/^\d{1,2}:\d{2}[ap]$/)) {
+                return time;
+            }
+
+            // Check for AM/PM formats like "9:00 AM" or "5:00 PM"
+            const isPM = t.includes('p');
+            const isAM = t.includes('a');
+
+            // Clean and parse
+            const cleanTime = t.replace(/[ap]m?/gi, '').trim();
+            const parts = cleanTime.split(':');
+
+            let h = parseInt(parts[0]) || 0;
+            const minutes = parts[1] ? parts[1].padStart(2, '0') : '00';
+
+            // Determine AM/PM
+            let ampm;
+            if (isPM || isAM) {
+                ampm = isPM ? 'p' : 'a';
+                // Already in 12-hour format
+                if (h === 0) h = 12;
+            } else {
+                // 24-hour format
+                ampm = h >= 12 ? 'p' : 'a';
+                h = h % 12 || 12;
+            }
+
+            return `${h}:${minutes}${ampm}`;
         }
 
         function calculateHours(startTime, endTime) {
             if (!startTime || !endTime) return 0;
-            const [startH, startM] = startTime.split(':').map(Number);
-            const [endH, endM] = endTime.split(':').map(Number);
-            const startMinutes = startH * 60 + startM;
-            const endMinutes = endH * 60 + endM;
+
+            // Parse time that could be in formats: "14:00", "2:00p", "2:00 PM", etc.
+            function parseTime(timeStr) {
+                if (!timeStr) return 0;
+                // Remove spaces and convert to lowercase
+                const t = timeStr.toString().toLowerCase().trim();
+
+                // Check for AM/PM formats
+                const isPM = t.includes('p');
+                const isAM = t.includes('a');
+
+                // Extract numbers only
+                const cleanTime = t.replace(/[ap]m?/gi, '').trim();
+                const parts = cleanTime.split(':');
+
+                let hours = parseInt(parts[0]) || 0;
+                let minutes = parseInt(parts[1]) || 0;
+
+                // Convert to 24-hour if PM
+                if (isPM && hours < 12) hours += 12;
+                if (isAM && hours === 12) hours = 0;
+
+                return hours * 60 + minutes;
+            }
+
+            const startMinutes = parseTime(startTime);
+            const endMinutes = parseTime(endTime);
             const diff = endMinutes - startMinutes;
             return (diff / 60).toFixed(1);
         }
