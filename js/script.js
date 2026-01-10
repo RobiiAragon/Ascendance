@@ -18172,6 +18172,28 @@ Return ONLY the JSON object, no additional text.`
 
         function renderTreasury() {
             console.log('🚀 renderTreasury called');
+            const dashboard = document.querySelector('.dashboard');
+
+            // Show loading state immediately
+            dashboard.innerHTML = `
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Heady Pieces - Select Collection</h2>
+                        <p class="section-subtitle">Manage your valuable collection</p>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--text-muted);">
+                    <div style="width: 50px; height: 50px; border: 3px solid var(--border-color); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+                    <p style="font-size: 16px; font-weight: 500;">Loading Heady Pieces...</p>
+                    <p style="font-size: 13px; margin-top: 8px;">Fetching collection from database</p>
+                </div>
+                <style>
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+
             // Load from Firebase first
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 loadTreasuryItemsFromFirebase().then(() => {
