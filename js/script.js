@@ -1094,6 +1094,10 @@
                         if (typeof updateEmployeeCountBadge === 'function') {
                             updateEmployeeCountBadge();
                         }
+                        // Load PTO requests for badge
+                        if (typeof loadPTORequests === 'function') {
+                            loadPTORequests();
+                        }
                         return true;
                     }
                 } catch (error) {
@@ -1453,6 +1457,9 @@
                     break;
                 case 'salesperformance':
                     renderSalesPerformance();
+                    break;
+                case 'timeoffrequests':
+                    renderTimeOffRequests();
                     break;
                 default:
                     render404(page);
@@ -14770,6 +14777,450 @@ window.viewChecklistHistory = async function() {
                 showNotification('Error removing day off', 'error');
             }
         }
+
+        // ==========================================
+        // PTO / VACATION REQUEST SYSTEM
+        // ==========================================
+
+        const PTO_REQUEST_TYPES = {
+            vacation: { label: 'Vacation', icon: 'fa-umbrella-beach', color: '#10b981' },
+            sick: { label: 'Sick Leave', icon: 'fa-briefcase-medical', color: '#ef4444' },
+            personal: { label: 'Personal Day', icon: 'fa-user', color: '#6366f1' },
+            pto: { label: 'PTO', icon: 'fa-calendar-check', color: '#f59e0b' }
+        };
+
+        const PTO_STATUS_CONFIG = {
+            pending: { label: 'Pending', color: '#f59e0b', icon: 'fa-clock' },
+            approved: { label: 'Approved', color: '#10b981', icon: 'fa-check-circle' },
+            rejected: { label: 'Rejected', color: '#ef4444', icon: 'fa-times-circle' }
+        };
+
+        let ptoRequests = [];
+
+        function openPTORequestModal(employeeId) {
+            const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+            if (!emp) {
+                showNotification('Employee not found', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+            const today = new Date().toISOString().split('T')[0];
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-umbrella-beach" style="color: #10b981;"></i> Request Time Off</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px; background: var(--bg-main); border-radius: 8px;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${emp.color || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                            ${emp.initials || emp.name?.substring(0, 2).toUpperCase() || '?'}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">${emp.name}</div>
+                            <div style="font-size: 13px; color: var(--text-muted);">${emp.store || 'No store'}</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Request Type *</label>
+                        <div class="pto-type-selector" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            ${Object.entries(PTO_REQUEST_TYPES).map(([key, config]) => `
+                                <label class="pto-type-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" name="pto-type" value="${key}" style="display: none;" onchange="this.closest('.pto-type-option').style.borderColor='${config.color}'">
+                                    <i class="fas ${config.icon}" style="color: ${config.color}; font-size: 18px;"></i>
+                                    <span>${config.label}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label>Start Date *</label>
+                            <input type="date" class="form-input" id="pto-start-date" min="${today}" onchange="updatePTODuration()">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date *</label>
+                            <input type="date" class="form-input" id="pto-end-date" min="${today}" onchange="updatePTODuration()">
+                        </div>
+                    </div>
+
+                    <div id="pto-duration-display" style="padding: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%); border-radius: 8px; text-align: center; margin-bottom: 16px; display: none;">
+                        <span style="font-size: 24px; font-weight: 700; color: var(--accent-primary);" id="pto-days-count">0</span>
+                        <span style="color: var(--text-muted);"> day(s) requested</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Reason / Notes</label>
+                        <textarea class="form-input" id="pto-reason" rows="3" placeholder="Optional: Add any notes or reason for your request..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn-primary" onclick="submitPTORequest('${emp.id}')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <i class="fas fa-paper-plane"></i> Submit Request
+                    </button>
+                </div>
+
+                <style>
+                    .pto-type-option:has(input:checked) {
+                        background: var(--bg-main);
+                        border-width: 2px;
+                    }
+                    .pto-type-option:hover {
+                        background: var(--bg-main);
+                    }
+                </style>
+            `;
+            modal.classList.add('active');
+
+            // Set default type
+            const firstRadio = document.querySelector('input[name="pto-type"]');
+            if (firstRadio) {
+                firstRadio.checked = true;
+                firstRadio.closest('.pto-type-option').style.borderColor = '#10b981';
+            }
+        }
+
+        function updatePTODuration() {
+            const startDate = document.getElementById('pto-start-date')?.value;
+            const endDate = document.getElementById('pto-end-date')?.value;
+            const display = document.getElementById('pto-duration-display');
+            const countEl = document.getElementById('pto-days-count');
+
+            if (startDate && endDate && display && countEl) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const diffTime = end - start;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                if (diffDays > 0) {
+                    countEl.textContent = diffDays;
+                    display.style.display = 'block';
+                } else {
+                    display.style.display = 'none';
+                }
+            }
+        }
+
+        async function submitPTORequest(employeeId) {
+            const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+            if (!emp) {
+                showNotification('Employee not found', 'error');
+                return;
+            }
+
+            const requestType = document.querySelector('input[name="pto-type"]:checked')?.value;
+            const startDate = document.getElementById('pto-start-date')?.value;
+            const endDate = document.getElementById('pto-end-date')?.value;
+            const reason = document.getElementById('pto-reason')?.value || '';
+
+            if (!requestType) {
+                showNotification('Please select a request type', 'warning');
+                return;
+            }
+
+            if (!startDate || !endDate) {
+                showNotification('Please select start and end dates', 'warning');
+                return;
+            }
+
+            if (new Date(endDate) < new Date(startDate)) {
+                showNotification('End date must be after start date', 'warning');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+
+            const requestData = {
+                employeeId: emp.id || emp.firestoreId,
+                employeeName: emp.name,
+                employeeStore: emp.store || '',
+                requestType: requestType,
+                startDate: startDate,
+                endDate: endDate,
+                reason: reason,
+                status: 'pending',
+                requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                requestedBy: currentUser?.name || emp.name,
+                reviewedAt: null,
+                reviewedBy: null,
+                reviewNotes: ''
+            };
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').add(requestData);
+
+                showNotification('Time off request submitted successfully!', 'success');
+                closeModal();
+
+                // Reload PTO requests if on that page
+                if (typeof loadPTORequests === 'function') {
+                    loadPTORequests();
+                }
+            } catch (error) {
+                console.error('Error submitting PTO request:', error);
+                showNotification('Error submitting request. Please try again.', 'error');
+            }
+        }
+
+        async function loadPTORequests() {
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests')
+                    .orderBy('requestedAt', 'desc')
+                    .get();
+
+                ptoRequests = [];
+                snapshot.forEach(doc => {
+                    ptoRequests.push({ id: doc.id, ...doc.data() });
+                });
+
+                updatePTOPendingBadge();
+                return ptoRequests;
+            } catch (error) {
+                console.error('Error loading PTO requests:', error);
+                return [];
+            }
+        }
+
+        function updatePTOPendingBadge() {
+            const badge = document.getElementById('pto-pending-badge');
+            if (badge) {
+                const pendingCount = ptoRequests.filter(r => r.status === 'pending').length;
+                badge.textContent = pendingCount;
+                badge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+            }
+        }
+
+        async function approvePTORequest(requestId) {
+            const currentUser = getCurrentUser();
+
+            try {
+                const db = firebase.firestore();
+                const request = ptoRequests.find(r => r.id === requestId);
+
+                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').doc(requestId).update({
+                    status: 'approved',
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: currentUser?.name || 'Manager'
+                });
+
+                // Also add to daysOff collection for each day in the range
+                if (request) {
+                    const start = new Date(request.startDate);
+                    const end = new Date(request.endDate);
+
+                    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                        const dateKey = formatDateKey(d);
+                        const dayOffData = {
+                            employeeId: request.employeeId,
+                            employeeName: request.employeeName,
+                            store: request.employeeStore,
+                            date: dateKey,
+                            createdAt: new Date().toISOString(),
+                            createdBy: currentUser?.name || 'Manager',
+                            ptoRequestId: requestId
+                        };
+                        await db.collection(window.FIREBASE_COLLECTIONS?.daysOff || 'daysOff').add(dayOffData);
+                    }
+                }
+
+                showNotification('Request approved!', 'success');
+                await loadPTORequests();
+                renderPTORequestsPage();
+            } catch (error) {
+                console.error('Error approving request:', error);
+                showNotification('Error approving request', 'error');
+            }
+        }
+
+        async function rejectPTORequest(requestId, reason = '') {
+            const currentUser = getCurrentUser();
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').doc(requestId).update({
+                    status: 'rejected',
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: currentUser?.name || 'Manager',
+                    reviewNotes: reason
+                });
+
+                showNotification('Request rejected', 'info');
+                await loadPTORequests();
+                renderPTORequestsPage();
+            } catch (error) {
+                console.error('Error rejecting request:', error);
+                showNotification('Error rejecting request', 'error');
+            }
+        }
+
+        function renderPTORequestsPage() {
+            const dashboard = document.querySelector('.dashboard');
+            if (!dashboard) return;
+
+            const pendingRequests = ptoRequests.filter(r => r.status === 'pending');
+            const processedRequests = ptoRequests.filter(r => r.status !== 'pending');
+
+            dashboard.innerHTML = `
+                <div class="pto-requests-page">
+                    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <div>
+                            <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">
+                                <i class="fas fa-calendar-check" style="color: var(--accent-primary); margin-right: 8px;"></i>
+                                Time Off Requests
+                            </h2>
+                            <p style="color: var(--text-muted);">Review and manage employee time off requests</p>
+                        </div>
+                        <button class="btn-secondary" onclick="loadPTORequests().then(() => renderPTORequestsPage())">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+
+                    ${pendingRequests.length > 0 ? `
+                        <div class="pto-section" style="margin-bottom: 32px;">
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #f59e0b;">
+                                <i class="fas fa-clock"></i> Pending Requests (${pendingRequests.length})
+                            </h3>
+                            <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
+                                ${pendingRequests.map(request => renderPTORequestCard(request, true)).join('')}
+                            </div>
+                        </div>
+                    ` : `
+                        <div style="padding: 40px; text-align: center; background: var(--bg-card); border-radius: 12px; margin-bottom: 32px;">
+                            <i class="fas fa-check-circle" style="font-size: 48px; color: #10b981; margin-bottom: 16px;"></i>
+                            <h3 style="color: var(--text-secondary);">No Pending Requests</h3>
+                            <p style="color: var(--text-muted);">All time off requests have been processed</p>
+                        </div>
+                    `}
+
+                    ${processedRequests.length > 0 ? `
+                        <div class="pto-section">
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-secondary);">
+                                <i class="fas fa-history"></i> Recent History
+                            </h3>
+                            <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
+                                ${processedRequests.slice(0, 10).map(request => renderPTORequestCard(request, false)).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderPTORequestCard(request, showActions = false) {
+            const typeConfig = PTO_REQUEST_TYPES[request.requestType] || PTO_REQUEST_TYPES.pto;
+            const statusConfig = PTO_STATUS_CONFIG[request.status] || PTO_STATUS_CONFIG.pending;
+
+            const start = new Date(request.startDate);
+            const end = new Date(request.endDate);
+            const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+            const requestedDate = request.requestedAt?.toDate ? request.requestedAt.toDate() : new Date(request.requestedAt);
+
+            const emp = employees.find(e => e.id === request.employeeId || e.firestoreId === request.employeeId);
+
+            return `
+                <div class="pto-request-card" style="background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${emp?.color || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
+                                    ${emp?.initials || request.employeeName?.substring(0, 2).toUpperCase() || '?'}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600;">${request.employeeName}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">${request.employeeStore || 'No store'}</div>
+                                </div>
+                            </div>
+                            <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${statusConfig.color}20; color: ${statusConfig.color};">
+                                <i class="fas ${statusConfig.icon}"></i> ${statusConfig.label}
+                            </span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; background: ${typeConfig.color}20; color: ${typeConfig.color};">
+                                <i class="fas ${typeConfig.icon}"></i> ${typeConfig.label}
+                            </span>
+                            <span style="font-size: 13px; color: var(--text-muted);">${diffDays} day${diffDays > 1 ? 's' : ''}</span>
+                        </div>
+
+                        <div style="font-size: 14px; color: var(--text-secondary);">
+                            <i class="fas fa-calendar" style="width: 16px; color: var(--text-muted);"></i>
+                            ${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+
+                        ${request.reason ? `
+                            <div style="margin-top: 10px; padding: 10px; background: var(--bg-main); border-radius: 6px; font-size: 13px; color: var(--text-secondary);">
+                                <i class="fas fa-quote-left" style="color: var(--text-muted); font-size: 10px;"></i>
+                                ${request.reason}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="padding: 12px 16px; background: var(--bg-main); font-size: 12px; color: var(--text-muted);">
+                        <i class="fas fa-clock"></i> Requested ${requestedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${requestedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        ${request.reviewedBy ? `<br><i class="fas fa-user-check"></i> ${request.status === 'approved' ? 'Approved' : 'Rejected'} by ${request.reviewedBy}` : ''}
+                    </div>
+
+                    ${showActions ? `
+                        <div style="padding: 12px 16px; display: flex; gap: 8px; border-top: 1px solid var(--border-color);">
+                            <button onclick="approvePTORequest('${request.id}')" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; cursor: pointer;">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button onclick="openRejectModal('${request.id}')" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); font-weight: 600; cursor: pointer;">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function openRejectModal(requestId) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-times-circle" style="color: #ef4444;"></i> Reject Request</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Reason for Rejection (Optional)</label>
+                        <textarea class="form-input" id="reject-reason" rows="3" placeholder="Provide a reason for the rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn-primary" onclick="rejectPTORequest('${requestId}', document.getElementById('reject-reason')?.value || '')" style="background: #ef4444;">
+                        <i class="fas fa-times"></i> Reject Request
+                    </button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        async function renderTimeOffRequests() {
+            await loadPTORequests();
+            renderPTORequestsPage();
+        }
+
+        // Make functions globally available
+        window.openPTORequestModal = openPTORequestModal;
+        window.submitPTORequest = submitPTORequest;
+        window.updatePTODuration = updatePTODuration;
+        window.approvePTORequest = approvePTORequest;
+        window.rejectPTORequest = rejectPTORequest;
+        window.loadPTORequests = loadPTORequests;
+        window.openRejectModal = openRejectModal;
+        window.renderTimeOffRequests = renderTimeOffRequests;
 
         // Open day off picker for All Stores view - shows date selector modal
         function openStoreDayOffPicker(store) {
@@ -29577,7 +30028,7 @@ Return ONLY the JSON object, no additional text.`,
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
-                    <button class="btn-secondary" style="display:none;" onclick="requestDayOff('${emp.id}')"><i class="fas fa-calendar-xmark"></i> Day Off Request</button>
+                    <button class="btn-secondary" onclick="openPTORequestModal('${emp.id}')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;"><i class="fas fa-umbrella-beach"></i> Request Time Off</button>
                     <button class="btn-primary" onclick="editEmployee('${emp.id}')"><i class="fas fa-edit"></i> Edit</button>
                 </div>
             `;
