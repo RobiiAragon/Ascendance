@@ -18033,9 +18033,9 @@ window.viewChecklistHistory = async function() {
                 if (fileInput && fileInput.files && fileInput.files[0]) {
                     const file = fileInput.files[0];
 
-                    // Validate file size (max 10MB for Storage)
-                    if (file.size > 10 * 1024 * 1024) {
-                        alert('File is too large. Please use a file smaller than 10MB.');
+                    // Validate file size (max 20MB for Storage)
+                    if (file.size > 20 * 1024 * 1024) {
+                        alert('File is too large. Please use a file smaller than 20MB.');
                         if (saveBtn) {
                             saveBtn.innerHTML = originalText;
                             saveBtn.disabled = false;
@@ -19102,6 +19102,12 @@ Return ONLY the JSON object, no additional text.`
 
             if (fileInput && fileInput.files && fileInput.files[0]) {
                 const file = fileInput.files[0];
+
+                // Validate file size (max 20MB for Storage)
+                if (file.size > 20 * 1024 * 1024) {
+                    showNotification('File is too large. Please use a file smaller than 20MB.', 'error');
+                    return;
+                }
 
                 // Determine file type
                 const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
