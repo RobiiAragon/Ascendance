@@ -13313,7 +13313,7 @@ window.viewChecklistHistory = async function() {
                         const minsInt = Math.round((hoursDecimal - hoursInt) * 60);
 
                         html += `
-                            <div class="employee-shift-card ${schedule.shiftType}">
+                            <div class="employee-shift-card ${schedule.shiftType}" onclick="openTimeEditor('${schedule.id}')" style="cursor: pointer;" title="Click to edit">
                                 <div class="shift-type-badge" style="background: ${shiftConfig.gradient}">
                                     <i class="fas ${shiftConfig.icon}"></i>
                                     ${shiftConfig.name}
@@ -13328,6 +13328,9 @@ window.viewChecklistHistory = async function() {
                                 </div>
                                 <div class="shift-hours">
                                     ${hoursInt}h ${minsInt}m
+                                </div>
+                                <div class="shift-edit-hint">
+                                    <i class="fas fa-pencil-alt"></i>
                                 </div>
                             </div>
                         `;
@@ -13505,6 +13508,25 @@ window.viewChecklistHistory = async function() {
                         border-radius: 8px;
                         padding: 12px;
                         border-left: 3px solid var(--accent-primary);
+                        position: relative;
+                        transition: all 0.2s ease;
+                    }
+                    .employee-shift-card:hover {
+                        background: var(--bg-card);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                        transform: translateY(-2px);
+                    }
+                    .employee-shift-card:hover .shift-edit-hint {
+                        opacity: 1;
+                    }
+                    .shift-edit-hint {
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        opacity: 0;
+                        color: var(--accent-primary);
+                        font-size: 12px;
+                        transition: opacity 0.2s ease;
                     }
                     .employee-shift-card.opening {
                         border-left-color: #f59e0b;
