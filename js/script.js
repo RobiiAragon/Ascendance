@@ -18056,11 +18056,12 @@ window.viewChecklistHistory = async function() {
                         fileType = isPdf ? 'pdf' : 'image';
                         fileName = file.name;
 
-                        // Upload to Firebase Storage
+                        // Upload to Firebase Storage (disable overlay to prevent UI blocking)
                         const uploadResult = await firebaseStorageHelper.uploadDocument(
                             file,
                             'invoices/attachments',
-                            invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') + '_'
+                            invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') + '_',
+                            false  // Don't show overlay - we have our own saving indicator
                         );
 
                         if (!uploadResult || !uploadResult.url) {
@@ -18071,11 +18072,30 @@ window.viewChecklistHistory = async function() {
                         filePath = uploadResult.path;
                     } catch (uploadError) {
                         console.error('Error uploading file:', uploadError);
+                        console.error('Upload error details:', {
+                            message: uploadError.message,
+                            code: uploadError.code,
+                            name: uploadError.name,
+                            stack: uploadError.stack
+                        });
                         if (saveBtn) {
                             saveBtn.innerHTML = originalText || 'Save Invoice';
                             saveBtn.disabled = false;
                         }
-                        showNotification('Error uploading file. Please check your connection and try again.', 'error');
+
+                        // Show specific error message based on error type
+                        let errorMessage = 'Error uploading file. ';
+                        if (uploadError.code === 'storage/unauthorized') {
+                            errorMessage += 'You do not have permission to upload files. Please contact an administrator.';
+                        } else if (uploadError.code === 'storage/canceled') {
+                            errorMessage += 'Upload was cancelled.';
+                        } else if (uploadError.code === 'storage/unknown' || uploadError.message?.includes('Firebase Storage')) {
+                            errorMessage += 'Firebase Storage is not properly configured. Please contact an administrator.';
+                        } else {
+                            errorMessage += 'Please check your connection and try again.';
+                        }
+
+                        showNotification(errorMessage, 'error');
                         return;
                     }
                 }
