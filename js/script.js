@@ -12298,9 +12298,11 @@ window.viewChecklistHistory = async function() {
                                 <i class="fas fa-clone"></i>
                             </button>
                             <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
-                                <option value="all">All Stores</option>
-                                <option value="employees">Employees Hours</option>
-                                <optgroup label="By Store">
+                                <optgroup label="── Overview ──">
+                                    <option value="all">All Stores</option>
+                                    <option value="employees">Employees Hours</option>
+                                </optgroup>
+                                <optgroup label="── By Store ──">
                                     <option value="Miramar">VSU Miramar</option>
                                     <option value="Morena">VSU Morena</option>
                                     <option value="Kearny Mesa">VSU Kearny Mesa</option>
@@ -12308,7 +12310,7 @@ window.viewChecklistHistory = async function() {
                                     <option value="North Park">VSU North Park</option>
                                     <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                                 </optgroup>
-                                <optgroup label="By Employee" id="schedule-employee-options">
+                                <optgroup label="── By Employee ──" id="schedule-employee-options">
                                 </optgroup>
                             </select>
                         </div>
@@ -12547,7 +12549,7 @@ window.viewChecklistHistory = async function() {
 
             // If individual employee is selected, show their personal schedule
             if (storeFilter.startsWith('emp_')) {
-                const employeeId = parseInt(storeFilter.split('_')[1]);
+                const employeeId = storeFilter.substring(4); // Remove 'emp_' prefix, keep as string
                 renderEmployeeScheduleView(container, weekDates, today, employeeId);
                 return;
             }
@@ -12966,7 +12968,7 @@ window.viewChecklistHistory = async function() {
 
         // Individual Employee Schedule View
         function renderEmployeeScheduleView(container, weekDates, today, employeeId) {
-            const employee = employees.find(e => e.id === employeeId);
+            const employee = employees.find(e => e.id === employeeId || e.firestoreId === employeeId || String(e.id) === String(employeeId));
 
             if (!employee) {
                 container.innerHTML = `
@@ -12980,14 +12982,16 @@ window.viewChecklistHistory = async function() {
             }
 
             // Get employee's schedules for the week (from all stores)
+            // Use the found employee's actual ID for matching
+            const empId = employee.id;
             const weekKeys = weekDates.map(d => formatDateKey(d));
             const employeeSchedules = schedules.filter(s =>
-                weekKeys.includes(s.date) && s.employeeId === employeeId
+                weekKeys.includes(s.date) && (s.employeeId === empId || s.employeeId === employee.firestoreId)
             );
 
             // Get employee's days off for the week
             const employeeDaysOff = daysOff.filter(d =>
-                weekKeys.includes(d.date) && d.employeeId === employeeId
+                weekKeys.includes(d.date) && (d.employeeId === empId || d.employeeId === employee.firestoreId)
             );
 
             // Calculate total hours
