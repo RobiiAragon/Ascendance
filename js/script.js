@@ -4880,6 +4880,7 @@
         let currentClockAction = '';
         let clockInterval = null;
         let clockPollingInterval = null; // For real-time AJAX polling
+        let attendanceSelectedDate = new Date(); // Selected date for attendance view
 
         // Load attendance records from Firebase
         async function loadAttendanceRecordsFromFirebase() {
@@ -5315,10 +5316,24 @@
                 <!-- Attendance Table -->
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-clipboard-list"></i>
-                            Today's Attendance
-                        </h3>
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <h3 class="card-title" style="margin: 0;">
+                                <i class="fas fa-clipboard-list"></i>
+                                <span id="attendance-date-label">Today's Attendance</span>
+                            </h3>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button onclick="changeAttendanceDate(-1)" style="padding: 8px 12px; border: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px; cursor: pointer; color: var(--text-primary);">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <input type="date" id="attendance-date-picker" onchange="setAttendanceDate(this.value)" style="padding: 8px 12px; border: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px; color: var(--text-primary); font-family: 'Outfit', sans-serif; cursor: pointer;">
+                                <button onclick="changeAttendanceDate(1)" style="padding: 8px 12px; border: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px; cursor: pointer; color: var(--text-primary);">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button onclick="goToTodayAttendance()" style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--accent-primary); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif;">
+                                    Today
+                                </button>
+                            </div>
+                        </div>
                         <div style="display: flex; gap: 12px; align-items: center;">
                             <button class="btn-secondary" onclick="exportAttendance()">
                                 <i class="fas fa-download"></i>
@@ -5846,10 +5861,31 @@
         }
 
         async function loadAttendanceData() {
-            const todayDate = new Date();
-            const today = todayDate.toDateString();
+            // Use selected date instead of always today
+            const selectedDate = attendanceSelectedDate;
+            const displayDate = selectedDate.toDateString();
             // Use local date (not UTC) for consistency with Schedule page
-            const dateString = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+            const dateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+            // Update date picker and label
+            const datePicker = document.getElementById('attendance-date-picker');
+            const dateLabel = document.getElementById('attendance-date-label');
+            if (datePicker) datePicker.value = dateString;
+            if (dateLabel) {
+                const today = new Date();
+                const isToday = selectedDate.toDateString() === today.toDateString();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const isYesterday = selectedDate.toDateString() === yesterday.toDateString();
+
+                if (isToday) {
+                    dateLabel.textContent = "Today's Attendance";
+                } else if (isYesterday) {
+                    dateLabel.textContent = "Yesterday's Attendance";
+                } else {
+                    dateLabel.textContent = selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' Attendance';
+                }
+            }
             
             const loadingDiv = document.getElementById('loadingAttendance');
             const tableContainer = document.getElementById('attendanceTableContainer');
@@ -5895,7 +5931,7 @@
                                 employeeRole: rec.employeeRole,
                                 employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
                                 store: rec.store,
-                                date: today, // Use display format for local tracking
+                                date: displayDate, // Use display format for local tracking
                                 clockIn: rec.clockIn || null,
                                 lunchStart: rec.lunchStart || null,
                                 lunchEnd: rec.lunchEnd || null,
@@ -5903,42 +5939,42 @@
                                 notes: rec.notes || ''
                             });
                         });
-                        
+
                         // Then, add any local-only records
                         clockinAttendanceRecords.forEach(localRec => {
-                            if (!processedNames.has(localRec.employeeName) && localRec.date === today) {
+                            if (!processedNames.has(localRec.employeeName) && localRec.date === displayDate) {
                                 updatedRecords.push(localRec);
                             }
                         });
-                        
+
                         clockinAttendanceRecords = updatedRecords;
                         // Save merged data to localStorage for fallback
                         localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
                     }
                 } catch (firebaseError) {
                     console.warn('⚠️ Could not load from Firebase, using local data:', firebaseError);
-                    // Fall back to localStorage - filter only today's records
-                    clockinAttendanceRecords = clockinAttendanceRecords.filter(r => r.date === today);
+                    // Fall back to localStorage - filter only selected date's records
+                    clockinAttendanceRecords = clockinAttendanceRecords.filter(r => r.date === displayDate);
                 }
             } catch (error) {
                 console.error('Error in loadAttendanceData:', error);
             }
 
-            // Get today's records
-            const todayRecords = clockinAttendanceRecords.filter(r => r.date === today);
+            // Get selected date's records
+            const dateRecords = clockinAttendanceRecords.filter(r => r.date === displayDate);
 
             // Simulate loading delay
             setTimeout(() => {
                 loadingDiv.style.display = 'none';
 
-                if (todayRecords.length === 0) {
+                if (dateRecords.length === 0) {
                     emptyState.style.display = 'flex';
                 } else {
                     tableContainer.style.display = 'block';
-                    renderAttendanceTableRows(todayRecords);
+                    renderAttendanceTableRows(dateRecords);
                 }
 
-                updateAttendanceStats(todayRecords);
+                updateAttendanceStats(dateRecords);
             }, 300);
         }
 
@@ -6162,19 +6198,38 @@
             loadAttendanceData();
         }
 
-        function exportAttendance() {
-            const today = new Date().toDateString();
-            const todayRecords = clockinAttendanceRecords.filter(r => r.date === today);
+        // Date navigation functions for attendance
+        window.changeAttendanceDate = function(days) {
+            attendanceSelectedDate.setDate(attendanceSelectedDate.getDate() + days);
+            loadAttendanceData();
+        };
 
-            if (todayRecords.length === 0) {
-                alert('No attendance records to export');
+        window.setAttendanceDate = function(dateString) {
+            // Parse the date string (YYYY-MM-DD) and create date in local timezone
+            const [year, month, day] = dateString.split('-').map(Number);
+            attendanceSelectedDate = new Date(year, month - 1, day);
+            loadAttendanceData();
+        };
+
+        window.goToTodayAttendance = function() {
+            attendanceSelectedDate = new Date();
+            loadAttendanceData();
+        };
+
+        function exportAttendance() {
+            const selectedDate = attendanceSelectedDate.toDateString();
+            const dateRecords = clockinAttendanceRecords.filter(r => r.date === selectedDate);
+            const dateStringForFile = `${attendanceSelectedDate.getFullYear()}-${String(attendanceSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(attendanceSelectedDate.getDate()).padStart(2, '0')}`;
+
+            if (dateRecords.length === 0) {
+                alert('No attendance records to export for this date');
                 return;
             }
 
             // Create CSV content
             let csv = 'Employee,Role,Store,Clock In,Lunch Start,Lunch End,Clock Out,Total Hours,Status\n';
 
-            todayRecords.forEach(record => {
+            dateRecords.forEach(record => {
                 const status = getAttendanceStatus(record);
                 const totalHours = calculateAttendanceTotalHours(record);
 
@@ -6188,7 +6243,7 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `attendance_${dateStringForFile}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -6200,8 +6255,8 @@
             if (!searchInput) return;
 
             const searchTerm = searchInput.value.toLowerCase();
-            const today = new Date().toDateString();
-            let records = clockinAttendanceRecords.filter(r => r.date === today);
+            const selectedDate = attendanceSelectedDate.toDateString();
+            let records = clockinAttendanceRecords.filter(r => r.date === selectedDate);
 
             if (searchTerm) {
                 records = records.filter(r =>
