@@ -18035,7 +18035,7 @@ window.viewChecklistHistory = async function() {
 
                     // Validate file size (max 20MB for Storage)
                     if (file.size > 20 * 1024 * 1024) {
-                        alert('File is too large. Please use a file smaller than 20MB.');
+                        showNotification('El archivo es muy grande. Por favor usa un archivo menor a 20MB.', 'error');
                         if (saveBtn) {
                             saveBtn.innerHTML = originalText;
                             saveBtn.disabled = false;
@@ -18083,16 +18083,16 @@ window.viewChecklistHistory = async function() {
                             saveBtn.disabled = false;
                         }
 
-                        // Show specific error message based on error type
-                        let errorMessage = 'Error uploading file. ';
+                        // Show specific error message in Spanish
+                        let errorMessage = 'Error al subir el archivo. ';
                         if (uploadError.code === 'storage/unauthorized') {
-                            errorMessage += 'You do not have permission to upload files. Please contact an administrator.';
+                            errorMessage += 'No tienes permiso para subir archivos. Contacta al administrador.';
                         } else if (uploadError.code === 'storage/canceled') {
-                            errorMessage += 'Upload was cancelled.';
+                            errorMessage += 'La subida fue cancelada.';
                         } else if (uploadError.code === 'storage/unknown' || uploadError.message?.includes('Firebase Storage')) {
-                            errorMessage += 'Firebase Storage is not properly configured. Please contact an administrator.';
+                            errorMessage += 'Firebase Storage no está configurado correctamente. Contacta al administrador.';
                         } else {
-                            errorMessage += 'Please check your connection and try again.';
+                            errorMessage += 'Por favor verifica tu conexión e intenta de nuevo.';
                         }
 
                         showNotification(errorMessage, 'error');
@@ -18105,7 +18105,7 @@ window.viewChecklistHistory = async function() {
                 await createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
             } catch (error) {
                 console.error('Error saving invoice:', error);
-                showNotification('Error saving invoice. Please check all fields and try again.', 'error');
+                showNotification('Error al guardar el invoice. Por favor verifica todos los campos e intenta de nuevo.', 'error');
             } finally {
                 if (saveBtn) {
                     saveBtn.innerHTML = originalText || 'Save Invoice';
@@ -18989,6 +18989,7 @@ Return ONLY the JSON object, no additional text.`
                                     <option value="PayPal" ${invoice.paymentAccount === 'PayPal' ? 'selected' : ''}>PayPal</option>
                                     <option value="Credit Card" ${invoice.paymentAccount === 'Credit Card' ? 'selected' : ''}>Credit Card</option>
                                     <option value="Cash" ${invoice.paymentAccount === 'Cash' ? 'selected' : ''}>Cash</option>
+                                    <option value="Check" ${invoice.paymentAccount === 'Check' ? 'selected' : ''}>Check</option>
                                     <option value="Other" ${invoice.paymentAccount === 'Other' ? 'selected' : ''}>Other</option>
                                 </select>
                             </div>
@@ -19121,7 +19122,7 @@ Return ONLY the JSON object, no additional text.`
 
             // Validate required fields
             if (!invoiceNumber || !vendor || !amount) {
-                showNotification('Please fill in all required fields (Invoice #, Vendor, Amount)', 'error');
+                showNotification('Por favor completa todos los campos requeridos (Invoice #, Vendor, Amount)', 'error');
                 return;
             }
 
@@ -19129,9 +19130,10 @@ Return ONLY the JSON object, no additional text.`
             const numericId = !isNaN(invoiceId) ? parseInt(invoiceId, 10) : invoiceId;
             const invoice = invoices.find(i => i.id === invoiceId || i.id === numericId || i.firestoreId === invoiceId);
 
-            // Get new file if uploaded (Base64 encoding for both images and PDFs)
+            // Get new file if uploaded - Upload to Firebase Storage (same as add invoice)
             const fileInput = document.getElementById('edit-invoice-photo');
-            let fileData = invoice ? invoice.photo : null; // Keep existing file by default
+            let fileUrl = invoice ? invoice.photo : null; // Keep existing file by default
+            let filePath = invoice ? invoice.filePath : null;
             let fileType = invoice ? invoice.fileType : null;
             let fileName = invoice ? invoice.fileName : null;
 
@@ -19140,26 +19142,56 @@ Return ONLY the JSON object, no additional text.`
 
                 // Validate file size (max 20MB for Storage)
                 if (file.size > 20 * 1024 * 1024) {
-                    showNotification('File is too large. Please use a file smaller than 20MB.', 'error');
+                    showNotification('El archivo es muy grande. Por favor usa un archivo menor a 20MB.', 'error');
                     return;
                 }
 
-                // Determine file type
-                const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                fileType = isPdf ? 'pdf' : 'image';
-                fileName = file.name;
-
-                // Convert to Base64
                 try {
-                    fileData = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve(e.target.result);
-                        reader.onerror = (e) => reject(e);
-                        reader.readAsDataURL(file);
+                    // Initialize storage if needed
+                    if (!firebaseStorageHelper.isInitialized) {
+                        firebaseStorageHelper.initialize();
+                    }
+
+                    // Determine file type
+                    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                    fileType = isPdf ? 'pdf' : 'image';
+                    fileName = file.name;
+
+                    // Upload to Firebase Storage (disable overlay to prevent UI blocking)
+                    const uploadResult = await firebaseStorageHelper.uploadDocument(
+                        file,
+                        'invoices/attachments',
+                        invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') + '_',
+                        false  // Don't show overlay - we use notification
+                    );
+
+                    if (!uploadResult || !uploadResult.url) {
+                        throw new Error('Upload failed - no URL returned');
+                    }
+
+                    fileUrl = uploadResult.url;
+                    filePath = uploadResult.path;
+                } catch (uploadError) {
+                    console.error('Error uploading file:', uploadError);
+                    console.error('Upload error details:', {
+                        message: uploadError.message,
+                        code: uploadError.code,
+                        name: uploadError.name
                     });
-                } catch (fileError) {
-                    console.error('Error reading file:', fileError);
-                    showNotification('Error reading file. Please try a different file.', 'error');
+
+                    // Show specific error message in Spanish
+                    let errorMessage = 'Error al subir el archivo. ';
+                    if (uploadError.code === 'storage/unauthorized') {
+                        errorMessage += 'No tienes permiso para subir archivos. Contacta al administrador.';
+                    } else if (uploadError.code === 'storage/canceled') {
+                        errorMessage += 'La subida fue cancelada.';
+                    } else if (uploadError.code === 'storage/unknown' || uploadError.message?.includes('Firebase Storage')) {
+                        errorMessage += 'Firebase Storage no está configurado correctamente. Contacta al administrador.';
+                    } else {
+                        errorMessage += 'Por favor verifica tu conexión e intenta de nuevo.';
+                    }
+
+                    showNotification(errorMessage, 'error');
                     return;
                 }
             }
@@ -19181,9 +19213,10 @@ Return ONLY the JSON object, no additional text.`
                 paymentAccount: paymentAccount || '',
                 recurring: recurring,
                 notes: notes || '',
-                photo: fileData,
-                fileType: fileType,
-                fileName: fileName
+                photo: fileUrl,           // Now stores URL instead of base64
+                filePath: filePath,       // Storage path for deletion
+                fileType: fileType,       // 'pdf' or 'image' or null
+                fileName: fileName        // Original filename
             };
 
             try {
@@ -19200,7 +19233,7 @@ Return ONLY the JSON object, no additional text.`
                         renderInvoices();
                         showNotification('Invoice updated successfully', 'success');
                     } else {
-                        showNotification('Error updating invoice. Please check your connection and try again.', 'error');
+                        showNotification('Error al actualizar invoice. Por favor verifica tu conexión e intenta de nuevo.', 'error');
                     }
                 } else {
                     // Fallback to local only
@@ -19214,7 +19247,7 @@ Return ONLY the JSON object, no additional text.`
                 }
             } catch (error) {
                 console.error('Error saving invoice changes:', error);
-                showNotification('Error saving invoice changes. Please check all fields and try again.', 'error');
+                showNotification('Error al guardar cambios del invoice. Por favor verifica todos los campos e intenta de nuevo.', 'error');
             }
         }
 
@@ -28241,6 +28274,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="PayPal">PayPal</option>
                                         <option value="Credit Card">Credit Card</option>
                                         <option value="Cash">Cash</option>
+                                        <option value="Check">Check</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
