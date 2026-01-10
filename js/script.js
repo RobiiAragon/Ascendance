@@ -16187,7 +16187,7 @@ window.viewChecklistHistory = async function() {
             minAmount: null,
             maxAmount: null,
             activeTab: 'current', // 'current' or 'recurring'
-            sortBy: 'dueDate-asc' // default sort
+            sortBy: 'createdAt-desc' // default sort - most recent first
         };
 
         // Default invoice categories
@@ -16658,6 +16658,10 @@ window.viewChecklistHistory = async function() {
                 let valA, valB;
 
                 switch (field) {
+                    case 'createdAt':
+                        valA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
+                        valB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
+                        break;
                     case 'dueDate':
                         valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
                         valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
@@ -16679,8 +16683,9 @@ window.viewChecklistHistory = async function() {
                         valB = parseFloat(b.amount) || 0;
                         break;
                     default:
-                        valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-                        valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                        // Default to createdAt desc if field not recognized
+                        valA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
+                        valB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
                 }
 
                 return multiplier * (valA - valB);
@@ -17445,6 +17450,8 @@ window.viewChecklistHistory = async function() {
                             <div>
                                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Sort By</label>
                                 <select class="form-input" onchange="updateInvoiceSort(this.value)">
+                                    <option value="createdAt-desc" ${invoiceFilters.sortBy === 'createdAt-desc' ? 'selected' : ''}>Date Added (Newest)</option>
+                                    <option value="createdAt-asc" ${invoiceFilters.sortBy === 'createdAt-asc' ? 'selected' : ''}>Date Added (Oldest)</option>
                                     <option value="dueDate-asc" ${invoiceFilters.sortBy === 'dueDate-asc' ? 'selected' : ''}>Due Date (Oldest)</option>
                                     <option value="dueDate-desc" ${invoiceFilters.sortBy === 'dueDate-desc' ? 'selected' : ''}>Due Date (Newest)</option>
                                     <option value="invoiceDate-desc" ${invoiceFilters.sortBy === 'invoiceDate-desc' ? 'selected' : ''}>Invoice Date (Newest)</option>
