@@ -6957,22 +6957,51 @@
                     </div>
                 </div>
 
-                <!-- Pending Items - Most Important -->
+                <!-- Pending Items - Grouped by Store -->
                 ${pendingSupplies.length > 0 ? `
                     <div class="card" style="margin-bottom: 24px; border: 2px solid #f59e0b;">
                         <div class="card-header" style="background: rgba(245, 158, 11, 0.1);">
                             <h3 class="card-title" style="color: #f59e0b;"><i class="fas fa-clock"></i> Pending Requests (${pendingSupplies.length})</h3>
                         </div>
                         <div class="card-body">
-                            ${suppliesViewMode === 'gallery' ? `
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
-                                    ${pendingSupplies.map(item => renderSupplyCard(item)).join('')}
-                                </div>
-                            ` : `
-                                <div class="supplies-list">
-                                    ${pendingSupplies.map(item => renderSupplyListItem(item)).join('')}
-                                </div>
-                            `}
+                            ${(() => {
+                                // Group pending by store
+                                const pendingByStore = {};
+                                pendingSupplies.forEach(item => {
+                                    const store = item.store || 'Unknown';
+                                    if (!pendingByStore[store]) pendingByStore[store] = [];
+                                    pendingByStore[store].push(item);
+                                });
+
+                                const storeColors = {
+                                    'Miramar': '#3b82f6',
+                                    'Morena': '#06b6d4',
+                                    'Kearny Mesa': '#f97316',
+                                    'Chula Vista': '#10b981',
+                                    'North Park': '#8b5cf6',
+                                    'Loyal Vaper': '#ec4899',
+                                    'Miramar Wine & Liquor': '#6366f1'
+                                };
+
+                                return Object.entries(pendingByStore).map(([store, items]) => `
+                                    <div style="margin-bottom: 20px;">
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid ${storeColors[store] || '#6b7280'};">
+                                            <div style="width: 14px; height: 14px; border-radius: 50%; background: ${storeColors[store] || '#6b7280'};"></div>
+                                            <span style="font-weight: 700; font-size: 16px; color: ${storeColors[store] || '#6b7280'};">${store}</span>
+                                            <span style="font-size: 13px; color: var(--text-muted);">(${items.length} items)</span>
+                                        </div>
+                                        ${suppliesViewMode === 'gallery' ? `
+                                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                                                ${items.map(item => renderSupplyCard(item)).join('')}
+                                            </div>
+                                        ` : `
+                                            <div class="supplies-list">
+                                                ${items.map(item => renderSupplyListItem(item)).join('')}
+                                            </div>
+                                        `}
+                                    </div>
+                                `).join('');
+                            })()}
                         </div>
                     </div>
                 ` : ''}
