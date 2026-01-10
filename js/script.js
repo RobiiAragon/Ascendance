@@ -18045,24 +18045,39 @@ window.viewChecklistHistory = async function() {
 
                     if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading file...';
 
-                    // Initialize storage if needed
-                    if (!firebaseStorageHelper.isInitialized) {
-                        firebaseStorageHelper.initialize();
+                    try {
+                        // Initialize storage if needed
+                        if (!firebaseStorageHelper.isInitialized) {
+                            firebaseStorageHelper.initialize();
+                        }
+
+                        // Determine file type
+                        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                        fileType = isPdf ? 'pdf' : 'image';
+                        fileName = file.name;
+
+                        // Upload to Firebase Storage
+                        const uploadResult = await firebaseStorageHelper.uploadDocument(
+                            file,
+                            'invoices/attachments',
+                            invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') + '_'
+                        );
+
+                        if (!uploadResult || !uploadResult.url) {
+                            throw new Error('Upload failed - no URL returned');
+                        }
+
+                        fileUrl = uploadResult.url;
+                        filePath = uploadResult.path;
+                    } catch (uploadError) {
+                        console.error('Error uploading file:', uploadError);
+                        if (saveBtn) {
+                            saveBtn.innerHTML = originalText || 'Save Invoice';
+                            saveBtn.disabled = false;
+                        }
+                        showNotification('Error uploading file. Please check your connection and try again.', 'error');
+                        return;
                     }
-
-                    // Determine file type
-                    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                    fileType = isPdf ? 'pdf' : 'image';
-                    fileName = file.name;
-
-                    // Upload to Firebase Storage
-                    const uploadResult = await firebaseStorageHelper.uploadDocument(
-                        file,
-                        'invoices/attachments',
-                        invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') + '_'
-                    );
-                    fileUrl = uploadResult.url;
-                    filePath = uploadResult.path;
                 }
 
                 if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving invoice...';
@@ -18070,7 +18085,7 @@ window.viewChecklistHistory = async function() {
                 await createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
             } catch (error) {
                 console.error('Error saving invoice:', error);
-                alert('Error saving invoice. Please try again.');
+                showNotification('Error saving invoice. Please check all fields and try again.', 'error');
             } finally {
                 if (saveBtn) {
                     saveBtn.innerHTML = originalText || 'Save Invoice';
@@ -19115,12 +19130,18 @@ Return ONLY the JSON object, no additional text.`
                 fileName = file.name;
 
                 // Convert to Base64
-                fileData = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = (e) => reject(e);
-                    reader.readAsDataURL(file);
-                });
+                try {
+                    fileData = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = (e) => reject(e);
+                        reader.readAsDataURL(file);
+                    });
+                } catch (fileError) {
+                    console.error('Error reading file:', fileError);
+                    showNotification('Error reading file. Please try a different file.', 'error');
+                    return;
+                }
             }
 
             // Create update data object
@@ -19159,7 +19180,7 @@ Return ONLY the JSON object, no additional text.`
                         renderInvoices();
                         showNotification('Invoice updated successfully', 'success');
                     } else {
-                        showNotification('Error updating invoice', 'error');
+                        showNotification('Error updating invoice. Please check your connection and try again.', 'error');
                     }
                 } else {
                     // Fallback to local only
@@ -19173,7 +19194,7 @@ Return ONLY the JSON object, no additional text.`
                 }
             } catch (error) {
                 console.error('Error saving invoice changes:', error);
-                showNotification('Error saving invoice changes', 'error');
+                showNotification('Error saving invoice changes. Please check all fields and try again.', 'error');
             }
         }
 
