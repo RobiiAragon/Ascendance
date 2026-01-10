@@ -12479,6 +12479,7 @@ window.viewChecklistHistory = async function() {
             console.log('Total employees:', employees.length, '| Active:', activeEmployees.length);
 
             let optionsHtml = '<option value="">-- By Employee --</option>';
+            optionsHtml += '<option value="all-employees">All Employees</option>';
 
             if (activeEmployees.length > 0) {
                 optionsHtml += activeEmployees.map(emp =>
@@ -12544,6 +12545,16 @@ window.viewChecklistHistory = async function() {
             const employeeFilter = document.getElementById('schedule-employee-filter')?.value || '';
             const weekDates = getWeekDates(currentWeekStart);
             const today = formatDateKey(new Date());
+
+            // If "All Employees" is selected from the employee dropdown
+            if (employeeFilter === 'all-employees') {
+                const storeSelect = document.getElementById('schedule-store-filter');
+                if (storeSelect && storeSelect.value !== 'all') {
+                    storeSelect.value = 'all';
+                }
+                renderAllEmployeesView(container, weekDates, today);
+                return;
+            }
 
             // If employee is selected from the employee dropdown, show their personal schedule
             if (employeeFilter && employeeFilter.startsWith('emp_')) {
