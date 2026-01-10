@@ -182,7 +182,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs', 'thechamps']
+        pages: ['celesteai', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'risknotes', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs', 'thechamps', 'thieves']
     },
     'employee': {
         // Action Permissions
@@ -196,7 +196,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['celesteai', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues']
+        pages: ['celesteai', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'risknotes', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves']
     }
 };
 
