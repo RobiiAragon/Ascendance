@@ -15438,12 +15438,28 @@ window.viewChecklistHistory = async function() {
             const dashboard = document.querySelector('.dashboard');
             if (!dashboard) return;
 
+            const currentUser = getCurrentUser();
+            const userRole = currentUser?.role || 'employee';
+            const isManager = userRole === 'admin' || userRole === 'manager';
+
             const pendingRequests = ptoRequests.filter(r => r.status === 'pending');
             const processedRequests = ptoRequests.filter(r => r.status !== 'pending');
 
+            // Get user's own requests
+            const myRequests = ptoRequests.filter(r =>
+                r.employeeId === currentUser?.id ||
+                r.employeeId === currentUser?.firestoreId ||
+                r.requestedBy === currentUser?.name
+            );
+
+            // Calculate min date (30 days from now)
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 30);
+            const minDateStr = minDate.toISOString().split('T')[0];
+
             dashboard.innerHTML = `
                 <div class="pto-requests-page">
-                    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
                         <div>
                             <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">
                                 <i class="fas fa-calendar-check" style="color: var(--accent-primary); margin-right: 8px;"></i>
@@ -15456,36 +15472,203 @@ window.viewChecklistHistory = async function() {
                         </button>
                     </div>
 
-                    ${pendingRequests.length > 0 ? `
-                        <div class="pto-section" style="margin-bottom: 32px;">
-                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #f59e0b;">
-                                <i class="fas fa-clock"></i> Pending Requests (${pendingRequests.length})
-                            </h3>
-                            <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
-                                ${pendingRequests.map(request => renderPTORequestCard(request, true)).join('')}
-                            </div>
-                        </div>
-                    ` : `
-                        <div style="padding: 40px; text-align: center; background: var(--bg-card); border-radius: 12px; margin-bottom: 32px;">
-                            <i class="fas fa-check-circle" style="font-size: 48px; color: #10b981; margin-bottom: 16px;"></i>
-                            <h3 style="color: var(--text-secondary);">No Pending Requests</h3>
-                            <p style="color: var(--text-muted);">All time off requests have been processed</p>
-                        </div>
-                    `}
+                    <!-- Request Time Off Form -->
+                    <div style="background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); padding: 24px; margin-bottom: 32px;">
+                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-paper-plane" style="color: var(--accent-primary);"></i>
+                            Request Time Off
+                        </h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                            <i class="fas fa-info-circle" style="color: #f59e0b;"></i>
+                            Requests must be submitted at least <strong>30 days in advance</strong>
+                        </p>
 
-                    ${processedRequests.length > 0 ? `
-                        <div class="pto-section">
-                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-secondary);">
-                                <i class="fas fa-history"></i> Recent History
-                            </h3>
-                            <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
-                                ${processedRequests.slice(0, 10).map(request => renderPTORequestCard(request, false)).join('')}
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                            <!-- Request Type -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Type</label>
+                                <select id="self-pto-type" class="form-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                                    <option value="vacation">🏖️ Vacation</option>
+                                    <option value="sick">🏥 Sick Leave</option>
+                                    <option value="personal">👤 Personal Day</option>
+                                    <option value="pto">📅 PTO</option>
+                                </select>
+                            </div>
+
+                            <!-- Start Date -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Start Date</label>
+                                <input type="date" id="self-pto-start" class="form-input" min="${minDateStr}"
+                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);"
+                                    onchange="updateSelfPTODuration()">
+                            </div>
+
+                            <!-- End Date -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">End Date</label>
+                                <input type="date" id="self-pto-end" class="form-input" min="${minDateStr}"
+                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);"
+                                    onchange="updateSelfPTODuration()">
+                            </div>
+
+                            <!-- Duration Display -->
+                            <div class="form-group" style="margin: 0;">
+                                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Duration</label>
+                                <div id="self-pto-duration" style="padding: 12px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-color); font-weight: 500; color: var(--text-muted);">
+                                    Select dates
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Reason -->
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Reason (Optional)</label>
+                            <textarea id="self-pto-reason" class="form-input" rows="2" placeholder="Add any notes or reason for your request..."
+                                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); resize: vertical;"></textarea>
+                        </div>
+
+                        <button onclick="submitSelfPTORequest()" style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
+                    </div>
+
+                    <!-- My Requests Section -->
+                    ${myRequests.length > 0 ? `
+                        <div class="pto-section" style="margin-bottom: 32px;">
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--accent-primary);">
+                                <i class="fas fa-user"></i> My Requests (${myRequests.length})
+                            </h3>
+                            <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
+                                ${myRequests.slice(0, 5).map(request => renderPTORequestCard(request, false)).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${isManager ? `
+                        ${pendingRequests.length > 0 ? `
+                            <div class="pto-section" style="margin-bottom: 32px;">
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #f59e0b;">
+                                    <i class="fas fa-clock"></i> Pending Requests (${pendingRequests.length})
+                                </h3>
+                                <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
+                                    ${pendingRequests.map(request => renderPTORequestCard(request, true)).join('')}
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="padding: 40px; text-align: center; background: var(--bg-card); border-radius: 12px; margin-bottom: 32px;">
+                                <i class="fas fa-check-circle" style="font-size: 48px; color: #10b981; margin-bottom: 16px;"></i>
+                                <h3 style="color: var(--text-secondary);">No Pending Requests</h3>
+                                <p style="color: var(--text-muted);">All time off requests have been processed</p>
+                            </div>
+                        `}
+
+                        ${processedRequests.length > 0 ? `
+                            <div class="pto-section">
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-secondary);">
+                                    <i class="fas fa-history"></i> Recent History
+                                </h3>
+                                <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
+                                    ${processedRequests.slice(0, 10).map(request => renderPTORequestCard(request, false)).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     ` : ''}
                 </div>
             `;
         }
+
+        // Update duration display for self PTO request
+        function updateSelfPTODuration() {
+            const startDate = document.getElementById('self-pto-start')?.value;
+            const endDate = document.getElementById('self-pto-end')?.value;
+            const durationDiv = document.getElementById('self-pto-duration');
+
+            if (durationDiv && startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+                if (diffDays > 0) {
+                    durationDiv.innerHTML = `<span style="color: var(--accent-primary); font-weight: 600;">${diffDays} day${diffDays > 1 ? 's' : ''}</span>`;
+                } else {
+                    durationDiv.innerHTML = '<span style="color: #ef4444;">Invalid dates</span>';
+                }
+            }
+        }
+
+        // Submit PTO request for current user
+        async function submitSelfPTORequest() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                showNotification('Please log in to submit a request', 'error');
+                return;
+            }
+
+            const requestType = document.getElementById('self-pto-type')?.value;
+            const startDate = document.getElementById('self-pto-start')?.value;
+            const endDate = document.getElementById('self-pto-end')?.value;
+            const reason = document.getElementById('self-pto-reason')?.value || '';
+
+            if (!startDate || !endDate) {
+                showNotification('Please select start and end dates', 'warning');
+                return;
+            }
+
+            // Validate 30 days in advance
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const startDateObj = new Date(startDate);
+            const daysDiff = Math.ceil((startDateObj - today) / (1000 * 60 * 60 * 24));
+
+            if (daysDiff < 30) {
+                showNotification('Requests must be submitted at least 30 days in advance', 'warning');
+                return;
+            }
+
+            if (new Date(endDate) < new Date(startDate)) {
+                showNotification('End date must be after start date', 'warning');
+                return;
+            }
+
+            const requestData = {
+                employeeId: currentUser.id || currentUser.firestoreId || currentUser.email,
+                employeeName: currentUser.name || currentUser.displayName || 'Unknown',
+                employeeStore: currentUser.store || '',
+                requestType: requestType,
+                startDate: startDate,
+                endDate: endDate,
+                reason: reason,
+                status: 'pending',
+                requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                requestedBy: currentUser.name || currentUser.displayName || 'Unknown',
+                reviewedAt: null,
+                reviewedBy: null,
+                reviewNotes: ''
+            };
+
+            try {
+                const db = firebase.firestore();
+                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').add(requestData);
+
+                showNotification('Time off request submitted successfully!', 'success');
+
+                // Clear form
+                document.getElementById('self-pto-start').value = '';
+                document.getElementById('self-pto-end').value = '';
+                document.getElementById('self-pto-reason').value = '';
+                document.getElementById('self-pto-duration').innerHTML = 'Select dates';
+
+                // Reload requests
+                await loadPTORequests();
+                renderPTORequestsPage();
+            } catch (error) {
+                console.error('Error submitting PTO request:', error);
+                showNotification('Error submitting request. Please try again.', 'error');
+            }
+        }
+
+        window.updateSelfPTODuration = updateSelfPTODuration;
+        window.submitSelfPTORequest = submitSelfPTORequest;
 
         function renderPTORequestCard(request, showActions = false) {
             const typeConfig = PTO_REQUEST_TYPES[request.requestType] || PTO_REQUEST_TYPES.pto;
