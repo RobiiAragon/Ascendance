@@ -8919,6 +8919,13 @@ window.viewChecklistHistory = async function() {
                 </div>
                 ` : ''}
 
+                <!-- Division Tabs (VSU / Loyal Vaper) -->
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <button onclick="setRequestDivision('all')" id="req-division-all" style="padding: 14px 28px; font-size: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: white; cursor: pointer; font-weight: 700; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">All</button>
+                    <button onclick="setRequestDivision('vsu')" id="req-division-vsu" style="padding: 14px 28px; font-size: 15px; border-radius: 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 700;">VSU</button>
+                    <button onclick="setRequestDivision('loyalvaper')" id="req-division-loyalvaper" style="padding: 14px 28px; font-size: 15px; border-radius: 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 700;">Loyal Vaper</button>
+                </div>
+
                 <!-- Filter & Sort Row -->
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
                     <!-- Priority Filters -->
@@ -10189,10 +10196,17 @@ window.viewChecklistHistory = async function() {
             }
         }
 
-        // Current priority filter, store filter, and sort
+        // Current priority filter, store filter, division filter, and sort
         let currentRequestPriorityFilter = 'all';
         let currentRequestStoreFilter = 'all';
+        let currentRequestDivision = 'all'; // all, vsu, loyalvaper
         let currentRequestSort = 'none'; // none, alpha, qty, store
+
+        // Division store mappings
+        const divisionStores = {
+            vsu: ['Miramar', 'Chula Vista', 'Morena', 'North Park', 'Kearny Mesa'],
+            loyalvaper: ['Loyal Vaper', 'Loyal Vaper SD', 'LV San Diego', 'LV']
+        };
 
         // Set priority filter for requests
         window.setRequestPriorityFilter = function(filter) {
@@ -10258,12 +10272,51 @@ window.viewChecklistHistory = async function() {
             renderFilteredRequests();
         };
 
+        // Set division filter for requests (VSU / Loyal Vaper)
+        window.setRequestDivision = function(division) {
+            currentRequestDivision = division;
+
+            // Update division tab styles
+            ['all', 'vsu', 'loyalvaper'].forEach(d => {
+                const btn = document.getElementById(`req-division-${d}`);
+                if (btn) {
+                    if (d === division) {
+                        btn.style.background = 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))';
+                        btn.style.color = 'white';
+                        btn.style.border = 'none';
+                        btn.style.boxShadow = '0 4px 15px rgba(139, 92, 246, 0.3)';
+                    } else {
+                        btn.style.background = 'var(--bg-secondary)';
+                        btn.style.color = 'var(--text-primary)';
+                        btn.style.border = '2px solid var(--border-color)';
+                        btn.style.boxShadow = 'none';
+                    }
+                }
+            });
+
+            // Reset store filter when changing division
+            currentRequestStoreFilter = 'all';
+            const storeDropdown = document.getElementById('req-store-filter');
+            if (storeDropdown) storeDropdown.value = 'all';
+
+            renderFilteredRequests();
+        };
+
         // Render filtered requests without full page re-render
         function renderFilteredRequests() {
             const listContainer = document.querySelector('.product-requests-list');
             if (!listContainer) return;
 
             let filtered = [...restockRequests];
+
+            // Apply division filter first
+            if (currentRequestDivision !== 'all') {
+                const divisionStoreList = divisionStores[currentRequestDivision] || [];
+                filtered = filtered.filter(r => {
+                    const store = (r.store || '').toLowerCase();
+                    return divisionStoreList.some(ds => store.includes(ds.toLowerCase()));
+                });
+            }
 
             // Apply priority filter
             if (currentRequestPriorityFilter === 'pending') {
