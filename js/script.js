@@ -2098,7 +2098,12 @@
                             <button class="card-action" onclick="navigateTo('restock')">Restock</button>
                         </div>
                         <div class="card-body" style="padding-top: 8px;">
-                            <!-- Simple tabs -->
+                            <!-- Store tabs -->
+                            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                                <button onclick="setLowStockStore('vsu')" id="low-stock-store-vsu" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--accent-primary); color: white; cursor: pointer;">VSU</button>
+                                <button onclick="setLowStockStore('loyalvaper')" id="low-stock-store-loyalvaper" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer;">Loyal Vaper</button>
+                            </div>
+                            <!-- Level tabs -->
                             <div style="display: flex; gap: 4px; margin-bottom: 10px;">
                                 <button onclick="setLowStockTab('all')" id="low-stock-tab-all" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--accent-primary); color: white; cursor: pointer;">All</button>
                                 <button onclick="setLowStockTab('critical')" id="low-stock-tab-critical" style="padding: 4px 10px; font-size: 11px; border-radius: 5px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer;">Critical</button>
@@ -2473,9 +2478,14 @@
         }
 
         /**
-         * Load low stock alerts - Simple with tabs
+         * Load low stock alerts - With store tabs
          */
-        window.lowStockData = { all: [], currentTab: 'all' };
+        window.lowStockData = {
+            vsu: [],
+            loyalvaper: [],
+            currentTab: 'all',
+            currentStore: 'vsu'
+        };
 
         async function loadLowStockAlerts() {
             const container = document.getElementById('low-stock-container');
@@ -2483,19 +2493,31 @@
 
             try {
                 if (typeof fetchStoreInventory === 'function') {
-                    const inventory = await fetchStoreInventory('vsu', 50);
+                    // Load inventory from both stores
+                    const [vsuInventory, loyalvaperInventory] = await Promise.all([
+                        fetchStoreInventory('vsu', 50).catch(err => {
+                            console.warn('[Dashboard] Error loading VSU inventory:', err);
+                            return [];
+                        }),
+                        fetchStoreInventory('loyalvaper', 50).catch(err => {
+                            console.warn('[Dashboard] Error loading Loyal Vaper inventory:', err);
+                            return [];
+                        })
+                    ]);
 
-                    if (inventory && inventory.length > 0) {
-                        // Filter low stock items (<10 units), sort by qty
-                        const lowStock = inventory.filter(item => {
+                    // Filter low stock items (<10 units), sort by qty
+                    const filterLowStock = (inventory) => {
+                        return inventory.filter(item => {
                             const qty = item.inventoryQuantity || item.quantity || 0;
                             return qty >= 0 && qty < 10;
                         }).sort((a, b) => (a.inventoryQuantity || 0) - (b.inventoryQuantity || 0));
+                    };
 
-                        window.lowStockData.all = lowStock;
-                        renderLowStockItems();
-                        return;
-                    }
+                    window.lowStockData.vsu = filterLowStock(vsuInventory || []);
+                    window.lowStockData.loyalvaper = filterLowStock(loyalvaperInventory || []);
+
+                    renderLowStockItems();
+                    return;
                 }
 
                 container.innerHTML = `
@@ -2515,7 +2537,23 @@
             }
         }
 
-        // Set active tab
+        // Set active store tab
+        window.setLowStockStore = function(store) {
+            window.lowStockData.currentStore = store;
+
+            // Update store tab styles
+            ['vsu', 'loyalvaper'].forEach(s => {
+                const btn = document.getElementById(`low-stock-store-${s}`);
+                if (btn) {
+                    btn.style.background = (s === store) ? 'var(--accent-primary)' : 'var(--bg-secondary)';
+                    btn.style.color = (s === store) ? 'white' : 'var(--text-secondary)';
+                }
+            });
+
+            renderLowStockItems();
+        };
+
+        // Set active level tab
         window.setLowStockTab = function(tab) {
             window.lowStockData.currentTab = tab;
 
@@ -2536,10 +2574,11 @@
             const container = document.getElementById('low-stock-container');
             if (!container) return;
 
-            const { all, currentTab } = window.lowStockData;
+            const { vsu, loyalvaper, currentTab, currentStore } = window.lowStockData;
+            const storeData = currentStore === 'vsu' ? vsu : loyalvaper;
 
             // Filter by tab
-            let filtered = all.filter(item => {
+            let filtered = storeData.filter(item => {
                 const qty = item.inventoryQuantity || item.quantity || 0;
                 if (currentTab === 'critical') return qty < 3;
                 if (currentTab === 'low') return qty >= 3 && qty < 6;
@@ -2556,6 +2595,7 @@
                 return;
             }
 
+            const storeName = currentStore === 'vsu' ? 'VSU' : 'Loyal Vaper';
             container.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     ${filtered.slice(0, 8).map(item => {
