@@ -1917,15 +1917,6 @@
                         <div class="stat-value">${employees.length}</div>
                         <div class="stat-label">Total Employees</div>
                     </div>
-                    <div class="stat-card" style="cursor: pointer;" onclick="navigateTo('analytics')" id="monthly-revenue-card">
-                        <div class="stat-header">
-                            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
-                            <div class="stat-trend up" id="revenue-trend"><i class="fas fa-sync fa-spin"></i> Loading...</div>
-                        </div>
-                        <div class="stat-value" id="revenue-value">--</div>
-                        <div class="stat-label">Monthly Revenue</div>
-                    </div>
-
                     <div class="stat-card" style="cursor: pointer;" onclick="navigateTo('licenses')">
                         <div class="stat-header">
                             <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
@@ -4817,6 +4808,12 @@
                     ${announcements.map(ann => {
                         const annAuthorInitials = (ann.author || 'UN').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
                         const annId = ann.firestoreId || ann.id;
+                        const likes = ann.likes || [];
+                        const comments = ann.comments || [];
+                        const currentUserId = user?.id || user?.odooId || user?.email;
+                        const hasLiked = likes.some(l => l.odooId === currentUserId || l.odooId === user?.odooId || l.userId === currentUserId);
+                        const likeCount = likes.length;
+                        const commentCount = comments.length;
                         return `
                         <div class="announcement-card" data-id="${annId}">
                             <div class="announcement-card-header">
@@ -4835,6 +4832,63 @@
                             <h3 class="announcement-title">${ann.title}</h3>
                             <p class="announcement-content">${ann.content}</p>
                             ${ann.targetStores && ann.targetStores !== 'all' ? `<div class="announcement-stores" style="margin-top: 8px; font-size: 12px; color: var(--text-muted);"><i class="fas fa-store"></i> ${ann.targetStores}</div>` : ''}
+
+                            <!-- Like and Comment Actions -->
+                            <div class="announcement-interactions" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                <div class="interaction-buttons" style="display: flex; gap: 16px; margin-bottom: 12px;">
+                                    <button class="interaction-btn ${hasLiked ? 'liked' : ''}" onclick="toggleAnnouncementLike('${annId}')" style="display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; color: ${hasLiked ? '#ef4444' : 'var(--text-muted)'}; font-size: 14px; padding: 8px 12px; border-radius: 8px; transition: all 0.2s;">
+                                        <i class="${hasLiked ? 'fas' : 'far'} fa-heart" style="font-size: 18px;"></i>
+                                        <span>${likeCount > 0 ? likeCount : ''} ${likeCount === 1 ? 'Like' : (likeCount > 1 ? 'Likes' : 'Like')}</span>
+                                    </button>
+                                    <button class="interaction-btn" onclick="toggleAnnouncementComments('${annId}')" style="display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 8px; transition: all 0.2s;">
+                                        <i class="far fa-comment" style="font-size: 18px;"></i>
+                                        <span>${commentCount > 0 ? commentCount : ''} ${commentCount === 1 ? 'Comment' : (commentCount > 1 ? 'Comments' : 'Comment')}</span>
+                                    </button>
+                                </div>
+
+                                ${likeCount > 0 ? `
+                                <div class="likes-preview" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                                    <i class="fas fa-heart" style="color: #ef4444; margin-right: 4px;"></i>
+                                    ${likes.slice(0, 3).map(l => l.name).join(', ')}${likeCount > 3 ? ` and ${likeCount - 3} more` : ''}
+                                </div>
+                                ` : ''}
+
+                                <!-- Comments Section (Hidden by default) -->
+                                <div class="comments-section" id="comments-${annId}" style="display: none;">
+                                    <div class="comments-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 12px;">
+                                        ${comments.length > 0 ? comments.map(comment => {
+                                            const commentInitials = (comment.author || 'UN').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                                            const isOwnComment = comment.odooId === currentUserId || comment.odooId === user?.odooId;
+                                            return `
+                                            <div class="comment-item" style="display: flex; gap: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 8px;">
+                                                <div class="comment-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0;">${commentInitials}</div>
+                                                <div class="comment-content" style="flex: 1; min-width: 0;">
+                                                    <div class="comment-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                                        <span class="comment-author" style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${comment.author}</span>
+                                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                                            <span class="comment-date" style="font-size: 11px; color: var(--text-muted);">${formatRelativeTime(comment.date)}</span>
+                                                            ${isOwnComment ? `<button onclick="deleteAnnouncementComment('${annId}', '${comment.id}')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px; padding: 2px;"><i class="fas fa-trash"></i></button>` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <p class="comment-text" style="margin: 0; font-size: 13px; color: var(--text-secondary); word-wrap: break-word;">${comment.text}</p>
+                                                </div>
+                                            </div>
+                                            `;
+                                        }).join('') : '<p style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 16px;">No comments yet. Be the first to comment!</p>'}
+                                    </div>
+
+                                    <!-- Add Comment Input -->
+                                    <div class="add-comment" style="display: flex; gap: 10px; align-items: flex-start;">
+                                        <div class="comment-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0;">${authorInitials}</div>
+                                        <div style="flex: 1; display: flex; gap: 8px;">
+                                            <input type="text" class="form-input comment-input" id="comment-input-${annId}" placeholder="Write a comment..." style="flex: 1; padding: 10px 14px; font-size: 13px; border-radius: 20px;" onkeypress="if(event.key === 'Enter') addAnnouncementComment('${annId}')">
+                                            <button onclick="addAnnouncementComment('${annId}')" style="background: var(--accent-primary); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                <i class="fas fa-paper-plane" style="font-size: 14px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     `}).join('')}
                 </div>
@@ -4988,6 +5042,178 @@
                 alert('Failed to update announcement. Please try again.');
             }
         }
+
+        // ==========================================
+        // ANNOUNCEMENT LIKES & COMMENTS
+        // ==========================================
+
+        /**
+         * Toggle like on an announcement
+         */
+        async function toggleAnnouncementLike(announcementId) {
+            const user = authManager.getCurrentUser();
+            if (!user) {
+                alert('Please log in to like announcements');
+                return;
+            }
+
+            const announcement = announcements.find(a => a.id === announcementId || a.firestoreId === announcementId);
+            if (!announcement) return;
+
+            const likes = announcement.likes || [];
+            const currentUserId = user.id || user.odooId || user.email;
+            const existingLikeIndex = likes.findIndex(l => l.odooId === currentUserId || l.odooId === user.odooId || l.userId === currentUserId);
+
+            let updatedLikes;
+            if (existingLikeIndex > -1) {
+                // Remove like
+                updatedLikes = likes.filter((_, i) => i !== existingLikeIndex);
+            } else {
+                // Add like
+                updatedLikes = [...likes, {
+                    odooId: user.odooId || currentUserId,
+                    userId: currentUserId,
+                    name: user.name || user.email?.split('@')[0] || 'Unknown',
+                    date: new Date().toISOString()
+                }];
+            }
+
+            // Update in Firebase
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    await firebaseAnnouncementsManager.updateAnnouncement(announcementId, { likes: updatedLikes });
+                    // Reload announcements
+                    const updated = await firebaseAnnouncementsManager.loadAnnouncements();
+                    if (updated) announcements = updated;
+                } else {
+                    // Local update
+                    announcement.likes = updatedLikes;
+                }
+                renderAnnouncements();
+            } catch (error) {
+                console.error('Error toggling like:', error);
+            }
+        }
+
+        /**
+         * Toggle comments section visibility
+         */
+        function toggleAnnouncementComments(announcementId) {
+            const commentsSection = document.getElementById(`comments-${announcementId}`);
+            if (commentsSection) {
+                const isHidden = commentsSection.style.display === 'none';
+                commentsSection.style.display = isHidden ? 'block' : 'none';
+                if (isHidden) {
+                    // Focus on comment input
+                    const input = document.getElementById(`comment-input-${announcementId}`);
+                    if (input) input.focus();
+                }
+            }
+        }
+
+        /**
+         * Add a comment to an announcement
+         */
+        async function addAnnouncementComment(announcementId) {
+            const user = authManager.getCurrentUser();
+            if (!user) {
+                alert('Please log in to comment');
+                return;
+            }
+
+            const input = document.getElementById(`comment-input-${announcementId}`);
+            const text = input?.value?.trim();
+            if (!text) return;
+
+            const announcement = announcements.find(a => a.id === announcementId || a.firestoreId === announcementId);
+            if (!announcement) return;
+
+            const currentUserId = user.id || user.odooId || user.email;
+            const newComment = {
+                id: 'comment_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                odooId: user.odooId || currentUserId,
+                userId: currentUserId,
+                author: user.name || user.email?.split('@')[0] || 'Unknown',
+                text: text,
+                date: new Date().toISOString()
+            };
+
+            const updatedComments = [...(announcement.comments || []), newComment];
+
+            // Update in Firebase
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    await firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+                    // Reload announcements
+                    const updated = await firebaseAnnouncementsManager.loadAnnouncements();
+                    if (updated) announcements = updated;
+                } else {
+                    announcement.comments = updatedComments;
+                }
+                renderAnnouncements();
+                // Re-open comments section after render
+                setTimeout(() => {
+                    const commentsSection = document.getElementById(`comments-${announcementId}`);
+                    if (commentsSection) commentsSection.style.display = 'block';
+                }, 50);
+            } catch (error) {
+                console.error('Error adding comment:', error);
+            }
+        }
+
+        /**
+         * Delete a comment from an announcement
+         */
+        async function deleteAnnouncementComment(announcementId, commentId) {
+            const announcement = announcements.find(a => a.id === announcementId || a.firestoreId === announcementId);
+            if (!announcement) return;
+
+            const updatedComments = (announcement.comments || []).filter(c => c.id !== commentId);
+
+            try {
+                if (firebaseAnnouncementsManager.isInitialized) {
+                    await firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+                    const updated = await firebaseAnnouncementsManager.loadAnnouncements();
+                    if (updated) announcements = updated;
+                } else {
+                    announcement.comments = updatedComments;
+                }
+                renderAnnouncements();
+                // Re-open comments section after render
+                setTimeout(() => {
+                    const commentsSection = document.getElementById(`comments-${announcementId}`);
+                    if (commentsSection) commentsSection.style.display = 'block';
+                }, 50);
+            } catch (error) {
+                console.error('Error deleting comment:', error);
+            }
+        }
+
+        /**
+         * Format relative time (e.g., "2 hours ago")
+         */
+        function formatRelativeTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffSec < 60) return 'Just now';
+            if (diffMin < 60) return `${diffMin}m ago`;
+            if (diffHour < 24) return `${diffHour}h ago`;
+            if (diffDay < 7) return `${diffDay}d ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Make functions globally accessible
+        window.toggleAnnouncementLike = toggleAnnouncementLike;
+        window.toggleAnnouncementComments = toggleAnnouncementComments;
+        window.addAnnouncementComment = addAnnouncementComment;
+        window.deleteAnnouncementComment = deleteAnnouncementComment;
 
         // ==========================================
         // CLOCK IN/OUT FUNCTIONALITY
