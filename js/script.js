@@ -2738,13 +2738,12 @@
                                 .emp-list-table {
                                     width: 100%;
                                     border-collapse: collapse;
-                                    min-width: 900px;
                                 }
                                 .emp-list-table th {
-                                    padding: 14px 16px;
+                                    padding: 14px 12px;
                                     text-align: left;
                                     font-weight: 600;
-                                    font-size: 12px;
+                                    font-size: 11px;
                                     text-transform: uppercase;
                                     letter-spacing: 0.5px;
                                     color: var(--text-muted);
@@ -2753,7 +2752,7 @@
                                     white-space: nowrap;
                                 }
                                 .emp-list-table td {
-                                    padding: 16px;
+                                    padding: 14px 12px;
                                     border-bottom: 1px solid var(--border-color);
                                     vertical-align: middle;
                                 }
@@ -2766,49 +2765,118 @@
                                 .emp-info-cell {
                                     display: flex;
                                     align-items: center;
-                                    gap: 12px;
-                                    min-width: 200px;
+                                    gap: 10px;
+                                    min-width: 180px;
                                 }
                                 .emp-info-cell .avatar {
-                                    width: 44px;
-                                    height: 44px;
-                                    border-radius: 12px;
+                                    width: 40px;
+                                    height: 40px;
+                                    border-radius: 10px;
                                     flex-shrink: 0;
                                 }
                                 .emp-info-cell .details {
                                     min-width: 0;
+                                    flex: 1;
                                 }
                                 .emp-info-cell .name {
                                     font-weight: 600;
                                     color: var(--text-primary);
+                                    font-size: 14px;
                                     white-space: nowrap;
                                     overflow: hidden;
                                     text-overflow: ellipsis;
                                 }
                                 .emp-info-cell .email {
-                                    font-size: 12px;
+                                    font-size: 11px;
                                     color: var(--text-muted);
                                     white-space: nowrap;
                                     overflow: hidden;
                                     text-overflow: ellipsis;
-                                    max-width: 180px;
+                                    max-width: 160px;
                                 }
                                 .emp-actions-cell {
                                     display: flex;
                                     gap: 6px;
+                                    justify-content: flex-end;
                                 }
-                                @media (max-width: 1024px) {
+
+                                /* Responsive Design */
+                                @media (max-width: 1200px) {
                                     .emp-list-table th:nth-child(6),
                                     .emp-list-table td:nth-child(6) {
                                         display: none;
                                     }
+                                    .emp-info-cell {
+                                        min-width: 160px;
+                                    }
                                 }
-                                @media (max-width: 768px) {
-                                    .emp-list-table th:nth-child(2),
-                                    .emp-list-table td:nth-child(2),
+
+                                @media (max-width: 1024px) {
                                     .emp-list-table th:nth-child(3),
                                     .emp-list-table td:nth-child(3) {
                                         display: none;
+                                    }
+                                    .emp-info-cell {
+                                        min-width: 140px;
+                                    }
+                                    .emp-list-table th,
+                                    .emp-list-table td {
+                                        padding: 12px 10px;
+                                    }
+                                }
+
+                                @media (max-width: 768px) {
+                                    .emp-list-table th:nth-child(2),
+                                    .emp-list-table td:nth-child(2) {
+                                        display: none;
+                                    }
+                                    .emp-info-cell {
+                                        min-width: 120px;
+                                        gap: 8px;
+                                    }
+                                    .emp-info-cell .avatar {
+                                        width: 36px;
+                                        height: 36px;
+                                    }
+                                    .emp-info-cell .name {
+                                        font-size: 13px;
+                                    }
+                                    .emp-info-cell .email {
+                                        font-size: 10px;
+                                        max-width: 120px;
+                                    }
+                                    .emp-list-table th,
+                                    .emp-list-table td {
+                                        padding: 10px 8px;
+                                    }
+                                }
+
+                                @media (max-width: 640px) {
+                                    .emp-list-table th,
+                                    .emp-list-table td {
+                                        padding: 8px 6px;
+                                        font-size: 12px;
+                                    }
+                                    .emp-list-table th {
+                                        font-size: 10px;
+                                    }
+                                    .emp-info-cell {
+                                        min-width: 100px;
+                                        gap: 6px;
+                                    }
+                                    .emp-info-cell .avatar {
+                                        width: 32px;
+                                        height: 32px;
+                                    }
+                                    .emp-info-cell .name {
+                                        font-size: 12px;
+                                    }
+                                    .emp-actions-cell {
+                                        gap: 4px;
+                                    }
+                                    .emp-actions-cell .btn-icon {
+                                        padding: 6px;
+                                        font-size: 12px;
                                     }
                                 }
                             </style>
