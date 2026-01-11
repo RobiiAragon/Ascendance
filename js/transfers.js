@@ -20,6 +20,7 @@ const STORE_NAMES = {
     '3': 'Kearny Mesa',
     '4': 'Chula Vista',
     '5': 'North Park',
+    '6': 'Loyal Vaper',
     'loyalvaper': 'Loyal Vaper',
     'Miramar': 'Miramar',
     'Morena': 'Morena',
@@ -361,11 +362,16 @@ function renderTransfersPage() {
                                     <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">From</div>
                                     <select id="transferStoreOrigin" onchange="handleOriginStoreChange()" required style="width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border-color)'">
                                         <option value="">Select Origin</option>
-                                        <option value="1">Miramar</option>
-                                        <option value="2">Morena</option>
-                                        <option value="3">Kearny Mesa</option>
-                                        <option value="4">Chula Vista</option>
-                                        <option value="5">North Park</option>
+                                        <optgroup label="VSU">
+                                            <option value="1">Miramar</option>
+                                            <option value="2">Morena</option>
+                                            <option value="3">Kearny Mesa</option>
+                                            <option value="4">Chula Vista</option>
+                                            <option value="5">North Park</option>
+                                        </optgroup>
+                                        <optgroup label="Loyal Vaper">
+                                            <option value="6">Loyal Vaper</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
@@ -375,11 +381,16 @@ function renderTransfersPage() {
                                     <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">To</div>
                                     <select id="transferStoreDestination" required style="width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'">
                                         <option value="">Select Destination</option>
-                                        <option value="1">Miramar</option>
-                                        <option value="2">Morena</option>
-                                        <option value="3">Kearny Mesa</option>
-                                        <option value="4">Chula Vista</option>
-                                        <option value="5">North Park</option>
+                                        <optgroup label="VSU">
+                                            <option value="1">Miramar</option>
+                                            <option value="2">Morena</option>
+                                            <option value="3">Kearny Mesa</option>
+                                            <option value="4">Chula Vista</option>
+                                            <option value="5">North Park</option>
+                                        </optgroup>
+                                        <optgroup label="Loyal Vaper">
+                                            <option value="6">Loyal Vaper</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                             </div>

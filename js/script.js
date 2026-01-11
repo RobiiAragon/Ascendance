@@ -6882,9 +6882,8 @@
                 return matchStore && matchMonth;
             });
 
-            // Separate by status
-            const pendingSupplies = filteredSupplies.filter(s => s.status === 'pending');
-            const inProgressSupplies = filteredSupplies.filter(s => s.status === 'in_progress');
+            // Separate by status (in_progress items treated as pending for backwards compatibility)
+            const pendingSupplies = filteredSupplies.filter(s => s.status === 'pending' || s.status === 'in_progress');
             const partialSupplies = filteredSupplies.filter(s => s.status === 'partial');
             const completedSupplies = filteredSupplies.filter(s => s.status === 'completed' || s.status === 'purchased');
             const cancelledSupplies = filteredSupplies.filter(s => s.status === 'cancelled');
@@ -6892,7 +6891,7 @@
             // Status colors and labels
             const statusConfig = {
                 pending: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: 'clock', label: 'Pending' },
-                in_progress: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: 'spinner fa-spin', label: 'In Progress' },
+                in_progress: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: 'clock', label: 'Pending' },
                 partial: { color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)', icon: 'exclamation-triangle', label: 'Partial' },
                 completed: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: 'check-circle', label: 'Completed' },
                 purchased: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: 'check-circle', label: 'Completed' },
@@ -6924,11 +6923,6 @@
                             ${showActions ? `
                                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
                                     ${canProcess && item.status === 'pending' ? `
-                                        <button onclick="processSupply('${item.id}')" style="flex: 1; min-width: 100px; padding: 8px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
-                                            <i class="fas fa-play"></i> Process
-                                        </button>
-                                    ` : ''}
-                                    ${canProcess && item.status === 'in_progress' ? `
                                         <button onclick="markSupplyCompleted('${item.id}')" style="flex: 1; min-width: 80px; padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
                                             <i class="fas fa-check"></i> Complete
                                         </button>
@@ -6941,7 +6935,7 @@
                                             <i class="fas fa-box-check"></i> Confirm Reception
                                         </button>
                                     ` : ''}
-                                    ${item.status === 'pending' || item.status === 'in_progress' ? `
+                                    ${item.status === 'pending' ? `
                                         <button onclick="editSupply('${item.id}')" style="padding: 8px 12px; background: var(--bg-tertiary); color: var(--accent-primary); border: none; border-radius: 6px; cursor: pointer; font-size: 12px;" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -6986,11 +6980,6 @@
                         </div>
                         <div style="display: flex; gap: 6px; flex-shrink: 0;">
                             ${canProcess && item.status === 'pending' ? `
-                                <button class="btn-icon" onclick="processSupply('${item.id}')" title="Process" style="color: #3b82f6;">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                            ` : ''}
-                            ${canProcess && item.status === 'in_progress' ? `
                                 <button class="btn-icon" onclick="markSupplyCompleted('${item.id}')" title="Complete" style="color: #10b981;">
                                     <i class="fas fa-check"></i>
                                 </button>
@@ -7003,7 +6992,7 @@
                                     <i class="fas fa-box"></i>
                                 </button>
                             ` : ''}
-                            ${item.status === 'pending' || item.status === 'in_progress' ? `
+                            ${item.status === 'pending' ? `
                                 <button class="btn-icon" onclick="editSupply('${item.id}')" title="Edit" style="color: var(--accent-primary);">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -7060,15 +7049,6 @@
                         <div class="stat-info">
                             <span class="stat-value">${pendingSupplies.length}</span>
                             <span class="stat-label">Pending</span>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="cursor: pointer;" onclick="filterSuppliesByStatus('in_progress')">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                            <i class="fas fa-spinner"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value">${inProgressSupplies.length}</span>
-                            <span class="stat-label">In Progress</span>
                         </div>
                     </div>
                     <div class="stat-card" style="cursor: pointer;" onclick="filterSuppliesByStatus('partial')">
@@ -7140,26 +7120,6 @@
                     </div>
                 ` : ''}
 
-                <!-- In Progress -->
-                ${inProgressSupplies.length > 0 ? `
-                    <div class="card" style="margin-bottom: 24px; border: 2px solid #3b82f6;">
-                        <div class="card-header" style="background: rgba(59, 130, 246, 0.1);">
-                            <h3 class="card-title" style="color: #3b82f6;"><i class="fas fa-spinner fa-spin"></i> Being Prepared (${inProgressSupplies.length})</h3>
-                        </div>
-                        <div class="card-body">
-                            ${suppliesViewMode === 'gallery' ? `
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
-                                    ${inProgressSupplies.map(item => renderSupplyCard(item)).join('')}
-                                </div>
-                            ` : `
-                                <div class="supplies-list">
-                                    ${inProgressSupplies.map(item => renderSupplyListItem(item)).join('')}
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                ` : ''}
-
                 <!-- Partial - Needs Attention -->
                 ${partialSupplies.length > 0 ? `
                     <div class="card" style="margin-bottom: 24px; border: 2px solid #f97316;">
@@ -7216,7 +7176,7 @@
                     </div>
                 </div>
 
-                ${pendingSupplies.length === 0 && inProgressSupplies.length === 0 && partialSupplies.length === 0 ? `
+                ${pendingSupplies.length === 0 && partialSupplies.length === 0 ? `
                     <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
                         <i class="fas fa-box-open" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
                         <h3 style="margin-bottom: 8px;">No Active Requests</h3>
