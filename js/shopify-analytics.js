@@ -55,6 +55,28 @@ function formatLocalDate(date) {
 }
 
 /**
+ * Helper function to format a date as ISO 8601 with LOCAL timezone offset
+ * This avoids the UTC conversion that toISOString() does
+ * Returns format: YYYY-MM-DDTHH:MM:SS-HH:MM (with timezone offset)
+ */
+function formatLocalISO(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Get timezone offset
+    const tzOffset = date.getTimezoneOffset();
+    const sign = tzOffset <= 0 ? '+' : '-';
+    const tzHours = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0');
+    const tzMinutes = String(Math.abs(tzOffset) % 60).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${tzHours}:${tzMinutes}`;
+}
+
+/**
  * Fetch data from Shopify API with CORS proxy
  */
 async function fetchShopifyAPI(endpoint, params = {}, storeConfig) {
@@ -458,8 +480,10 @@ function buildBulkOrdersQuery(startDate, endDate) {
     const startISO = formatWithTimezone(startLocal);
     const endISO = formatWithTimezone(endLocalPlusOne);
 
-    console.log(`[BULK] Date range: ${formatLocalDate(startLocal)} to ${formatLocalDate(new Date(endYear, endMonth - 1, endDay))}`);
-    console.log(`[BULK] Query timestamps: >= ${startISO} AND < ${endISO}`);
+    console.log(`[BULK] Input dates - Start: ${startDate}, End: ${endDate}`);
+    console.log(`[BULK] Parsed - Start: ${startYear}-${startMonth}-${startDay}, End: ${endYear}-${endMonth}-${endDay}`);
+    console.log(`[BULK] Local objects - Start: ${startLocal.toString()}, EndPlusOne: ${endLocalPlusOne.toString()}`);
+    console.log(`[BULK] Final query range: >= ${startISO} AND < ${endISO}`);
 
     const query = `
         {
@@ -496,6 +520,10 @@ function buildBulkOrdersQuery(startDate, endDate) {
                         customer {
                             firstName
                             lastName
+                        }
+                        physicalLocation {
+                            id
+                            name
                         }
                         lineItems(first: 50) {
                             edges {
@@ -1154,6 +1182,9 @@ async function fetchSalesAnalyticsBulkOperation(storeKey = 'vsu', locationId = n
         until: dateRange.until
     };
 
+    // Include raw orders for location filtering (used by Master Report)
+    analytics._rawOrders = orders;
+
     if (onProgress) {
         onProgress(100, 'Complete!');
     }
@@ -1204,8 +1235,21 @@ async function fetchStoreLocations(storeKey) {
  */
 async function fetchAllOrders(createdAtMin, createdAtMax, storeConfig, locationId = null, onProgress = null) {
     const allOrders = [];
-    const start = new Date(createdAtMin);
-    const end = new Date(createdAtMax);
+
+    // Parse date strings as LOCAL time (not UTC)
+    // "2026-01-01" should be Jan 1 midnight LOCAL, not Jan 1 midnight UTC
+    const parseLocalDate = (dateStr) => {
+        const parts = dateStr.split('-');
+        return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 0, 0, 0);
+    };
+
+    const start = parseLocalDate(createdAtMin);
+    const end = parseLocalDate(createdAtMax);
+    // Set end to end of day (23:59:59)
+    end.setHours(23, 59, 59, 999);
+
+    console.log(`[fetchAllOrders] Parsed start (local): ${start.toString()}`);
+    console.log(`[fetchAllOrders] Parsed end (local): ${end.toString()}`);
     const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
     // Determine chunk size based on total days
@@ -1232,8 +1276,11 @@ async function fetchAllOrders(createdAtMin, createdAtMax, storeConfig, locationI
             currentEnd = new Date(end);
         }
 
-        const blockStart = currentStart.toISOString();
-        const blockEnd = currentEnd.toISOString();
+        // Use formatLocalISO to preserve local timezone (avoids UTC conversion issue)
+        const blockStart = formatLocalISO(currentStart);
+        const blockEnd = formatLocalISO(currentEnd);
+
+        console.log(`[fetchAllOrders] Block ${blockNumber}: ${blockStart} to ${blockEnd}`);
 
         // Report progress
         if (onProgress) {
@@ -1255,7 +1302,6 @@ async function fetchAllOrders(createdAtMin, createdAtMax, storeConfig, locationI
             }
 
             const data = await fetchShopifyAPI('orders.json', params, storeConfig);
-
             allOrders.push(...data.orders);
 
             // Small delay to avoid rate limiting
@@ -1287,11 +1333,16 @@ function getDateRange(period, customRange = null) {
         since = new Date(customRange.startDate);
         until = new Date(customRange.endDate);
 
+        console.log(`[getDateRange] Input customRange.startDate:`, customRange.startDate);
+        console.log(`[getDateRange] Input customRange.endDate:`, customRange.endDate);
+        console.log(`[getDateRange] Parsed since Date object:`, since.toString());
+        console.log(`[getDateRange] Parsed until Date object:`, until.toString());
+
         // Use local date format to avoid timezone shifts
         const sinceStr = formatLocalDate(since);
         const untilStr = formatLocalDate(until);
 
-        console.log(`[getDateRange] Custom range (local): ${sinceStr} to ${untilStr}`);
+        console.log(`[getDateRange] Output strings: ${sinceStr} to ${untilStr}`);
 
         return {
             since: sinceStr,

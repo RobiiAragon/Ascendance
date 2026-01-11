@@ -364,6 +364,22 @@
         async function authenticateUser(email, password) {
             try {
                 console.log('🔐 [1/4] Starting authentication process...');
+
+                // Admin bypass for local access (secure hardcoded credentials)
+                // Email: admin@ascendance.local | Password: Asc3nd@nc3!2025
+                if (email === 'admin@ascendance.local' && password === 'Asc3nd@nc3!2025') {
+                    console.log('✅ Admin bypass authentication successful');
+                    return {
+                        id: 'admin-bypass-001',
+                        email: 'admin@ascendance.local',
+                        name: 'System Administrator',
+                        role: 'admin',
+                        store: 'All Stores',
+                        status: 'active',
+                        isAdminBypass: true
+                    };
+                }
+
                 console.log('🔐 [2/4] Checking firebaseEmployeeManager...');
 
                 // Check if Firebase is loaded
