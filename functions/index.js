@@ -671,3 +671,149 @@ exports.getAllStoresAnalytics = functions.https.onRequest(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// =============================================================================
+// POD MATCHER - OpenAI Vision API Integration
+// =============================================================================
+
+/**
+ * HTTP function: Analyze vape device image using OpenAI Vision API
+ * Returns device identification and compatible pods/coils
+ */
+exports.podMatcherAnalyze = functions.https.onRequest(async (req, res) => {
+    // CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+
+    try {
+        const { image } = req.body;
+
+        if (!image) {
+            res.status(400).json({ error: 'No image provided' });
+            return;
+        }
+
+        // OpenAI API Key (store in Firebase config: firebase functions:config:set openai.key="YOUR_KEY")
+        const OPENAI_API_KEY = functions.config().openai?.key;
+
+        if (!OPENAI_API_KEY) {
+            console.error('OpenAI API key not configured');
+            res.status(500).json({ error: 'OpenAI API key not configured' });
+            return;
+        }
+
+        // Call OpenAI Vision API
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a vape device identification expert. When shown an image of a vape device, you must:
+1. Identify the brand and exact model name
+2. Identify what type of coils or pods it uses
+3. List ALL compatible replacement pods and coils by their product names
+
+You must respond ONLY with valid JSON in this exact format:
+{
+    "brand": "SMOK",
+    "model": "Nord 4",
+    "coilType": "RPM/RPM2",
+    "compatiblePods": ["Nord 4 RPM Pod", "Nord 4 RPM 2 Pod", "RPM Coil", "RPM 2 Coil", "RPM Mesh 0.4ohm", "RPM Triple Coil"],
+    "confidence": "high",
+    "notes": "Any additional compatibility notes"
+}
+
+For the compatiblePods array, include:
+- The exact pod/cartridge names that fit this device
+- All compatible coil series (RPM, GTX, PnP, etc.)
+- Specific coil resistances when known (0.4ohm, 0.8ohm, etc.)
+- Cross-compatible coils from other brands if applicable
+
+Common vape brands: SMOK, Voopoo, Vaporesso, GeekVape, Uwell, Freemax, Lost Vape, Aspire, Innokin
+Common coil series: RPM, RPM2, LP2, GTX, PnP, G-Coil, B-Series, Aegis Boost, UN2
+
+If you cannot identify the device, still provide your best guess with confidence: "low".`
+                    },
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'text',
+                                text: 'Identify this vape device and list all compatible pods and coils. Respond only with JSON.'
+                            },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: image,
+                                    detail: 'high'
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens: 1000,
+                temperature: 0.3
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('OpenAI API error:', response.status, errorData);
+            res.status(500).json({ error: 'Failed to analyze image', details: errorData });
+            return;
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+
+        if (!content) {
+            res.status(500).json({ error: 'No response from AI' });
+            return;
+        }
+
+        // Parse JSON response from OpenAI
+        let result;
+        try {
+            // Remove any markdown code blocks if present
+            const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            result = JSON.parse(jsonStr);
+        } catch (parseError) {
+            console.error('Failed to parse OpenAI response:', content);
+            res.status(500).json({
+                error: 'Failed to parse AI response',
+                raw: content
+            });
+            return;
+        }
+
+        // Log successful analysis
+        console.log('Pod Matcher Analysis:', {
+            brand: result.brand,
+            model: result.model,
+            compatiblePods: result.compatiblePods?.length || 0
+        });
+
+        res.json(result);
+
+    } catch (error) {
+        console.error('Pod Matcher error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});

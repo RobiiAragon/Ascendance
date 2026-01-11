@@ -178,6 +178,191 @@
         .theme-toggle-login:hover {
             background: var(--bg-hover);
         }
+
+        /* Forgot Password Modal Styles */
+        .forgot-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .forgot-modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 420px;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .forgot-modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .forgot-modal-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8b5cf6));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .forgot-modal-icon i {
+            font-size: 28px;
+            color: white;
+        }
+
+        .forgot-modal h2 {
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .forgot-modal p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .forgot-form-group {
+            margin-bottom: 20px;
+        }
+
+        .forgot-form-group label {
+            display: block;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .forgot-form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+
+        .forgot-form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(var(--accent-primary-rgb), 0.15);
+        }
+
+        .forgot-message {
+            display: none;
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .forgot-message.error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .forgot-message.success {
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .forgot-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .forgot-btn-cancel {
+            flex: 1;
+            padding: 14px;
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .forgot-btn-cancel:hover {
+            background: var(--bg-secondary);
+        }
+
+        .forgot-btn-submit {
+            flex: 1;
+            padding: 14px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .forgot-btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(var(--accent-primary-rgb), 0.3);
+        }
+
+        .forgot-btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 480px) {
+            .forgot-modal {
+                padding: 24px;
+            }
+
+            .forgot-buttons {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body class="light-theme">
@@ -231,21 +416,28 @@
     </div>
 
     <!-- Forgot Password Modal -->
-    <div id="forgot-password-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: var(--card-bg); border-radius: 12px; padding: 30px; max-width: 400px; width: 90%; border: 1px solid var(--border-color);">
-            <h2 style="margin: 0 0 8px 0; color: var(--text-primary); font-size: 20px;">Reset Password</h2>
-            <p style="margin: 0 0 20px 0; color: var(--text-muted); font-size: 14px;">Enter your email and we'll send you a link to reset your password.</p>
-
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="reset-email" style="color: var(--text-primary); font-weight: 500; font-size: 14px; margin-bottom: 8px; display: block;">Email Address</label>
-                <input type="email" id="reset-email" placeholder="your@email.com" style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;">
+    <div id="forgot-password-modal" class="forgot-modal-overlay">
+        <div class="forgot-modal">
+            <div class="forgot-modal-header">
+                <div class="forgot-modal-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2>Reset Password</h2>
+                <p>Enter your email address and we'll send you a link to reset your password.</p>
             </div>
 
-            <div id="reset-message" style="display: none; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;"></div>
+            <div class="forgot-form-group">
+                <label for="reset-email">Email Address</label>
+                <input type="email" id="reset-email" placeholder="your@email.com">
+            </div>
 
-            <div style="display: flex; gap: 10px;">
-                <button onclick="closeForgotPassword()" style="flex: 1; padding: 12px; background: var(--bg-hover); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif;">Cancel</button>
-                <button onclick="sendResetEmail()" id="reset-btn" style="flex: 1; padding: 12px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif;">Send Reset Link</button>
+            <div id="reset-message" class="forgot-message"></div>
+
+            <div class="forgot-buttons">
+                <button onclick="closeForgotPassword()" class="forgot-btn-cancel">Cancel</button>
+                <button onclick="sendResetEmail()" id="reset-btn" class="forgot-btn-submit">
+                    <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send Reset Link
+                </button>
             </div>
         </div>
     </div>
@@ -671,6 +863,12 @@
             // Clear any previous messages
             const messageDiv = document.getElementById('reset-message');
             messageDiv.style.display = 'none';
+            messageDiv.className = 'forgot-message';
+
+            // Focus on email input
+            setTimeout(() => {
+                document.getElementById('reset-email').focus();
+            }, 100);
         }
 
         /**
@@ -680,7 +878,9 @@
             const modal = document.getElementById('forgot-password-modal');
             modal.style.display = 'none';
             document.getElementById('reset-email').value = '';
-            document.getElementById('reset-message').style.display = 'none';
+            const messageDiv = document.getElementById('reset-message');
+            messageDiv.style.display = 'none';
+            messageDiv.className = 'forgot-message';
         }
 
         /**
@@ -694,28 +894,35 @@
             if (!email) {
                 messageDiv.textContent = 'Please enter your email address.';
                 messageDiv.style.display = 'block';
-                messageDiv.style.backgroundColor = '#fee2e2';
-                messageDiv.style.color = '#dc2626';
+                messageDiv.className = 'forgot-message error';
+                return;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                messageDiv.textContent = 'Please enter a valid email address.';
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'forgot-message error';
                 return;
             }
 
             // Show loading state
             resetBtn.disabled = true;
-            resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Sending...';
 
             try {
                 // Ensure Firebase is initialized
                 if (typeof firebase === 'undefined' || !firebase.auth) {
-                    throw new Error('Firebase not loaded');
+                    throw new Error('Firebase not loaded. Please refresh the page.');
                 }
 
                 await firebase.auth().sendPasswordResetEmail(email);
 
                 // Show success message
-                messageDiv.textContent = 'Password reset email sent! Check your inbox (and spam folder).';
+                messageDiv.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>Password reset email sent! Check your inbox.';
                 messageDiv.style.display = 'block';
-                messageDiv.style.backgroundColor = '#dcfce7';
-                messageDiv.style.color = '#16a34a';
+                messageDiv.className = 'forgot-message success';
 
                 // Close modal after 3 seconds
                 setTimeout(() => {
@@ -732,15 +939,16 @@
                     errorMessage = 'Please enter a valid email address.';
                 } else if (error.code === 'auth/too-many-requests') {
                     errorMessage = 'Too many requests. Please wait a few minutes and try again.';
+                } else if (error.message) {
+                    errorMessage = error.message;
                 }
 
-                messageDiv.textContent = errorMessage;
+                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>' + errorMessage;
                 messageDiv.style.display = 'block';
-                messageDiv.style.backgroundColor = '#fee2e2';
-                messageDiv.style.color = '#dc2626';
+                messageDiv.className = 'forgot-message error';
             } finally {
                 resetBtn.disabled = false;
-                resetBtn.innerHTML = 'Send Reset Link';
+                resetBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send Reset Link';
             }
         }
 
@@ -748,6 +956,24 @@
         document.getElementById('forgot-password-modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeForgotPassword();
+            }
+        });
+
+        // Handle Enter key on reset email input
+        document.getElementById('reset-email').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendResetEmail();
+            }
+        });
+
+        // Handle Escape key to close modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('forgot-password-modal');
+                if (modal.style.display === 'flex') {
+                    closeForgotPassword();
+                }
             }
         });
     </script>

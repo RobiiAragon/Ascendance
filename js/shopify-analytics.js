@@ -1034,6 +1034,7 @@ function processBulkOrdersData(orders) {
                     customer: order.customer ? `${order.customer.firstName || ''} ${order.customer.lastName || ''}`.trim() : 'Guest',
                     cecetTax: orderCecetTax,
                     salesTax: orderSalesTax,
+                    location: order.physicalLocation?.name || null,
                     lineItems: (order.lineItems?.edges || []).map(edge => ({
                         name: edge.node.name,
                         sku: edge.node.sku || '-',
