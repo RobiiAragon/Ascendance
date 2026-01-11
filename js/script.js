@@ -2508,9 +2508,9 @@
                     // Filter low stock items (<10 units), sort by qty
                     const filterLowStock = (inventory) => {
                         return inventory.filter(item => {
-                            const qty = item.inventoryQuantity || item.quantity || 0;
+                            const qty = item.inventoryQuantity || item.stock || item.quantity || 0;
                             return qty >= 0 && qty < 10;
-                        }).sort((a, b) => (a.inventoryQuantity || 0) - (b.inventoryQuantity || 0));
+                        }).sort((a, b) => (a.inventoryQuantity || a.stock || 0) - (b.inventoryQuantity || b.stock || 0));
                     };
 
                     window.lowStockData.vsu = filterLowStock(vsuInventory || []);
@@ -2579,7 +2579,7 @@
 
             // Filter by tab
             let filtered = storeData.filter(item => {
-                const qty = item.inventoryQuantity || item.quantity || 0;
+                const qty = item.inventoryQuantity || item.stock || item.quantity || 0;
                 if (currentTab === 'critical') return qty < 3;
                 if (currentTab === 'low') return qty >= 3 && qty < 6;
                 return true;
@@ -2599,12 +2599,12 @@
             container.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     ${filtered.slice(0, 8).map(item => {
-                        const qty = item.inventoryQuantity || item.quantity || 0;
+                        const qty = item.inventoryQuantity || item.stock || item.quantity || 0;
                         const color = qty < 3 ? '#ef4444' : qty < 6 ? '#f59e0b' : '#3b82f6';
 
                         return `
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: var(--bg-primary); border-radius: 5px;">
-                                <span style="font-size: 11px; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || item.name}</span>
+                                <span style="font-size: 11px; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.productName || item.title || item.name}</span>
                                 <span style="font-size: 10px; font-weight: 600; color: ${color}; margin-left: 8px;">${qty}</span>
                             </div>
                         `;
@@ -7824,19 +7824,23 @@ async function saveChecklistCompletion(taskId, store, shift, photoUrl = null) {
     try {
         const db = firebase.firestore();
         const user = getCurrentUser();
+        // Crear timestamp usando la fecha seleccionada + hora actual
+        const now = new Date();
+        const [year, month, day] = checklistSelectedDate.split('-').map(Number);
+        const completionTimestamp = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+
         const completion = {
             taskId,
             store,
             shift,
             date: checklistSelectedDate, // Use selected date instead of always today
             completedBy: user?.name || 'Unknown',
-            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            completedAt: completionTimestamp,
             photoUrl
         };
 
         const docRef = await db.collection('checklistCompletions').add(completion);
         completion.id = docRef.id;
-        completion.completedAt = new Date();
         checklistData.completions.push(completion);
         return true;
     } catch (error) {
