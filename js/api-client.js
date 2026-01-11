@@ -699,9 +699,14 @@ async function renderAnalyticsPage(period = 'month') {
                             <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
                             Export as PDF
                         </button>
-                        <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
+                        <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; transition: background 0.2s;">
                             <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i>
                             Export as Excel
+                        </button>
+                        <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                        <button onclick="exportMasterPDF()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
+                            <i class="fas fa-crown" style="color: #f59e0b; width: 16px;"></i>
+                            Master Report
                         </button>
                     </div>
                 </div>
@@ -996,26 +1001,44 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
             }
         }
 
-        // Cancel any existing bulk operation before starting a new one
-        console.log('[Analytics] Cancelling any existing bulk operation...');
-        await cancelBulkOperation(selectedStore);
+        // Determine which API to use based on whether a specific location is selected
+        // REST API supports location_id filtering, Bulk Operations does not
+        let salesData;
 
-        // Use GraphQL Bulk Operations API for unlimited order fetching (no 2500 cap)
-        console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
-        const salesData = await fetchSalesAnalyticsBulk(selectedStore, selectedLocation, period, (progress, text) => {
-            // Check if this request is still valid before updating progress
-            if (thisRequestId !== analyticsRequestId) return;
+        if (selectedLocation) {
+            // Use REST API for location-specific queries (supports location_id filter)
+            console.log(`[Analytics] Using REST API for location-specific query (Location ID: ${selectedLocation})...`);
+            salesData = await window.fetchSalesAnalytics(selectedStore, selectedLocation, period, (progress, text) => {
+                if (thisRequestId !== analyticsRequestId) return;
+                const progressBar = document.getElementById('analytics-progress-bar');
+                const loadingText = document.getElementById('analytics-loading-text');
+                if (progressBar) {
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                }
+                if (loadingText) {
+                    loadingText.textContent = text;
+                }
+            }, customRange);
+        } else {
+            // Use GraphQL Bulk Operations API for store-wide queries (no location filter needed)
+            console.log('[Analytics] Cancelling any existing bulk operation...');
+            await cancelBulkOperation(selectedStore);
 
-            const progressBar = document.getElementById('analytics-progress-bar');
-            const loadingText = document.getElementById('analytics-loading-text');
-            if (progressBar) {
-                progressBar.style.width = progress + '%';
-                progressBar.textContent = progress + '%';
-            }
-            if (loadingText) {
-                loadingText.textContent = text;
-            }
-        }, customRange);
+            console.log('[Analytics] Starting GraphQL Bulk Operations fetch...');
+            salesData = await fetchSalesAnalyticsBulk(selectedStore, null, period, (progress, text) => {
+                if (thisRequestId !== analyticsRequestId) return;
+                const progressBar = document.getElementById('analytics-progress-bar');
+                const loadingText = document.getElementById('analytics-loading-text');
+                if (progressBar) {
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                }
+                if (loadingText) {
+                    loadingText.textContent = text;
+                }
+            }, customRange);
+        }
 
         // Check if this request is still valid after data fetch
         if (thisRequestId !== analyticsRequestId) {
@@ -1096,9 +1119,14 @@ async function renderAnalyticsWithData(period = 'month', storeKey = null, locati
                                 <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
                                 Export as PDF
                             </button>
-                            <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
+                            <button onclick="exportToExcel()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; transition: background 0.2s;">
                                 <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i>
                                 Export as Excel
+                            </button>
+                            <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                            <button onclick="exportMasterPDF()" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'" style="width: 100%; padding: 10px 16px; text-align: left; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; color: var(--text-primary); display: flex; align-items: center; gap: 10px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
+                                <i class="fas fa-crown" style="color: #f59e0b; width: 16px;"></i>
+                                Master Report
                             </button>
                         </div>
                     </div>
@@ -2626,6 +2654,478 @@ function exportToExcel() {
         ? `${formatLocalDateStr(window.analyticsCustomRange.startDate)}_to_${formatLocalDateStr(window.analyticsCustomRange.endDate)}`
         : formatLocalDateStr(new Date());
     XLSX.writeFile(wb, `sales-report-${storeSlug}${locationSlug}-${dateSlug}.xlsx`);
+}
+
+/**
+ * Export Master PDF - Monthly multi-store report
+ * Fetches data from all stores (5 VSU locations + Loyal Vaper + Miramar Wine)
+ * Includes CECET tax breakdown, separated by each store
+ */
+async function exportMasterPDF() {
+    toggleExportDropdown();
+
+    // Show loading modal
+    const modal = document.createElement('div');
+    modal.id = 'master-report-modal';
+    modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; justify-content: center; align-items: center;">
+            <div style="background: var(--bg-card); padding: 30px; border-radius: 16px; text-align: center; min-width: 400px; max-width: 500px;">
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                    <i class="fas fa-crown" style="font-size: 24px; color: white;"></i>
+                </div>
+                <h3 id="master-report-title" style="color: var(--text-primary); margin-bottom: 12px; font-size: 18px;">Generating Master Report</h3>
+                <p id="master-report-status" style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Preparing to fetch data from all stores...</p>
+                <div style="background: var(--bg-tertiary); border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 16px;">
+                    <div id="master-report-progress" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+                <p id="master-report-store" style="color: var(--text-muted); font-size: 12px;">Initializing...</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const updateProgress = (percent, status, store = '') => {
+        const progressBar = document.getElementById('master-report-progress');
+        const statusText = document.getElementById('master-report-status');
+        const storeText = document.getElementById('master-report-store');
+        if (progressBar) progressBar.style.width = `${percent}%`;
+        if (statusText) statusText.textContent = status;
+        if (storeText) storeText.textContent = store;
+    };
+
+    try {
+        // Get date range for the current month
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        monthEnd.setHours(23, 59, 59, 999);
+
+        const monthName = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        // VSU Location names to filter by (will match against physicalLocation.name)
+        const vsuLocations = ['Miramar', 'Chula Vista', 'Morena', 'Northpark', 'Kearny Mesa'];
+
+        const allStoreData = [];
+        let grandTotals = {
+            orders: 0,
+            grossSales: 0,
+            cecetTax: 0,
+            salesTax: 0,
+            totalTax: 0,
+            netSales: 0
+        };
+
+        const customRange = {
+            startDate: monthStart,
+            endDate: monthEnd
+        };
+
+        // ============================================================
+        // STEP 1: Fetch ALL VSU orders using Bulk Operations (more reliable)
+        // Then filter by physicalLocation on client side
+        // ============================================================
+        updateProgress(5, 'Fetching VSU data...', 'Using Bulk Operations API');
+
+        console.log('[Master Report] Fetching all VSU orders via Bulk Operations...');
+
+        // Cancel any existing bulk operation first
+        await cancelBulkOperation('vsu');
+
+        const vsuData = await fetchSalesAnalyticsBulk('vsu', null, 'custom', (percent, msg) => {
+            updateProgress(5 + Math.round(percent * 0.5), msg, 'VSU Stores');
+        }, customRange);
+
+        console.log(`[Master Report] VSU Bulk returned ${vsuData?.summary?.totalOrders || 0} total orders`);
+
+        // Get raw orders from the bulk data for location filtering
+        // We need to re-fetch with raw order data to get physicalLocation
+        updateProgress(55, 'Processing VSU locations...', 'Filtering by store location');
+
+        // Process VSU orders by location using physicalLocation field
+        // The bulk data includes physicalLocation for each order
+        const vsuOrdersByLocation = {};
+        vsuLocations.forEach(loc => {
+            vsuOrdersByLocation[loc] = {
+                orders: 0,
+                grossSales: 0,
+                cecetTax: 0,
+                salesTax: 0,
+                totalTax: 0,
+                netSales: 0
+            };
+        });
+
+        // For now, since Bulk Operations returns aggregated data without per-order location,
+        // we'll fetch raw bulk data and process it ourselves
+        if (vsuData && vsuData._rawOrders) {
+            // Log first order's tax structure for debugging
+            if (vsuData._rawOrders.length > 0) {
+                const sampleOrder = vsuData._rawOrders[0];
+                console.log('[Master Report] Sample order taxLines structure:', JSON.stringify(sampleOrder.taxLines, null, 2));
+            }
+
+            // Process raw orders if available
+            vsuData._rawOrders.forEach(order => {
+                const locName = order.physicalLocation?.name || 'Unknown';
+                // Find matching location (normalize for comparison)
+                const normalizedOrderLoc = locName.toLowerCase().replace(/\s+/g, '');
+
+                for (const vsuLoc of vsuLocations) {
+                    const normalizedVsuLoc = vsuLoc.toLowerCase().replace(/\s+/g, '');
+                    if (normalizedOrderLoc.includes(normalizedVsuLoc) || normalizedVsuLoc.includes(normalizedOrderLoc)) {
+                        const amount = parseFloat(order.totalPriceSet?.shopMoney?.amount || 0);
+                        const tax = parseFloat(order.totalTaxSet?.shopMoney?.amount || 0);
+
+                        // Parse tax breakdown using rate (CECET is 12.5% = 0.125)
+                        let cecetTax = 0;
+                        let salesTax = 0;
+                        if (order.taxLines && Array.isArray(order.taxLines)) {
+                            order.taxLines.forEach(taxLine => {
+                                const taxAmount = parseFloat(taxLine.priceSet?.shopMoney?.amount || 0);
+                                const rate = parseFloat(taxLine.rate || 0);
+                                const title = (taxLine.title || '').toLowerCase();
+
+                                // CECET tax is identified by 12.5% rate OR title containing cecet/excise
+                                if (Math.abs(rate - 0.125) < 0.001 || title.includes('cecet') || title.includes('excise')) {
+                                    cecetTax += taxAmount;
+                                } else {
+                                    salesTax += taxAmount;
+                                }
+                            });
+                        }
+
+                        vsuOrdersByLocation[vsuLoc].orders += 1;
+                        vsuOrdersByLocation[vsuLoc].grossSales += amount;
+                        vsuOrdersByLocation[vsuLoc].cecetTax += cecetTax;
+                        vsuOrdersByLocation[vsuLoc].salesTax += salesTax;
+                        vsuOrdersByLocation[vsuLoc].totalTax += tax;
+                        vsuOrdersByLocation[vsuLoc].netSales += (amount - tax);
+                        break;
+                    }
+                }
+            });
+
+            // Add VSU location data to allStoreData
+            for (const vsuLoc of vsuLocations) {
+                const locData = vsuOrdersByLocation[vsuLoc];
+                const displayName = vsuLoc === 'Northpark' ? 'VSU North Park' : `VSU ${vsuLoc}`;
+
+                allStoreData.push({
+                    name: displayName,
+                    orders: locData.orders,
+                    grossSales: locData.grossSales,
+                    cecetTax: locData.cecetTax,
+                    salesTax: locData.salesTax,
+                    totalTax: locData.totalTax,
+                    netSales: locData.netSales
+                });
+
+                grandTotals.orders += locData.orders;
+                grandTotals.grossSales += locData.grossSales;
+                grandTotals.cecetTax += locData.cecetTax;
+                grandTotals.salesTax += locData.salesTax;
+                grandTotals.totalTax += locData.totalTax;
+                grandTotals.netSales += locData.netSales;
+
+                console.log(`[Master Report] ${displayName}: ${locData.orders} orders, $${locData.grossSales.toFixed(2)}`);
+            }
+        } else {
+            // Fallback: If raw orders not available, add VSU as single entry
+            console.warn('[Master Report] Raw orders not available, adding VSU as single entry');
+            if (vsuData && vsuData.summary) {
+                allStoreData.push({
+                    name: 'VSU (All Locations)',
+                    orders: parseInt(vsuData.summary.totalOrders) || 0,
+                    grossSales: parseFloat(vsuData.summary.totalSales) || 0,
+                    cecetTax: parseFloat(vsuData.summary.totalCecetTax) || 0,
+                    salesTax: parseFloat(vsuData.summary.totalSalesTax) || 0,
+                    totalTax: parseFloat(vsuData.summary.totalTax) || 0,
+                    netSales: parseFloat(vsuData.summary.netSales) || 0
+                });
+
+                grandTotals.orders += parseInt(vsuData.summary.totalOrders) || 0;
+                grandTotals.grossSales += parseFloat(vsuData.summary.totalSales) || 0;
+                grandTotals.cecetTax += parseFloat(vsuData.summary.totalCecetTax) || 0;
+                grandTotals.salesTax += parseFloat(vsuData.summary.totalSalesTax) || 0;
+                grandTotals.totalTax += parseFloat(vsuData.summary.totalTax) || 0;
+                grandTotals.netSales += parseFloat(vsuData.summary.netSales) || 0;
+            }
+        }
+
+        // ============================================================
+        // STEP 2: Fetch Loyal Vaper data
+        // ============================================================
+        updateProgress(60, 'Fetching Loyal Vaper data...', 'Store 6 of 7');
+
+        try {
+            await cancelBulkOperation('loyalvaper');
+            const loyalData = await fetchSalesAnalyticsBulk('loyalvaper', null, 'custom', (percent, msg) => {
+                updateProgress(60 + Math.round(percent * 0.15), msg, 'Loyal Vaper');
+            }, customRange);
+
+            if (loyalData && loyalData.summary) {
+                const storeData = {
+                    name: 'Loyal Vaper',
+                    orders: parseInt(loyalData.summary.totalOrders) || 0,
+                    grossSales: parseFloat(loyalData.summary.totalSales) || 0,
+                    cecetTax: parseFloat(loyalData.summary.totalCecetTax) || 0,
+                    salesTax: parseFloat(loyalData.summary.totalSalesTax) || 0,
+                    totalTax: parseFloat(loyalData.summary.totalTax) || 0,
+                    netSales: parseFloat(loyalData.summary.netSales) || 0
+                };
+                allStoreData.push(storeData);
+
+                grandTotals.orders += storeData.orders;
+                grandTotals.grossSales += storeData.grossSales;
+                grandTotals.cecetTax += storeData.cecetTax;
+                grandTotals.salesTax += storeData.salesTax;
+                grandTotals.totalTax += storeData.totalTax;
+                grandTotals.netSales += storeData.netSales;
+
+                console.log(`[Master Report] Loyal Vaper: ${storeData.orders} orders, $${storeData.grossSales.toFixed(2)}`);
+            }
+        } catch (error) {
+            console.error('[Master Report] Error fetching Loyal Vaper:', error);
+            allStoreData.push({ name: 'Loyal Vaper', orders: 0, grossSales: 0, cecetTax: 0, salesTax: 0, totalTax: 0, netSales: 0, error: error.message });
+        }
+
+        // ============================================================
+        // STEP 3: Fetch Miramar Wine data
+        // ============================================================
+        updateProgress(80, 'Fetching Miramar Wine data...', 'Store 7 of 7');
+
+        try {
+            await cancelBulkOperation('miramarwine');
+            const wineData = await fetchSalesAnalyticsBulk('miramarwine', null, 'custom', (percent, msg) => {
+                updateProgress(80 + Math.round(percent * 0.15), msg, 'Miramar Wine');
+            }, customRange);
+
+            if (wineData && wineData.summary) {
+                const storeData = {
+                    name: 'Miramar Wine & Liquor',
+                    orders: parseInt(wineData.summary.totalOrders) || 0,
+                    grossSales: parseFloat(wineData.summary.totalSales) || 0,
+                    cecetTax: parseFloat(wineData.summary.totalCecetTax) || 0,
+                    salesTax: parseFloat(wineData.summary.totalSalesTax) || 0,
+                    totalTax: parseFloat(wineData.summary.totalTax) || 0,
+                    netSales: parseFloat(wineData.summary.netSales) || 0
+                };
+                allStoreData.push(storeData);
+
+                grandTotals.orders += storeData.orders;
+                grandTotals.grossSales += storeData.grossSales;
+                grandTotals.cecetTax += storeData.cecetTax;
+                grandTotals.salesTax += storeData.salesTax;
+                grandTotals.totalTax += storeData.totalTax;
+                grandTotals.netSales += storeData.netSales;
+
+                console.log(`[Master Report] Miramar Wine: ${storeData.orders} orders, $${storeData.grossSales.toFixed(2)}`);
+            }
+        } catch (error) {
+            console.error('[Master Report] Error fetching Miramar Wine:', error);
+            allStoreData.push({ name: 'Miramar Wine & Liquor', orders: 0, grossSales: 0, cecetTax: 0, salesTax: 0, totalTax: 0, netSales: 0, error: error.message });
+        }
+
+        updateProgress(95, 'Generating PDF...', 'Compiling report');
+
+        // Create PDF with professional design
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        // Header bar
+        doc.setFillColor(30, 41, 59); // Dark slate
+        doc.rect(0, 0, pageWidth, 35, 'F');
+
+        // Company/Report Title
+        doc.setFontSize(24);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('MONTHLY SALES REPORT', 14, 18);
+
+        // Subtitle with month
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(200, 200, 200);
+        doc.text(monthName.toUpperCase(), 14, 28);
+
+        // Generated date on the right
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        const generatedText = `Generated: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        doc.text(generatedText, pageWidth - 14 - doc.getTextWidth(generatedText), 28);
+
+        // Summary Cards Section
+        let y = 45;
+
+        // Grand Total highlight box
+        doc.setFillColor(16, 185, 129); // Green
+        doc.roundedRect(14, y, pageWidth - 28, 28, 3, 3, 'F');
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(255, 255, 255);
+        doc.text('NET SALES (ALL STORES)', 20, y + 10);
+
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`$${grandTotals.netSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 20, y + 23);
+
+        // Orders count on the right of the green box
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text('TOTAL ORDERS', pageWidth - 60, y + 10);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(grandTotals.orders.toLocaleString(), pageWidth - 60, y + 23);
+
+        y += 35;
+
+        // Summary metrics in a row
+        const metrics = [
+            { label: 'Gross Sales', value: `$${grandTotals.grossSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: [30, 41, 59] },
+            { label: 'CECET Tax', value: `$${grandTotals.cecetTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: [239, 68, 68] },
+            { label: 'Sales Tax', value: `$${grandTotals.salesTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: [245, 158, 11] },
+            { label: 'Total Taxes', value: `$${grandTotals.totalTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: [139, 92, 246] }
+        ];
+
+        const metricWidth = (pageWidth - 28 - 15) / 4; // 4 metrics with gaps
+        metrics.forEach((metric, index) => {
+            const x = 14 + (index * (metricWidth + 5));
+
+            // Metric box
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(x, y, metricWidth, 22, 2, 2, 'F');
+
+            // Color accent bar
+            doc.setFillColor(...metric.color);
+            doc.rect(x, y, 3, 22, 'F');
+
+            // Label
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text(metric.label.toUpperCase(), x + 8, y + 8);
+
+            // Value
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 41, 59);
+            doc.text(metric.value, x + 8, y + 17);
+        });
+
+        y += 32;
+
+        // Store Breakdown Section
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text('Store Performance', 14, y);
+
+        y += 5;
+
+        doc.autoTable({
+            startY: y,
+            head: [['Store', 'Orders', 'Gross Sales', 'CECET Tax', 'Sales Tax', 'Net Sales']],
+            body: allStoreData.map(store => [
+                store.name,
+                store.orders.toLocaleString(),
+                `$${store.grossSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                `$${store.cecetTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                `$${store.salesTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                `$${store.netSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+            ]),
+            foot: [[
+                'TOTAL',
+                grandTotals.orders.toLocaleString(),
+                `$${grandTotals.grossSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                `$${grandTotals.cecetTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                `$${grandTotals.salesTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                `$${grandTotals.netSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+            ]],
+            theme: 'plain',
+            headStyles: {
+                fillColor: [30, 41, 59],
+                textColor: [255, 255, 255],
+                font: 'helvetica',
+                fontStyle: 'bold',
+                fontSize: 9,
+                cellPadding: 4
+            },
+            footStyles: {
+                fillColor: [16, 185, 129],
+                textColor: [255, 255, 255],
+                font: 'helvetica',
+                fontStyle: 'bold',
+                fontSize: 9,
+                cellPadding: 4
+            },
+            bodyStyles: {
+                font: 'helvetica',
+                fontSize: 9,
+                cellPadding: 4
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
+            },
+            columnStyles: {
+                0: { cellWidth: 45 },
+                1: { halign: 'right', cellWidth: 22 },
+                2: { halign: 'right', cellWidth: 30 },
+                3: { halign: 'right', cellWidth: 28 },
+                4: { halign: 'right', cellWidth: 28 },
+                5: { halign: 'right', cellWidth: 30, fontStyle: 'bold' }
+            },
+            styles: {
+                lineColor: [226, 232, 240],
+                lineWidth: 0.5
+            },
+            tableLineColor: [226, 232, 240],
+            tableLineWidth: 0.5
+        });
+
+        // Footer
+        const footerY = doc.internal.pageSize.getHeight() - 10;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150, 150, 150);
+        doc.text('Ascendance - Sales Analytics Report', 14, footerY);
+        doc.text(`Page 1 of 1`, pageWidth - 30, footerY);
+
+        // Add subtle footer line
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, footerY - 5, pageWidth - 14, footerY - 5);
+
+        updateProgress(100, 'Done!', 'Report generated successfully');
+
+        // Save PDF
+        const dateSlug = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`;
+        doc.save(`sales-report-${dateSlug}.pdf`);
+
+        // Remove modal after a brief moment
+        setTimeout(() => {
+            const modalEl = document.getElementById('master-report-modal');
+            if (modalEl) modalEl.remove();
+        }, 1500);
+
+    } catch (error) {
+        console.error('Error generating Master Report:', error);
+
+        // Update modal to show error
+        const titleEl = document.getElementById('master-report-title');
+        const statusEl = document.getElementById('master-report-status');
+        const progressBar = document.getElementById('master-report-progress');
+
+        if (titleEl) titleEl.textContent = 'Error Generating Report';
+        if (statusEl) statusEl.textContent = error.message || 'An unexpected error occurred';
+        if (progressBar) progressBar.style.background = '#ef4444';
+
+        // Remove modal after 3 seconds
+        setTimeout(() => {
+            const modalEl = document.getElementById('master-report-modal');
+            if (modalEl) modalEl.remove();
+        }, 3000);
+    }
 }
 
 // =============================================================================
