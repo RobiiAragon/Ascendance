@@ -47089,15 +47089,23 @@ function renderSalesPerformanceContent() {
         // Find employees who were scheduled during this order
         const orderTimeMinutes = hour * 60 + orderDate.getMinutes();
 
-        schedules.filter(s => s.date === dateKey).forEach(schedule => {
-            // Filter by store if selected
-            if (selectedStore !== 'all' && schedule.store !== selectedStore) return;
+        // First, find ALL employees working during this order time
+        const workingEmployees = schedules.filter(s => {
+            if (s.date !== dateKey) return false;
+            if (selectedStore !== 'all' && s.store !== selectedStore) return false;
 
-            const startMinutes = timeToMinutes(schedule.startTime);
-            const endMinutes = timeToMinutes(schedule.endTime);
+            const startMinutes = timeToMinutes(s.startTime);
+            const endMinutes = timeToMinutes(s.endTime);
+            return orderTimeMinutes >= startMinutes && orderTimeMinutes < endMinutes;
+        });
 
-            // Check if order time falls within schedule
-            if (orderTimeMinutes >= startMinutes && orderTimeMinutes < endMinutes) {
+        // Divide the sale equally among working employees
+        const numWorking = workingEmployees.length;
+        if (numWorking > 0) {
+            const salesPerEmployee = total / numWorking;
+            const ordersPerEmployee = 1 / numWorking;
+
+            workingEmployees.forEach(schedule => {
                 const empId = schedule.employeeId;
                 if (!employeePerf[empId]) {
                     const emp = employees.find(e => e.id === empId);
@@ -47112,19 +47120,24 @@ function renderSalesPerformanceContent() {
                     };
                 }
 
-                // Attribute this sale to the employee
-                employeePerf[empId].sales += total;
-                employeePerf[empId].orders += 1;
+                // Attribute proportional sale to the employee
+                employeePerf[empId].sales += salesPerEmployee;
+                employeePerf[empId].orders += ordersPerEmployee;
 
-                // Track store stats
+                // Track store stats (full amount per store, not divided)
                 const store = schedule.store;
                 if (!storeStats[store]) {
                     storeStats[store] = { sales: 0, orders: 0 };
                 }
-                storeStats[store].sales += total;
-                storeStats[store].orders += 1;
+            });
+
+            // Store stats - attribute to first employee's store (or could be based on order location)
+            const primaryStore = workingEmployees[0].store;
+            if (storeStats[primaryStore]) {
+                storeStats[primaryStore].sales += total;
+                storeStats[primaryStore].orders += 1;
             }
-        });
+        }
     });
 
     // Calculate hours worked for each employee
