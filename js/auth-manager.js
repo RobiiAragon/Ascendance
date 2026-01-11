@@ -24,7 +24,8 @@ class AuthenticationManager {
      */
     restoreSession() {
         try {
-            const sessionData = sessionStorage.getItem('ascendance_user');
+            // Use localStorage instead of sessionStorage so sessions persist across tabs
+            const sessionData = localStorage.getItem('ascendance_user');
             if (sessionData) {
                 this.currentUser = JSON.parse(sessionData);
                 this.currentUserRole = this.currentUser.role;
@@ -111,8 +112,8 @@ class AuthenticationManager {
      */
     logout() {
         try {
-            sessionStorage.removeItem('ascendance_user');
-            sessionStorage.removeItem('authToken');
+            localStorage.removeItem('ascendance_user');
+            localStorage.removeItem('authToken');
             this.currentUser = null;
             this.currentUserRole = null;
             console.log('User logged out');
@@ -150,7 +151,7 @@ class AuthenticationManager {
     extendSession() {
         if (this.currentUser) {
             this.currentUser.loginTime = new Date().toISOString();
-            sessionStorage.setItem('ascendance_user', JSON.stringify(this.currentUser));
+            localStorage.setItem('ascendance_user', JSON.stringify(this.currentUser));
         }
     }
 

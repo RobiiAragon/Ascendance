@@ -554,11 +554,11 @@
                 rememberMe: rememberMe
             };
 
-            // Store in sessionStorage (cleared when browser closes)
-            sessionStorage.setItem('ascendance_user', JSON.stringify(sessionData));
+            // Store in localStorage (persists across tabs and browser sessions)
+            localStorage.setItem('ascendance_user', JSON.stringify(sessionData));
 
             // Set flag to indicate new login (for activity logging on index.html)
-            sessionStorage.setItem('ascendance_new_login', 'true');
+            localStorage.setItem('ascendance_new_login', 'true');
 
             // Store in localStorage if remember me is checked
             if (rememberMe) {
@@ -572,7 +572,7 @@
 
             // Store auth token
             const token = generateAuthToken(user);
-            sessionStorage.setItem('authToken', token);
+            localStorage.setItem('authToken', token);
 
             console.log('Session stored for user:', user.email);
         }
@@ -637,7 +637,7 @@
          * Check if user is already logged in
          */
         function checkExistingSession() {
-            const user = sessionStorage.getItem('ascendance_user');
+            const user = localStorage.getItem('ascendance_user');
             if (user) {
                 // User already logged in, redirect to dashboard
                 window.location.href = 'index.html';

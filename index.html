@@ -1076,9 +1076,9 @@
 
             // Log login activity if this is a new login session
             try {
-                const isNewLogin = sessionStorage.getItem('ascendance_new_login') === 'true';
+                const isNewLogin = localStorage.getItem('ascendance_new_login') === 'true';
                 if (isNewLogin && typeof logActivity === 'function') {
-                    sessionStorage.removeItem('ascendance_new_login');
+                    localStorage.removeItem('ascendance_new_login');
                     await logActivity('login', {
                         message: 'User logged in',
                         store: user.store || 'Unknown'

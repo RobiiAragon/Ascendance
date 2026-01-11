@@ -43403,15 +43403,15 @@ async function logActivity(type, details = {}, entityType = null, entityId = nul
         // Get user from multiple sources for reliability
         let user = getCurrentUser();
 
-        // Fallback to sessionStorage if getCurrentUser fails (e.g., during login)
+        // Fallback to localStorage if getCurrentUser fails (e.g., during login)
         if (!user) {
             try {
-                const sessionUser = sessionStorage.getItem('ascendance_user');
+                const sessionUser = localStorage.getItem('ascendance_user');
                 if (sessionUser) {
                     user = JSON.parse(sessionUser);
                 }
             } catch (e) {
-                console.warn('Could not get user from sessionStorage:', e);
+                console.warn('Could not get user from localStorage:', e);
             }
         }
 
