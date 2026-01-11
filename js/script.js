@@ -84,6 +84,8 @@
             { id: 2, date: '2025-11-28', title: 'New Product Line', content: 'New product line arriving next week - mandatory training session on Thursday.', author: 'VSU Admin' },
             { id: 3, date: '2025-11-25', title: 'Q4 Achievement', content: 'Congratulations to VSU Miramar for hitting Q4 sales targets! 🎉', author: 'VSU Admin' }
         ];
+        // Expose announcements globally for likes/comments functionality
+        window.announcements = announcements;
 
         // Track which announcements the current user has read
         let readAnnouncementIds = [];
@@ -427,6 +429,7 @@
 
                     if (firestoreAnnouncements && firestoreAnnouncements.length > 0) {
                         announcements = firestoreAnnouncements;
+                        window.announcements = announcements;
                     } else {
                         console.log('No announcements in Firestore, using fallback data and migrating...');
                         // Migrate fallback data to Firebase
@@ -443,6 +446,7 @@
                         const migratedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (migratedAnnouncements && migratedAnnouncements.length > 0) {
                             announcements = migratedAnnouncements;
+                            window.announcements = announcements;
                         }
                         console.log('Migrated fallback announcements to Firestore');
                     }
@@ -4866,7 +4870,7 @@
                                                     <div class="comment-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                                         <span class="comment-author" style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${comment.author}</span>
                                                         <div style="display: flex; align-items: center; gap: 8px;">
-                                                            <span class="comment-date" style="font-size: 11px; color: var(--text-muted);">${formatRelativeTime(comment.date)}</span>
+                                                            <span class="comment-date" style="font-size: 11px; color: var(--text-muted);">${window.formatRelativeTime ? window.formatRelativeTime(comment.date) : comment.date}</span>
                                                             ${isOwnComment ? `<button onclick="deleteAnnouncementComment('${annId}', '${comment.id}')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px; padding: 2px;"><i class="fas fa-trash"></i></button>` : ''}
                                                         </div>
                                                     </div>
@@ -4894,6 +4898,8 @@
                 </div>
             `;
         }
+        // Expose renderAnnouncements globally for likes/comments
+        window.renderAnnouncements = renderAnnouncements;
 
         /**
          * Delete announcement from Firebase
@@ -4922,6 +4928,7 @@
                                 // Reload announcements from Firebase
                                 const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                                 announcements = updatedAnnouncements || [];
+                                window.announcements = announcements;
                                 console.log('Announcement deleted from Firebase');
                             }
                         } else {
@@ -5022,6 +5029,7 @@
                         const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (updatedAnnouncements && updatedAnnouncements.length > 0) {
                             announcements = updatedAnnouncements;
+                            window.announcements = announcements;
                         }
                         console.log('Announcement updated in Firebase');
                     }
@@ -49104,5 +49112,185 @@ window.analyzePodMatcherImage = analyzePodMatcherImage;
 
 // ==========================================
 // END POD MATCHER MODULE
+// ==========================================
+
+// ==========================================
+// ANNOUNCEMENT LIKES & COMMENTS (GLOBAL)
+// ==========================================
+
+/**
+ * Toggle like on an announcement
+ */
+window.toggleAnnouncementLike = async function(announcementId) {
+    const user = window.authManager?.getCurrentUser();
+    if (!user) {
+        alert('Please log in to like announcements');
+        return;
+    }
+
+    // Find announcement in global announcements array
+    const announcement = window.announcements?.find(a => a.id === announcementId || a.firestoreId === announcementId);
+    if (!announcement) {
+        console.error('Announcement not found:', announcementId);
+        return;
+    }
+
+    const likes = announcement.likes || [];
+    const currentUserId = user.id || user.odooId || user.email;
+    const existingLikeIndex = likes.findIndex(l => l.odooId === currentUserId || l.odooId === user.odooId || l.userId === currentUserId);
+
+    let updatedLikes;
+    if (existingLikeIndex > -1) {
+        // Remove like
+        updatedLikes = likes.filter((_, i) => i !== existingLikeIndex);
+    } else {
+        // Add like
+        updatedLikes = [...likes, {
+            odooId: user.odooId || currentUserId,
+            userId: currentUserId,
+            name: user.name || user.email?.split('@')[0] || 'Unknown',
+            date: new Date().toISOString()
+        }];
+    }
+
+    // Update in Firebase
+    try {
+        if (window.firebaseAnnouncementsManager?.isInitialized) {
+            await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { likes: updatedLikes });
+            // Reload announcements
+            const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+            if (updated) window.announcements = updated;
+        } else {
+            // Local update
+            announcement.likes = updatedLikes;
+        }
+        if (typeof window.renderAnnouncements === 'function') {
+            window.renderAnnouncements();
+        }
+    } catch (error) {
+        console.error('Error toggling like:', error);
+    }
+};
+
+/**
+ * Toggle comments section visibility
+ */
+window.toggleAnnouncementComments = function(announcementId) {
+    const commentsSection = document.getElementById(`comments-${announcementId}`);
+    if (commentsSection) {
+        const isHidden = commentsSection.style.display === 'none';
+        commentsSection.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            // Focus on comment input
+            const input = document.getElementById(`comment-input-${announcementId}`);
+            if (input) input.focus();
+        }
+    }
+};
+
+/**
+ * Add a comment to an announcement
+ */
+window.addAnnouncementComment = async function(announcementId) {
+    const user = window.authManager?.getCurrentUser();
+    if (!user) {
+        alert('Please log in to comment');
+        return;
+    }
+
+    const input = document.getElementById(`comment-input-${announcementId}`);
+    const text = input?.value?.trim();
+    if (!text) return;
+
+    const announcement = window.announcements?.find(a => a.id === announcementId || a.firestoreId === announcementId);
+    if (!announcement) return;
+
+    const currentUserId = user.id || user.odooId || user.email;
+    const newComment = {
+        id: 'comment_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        odooId: user.odooId || currentUserId,
+        userId: currentUserId,
+        author: user.name || user.email?.split('@')[0] || 'Unknown',
+        text: text,
+        date: new Date().toISOString()
+    };
+
+    const updatedComments = [...(announcement.comments || []), newComment];
+
+    // Update in Firebase
+    try {
+        if (window.firebaseAnnouncementsManager?.isInitialized) {
+            await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+            // Reload announcements
+            const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+            if (updated) window.announcements = updated;
+        } else {
+            announcement.comments = updatedComments;
+        }
+        if (typeof window.renderAnnouncements === 'function') {
+            window.renderAnnouncements();
+        }
+        // Re-open comments section after render
+        setTimeout(() => {
+            const commentsSection = document.getElementById(`comments-${announcementId}`);
+            if (commentsSection) commentsSection.style.display = 'block';
+        }, 50);
+    } catch (error) {
+        console.error('Error adding comment:', error);
+    }
+};
+
+/**
+ * Delete a comment from an announcement
+ */
+window.deleteAnnouncementComment = async function(announcementId, commentId) {
+    const announcement = window.announcements?.find(a => a.id === announcementId || a.firestoreId === announcementId);
+    if (!announcement) return;
+
+    const updatedComments = (announcement.comments || []).filter(c => c.id !== commentId);
+
+    try {
+        if (window.firebaseAnnouncementsManager?.isInitialized) {
+            await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+            const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+            if (updated) window.announcements = updated;
+        } else {
+            announcement.comments = updatedComments;
+        }
+        if (typeof window.renderAnnouncements === 'function') {
+            window.renderAnnouncements();
+        }
+        // Re-open comments section after render
+        setTimeout(() => {
+            const commentsSection = document.getElementById(`comments-${announcementId}`);
+            if (commentsSection) commentsSection.style.display = 'block';
+        }, 50);
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+    }
+};
+
+/**
+ * Format relative time (e.g., "2 hours ago")
+ */
+window.formatRelativeTime = function(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 60) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHour < 24) return `${diffHour}h ago`;
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+// ==========================================
+// END ANNOUNCEMENT LIKES & COMMENTS
 // ==========================================
 

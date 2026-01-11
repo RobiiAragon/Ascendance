@@ -4014,6 +4014,7 @@ class FirebaseAnnouncementsManager {
 
 // Initialize global Firebase Announcements Manager
 const firebaseAnnouncementsManager = new FirebaseAnnouncementsManager();
+window.firebaseAnnouncementsManager = firebaseAnnouncementsManager;
 
 class FirebaseRestockRequestsManager {
     constructor() {
