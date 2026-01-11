@@ -3811,7 +3811,7 @@ class FirebaseAnnouncementsManager {
 
             const announcementsCollection = window.FIREBASE_COLLECTIONS?.announcements || 'announcements';
             const snapshot = await this.db.collection(announcementsCollection)
-                .orderBy('date', 'desc')
+                .orderBy('date', 'asc')
                 .get();
 
             const announcements = [];
