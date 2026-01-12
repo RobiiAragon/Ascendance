@@ -16727,7 +16727,9 @@ window.viewChecklistHistory = async function() {
             let diff = endMinutes - startMinutes;
             // Handle overnight shifts (end time is next day)
             if (diff < 0) diff += 24 * 60;
-            return diff / 60;
+            const hours = diff / 60;
+            // Sanity check: cap at 16 hours max per shift
+            return Math.min(hours, 16);
         }
 
         function formatTime(time) {
