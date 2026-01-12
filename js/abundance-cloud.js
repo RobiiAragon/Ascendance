@@ -13,7 +13,7 @@ const ABUNDANCE_CONFIG = window.ABUNDANCE_CONFIG || {
     shopifyDomain: 'k1xm3v-v0.myshopify.com',
     shopifyAccessToken: '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',
     storeName: 'Loyal Vaper',
-    organizationName: 'Abundance Cloud Engine',
+    organizationName: 'Loyal VSU',
     features: {
         autoRefresh: true,
         refreshInterval: 120000, // 2 minutes

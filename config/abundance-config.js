@@ -29,7 +29,7 @@ window.ABUNDANCE_CONFIG = {
 
     // Store Information
     storeName: 'Loyal Vaper',
-    organizationName: 'Abundance Cloud Engine',
+    organizationName: 'Loyal VSU',
 
     // Feature Flags
     features: {

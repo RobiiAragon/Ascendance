@@ -1231,20 +1231,22 @@
                 schedule: 'Schedule',
                 settings: 'Settings',
                 help: 'Help Center',
-                thieves: 'Thief Database',
+                thieves: 'Banned Customers',
                 invoices: 'Invoices',
-                issues: 'Issues Registry',
+                issues: 'Customer Issue Log',
                 vendors: 'Vendors & Suppliers',
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
-                cashout: 'Cash Control',
+                cashout: 'Cash Removed',
                 treasury: 'Heady Pieces',
                 gconomics: 'Gconomics',
                 gforce: 'G Force',
-                abundancecloud: 'Abundance Cloud Engine',
+                abundancecloud: 'Loyal VSU',
                 newstuff: 'New Stuff',
-                change: 'Change',
-                customercare: 'Customer Care',
+                change: 'Change Box',
+                customercare: 'Comps',
+                employeepurchases: 'Employee Purchases',
+                incidentlog: 'Incident Log',
                 risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
                 projectanalytics: 'Project Analytics',
@@ -1413,11 +1415,17 @@
                 case 'customercare':
                     renderGifts();
                     break;
+                case 'employeepurchases':
+                    renderEmployeePurchases();
+                    break;
                 case 'gforce':
                     renderGForce();
                     break;
                 case 'risknotes':
                     renderRiskNotes();
+                    break;
+                case 'incidentlog':
+                    renderIncidentLog();
                     break;
                 case 'passwords':
                     await window.renderPasswordManager();
@@ -3073,22 +3081,6 @@
                             <span><i class="fas fa-envelope"></i> ${emp.authEmail}</span>
                             <span><i class="fas fa-phone"></i> ${emp.phone}</span>
                         </div>
-                        ${emp.certifications && emp.certifications.length > 0 ? `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
-                                <i class="fas fa-certificate" style="color: #f59e0b;"></i> Certifications (${emp.certifications.length})
-                            </div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${emp.certifications.slice(0, 3).map(cert => {
-                                    const isExpired = cert.expirationDate && new Date(cert.expirationDate) < new Date();
-                                    const isExpiringSoon = cert.expirationDate && !isExpired && new Date(cert.expirationDate) < new Date(Date.now() + 30*24*60*60*1000);
-                                    const color = isExpired ? '#ef4444' : isExpiringSoon ? '#f59e0b' : '#10b981';
-                                    return `<span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: ${color}20; color: ${color}; font-weight: 500; white-space: nowrap;">${cert.name.length > 15 ? cert.name.substring(0, 15) + '...' : cert.name}</span>`;
-                                }).join('')}
-                                ${emp.certifications.length > 3 ? `<span style="font-size: 10px; padding: 3px 6px; color: var(--text-muted);">+${emp.certifications.length - 3} more</span>` : ''}
-                            </div>
-                        </div>
-                        ` : ''}
                     </div>
                     <div class="employee-card-footer">
                         <button class="btn-icon" onclick="event.stopPropagation(); viewEmployeePaperwork('${empId}')" title="View Documents"><i class="fas fa-file-pdf"></i></button>
@@ -12419,6 +12411,31 @@ window.viewChecklistHistory = async function() {
                         background: var(--accent-primary);
                         color: white;
                     }
+                    .store-shift-delete {
+                        position: absolute;
+                        top: 2px;
+                        right: 22px;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        background: rgba(255,255,255,0.9);
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        color: #ef4444;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .store-shift-slot:hover .store-shift-delete {
+                        opacity: 1;
+                    }
+                    .store-shift-delete:hover {
+                        background: #ef4444;
+                        color: white;
+                    }
 
                     /* Days Off Section for All Stores View */
                     .store-days-off-section {
@@ -13990,6 +14007,9 @@ window.viewChecklistHistory = async function() {
                                     <button class="store-shift-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
                                         <i class="fas fa-clone"></i>
                                     </button>
+                                    <button class="store-shift-delete" onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')" title="Delete shift">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             `;
                         } else {
@@ -14870,7 +14890,7 @@ window.viewChecklistHistory = async function() {
                 console.log(`After search filter (${search}):`, filteredEmployees.length, 'employees');
             }
 
-            // Filter out inactive employees
+            // Filter out inactive/terminated employees (only show active)
             filteredEmployees = filteredEmployees.filter(e => e.status === 'active');
 
             // Filter out employees who have a day off on this date
@@ -15053,7 +15073,7 @@ window.viewChecklistHistory = async function() {
                 );
             }
 
-            // Filter out inactive employees
+            // Filter out inactive/terminated employees (only show active)
             filteredEmployees = filteredEmployees.filter(e => e.status === 'active');
 
             // Filter out employees who already have a day off on this date
@@ -16219,8 +16239,8 @@ window.viewChecklistHistory = async function() {
             dashboard.innerHTML = `
                 <div class="page-header thieves-page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Thief Database</h2>
-                        <p class="section-subtitle">Track and manage theft incidents</p>
+                        <h2 class="section-title">Banned Customers</h2>
+                        <p class="section-subtitle">Track and manage banned customer incidents</p>
                         <select class="form-input thieves-filter-select" id="thieves-filter" onchange="filterThieves(this.value)">
                             <option value="all">All Stores</option>
                             <option value="Miramar">Miramar</option>
@@ -22716,12 +22736,12 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Gift Tracking</h2>
-                        <p class="section-subtitle">In-Kind Gifts & Product Giveaways</p>
+                        <h2 class="section-title">Comp Tracking</h2>
+                        <p class="section-subtitle">Product Comps & Giveaways</p>
                     </div>
                     <button class="btn-primary floating-add-btn" onclick="openModal('add-gift')">
                         <i class="fas fa-plus"></i>
-                        Register Gift
+                        Register Comp
                     </button>
                 </div>
 
@@ -23328,6 +23348,205 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             }
         }
 
+        // ==========================================
+        // EMPLOYEE PURCHASES MODULE
+        // ==========================================
+
+        let employeePurchases = [];
+        let employeePurchasesCurrentMonth = new Date().toISOString().slice(0, 7);
+        let employeePurchasesStoreFilter = 'all';
+
+        // Initialize Firebase collection for employee purchases
+        async function loadEmployeePurchases() {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('employeePurchases').orderBy('date', 'desc').get();
+                    employeePurchases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+            } catch (error) {
+                console.error('Error loading employee purchases:', error);
+            }
+        }
+
+        function renderEmployeePurchases() {
+            const dashboard = document.querySelector('.dashboard');
+
+            // Filter by month
+            const monthlyRecords = employeePurchases.filter(r => r.date && r.date.startsWith(employeePurchasesCurrentMonth));
+
+            // Filter by store
+            let filteredRecords = [...monthlyRecords];
+            if (employeePurchasesStoreFilter !== 'all') {
+                filteredRecords = monthlyRecords.filter(r => r.store === employeePurchasesStoreFilter);
+            }
+
+            const monthlyTotal = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+            const monthName = new Date(employeePurchasesCurrentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+
+            dashboard.innerHTML = \`
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Employee Purchases</h2>
+                        <p class="section-subtitle">Track all employee purchases and discounts</p>
+                    </div>
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-employee-purchase')">
+                        <i class="fas fa-plus"></i>
+                        New Purchase
+                    </button>
+                </div>
+
+                <!-- Monthly Total Card -->
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px; padding: 30px 40px; margin-bottom: 24px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.1);"></div>
+                    <div style="position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">\${monthName}</div>
+                            <div style="color: white; font-size: 42px; font-weight: 700; margin-top: 4px;">$\${monthlyTotal.toFixed(2)}</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 4px;">\${filteredRecords.length} purchase\${filteredRecords.length !== 1 ? 's' : ''} this month</div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <button onclick="changeEmployeePurchasesMonth(-1)" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button onclick="changeEmployeePurchasesMonth(1)" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Store</label>
+                        <select id="emp-purchases-store-filter" onchange="filterEmployeePurchasesByStore(this.value)" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <option value="all">All Stores</option>
+                            <option value="Chula Vista" \${employeePurchasesStoreFilter === 'Chula Vista' ? 'selected' : ''}>Chula Vista</option>
+                            <option value="Miramar" \${employeePurchasesStoreFilter === 'Miramar' ? 'selected' : ''}>Miramar</option>
+                            <option value="Kearny Mesa" \${employeePurchasesStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>Kearny Mesa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Records List -->
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--bg-secondary);">
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Date</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Employee</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Store</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Items</th>
+                                <th style="padding: 14px 16px; text-align: right; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Amount</th>
+                                <th style="padding: 14px 16px; text-align: center; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${filteredRecords.length > 0 ? filteredRecords.map(record => \`
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 14px 16px; color: var(--text-primary);">\${formatDate(record.date)}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-primary); font-weight: 500;">\${record.employeeName || 'Unknown'}</td>
+                                    <td style="padding: 14px 16px;"><span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--bg-secondary); color: var(--text-secondary);">\${record.store || 'N/A'}</span></td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${record.items || record.description || 'N/A'}</td>
+                                    <td style="padding: 14px 16px; text-align: right; font-weight: 600; color: var(--accent-primary);">$\${(parseFloat(record.amount) || 0).toFixed(2)}</td>
+                                    <td style="padding: 14px 16px; text-align: center;">
+                                        <button onclick="deleteEmployeePurchase('\${record.id}')" class="btn-icon" style="color: var(--danger);" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            \`).join('') : \`
+                                <tr>
+                                    <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                                        <i class="fas fa-shopping-bag" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px;"></i>
+                                        <p style="margin: 0;">No employee purchases recorded this month</p>
+                                    </td>
+                                </tr>
+                            \`}
+                        </tbody>
+                    </table>
+                </div>
+            \`;
+        }
+
+        function changeEmployeePurchasesMonth(delta) {
+            const date = new Date(employeePurchasesCurrentMonth + '-01');
+            date.setMonth(date.getMonth() + delta);
+            employeePurchasesCurrentMonth = date.toISOString().slice(0, 7);
+            renderEmployeePurchases();
+        }
+
+        function filterEmployeePurchasesByStore(store) {
+            employeePurchasesStoreFilter = store;
+            renderEmployeePurchases();
+        }
+
+        async function saveEmployeePurchase() {
+            const employeeId = document.getElementById('emp-purchase-employee').value;
+            const store = document.getElementById('emp-purchase-store').value;
+            const date = document.getElementById('emp-purchase-date').value;
+            const items = document.getElementById('emp-purchase-items').value.trim();
+            const amount = parseFloat(document.getElementById('emp-purchase-amount').value) || 0;
+
+            if (!employeeId || !store || !date || !amount) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+
+            const purchaseData = {
+                employeeId,
+                employeeName: emp ? emp.name : 'Unknown',
+                store,
+                date,
+                items,
+                amount,
+                createdAt: new Date().toISOString(),
+                createdBy: authManager.getCurrentUser()?.name || 'Unknown'
+            };
+
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    await db.collection('employeePurchases').add(purchaseData);
+                }
+                employeePurchases.unshift(purchaseData);
+                closeModal();
+                showNotification('Employee purchase recorded!', 'success');
+                renderEmployeePurchases();
+            } catch (error) {
+                console.error('Error saving employee purchase:', error);
+                alert('Error saving purchase. Please try again.');
+            }
+        }
+
+        async function deleteEmployeePurchase(purchaseId) {
+            if (!confirm('Are you sure you want to delete this purchase record?')) return;
+
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    await db.collection('employeePurchases').doc(purchaseId).delete();
+                }
+                employeePurchases = employeePurchases.filter(p => p.id !== purchaseId);
+                showNotification('Purchase deleted', 'success');
+                renderEmployeePurchases();
+            } catch (error) {
+                console.error('Error deleting purchase:', error);
+                alert('Error deleting purchase');
+            }
+        }
+
+        // Make functions globally available
+        window.renderEmployeePurchases = renderEmployeePurchases;
+        window.changeEmployeePurchasesMonth = changeEmployeePurchasesMonth;
+        window.filterEmployeePurchasesByStore = filterEmployeePurchasesByStore;
+        window.saveEmployeePurchase = saveEmployeePurchase;
+        window.deleteEmployeePurchase = deleteEmployeePurchase;
+        window.loadEmployeePurchases = loadEmployeePurchases;
+
         // Cash Out Functions
         function renderCashOut() {
             const dashboard = document.querySelector('.dashboard');
@@ -23479,7 +23698,7 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary);">
                         <i class="fas fa-receipt" style="margin-right: 8px; color: var(--accent-primary);"></i>
-                        Expense Records
+                        Cash Removed
                     </h3>
                     <!-- View Toggle -->
                     <div style="display: flex; background: var(--bg-secondary); border-radius: 8px; padding: 3px; border: 1px solid var(--border-color);">
@@ -24612,8 +24831,8 @@ Return ONLY the JSON object, no additional text.`
             dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2 class="section-title">Issues Registry</h2>
-                        <p class="section-subtitle">Customer incident documentation & follow-up tracking</p>
+                        <h2 class="section-title">Customer Issue Log</h2>
+                        <p class="section-subtitle">Track orders needing follow-up</p>
                     </div>
                     <button class="btn-primary" onclick="openModal('create-issue')">
                         <i class="fas fa-plus"></i>
@@ -27620,8 +27839,8 @@ Return ONLY the JSON object, no additional text.`
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Allergies / Medical Notes</label>
-                                <textarea class="form-input" id="edit-emp-allergies" rows="2" placeholder="Any allergies or medical conditions...">${data.allergies || ''}</textarea>
+                                <label>Medical Conditions</label>
+                                <textarea class="form-input" id="edit-emp-medical-conditions" rows="2" placeholder="Any medical conditions or notes...">${data.medicalConditions || data.allergies || ''}</textarea>
                             </div>
                             <div class="form-divider"></div>
                             <h3 class="form-section-title">Employee Paperwork</h3>
@@ -27998,8 +28217,8 @@ Return ONLY the JSON object, no additional text.`
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Allergies / Medical Notes</label>
-                                <textarea class="form-input" id="emp-allergies" rows="2" placeholder="Any allergies or medical conditions..."></textarea>
+                                <label>Medical Conditions</label>
+                                <textarea class="form-input" id="emp-medical-conditions" rows="2" placeholder="Any medical conditions or notes..."></textarea>
                             </div>
                             <div class="form-divider"></div>
                             <h3 class="form-section-title">Employee Paperwork</h3>
@@ -28574,13 +28793,15 @@ Return ONLY the JSON object, no additional text.`
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Crime Type *</label>
+                                    <label>Incident *</label>
                                     <select class="form-input" id="thief-crime-type">
                                         <option value="">Select type...</option>
                                         <option value="Shoplifting">Shoplifting</option>
                                         <option value="Attempted Theft">Attempted Theft</option>
                                         <option value="Robbery">Robbery</option>
                                         <option value="Fraud">Fraud</option>
+                                        <option value="Disrespect/Harassment">Disrespect/Harassment</option>
+                                        <option value="Refusal">Refusal</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
@@ -28663,13 +28884,15 @@ Return ONLY the JSON object, no additional text.`
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Crime Type</label>
+                                    <label>Incident</label>
                                     <select class="form-input" id="edit-thief-crime-type">
                                         <option value="">Select type...</option>
                                         <option value="Shoplifting" ${data.crimeType === 'Shoplifting' ? 'selected' : ''}>Shoplifting</option>
                                         <option value="Attempted Theft" ${data.crimeType === 'Attempted Theft' ? 'selected' : ''}>Attempted Theft</option>
                                         <option value="Robbery" ${data.crimeType === 'Robbery' ? 'selected' : ''}>Robbery</option>
                                         <option value="Fraud" ${data.crimeType === 'Fraud' ? 'selected' : ''}>Fraud</option>
+                                        <option value="Disrespect/Harassment" ${data.crimeType === 'Disrespect/Harassment' ? 'selected' : ''}>Disrespect/Harassment</option>
+                                        <option value="Refusal" ${data.crimeType === 'Refusal' ? 'selected' : ''}>Refusal</option>
                                         <option value="Other" ${data.crimeType === 'Other' ? 'selected' : ''}>Other</option>
                                     </select>
                                 </div>
@@ -30187,12 +30410,12 @@ Return ONLY the JSON object, no additional text.`,
 
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-gift"></i> Register Gift</h2>
+                            <h2><i class="fas fa-gift"></i> Register Comp</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
                             <!-- AI Voice Assistant Section -->
-                            ${VoiceAssistant.getHTML('gift', { title: 'AI Voice Assistant', subtitle: 'Speak to auto-fill the gift form', buttonColor: 'linear-gradient(135deg, #ec4899, #f59e0b)' })}
+                            ${VoiceAssistant.getHTML('gift', { title: 'AI Voice Assistant', subtitle: 'Speak to auto-fill the comp form', buttonColor: 'linear-gradient(135deg, #ec4899, #f59e0b)' })}
 
                             <div class="form-row">
                                 <div class="form-group" style="flex: 2;">
@@ -30204,14 +30427,14 @@ Return ONLY the JSON object, no additional text.`,
                                     <input type="number" class="form-input" id="gift-quantity" value="1" min="1">
                                 </div>
                                 <div class="form-group">
-                                    <label>Value ($)</label>
+                                    <label>Cost ($)</label>
                                     <input type="number" step="0.01" class="form-input" id="gift-value" placeholder="0.00">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Recipient Name</label>
-                                    <input type="text" class="form-input" id="gift-recipient" placeholder="Name of person receiving the gift">
+                                    <input type="text" class="form-input" id="gift-recipient" placeholder="Name of person receiving the comp">
                                 </div>
                                 <div class="form-group">
                                     <label>Recipient Type</label>
@@ -30225,7 +30448,7 @@ Return ONLY the JSON object, no additional text.`,
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Reason for Gift</label>
+                                <label>Reason for Comp</label>
                                 <textarea class="form-input" id="gift-reason" rows="2" placeholder="e.g., Defective product replacement, compensation for error... or use voice above!"></textarea>
                             </div>
                             <div class="form-row">
@@ -30247,6 +30470,10 @@ Return ONLY the JSON object, no additional text.`,
                                 </div>
                             </div>
                             <div class="form-group">
+                                <label>Approved By</label>
+                                <input type="text" class="form-input" id="gift-approved-by" placeholder="Manager who approved this comp">
+                            </div>
+                            <div class="form-group">
                                 <label>Additional Notes</label>
                                 <textarea class="form-input" id="gift-notes" rows="2" placeholder="Any additional details..."></textarea>
                             </div>
@@ -30266,10 +30493,128 @@ Return ONLY the JSON object, no additional text.`,
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
                             <button class="btn-primary" onclick="saveGift()">
                                 <i class="fas fa-save"></i>
-                                Save Gift
+                                Save Comp
                             </button>
                         </div>
                     `;
+                    break;
+
+                case 'add-incident-log':
+                    content = \`
+                        <div class="modal-header">
+                            <h2><i class="fas fa-clipboard-list"></i> Log Incident</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" class="form-input" id="incident-log-date" value="\${new Date().toISOString().split('T')[0]}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Time</label>
+                                    <input type="time" class="form-input" id="incident-log-time">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Store *</label>
+                                <select class="form-input" id="incident-log-store">
+                                    <option value="">Select store...</option>
+                                    <option value="Miramar">VSU Miramar</option>
+                                    <option value="Chula Vista">VSU Chula Vista</option>
+                                    <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                    <option value="North Park">VSU North Park</option>
+                                    <option value="Morena">VSU Morena</option>
+                                    <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Incident Description *</label>
+                                <textarea class="form-input" id="incident-log-incident" rows="3" placeholder="Describe what happened..."></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Informed Manager/Owner Name</label>
+                                    <input type="text" class="form-input" id="incident-log-manager" placeholder="Who was notified?">
+                                </div>
+                                <div class="form-group">
+                                    <label>Cameras Reviewed?</label>
+                                    <select class="form-input" id="incident-log-cameras">
+                                        <option value="">Select...</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                        <option value="N/A">N/A</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Conclusion</label>
+                                <textarea class="form-input" id="incident-log-conclusion" rows="2" placeholder="How was it resolved?"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveIncidentLog()">
+                                <i class="fas fa-save"></i>
+                                Save Incident
+                            </button>
+                        </div>
+                    \`;
+                    break;
+
+                case 'add-employee-purchase':
+                    content = \`
+                        <div class="modal-header">
+                            <h2><i class="fas fa-shopping-bag"></i> New Employee Purchase</h2>
+                            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Employee *</label>
+                                    <select class="form-input" id="emp-purchase-employee">
+                                        <option value="">Select employee...</option>
+                                        \${employees.filter(e => e.status === 'active').map(emp => \`
+                                            <option value="\${emp.id || emp.firestoreId}">\${emp.name}</option>
+                                        \`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Store *</label>
+                                    <select class="form-input" id="emp-purchase-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Miramar">VSU Miramar</option>
+                                        <option value="Chula Vista">VSU Chula Vista</option>
+                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                        <option value="North Park">VSU North Park</option>
+                                        <option value="Morena">VSU Morena</option>
+                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" class="form-input" id="emp-purchase-date" value="\${new Date().toISOString().split('T')[0]}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount ($) *</label>
+                                    <input type="number" step="0.01" class="form-input" id="emp-purchase-amount" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Items Purchased</label>
+                                <textarea class="form-input" id="emp-purchase-items" rows="2" placeholder="List of items purchased..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn-primary" onclick="saveEmployeePurchase()">
+                                <i class="fas fa-save"></i>
+                                Save Purchase
+                            </button>
+                        </div>
+                    \`;
                     break;
 
                 case 'edit-gift':
@@ -30602,50 +30947,10 @@ Return ONLY the JSON object, no additional text.`,
                                 <span>Emergency: ${emp.emergencyContact}</span>
                             </div>
                             <div class="detail-row">
-                                <i class="fas fa-allergies"></i>
-                                <span>Allergies: ${emp.allergies}</span>
+                                <i class="fas fa-notes-medical"></i>
+                                <span>Medical Conditions: ${emp.medicalConditions || emp.allergies || 'None'}</span>
                             </div>
                         </div>
-                        <!-- Certifications Section -->
-                        <div class="form-divider"></div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h3 class="form-section-title" style="margin: 0;"><i class="fas fa-certificate" style="color: #f59e0b; margin-right: 8px;"></i>Certifications</h3>
-                            <button class="btn-secondary" onclick="openAddCertificationModal('${emp.id}')" style="padding: 6px 12px; font-size: 12px;">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
-                        </div>
-                        ${emp.certifications && emp.certifications.length > 0 ? `
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            ${emp.certifications.map((cert, index) => {
-                                const isExpired = cert.expirationDate && new Date(cert.expirationDate) < new Date();
-                                const isExpiringSoon = cert.expirationDate && !isExpired && new Date(cert.expirationDate) < new Date(Date.now() + 30*24*60*60*1000);
-                                const statusColor = isExpired ? '#ef4444' : isExpiringSoon ? '#f59e0b' : '#10b981';
-                                const statusText = isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Valid';
-                                return `
-                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); border-left: 3px solid ${statusColor};">
-                                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                        <i class="fas fa-award" style="color: ${statusColor}; font-size: 20px;"></i>
-                                        <div style="flex: 1;">
-                                            <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${cert.name}</div>
-                                            <div style="font-size: 12px; color: var(--text-muted);">
-                                                ${cert.issuedBy || 'N/A'} • ${cert.expirationDate ? 'Expires: ' + formatDate(cert.expirationDate) : 'No expiration'}
-                                                <span style="margin-left: 8px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: ${statusColor}20; color: ${statusColor};">${statusText}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 6px;">
-                                        ${cert.fileURL ? `<button class="btn-icon" onclick="window.open('${cert.fileURL}', '_blank')" title="View Certificate"><i class="fas fa-eye"></i></button>` : ''}
-                                        <button class="btn-icon danger" onclick="deleteCertification('${emp.id}', ${index})" title="Delete"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </div>
-                            `;}).join('')}
-                        </div>
-                        ` : `
-                        <div style="text-align: center; padding: 20px; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
-                            <i class="fas fa-certificate" style="font-size: 24px; opacity: 0.3; margin-bottom: 8px;"></i>
-                            <p style="margin: 0; font-size: 13px;">No certifications added yet</p>
-                        </div>
-                        `}
 
                         ${emp.paperwork && emp.paperwork.length > 0 ? `
                         <div class="form-divider"></div>
@@ -31053,7 +31358,7 @@ Return ONLY the JSON object, no additional text.`,
             const hireDate = document.getElementById('edit-emp-hire-date').value || currentEmployee.hireDate;
             const emergencyName = document.getElementById('edit-emp-emergency-name').value.trim();
             const emergencyPhone = document.getElementById('edit-emp-emergency-phone').value.trim();
-            const allergies = document.getElementById('edit-emp-allergies').value.trim();
+            const medicalConditions = document.getElementById('edit-emp-medical-conditions').value.trim();
 
             // Check if status is changing from active to inactive - trigger offboarding
             if (currentEmployee.status === 'active' && status === 'inactive') {
@@ -31063,7 +31368,7 @@ Return ONLY the JSON object, no additional text.`,
                     currentEmployee,
                     updatedData: {
                         firstName, lastName, authEmail, phone, password, confirmPassword,
-                        role, employeeType, store, status, hireDate, emergencyName, emergencyPhone, allergies
+                        role, employeeType, store, status, hireDate, emergencyName, emergencyPhone, medicalConditions
                     }
                 };
                 // Close current modal and open offboarding modal
@@ -31101,7 +31406,7 @@ Return ONLY the JSON object, no additional text.`,
                 status,
                 hireDate: hireDate || new Date().toISOString().split('T')[0],
                 emergencyContact: combineEmergencyContact(emergencyName, emergencyPhone) || currentEmployee.emergencyContact || 'Not provided',
-                allergies: allergies || currentEmployee.allergies || 'None'
+                medicalConditions: medicalConditions || currentEmployee.medicalConditions || 'None'
             };
 
             // Only include password if it's being changed
@@ -31996,7 +32301,7 @@ Return ONLY the JSON object, no additional text.`,
             const hireDate = document.getElementById('emp-hire-date').value;
             const emergencyName = document.getElementById('emp-emergency-name').value.trim();
             const emergencyPhone = document.getElementById('emp-emergency-phone').value.trim();
-            const allergies = document.getElementById('emp-allergies').value.trim();
+            const medicalConditions = document.getElementById('emp-medical-conditions').value.trim();
 
             if (!firstName || !lastName || !email || !phone || !role || !store || !password) {
                 alert('Please fill in all required fields');
@@ -32023,7 +32328,7 @@ Return ONLY the JSON object, no additional text.`,
                 store,
                 hireDate: hireDate || new Date().toISOString().split('T')[0],
                 emergencyContact: combineEmergencyContact(emergencyName, emergencyPhone),
-                allergies: allergies || 'None',
+                medicalConditions: medicalConditions || 'None',
                 status: 'active',
                 color: ['a', 'b', 'c', 'd', 'e'][Math.floor(Math.random() * 5)]
             };
@@ -34860,6 +35165,176 @@ Return ONLY the JSON object, no additional text.`,
             });
             localStorage.setItem('riskNotes', JSON.stringify(notesForStorage));
         }
+
+        // ==========================================
+        // INCIDENT LOG MODULE
+        // ==========================================
+
+        let incidentLogs = [];
+        let incidentLogCurrentMonth = new Date().toISOString().slice(0, 7);
+
+        async function loadIncidentLogs() {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('incidentLogs').orderBy('date', 'desc').get();
+                    incidentLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+            } catch (error) {
+                console.error('Error loading incident logs:', error);
+            }
+        }
+
+        function renderIncidentLog() {
+            const dashboard = document.querySelector('.dashboard');
+
+            // Filter by month
+            const monthlyLogs = incidentLogs.filter(log => log.date && log.date.startsWith(incidentLogCurrentMonth));
+            const monthName = new Date(incidentLogCurrentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            dashboard.innerHTML = \`
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h2 class="section-title">Incident Log</h2>
+                        <p class="section-subtitle">Log and track store incidents</p>
+                    </div>
+                    <button class="btn-primary floating-add-btn" onclick="openModal('add-incident-log')">
+                        <i class="fas fa-plus"></i>
+                        New Incident
+                    </button>
+                </div>
+
+                <!-- Month Navigation -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button onclick="changeIncidentLogMonth(-1)" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span style="font-size: 18px; font-weight: 600; min-width: 150px; text-align: center;">\${monthName}</span>
+                        <button onclick="changeIncidentLogMonth(1)" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <span style="color: var(--text-muted);">\${monthlyLogs.length} incident\${monthlyLogs.length !== 1 ? 's' : ''}</span>
+                </div>
+
+                <!-- Incident List Table -->
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--bg-secondary);">
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Date</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Time</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Store</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Incident</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Informed Manager</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Cameras Reviewed</th>
+                                <th style="padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Conclusion</th>
+                                <th style="padding: 14px 16px; text-align: center; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${monthlyLogs.length > 0 ? monthlyLogs.map(log => \`
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 14px 16px; color: var(--text-primary);">\${formatDate(log.date)}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${log.time || 'N/A'}</td>
+                                    <td style="padding: 14px 16px;"><span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--bg-secondary); color: var(--text-secondary);">\${log.store || 'N/A'}</span></td>
+                                    <td style="padding: 14px 16px; color: var(--text-primary); max-width: 250px;">\${log.incident || 'N/A'}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${log.informedManager || 'N/A'}</td>
+                                    <td style="padding: 14px 16px;"><span style="color: \${log.camerasReviewed === 'Yes' ? '#10b981' : '#f59e0b'};">\${log.camerasReviewed || 'N/A'}</span></td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${log.conclusion || 'Pending'}</td>
+                                    <td style="padding: 14px 16px; text-align: center;">
+                                        <button onclick="deleteIncidentLog('\${log.id}')" class="btn-icon" style="color: var(--danger);" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            \`).join('') : \`
+                                <tr>
+                                    <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                                        <i class="fas fa-clipboard-list" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px;"></i>
+                                        <p style="margin: 0;">No incidents logged this month</p>
+                                    </td>
+                                </tr>
+                            \`}
+                        </tbody>
+                    </table>
+                </div>
+            \`;
+        }
+
+        function changeIncidentLogMonth(delta) {
+            const date = new Date(incidentLogCurrentMonth + '-01');
+            date.setMonth(date.getMonth() + delta);
+            incidentLogCurrentMonth = date.toISOString().slice(0, 7);
+            renderIncidentLog();
+        }
+
+        async function saveIncidentLog() {
+            const date = document.getElementById('incident-log-date').value;
+            const time = document.getElementById('incident-log-time').value;
+            const store = document.getElementById('incident-log-store').value;
+            const incident = document.getElementById('incident-log-incident').value.trim();
+            const informedManager = document.getElementById('incident-log-manager').value.trim();
+            const camerasReviewed = document.getElementById('incident-log-cameras').value;
+            const conclusion = document.getElementById('incident-log-conclusion').value.trim();
+
+            if (!date || !store || !incident) {
+                alert('Please fill in Date, Store, and Incident fields');
+                return;
+            }
+
+            const logData = {
+                date,
+                time,
+                store,
+                incident,
+                informedManager,
+                camerasReviewed,
+                conclusion,
+                createdAt: new Date().toISOString(),
+                createdBy: authManager.getCurrentUser()?.name || 'Unknown'
+            };
+
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const docRef = await db.collection('incidentLogs').add(logData);
+                    logData.id = docRef.id;
+                }
+                incidentLogs.unshift(logData);
+                closeModal();
+                showNotification('Incident logged!', 'success');
+                renderIncidentLog();
+            } catch (error) {
+                console.error('Error saving incident log:', error);
+                alert('Error saving incident. Please try again.');
+            }
+        }
+
+        async function deleteIncidentLog(logId) {
+            if (!confirm('Are you sure you want to delete this incident?')) return;
+
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    await db.collection('incidentLogs').doc(logId).delete();
+                }
+                incidentLogs = incidentLogs.filter(l => l.id !== logId);
+                showNotification('Incident deleted', 'success');
+                renderIncidentLog();
+            } catch (error) {
+                console.error('Error deleting incident:', error);
+                alert('Error deleting incident');
+            }
+        }
+
+        // Make functions globally available
+        window.renderIncidentLog = renderIncidentLog;
+        window.changeIncidentLogMonth = changeIncidentLogMonth;
+        window.saveIncidentLog = saveIncidentLog;
+        window.deleteIncidentLog = deleteIncidentLog;
+        window.loadIncidentLogs = loadIncidentLogs;
 
         function renderRiskNotes() {
             const dashboard = document.querySelector('.dashboard');
@@ -40010,7 +40485,7 @@ window.renderProjectAnalytics = function() {
                         <div style="padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
                             <div style="font-weight: 600; margin-bottom: 4px;">Day 3: Advanced Modules</div>
                             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">December 11, 2025</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Abundance Cloud Engine, inventory management, vendor system, financial modules, treasury, and change tracking.</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Loyal VSU, inventory management, vendor system, financial modules, treasury, and change tracking.</div>
                         </div>
                     </div>
 
@@ -44272,7 +44747,7 @@ function renderGLabs() {
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h2 style="margin: 0; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
-                        <i class="fas fa-flask"></i> G-Labs One
+                        <i class="fas fa-table"></i> Blank Excel
                     </h2>
                     <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Professional spreadsheet for data crunching</p>
                 </div>
