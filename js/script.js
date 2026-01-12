@@ -23393,7 +23393,7 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             const monthlyTotal = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
             const monthName = new Date(employeePurchasesCurrentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
 
-            dashboard.innerHTML = \`
+            dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Employee Purchases</h2>
@@ -23410,9 +23410,9 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                     <div style="position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.1);"></div>
                     <div style="position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">\${monthName}</div>
-                            <div style="color: white; font-size: 42px; font-weight: 700; margin-top: 4px;">$\${monthlyTotal.toFixed(2)}</div>
-                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 4px;">\${filteredRecords.length} purchase\${filteredRecords.length !== 1 ? 's' : ''} this month</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">${monthName}</div>
+                            <div style="color: white; font-size: 42px; font-weight: 700; margin-top: 4px;">$${monthlyTotal.toFixed(2)}</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 4px;">${filteredRecords.length} purchase${filteredRecords.length !== 1 ? 's' : ''} this month</div>
                         </div>
                         <div style="display: flex; gap: 12px; align-items: center;">
                             <button onclick="changeEmployeePurchasesMonth(-1)" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
@@ -23431,9 +23431,9 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                         <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Store</label>
                         <select id="emp-purchases-store-filter" onchange="filterEmployeePurchasesByStore(this.value)" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                             <option value="all">All Stores</option>
-                            <option value="Chula Vista" \${employeePurchasesStoreFilter === 'Chula Vista' ? 'selected' : ''}>Chula Vista</option>
-                            <option value="Miramar" \${employeePurchasesStoreFilter === 'Miramar' ? 'selected' : ''}>Miramar</option>
-                            <option value="Kearny Mesa" \${employeePurchasesStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>Kearny Mesa</option>
+                            <option value="Chula Vista" ${employeePurchasesStoreFilter === 'Chula Vista' ? 'selected' : ''}>Chula Vista</option>
+                            <option value="Miramar" ${employeePurchasesStoreFilter === 'Miramar' ? 'selected' : ''}>Miramar</option>
+                            <option value="Kearny Mesa" ${employeePurchasesStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>Kearny Mesa</option>
                         </select>
                     </div>
                 </div>
@@ -23452,31 +23452,31 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                             </tr>
                         </thead>
                         <tbody>
-                            \${filteredRecords.length > 0 ? filteredRecords.map(record => \`
+                            ${filteredRecords.length > 0 ? filteredRecords.map(record => `
                                 <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: 14px 16px; color: var(--text-primary);">\${formatDate(record.date)}</td>
-                                    <td style="padding: 14px 16px; color: var(--text-primary); font-weight: 500;">\${record.employeeName || 'Unknown'}</td>
-                                    <td style="padding: 14px 16px;"><span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--bg-secondary); color: var(--text-secondary);">\${record.store || 'N/A'}</span></td>
-                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${record.items || record.description || 'N/A'}</td>
-                                    <td style="padding: 14px 16px; text-align: right; font-weight: 600; color: var(--accent-primary);">$\${(parseFloat(record.amount) || 0).toFixed(2)}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-primary);">${formatDate(record.date)}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-primary); font-weight: 500;">${record.employeeName || 'Unknown'}</td>
+                                    <td style="padding: 14px 16px;"><span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--bg-secondary); color: var(--text-secondary);">${record.store || 'N/A'}</span></td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">${record.items || record.description || 'N/A'}</td>
+                                    <td style="padding: 14px 16px; text-align: right; font-weight: 600; color: var(--accent-primary);">$${(parseFloat(record.amount) || 0).toFixed(2)}</td>
                                     <td style="padding: 14px 16px; text-align: center;">
-                                        <button onclick="deleteEmployeePurchase('\${record.id}')" class="btn-icon" style="color: var(--danger);" title="Delete">
+                                        <button onclick="deleteEmployeePurchase('${record.id}')" class="btn-icon" style="color: var(--danger);" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
-                            \`).join('') : \`
+                            `).join('') : `
                                 <tr>
                                     <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted);">
                                         <i class="fas fa-shopping-bag" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px;"></i>
                                         <p style="margin: 0;">No employee purchases recorded this month</p>
                                     </td>
                                 </tr>
-                            \`}
+                            `}
                         </tbody>
                     </table>
                 </div>
-            \`;
+            `;
         }
 
         function changeEmployeePurchasesMonth(delta) {
@@ -30509,7 +30509,7 @@ Return ONLY the JSON object, no additional text.`,
                     break;
 
                 case 'add-incident-log':
-                    content = \`
+                    content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-clipboard-list"></i> Log Incident</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
@@ -30518,7 +30518,7 @@ Return ONLY the JSON object, no additional text.`,
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Date *</label>
-                                    <input type="date" class="form-input" id="incident-log-date" value="\${new Date().toISOString().split('T')[0]}">
+                                    <input type="date" class="form-input" id="incident-log-date" value="${new Date().toISOString().split('T')[0]}">
                                 </div>
                                 <div class="form-group">
                                     <label>Time</label>
@@ -30568,11 +30568,11 @@ Return ONLY the JSON object, no additional text.`,
                                 Save Incident
                             </button>
                         </div>
-                    \`;
+                    `;
                     break;
 
                 case 'add-employee-purchase':
-                    content = \`
+                    content = `
                         <div class="modal-header">
                             <h2><i class="fas fa-shopping-bag"></i> New Employee Purchase</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
@@ -30583,9 +30583,9 @@ Return ONLY the JSON object, no additional text.`,
                                     <label>Employee *</label>
                                     <select class="form-input" id="emp-purchase-employee">
                                         <option value="">Select employee...</option>
-                                        \${employees.filter(e => e.status === 'active').map(emp => \`
-                                            <option value="\${emp.id || emp.firestoreId}">\${emp.name}</option>
-                                        \`).join('')}
+                                        ${employees.filter(e => e.status === 'active').map(emp => `
+                                            <option value="${emp.id || emp.firestoreId}">${emp.name}</option>
+                                        `).join('')}
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -30604,7 +30604,7 @@ Return ONLY the JSON object, no additional text.`,
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Date *</label>
-                                    <input type="date" class="form-input" id="emp-purchase-date" value="\${new Date().toISOString().split('T')[0]}">
+                                    <input type="date" class="form-input" id="emp-purchase-date" value="${new Date().toISOString().split('T')[0]}">
                                 </div>
                                 <div class="form-group">
                                     <label>Amount ($) *</label>
@@ -30623,7 +30623,7 @@ Return ONLY the JSON object, no additional text.`,
                                 Save Purchase
                             </button>
                         </div>
-                    \`;
+                    `;
                     break;
 
                 case 'edit-gift':
@@ -35204,7 +35204,7 @@ Return ONLY the JSON object, no additional text.`,
             const monthlyLogs = incidentLogs.filter(log => log.date && log.date.startsWith(incidentLogCurrentMonth));
             const monthName = new Date(incidentLogCurrentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            dashboard.innerHTML = \`
+            dashboard.innerHTML = `
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title">Incident Log</h2>
@@ -35222,12 +35222,12 @@ Return ONLY the JSON object, no additional text.`,
                         <button onclick="changeIncidentLogMonth(-1)" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <span style="font-size: 18px; font-weight: 600; min-width: 150px; text-align: center;">\${monthName}</span>
+                        <span style="font-size: 18px; font-weight: 600; min-width: 150px; text-align: center;">${monthName}</span>
                         <button onclick="changeIncidentLogMonth(1)" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 16px;">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    <span style="color: var(--text-muted);">\${monthlyLogs.length} incident\${monthlyLogs.length !== 1 ? 's' : ''}</span>
+                    <span style="color: var(--text-muted);">${monthlyLogs.length} incident${monthlyLogs.length !== 1 ? 's' : ''}</span>
                 </div>
 
                 <!-- Incident List Table -->
@@ -35246,33 +35246,33 @@ Return ONLY the JSON object, no additional text.`,
                             </tr>
                         </thead>
                         <tbody>
-                            \${monthlyLogs.length > 0 ? monthlyLogs.map(log => \`
+                            ${monthlyLogs.length > 0 ? monthlyLogs.map(log => `
                                 <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: 14px 16px; color: var(--text-primary);">\${formatDate(log.date)}</td>
-                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${log.time || 'N/A'}</td>
-                                    <td style="padding: 14px 16px;"><span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--bg-secondary); color: var(--text-secondary);">\${log.store || 'N/A'}</span></td>
-                                    <td style="padding: 14px 16px; color: var(--text-primary); max-width: 250px;">\${log.incident || 'N/A'}</td>
-                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${log.informedManager || 'N/A'}</td>
-                                    <td style="padding: 14px 16px;"><span style="color: \${log.camerasReviewed === 'Yes' ? '#10b981' : '#f59e0b'};">\${log.camerasReviewed || 'N/A'}</span></td>
-                                    <td style="padding: 14px 16px; color: var(--text-secondary);">\${log.conclusion || 'Pending'}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-primary);">${formatDate(log.date)}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">${log.time || 'N/A'}</td>
+                                    <td style="padding: 14px 16px;"><span style="padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--bg-secondary); color: var(--text-secondary);">${log.store || 'N/A'}</span></td>
+                                    <td style="padding: 14px 16px; color: var(--text-primary); max-width: 250px;">${log.incident || 'N/A'}</td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">${log.informedManager || 'N/A'}</td>
+                                    <td style="padding: 14px 16px;"><span style="color: ${log.camerasReviewed === 'Yes' ? '#10b981' : '#f59e0b'};">${log.camerasReviewed || 'N/A'}</span></td>
+                                    <td style="padding: 14px 16px; color: var(--text-secondary);">${log.conclusion || 'Pending'}</td>
                                     <td style="padding: 14px 16px; text-align: center;">
-                                        <button onclick="deleteIncidentLog('\${log.id}')" class="btn-icon" style="color: var(--danger);" title="Delete">
+                                        <button onclick="deleteIncidentLog('${log.id}')" class="btn-icon" style="color: var(--danger);" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
-                            \`).join('') : \`
+                            `).join('') : `
                                 <tr>
                                     <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted);">
                                         <i class="fas fa-clipboard-list" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px;"></i>
                                         <p style="margin: 0;">No incidents logged this month</p>
                                     </td>
                                 </tr>
-                            \`}
+                            `}
                         </tbody>
                     </table>
                 </div>
-            \`;
+            `;
         }
 
         function changeIncidentLogMonth(delta) {
