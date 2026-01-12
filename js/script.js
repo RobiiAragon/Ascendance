@@ -5056,7 +5056,7 @@
          * Toggle like on an announcement
          */
         async function toggleAnnouncementLike(announcementId) {
-            const user = authManager.getCurrentUser();
+            const user = window.authManager?.getCurrentUser();
             if (!user) {
                 alert('Please log in to like announcements');
                 return;
@@ -5085,11 +5085,14 @@
 
             // Update in Firebase
             try {
-                if (firebaseAnnouncementsManager.isInitialized) {
-                    await firebaseAnnouncementsManager.updateAnnouncement(announcementId, { likes: updatedLikes });
+                if (window.firebaseAnnouncementsManager?.isInitialized) {
+                    await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { likes: updatedLikes });
                     // Reload announcements
-                    const updated = await firebaseAnnouncementsManager.loadAnnouncements();
-                    if (updated) announcements = updated;
+                    const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+                    if (updated) {
+                        announcements = updated;
+                        window.announcements = updated;
+                    }
                 } else {
                     // Local update
                     announcement.likes = updatedLikes;
@@ -5120,7 +5123,7 @@
          * Add a comment to an announcement
          */
         async function addAnnouncementComment(announcementId) {
-            const user = authManager.getCurrentUser();
+            const user = window.authManager?.getCurrentUser();
             if (!user) {
                 alert('Please log in to comment');
                 return;
@@ -5147,11 +5150,14 @@
 
             // Update in Firebase
             try {
-                if (firebaseAnnouncementsManager.isInitialized) {
-                    await firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+                if (window.firebaseAnnouncementsManager?.isInitialized) {
+                    await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
                     // Reload announcements
-                    const updated = await firebaseAnnouncementsManager.loadAnnouncements();
-                    if (updated) announcements = updated;
+                    const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+                    if (updated) {
+                        announcements = updated;
+                        window.announcements = updated;
+                    }
                 } else {
                     announcement.comments = updatedComments;
                 }
@@ -5176,10 +5182,13 @@
             const updatedComments = (announcement.comments || []).filter(c => c.id !== commentId);
 
             try {
-                if (firebaseAnnouncementsManager.isInitialized) {
-                    await firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
-                    const updated = await firebaseAnnouncementsManager.loadAnnouncements();
-                    if (updated) announcements = updated;
+                if (window.firebaseAnnouncementsManager?.isInitialized) {
+                    await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+                    const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+                    if (updated) {
+                        announcements = updated;
+                        window.announcements = updated;
+                    }
                 } else {
                     announcement.comments = updatedComments;
                 }
