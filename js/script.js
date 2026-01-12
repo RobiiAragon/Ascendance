@@ -34462,6 +34462,10 @@ Return ONLY the JSON object, no additional text.`,
             }
         }
 
+        // Make announcement functions globally accessible
+        window.saveAnnouncement = saveAnnouncement;
+        window.saveAnnouncementInline = saveAnnouncementInline;
+
         async function saveProduct() {
             const name = document.getElementById('new-product-name').value.trim();
             const category = document.getElementById('new-product-category').value;
@@ -51235,11 +51239,19 @@ window.toggleAnnouncementLike = async function(announcementId) {
     }
 
     // Find announcement in global announcements array
-    const announcement = window.announcements?.find(a => a.id === announcementId || a.firestoreId === announcementId);
+    const announcement = window.announcements?.find(a =>
+        a.id === announcementId ||
+        a.firestoreId === announcementId ||
+        String(a.id) === String(announcementId) ||
+        String(a.firestoreId) === String(announcementId)
+    );
     if (!announcement) {
-        console.error('Announcement not found:', announcementId);
+        console.error('Announcement not found:', announcementId, 'Available:', window.announcements?.map(a => ({id: a.id, firestoreId: a.firestoreId})));
         return;
     }
+
+    // Get the correct ID for Firebase update
+    const firestoreId = announcement.firestoreId || announcement.id;
 
     const likes = announcement.likes || [];
     const currentUserId = user.id || user.odooId || user.email;
@@ -51262,10 +51274,14 @@ window.toggleAnnouncementLike = async function(announcementId) {
     // Update in Firebase
     try {
         if (window.firebaseAnnouncementsManager?.isInitialized) {
-            await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { likes: updatedLikes });
-            // Reload announcements
-            const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
-            if (updated) window.announcements = updated;
+            const success = await window.firebaseAnnouncementsManager.updateAnnouncement(firestoreId, { likes: updatedLikes });
+            if (success) {
+                // Reload announcements
+                const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
+                if (updated) window.announcements = updated;
+            } else {
+                console.error('Failed to update announcement');
+            }
         } else {
             // Local update
             announcement.likes = updatedLikes;
@@ -51308,8 +51324,15 @@ window.addAnnouncementComment = async function(announcementId) {
     const text = input?.value?.trim();
     if (!text) return;
 
-    const announcement = window.announcements?.find(a => a.id === announcementId || a.firestoreId === announcementId);
+    const announcement = window.announcements?.find(a =>
+        a.id === announcementId ||
+        a.firestoreId === announcementId ||
+        String(a.id) === String(announcementId) ||
+        String(a.firestoreId) === String(announcementId)
+    );
     if (!announcement) return;
+
+    const firestoreId = announcement.firestoreId || announcement.id;
 
     const currentUserId = user.id || user.odooId || user.email;
     const newComment = {
@@ -51326,7 +51349,7 @@ window.addAnnouncementComment = async function(announcementId) {
     // Update in Firebase
     try {
         if (window.firebaseAnnouncementsManager?.isInitialized) {
-            await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+            await window.firebaseAnnouncementsManager.updateAnnouncement(firestoreId, { comments: updatedComments });
             // Reload announcements
             const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
             if (updated) window.announcements = updated;
@@ -51350,14 +51373,20 @@ window.addAnnouncementComment = async function(announcementId) {
  * Delete a comment from an announcement
  */
 window.deleteAnnouncementComment = async function(announcementId, commentId) {
-    const announcement = window.announcements?.find(a => a.id === announcementId || a.firestoreId === announcementId);
+    const announcement = window.announcements?.find(a =>
+        a.id === announcementId ||
+        a.firestoreId === announcementId ||
+        String(a.id) === String(announcementId) ||
+        String(a.firestoreId) === String(announcementId)
+    );
     if (!announcement) return;
 
+    const firestoreId = announcement.firestoreId || announcement.id;
     const updatedComments = (announcement.comments || []).filter(c => c.id !== commentId);
 
     try {
         if (window.firebaseAnnouncementsManager?.isInitialized) {
-            await window.firebaseAnnouncementsManager.updateAnnouncement(announcementId, { comments: updatedComments });
+            await window.firebaseAnnouncementsManager.updateAnnouncement(firestoreId, { comments: updatedComments });
             const updated = await window.firebaseAnnouncementsManager.loadAnnouncements();
             if (updated) window.announcements = updated;
         } else {
