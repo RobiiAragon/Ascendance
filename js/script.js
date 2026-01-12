@@ -11687,6 +11687,34 @@ window.viewChecklistHistory = async function() {
                         transform: scale(1.1);
                     }
 
+                    /* Multi-employee shift slot */
+                    .employee-drop-zone.multi-employee {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        padding: 10px;
+                    }
+                    .employee-drop-zone.multi-employee .assigned-employee {
+                        margin-bottom: 0;
+                    }
+                    .add-more-employee {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 8px;
+                        border: 2px dashed var(--border-color);
+                        border-radius: 8px;
+                        color: var(--text-muted);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-size: 14px;
+                    }
+                    .add-more-employee:hover {
+                        border-color: var(--accent-primary);
+                        color: var(--accent-primary);
+                        background: var(--bg-hover);
+                    }
+
                     /* Days Off Section */
                     .day-off-section {
                         margin-top: 12px;
@@ -12012,6 +12040,87 @@ window.viewChecklistHistory = async function() {
                     .employee-picker-store {
                         font-size: 13px;
                         color: var(--text-muted);
+                    }
+
+                    /* Multi-select toggle */
+                    .multi-select-toggle {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-top: 12px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        color: var(--text-secondary);
+                    }
+                    .multi-select-toggle input[type="checkbox"] {
+                        width: 18px;
+                        height: 18px;
+                        accent-color: var(--accent-primary);
+                        cursor: pointer;
+                    }
+                    .employee-picker-footer {
+                        padding: 16px 20px;
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        background: var(--bg-secondary);
+                        border-radius: 0 0 20px 20px;
+                    }
+                    .employee-picker-footer #selectedCount {
+                        font-size: 14px;
+                        color: var(--text-secondary);
+                        font-weight: 500;
+                    }
+                    .assign-selected-btn {
+                        padding: 10px 20px;
+                        background: var(--accent-primary);
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        transition: all 0.2s;
+                    }
+                    .assign-selected-btn:hover {
+                        background: var(--accent-secondary);
+                        transform: translateY(-1px);
+                    }
+                    .assign-selected-btn:disabled {
+                        background: var(--text-muted);
+                        cursor: not-allowed;
+                        transform: none;
+                    }
+                    .employee-picker-item.multi-select {
+                        position: relative;
+                    }
+                    .employee-picker-item .select-checkbox {
+                        width: 22px;
+                        height: 22px;
+                        border-radius: 6px;
+                        border: 2px solid var(--border-color);
+                        background: var(--bg-primary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    }
+                    .employee-picker-item .select-checkbox i {
+                        display: none;
+                        color: white;
+                        font-size: 12px;
+                    }
+                    .employee-picker-item.selected .select-checkbox {
+                        background: var(--accent-primary);
+                        border-color: var(--accent-primary);
+                    }
+                    .employee-picker-item.selected .select-checkbox i {
+                        display: block;
                     }
 
                     /* Time Editor Modal */
@@ -13047,9 +13156,19 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
+                            <label class="multi-select-toggle">
+                                <input type="checkbox" id="multiSelectToggle" onchange="toggleMultiSelectMode()">
+                                <span>Multi-select</span>
+                            </label>
                         </div>
                         <div class="employee-picker-list" id="employeePickerList">
                             <!-- Employees will be loaded here -->
+                        </div>
+                        <div class="employee-picker-footer" id="employeePickerFooter" style="display: none;">
+                            <span id="selectedCount">0 selected</span>
+                            <button class="assign-selected-btn" onclick="assignSelectedEmployees()">
+                                <i class="fas fa-check"></i> Assign Selected
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -13338,17 +13457,17 @@ window.viewChecklistHistory = async function() {
                 // Render both shift slots (Opening and Closing)
                 ['opening', 'closing'].forEach(shiftType => {
                     const shiftConfig = SHIFT_TYPES[shiftType];
-                    // Find schedule for this day and shift type
-                    const schedule = schedules.find(s =>
+                    // Find ALL schedules for this day and shift type (supports multiple employees)
+                    const slotSchedules = schedules.filter(s =>
                         s.date === dateKey &&
                         s.shiftType === shiftType &&
                         (storeFilter === 'all' || s.store === storeFilter)
                     );
 
-                    const emp = schedule ? employees.find(e => e.id === schedule.employeeId) : null;
-                    const startTime = schedule?.startTime || shiftConfig.defaultStart;
-                    const endTime = schedule?.endTime || shiftConfig.defaultEnd;
-                    const hours = calculateHours(startTime, endTime);
+                    const hasSchedules = slotSchedules.length > 0;
+                    const firstSchedule = slotSchedules[0];
+                    const startTime = firstSchedule?.startTime || shiftConfig.defaultStart;
+                    const endTime = firstSchedule?.endTime || shiftConfig.defaultEnd;
 
                     html += `
                         <div class="shift-slot ${shiftType}" data-date="${dateKey}" data-shift-type="${shiftType}">
@@ -13361,40 +13480,56 @@ window.viewChecklistHistory = async function() {
                                     ${formatTimeShort(startTime)} - ${formatTimeShort(endTime)}
                                 </div>
                             </div>
-                            <div class="employee-drop-zone ${schedule ? '' : 'empty'}"
+                            <div class="employee-drop-zone ${hasSchedules ? '' : 'empty'} ${slotSchedules.length > 1 ? 'multi-employee' : ''}"
                                  data-date="${dateKey}"
                                  data-shift-type="${shiftType}"
-                                 data-schedule-id="${schedule?.id || ''}"
                                  onclick="openEmployeePicker('${dateKey}', '${shiftType}', '${storeFilter}')"
                                  ondragover="handleShiftDragOver(event)"
                                  ondragleave="handleShiftDragLeave(event)"
                                  ondrop="handleShiftDrop(event, '${dateKey}', '${shiftType}')">
                     `;
 
-                    if (schedule && emp) {
+                    if (hasSchedules) {
                         const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
-                        const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
-                        const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
 
-                        html += `
-                            <div class="assigned-employee"
-                                 draggable="true"
-                                 data-schedule-id="${schedule.id}"
-                                 data-employee-id="${emp.id}"
-                                 ondragstart="handleEmployeeDragStart(event, '${schedule.id}')"
-                                 ondragend="handleEmployeeDragEnd(event)"
-                                 onclick="event.stopPropagation(); openTimeEditor('${schedule.id}')">
-                                <div class="assigned-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
-                                <div class="assigned-employee-info">
-                                    <div class="assigned-employee-name">${emp.name}</div>
-                                    <div class="assigned-employee-hours">${hours}h</div>
+                        // Render each employee assigned to this slot
+                        slotSchedules.forEach(schedule => {
+                            const emp = employees.find(e => e.id === schedule.employeeId);
+                            if (!emp) return;
+
+                            const schedStartTime = schedule.startTime || shiftConfig.defaultStart;
+                            const schedEndTime = schedule.endTime || shiftConfig.defaultEnd;
+                            const hours = calculateHours(schedStartTime, schedEndTime);
+                            const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                            const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                            html += `
+                                <div class="assigned-employee"
+                                     draggable="true"
+                                     data-schedule-id="${schedule.id}"
+                                     data-employee-id="${emp.id}"
+                                     ondragstart="handleEmployeeDragStart(event, '${schedule.id}')"
+                                     ondragend="handleEmployeeDragEnd(event)"
+                                     onclick="event.stopPropagation(); openTimeEditor('${schedule.id}')">
+                                    <div class="assigned-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                    <div class="assigned-employee-info">
+                                        <div class="assigned-employee-name">${emp.name}</div>
+                                        <div class="assigned-employee-hours">${hours.toFixed(1)}h</div>
+                                    </div>
+                                    <button class="assigned-employee-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
+                                        <i class="fas fa-clone"></i>
+                                    </button>
+                                    <button class="assigned-employee-remove" onclick="event.stopPropagation(); removeSchedule('${schedule.id}')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
-                                <button class="assigned-employee-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
-                                    <i class="fas fa-clone"></i>
-                                </button>
-                                <button class="assigned-employee-remove" onclick="event.stopPropagation(); removeSchedule('${schedule.id}')">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                            `;
+                        });
+
+                        // Add "Add more" button when there are already employees
+                        html += `
+                            <div class="add-more-employee" onclick="event.stopPropagation(); openEmployeePicker('${dateKey}', '${shiftType}', '${storeFilter}')">
+                                <i class="fas fa-plus"></i>
                             </div>
                         `;
                     } else {
@@ -15293,9 +15428,17 @@ window.viewChecklistHistory = async function() {
             if (event && event.target !== event.currentTarget) return;
             const overlay = document.getElementById('employeePickerOverlay');
             const title = overlay.querySelector('h3');
+            const footer = document.getElementById('employeePickerFooter');
+            const toggle = document.getElementById('multiSelectToggle');
 
             // Reset title to default
             if (title) title.textContent = 'Select Employee';
+
+            // Reset multi-select state
+            multiSelectMode = false;
+            selectedEmployees.clear();
+            if (toggle) toggle.checked = false;
+            if (footer) footer.style.display = 'none';
 
             overlay.classList.remove('active');
             currentPickerContext = null;
@@ -15359,16 +15502,34 @@ window.viewChecklistHistory = async function() {
             list.innerHTML = filteredEmployees.map(emp => {
                 const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
                 const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+                const isSelected = selectedEmployees.has(emp.id);
 
-                return `
-                    <div class="employee-picker-item" onclick="assignEmployee('${emp.id}')">
-                        <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
-                        <div class="employee-picker-info">
-                            <div class="employee-picker-name">${emp.name}</div>
-                            <div class="employee-picker-store">${emp.store || ''}</div>
+                if (multiSelectMode) {
+                    return `
+                        <div class="employee-picker-item multi-select ${isSelected ? 'selected' : ''}"
+                             data-employee-id="${emp.id}"
+                             onclick="toggleEmployeeSelection('${emp.id}')">
+                            <div class="select-checkbox">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                            <div class="employee-picker-info">
+                                <div class="employee-picker-name">${emp.name}</div>
+                                <div class="employee-picker-store">${emp.store || ''}</div>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    return `
+                        <div class="employee-picker-item" onclick="assignEmployee('${emp.id}')">
+                            <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                            <div class="employee-picker-info">
+                                <div class="employee-picker-name">${emp.name}</div>
+                                <div class="employee-picker-store">${emp.store || ''}</div>
+                            </div>
+                        </div>
+                    `;
+                }
             }).join('') || '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No employees found</div>';
         }
 
@@ -15464,6 +15625,125 @@ window.viewChecklistHistory = async function() {
             } catch (error) {
                 console.error('Error assigning employee:', error);
                 showNotification('Error assigning employee', 'error');
+            }
+        }
+
+        // Multi-select mode state
+        let multiSelectMode = false;
+        let selectedEmployees = new Set();
+
+        function toggleMultiSelectMode() {
+            const toggle = document.getElementById('multiSelectToggle');
+            const footer = document.getElementById('employeePickerFooter');
+
+            multiSelectMode = toggle?.checked || false;
+            selectedEmployees.clear();
+
+            if (footer) {
+                footer.style.display = multiSelectMode ? 'flex' : 'none';
+            }
+
+            updateSelectedCount();
+            renderEmployeePickerList();
+        }
+
+        function toggleEmployeeSelection(employeeId) {
+            if (selectedEmployees.has(employeeId)) {
+                selectedEmployees.delete(employeeId);
+            } else {
+                selectedEmployees.add(employeeId);
+            }
+
+            // Update UI
+            const item = document.querySelector(`.employee-picker-item[data-employee-id="${employeeId}"]`);
+            if (item) {
+                item.classList.toggle('selected', selectedEmployees.has(employeeId));
+            }
+
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const countEl = document.getElementById('selectedCount');
+            const btn = document.querySelector('.assign-selected-btn');
+
+            if (countEl) {
+                countEl.textContent = `${selectedEmployees.size} selected`;
+            }
+            if (btn) {
+                btn.disabled = selectedEmployees.size === 0;
+            }
+        }
+
+        async function assignSelectedEmployees() {
+            if (!currentPickerContext || selectedEmployees.size === 0) return;
+
+            const { dateKey, shiftType, storeFilter } = currentPickerContext;
+            const shiftConfig = SHIFT_TYPES[shiftType];
+            const currentUser = getCurrentUser();
+            const db = firebase.firestore();
+
+            let successCount = 0;
+            let skipCount = 0;
+
+            try {
+                for (const employeeId of selectedEmployees) {
+                    const emp = employees.find(e => e.id === employeeId);
+                    const store = storeFilter !== 'all' ? storeFilter : emp?.store || '';
+
+                    // Check if employee has a day off on this date
+                    const hasDayOff = daysOff.some(d =>
+                        d.date === dateKey &&
+                        d.employeeId === employeeId
+                    );
+
+                    if (hasDayOff) {
+                        skipCount++;
+                        continue;
+                    }
+
+                    // Check if this employee already has a schedule for this slot
+                    const alreadyScheduled = schedules.find(s =>
+                        s.date === dateKey &&
+                        s.shiftType === shiftType &&
+                        s.store === store &&
+                        s.employeeId === employeeId
+                    );
+
+                    if (alreadyScheduled) {
+                        skipCount++;
+                        continue;
+                    }
+
+                    // Create new schedule for this employee
+                    const scheduleData = {
+                        employeeId,
+                        employeeName: emp?.name || '',
+                        store,
+                        date: dateKey,
+                        shiftType,
+                        startTime: shiftConfig.defaultStart,
+                        endTime: shiftConfig.defaultEnd,
+                        createdAt: new Date().toISOString(),
+                        createdBy: currentUser?.name || 'Unknown'
+                    };
+
+                    const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(scheduleData);
+                    schedules.push({ id: docRef.id, ...scheduleData });
+                    successCount++;
+                }
+
+                if (successCount > 0) {
+                    showNotification(`${successCount} employee${successCount > 1 ? 's' : ''} assigned!${skipCount > 0 ? ` (${skipCount} skipped)` : ''}`, 'success');
+                } else if (skipCount > 0) {
+                    showNotification('All selected employees were skipped (day off or already scheduled)', 'warning');
+                }
+
+                closeEmployeePicker();
+                renderScheduleGrid();
+            } catch (error) {
+                console.error('Error assigning employees:', error);
+                showNotification('Error assigning employees', 'error');
             }
         }
 
@@ -16444,8 +16724,10 @@ window.viewChecklistHistory = async function() {
 
             const startMinutes = parseTime(startTime);
             const endMinutes = parseTime(endTime);
-            const diff = endMinutes - startMinutes;
-            return (diff / 60).toFixed(1);
+            let diff = endMinutes - startMinutes;
+            // Handle overnight shifts (end time is next day)
+            if (diff < 0) diff += 24 * 60;
+            return diff / 60;
         }
 
         function formatTime(time) {
@@ -17196,7 +17478,8 @@ window.viewChecklistHistory = async function() {
             minAmount: null,
             maxAmount: null,
             activeTab: 'current', // 'current' or 'recurring'
-            sortBy: 'createdAt-desc' // default sort - most recent first
+            sortBy: 'createdAt-desc', // default sort - most recent first
+            recurringMonth: 'all' // Filter for recurring projections by month
         };
 
         // Default invoice categories
@@ -17795,6 +18078,16 @@ window.viewChecklistHistory = async function() {
             const projections = [];
             const today = new Date();
 
+            // Generate month options for filter
+            const monthOptions = [];
+            for (let i = 1; i <= 6; i++) {
+                const monthDate = new Date(today);
+                monthDate.setMonth(today.getMonth() + i);
+                const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+                const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                monthOptions.push({ key: monthKey, label: monthLabel });
+            }
+
             recurringInvoices.forEach(invoice => {
                 for (let i = 1; i <= 6; i++) {
                     const projectionDate = new Date(today);
@@ -17803,38 +18096,77 @@ window.viewChecklistHistory = async function() {
                     projections.push({
                         ...invoice,
                         projectedDate: projectionDate,
+                        monthKey: `${projectionDate.getFullYear()}-${String(projectionDate.getMonth() + 1).padStart(2, '0')}`,
                         isProjection: true
                     });
                 }
             });
 
+            // Filter by selected month if not 'all'
+            let filteredProjections = projections;
+            if (invoiceFilters.recurringMonth && invoiceFilters.recurringMonth !== 'all') {
+                filteredProjections = projections.filter(p => p.monthKey === invoiceFilters.recurringMonth);
+            }
+
             // Sort by date
-            projections.sort((a, b) => a.projectedDate - b.projectedDate);
+            filteredProjections.sort((a, b) => a.projectedDate - b.projectedDate);
+
+            // Calculate totals for display
+            const displayTotal = filteredProjections.reduce((sum, p) => sum + p.amount, 0);
+            const totalProjected = projections.reduce((sum, p) => sum + p.amount, 0);
 
             return `
                 <div style="padding: 20px;">
                     <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <i class="fas fa-info-circle" style="color: var(--accent-primary); font-size: 20px;"></i>
-                            <div>
-                                <div style="font-weight: 600; margin-bottom: 4px;">Recurring Invoice Projections</div>
-                                <div style="font-size: 13px; color: var(--text-muted);">Showing projected invoices for the next 6 months based on monthly recurrence</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-info-circle" style="color: var(--accent-primary); font-size: 20px;"></i>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 4px;">Recurring Invoice Projections</div>
+                                    <div style="font-size: 13px; color: var(--text-muted);">Showing projected invoices for the next 6 months based on monthly recurrence</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 13px; color: var(--text-muted); white-space: nowrap;">
+                                    <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i>Filter by Month:
+                                </label>
+                                <select id="recurring-month-filter" onchange="filterRecurringByMonth(this.value)"
+                                        style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; min-width: 160px;">
+                                    <option value="all" ${invoiceFilters.recurringMonth === 'all' ? 'selected' : ''}>All Months</option>
+                                    ${monthOptions.map(m => `
+                                        <option value="${m.key}" ${invoiceFilters.recurringMonth === m.key ? 'selected' : ''}>${m.label}</option>
+                                    `).join('')}
+                                </select>
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
                             <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
-                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Total Projected (6mo)</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                                    ${invoiceFilters.recurringMonth === 'all' ? 'Total Projected (6mo)' : 'Total for Selected Month'}
+                                </div>
                                 <div style="font-size: 20px; font-weight: 700; color: var(--accent-primary);">
-                                    $${projections.reduce((sum, p) => sum + p.amount, 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                                    $${displayTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}
                                 </div>
                             </div>
                             <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
                                 <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Recurring Invoices</div>
                                 <div style="font-size: 20px; font-weight: 700;">${recurringInvoices.length}</div>
                             </div>
+                            ${invoiceFilters.recurringMonth !== 'all' ? `
+                            <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Invoices This Month</div>
+                                <div style="font-size: 20px; font-weight: 700;">${filteredProjections.length}</div>
+                            </div>
+                            ` : ''}
                         </div>
                     </div>
 
+                    ${filteredProjections.length === 0 ? `
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fas fa-calendar-times" style="font-size: 36px; margin-bottom: 12px; display: block;"></i>
+                            <div style="font-size: 14px;">No projections for the selected month</div>
+                        </div>
+                    ` : `
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -17847,7 +18179,7 @@ window.viewChecklistHistory = async function() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${projections.map(proj => `
+                            ${filteredProjections.map(proj => `
                                 <tr>
                                     <td><strong>${formatDate(proj.projectedDate)}</strong></td>
                                     <td>${proj.invoiceNumber} <span style="font-size: 11px; color: var(--text-muted);">(recurring)</span></td>
@@ -17859,8 +18191,18 @@ window.viewChecklistHistory = async function() {
                             `).join('')}
                         </tbody>
                     </table>
+                    `}
                 </div>
             `;
+        }
+
+        // Filter recurring projections by month
+        function filterRecurringByMonth(month) {
+            invoiceFilters.recurringMonth = month;
+            const container = document.getElementById('invoice-content-area');
+            if (container) {
+                container.innerHTML = renderRecurringProjections();
+            }
         }
 
         // Initialize all invoice charts
@@ -39665,6 +40007,7 @@ var passwordCategories = {
     'social': { label: 'Social Media', icon: 'fa-share-nodes', color: '#06b6d4' },
     'pos': { label: 'POS & Sales', icon: 'fa-cash-register', color: '#eab308' },
     'security': { label: 'Security Systems', icon: 'fa-shield-halved', color: '#ef4444' },
+    'personal': { label: 'Personal', icon: 'fa-user-lock', color: '#6366f1' },
     'other': { label: 'Other', icon: 'fa-ellipsis', color: '#71717a' }
 };
 
@@ -39735,6 +40078,36 @@ function togglePasswordVisibility(inputId, iconId) {
 // Render Password Manager Page
 window.renderPasswordManager = async function renderPasswordManager() {
     const dashboard = document.querySelector('.dashboard');
+
+    // Check if user is administrator
+    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() :
+                        (window.authManager?.getCurrentUser?.() || { role: 'employee' });
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'administrator';
+
+    if (!isAdmin) {
+        dashboard.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; padding: 40px;">
+                <div style="width: 120px; height: 120px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 20px 40px rgba(239, 68, 68, 0.3);">
+                    <i class="fas fa-lock" style="font-size: 48px; color: white;"></i>
+                </div>
+                <h2 style="font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Access Restricted</h2>
+                <p style="font-size: 16px; color: var(--text-muted); max-width: 400px; line-height: 1.6; margin-bottom: 24px;">
+                    The Password Manager is only accessible to Administrators.<br>
+                    Please contact your system administrator if you need access.
+                </p>
+                <div style="padding: 16px 24px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="font-size: 14px; color: var(--text-muted); margin: 0;">
+                        <i class="fas fa-user" style="margin-right: 8px;"></i>
+                        Logged in as: <strong style="color: var(--text-primary);">${currentUser?.name || 'Unknown'}</strong>
+                        <span style="margin-left: 12px; padding: 4px 10px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px;">
+                            ${currentUser?.role || 'Employee'}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
 
     // Initialize if not already done
     if (!firebasePasswordsManager.isInitialized) {
