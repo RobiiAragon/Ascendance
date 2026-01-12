@@ -30320,6 +30320,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Chula Vista">VSU Chula Vista</option>
                                         <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                        <option value="Loyal Vaper">Loyal Vaper</option>
                                     </select>
                                 </div>
                             </div>
