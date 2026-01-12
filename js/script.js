@@ -13614,23 +13614,36 @@ window.viewChecklistHistory = async function() {
 
             // Calculate hours for each employee this week
             const employeeHours = {};
+            const employeeHoursPerDay = {}; // Track hours per employee per day to handle overlapping shifts
             const weekDateKeys = weekDates.map(d => formatDateKey(d));
 
             // Get all schedules for this week
             const weekSchedules = schedules.filter(s => weekDateKeys.includes(s.date));
 
-            // Sum up hours per employee
+            // Sum up hours per employee, capping at 16 hours per day max
             weekSchedules.forEach(schedule => {
                 if (!schedule.employeeId) return;
 
                 const startTime = schedule.startTime || SHIFT_TYPES[schedule.shiftType]?.defaultStart || '09:00';
                 const endTime = schedule.endTime || SHIFT_TYPES[schedule.shiftType]?.defaultEnd || '17:00';
                 const hours = calculateHours(startTime, endTime);
+                const dayKey = `${schedule.employeeId}_${schedule.date}`;
 
-                if (!employeeHours[schedule.employeeId]) {
-                    employeeHours[schedule.employeeId] = 0;
+                if (!employeeHoursPerDay[dayKey]) {
+                    employeeHoursPerDay[dayKey] = 0;
                 }
-                employeeHours[schedule.employeeId] += hours;
+
+                // Add hours but cap at 16 per day (to handle overlapping shifts)
+                const currentDayHours = employeeHoursPerDay[dayKey];
+                const hoursToAdd = Math.min(hours, 16 - currentDayHours);
+                if (hoursToAdd > 0) {
+                    employeeHoursPerDay[dayKey] += hoursToAdd;
+
+                    if (!employeeHours[schedule.employeeId]) {
+                        employeeHours[schedule.employeeId] = 0;
+                    }
+                    employeeHours[schedule.employeeId] += hoursToAdd;
+                }
             });
 
             // Create array of employees with hours, include all active employees
@@ -16177,6 +16190,229 @@ window.viewChecklistHistory = async function() {
             }
         }
 
+        function openEditPTOModal(requestId) {
+            const request = ptoRequests.find(r => r.id === requestId);
+            if (!request) {
+                showNotification('Request not found', 'error');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            const isManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+            const isOwner = request.employeeId === currentUser?.id ||
+                           request.employeeId === currentUser?.firestoreId ||
+                           request.requestedBy === currentUser?.name;
+
+            // Only owner or manager can edit
+            if (!isManager && !isOwner) {
+                showNotification('You can only edit your own requests', 'error');
+                return;
+            }
+
+            // If approved, dates cannot be changed - must create new request
+            const isApproved = request.status === 'approved';
+            const dateFieldsDisabled = isApproved ? 'disabled' : '';
+            const dateWarning = isApproved ? `
+                <div style="padding: 12px 16px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;">
+                    <i class="fas fa-lock" style="color: #ef4444; font-size: 18px;"></i>
+                    <div>
+                        <div style="font-weight: 600; color: #ef4444;">Dates Locked</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">This request has been approved. To change dates, you must create a new request.</div>
+                    </div>
+                </div>
+            ` : '';
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            const typeConfig = PTO_REQUEST_TYPES[request.requestType] || PTO_REQUEST_TYPES.pto;
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit" style="color: #6366f1;"></i> Edit Time Off Request</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    ${dateWarning}
+
+                    <div class="form-group">
+                        <label>Request Type *</label>
+                        <div class="pto-type-selector" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            ${Object.entries(PTO_REQUEST_TYPES).map(([key, config]) => `
+                                <label class="pto-type-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 2px solid ${request.requestType === key ? config.color : 'var(--border-color)'}; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" name="edit-pto-type" value="${key}" ${request.requestType === key ? 'checked' : ''} style="display: none;" onchange="this.closest('.pto-type-selector').querySelectorAll('.pto-type-option').forEach(o => o.style.borderColor = 'var(--border-color)'); this.closest('.pto-type-option').style.borderColor='${config.color}'">
+                                    <i class="fas ${config.icon}" style="color: ${config.color}; font-size: 18px;"></i>
+                                    <span>${config.label}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label>Start Date *</label>
+                            <input type="date" class="form-input" id="edit-pto-start-date" value="${request.startDate}" ${dateFieldsDisabled} onchange="updateEditPTODuration()">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date *</label>
+                            <input type="date" class="form-input" id="edit-pto-end-date" value="${request.endDate}" ${dateFieldsDisabled} onchange="updateEditPTODuration()">
+                        </div>
+                    </div>
+
+                    <div id="edit-pto-duration-display" style="padding: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%); border-radius: 8px; text-align: center; margin-bottom: 16px;">
+                        <span style="font-size: 24px; font-weight: 700; color: var(--accent-primary);" id="edit-pto-days-count">${Math.ceil((new Date(request.endDate) - new Date(request.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
+                        <span style="color: var(--text-muted);"> day(s) requested</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Reason / Notes</label>
+                        <textarea class="form-input" id="edit-pto-reason" rows="3" placeholder="Optional: Add any notes or reason for your request...">${request.reason || ''}</textarea>
+                    </div>
+
+                    ${request.editHistory && request.editHistory.length > 0 ? `
+                        <div style="margin-top: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+                                <i class="fas fa-history"></i> Edit History
+                            </div>
+                            ${request.editHistory.map(edit => `
+                                <div style="font-size: 11px; color: var(--text-secondary); padding: 4px 0; border-bottom: 1px solid var(--border-color);">
+                                    ${edit.editedBy} - ${new Date(edit.editedAt?.toDate ? edit.editedAt.toDate() : edit.editedAt).toLocaleDateString()} - ${edit.changes}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn-primary" onclick="updatePTORequest('${request.id}')" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        function updateEditPTODuration() {
+            const startDate = document.getElementById('edit-pto-start-date')?.value;
+            const endDate = document.getElementById('edit-pto-end-date')?.value;
+            const display = document.getElementById('edit-pto-duration-display');
+            const daysCount = document.getElementById('edit-pto-days-count');
+
+            if (startDate && endDate && display && daysCount) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+                if (diffDays > 0) {
+                    daysCount.textContent = diffDays;
+                    display.style.display = 'block';
+                } else {
+                    display.style.display = 'none';
+                }
+            }
+        }
+
+        async function updatePTORequest(requestId) {
+            const request = ptoRequests.find(r => r.id === requestId);
+            if (!request) {
+                showNotification('Request not found', 'error');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            const requestType = document.querySelector('input[name="edit-pto-type"]:checked')?.value;
+            const startDate = document.getElementById('edit-pto-start-date')?.value;
+            const endDate = document.getElementById('edit-pto-end-date')?.value;
+            const reason = document.getElementById('edit-pto-reason')?.value?.trim();
+
+            if (!requestType || !startDate || !endDate) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (new Date(endDate) < new Date(startDate)) {
+                showNotification('End date must be after start date', 'error');
+                return;
+            }
+
+            // Track what changed for history
+            const changes = [];
+            if (request.requestType !== requestType) changes.push(`Type: ${request.requestType} → ${requestType}`);
+            if (request.startDate !== startDate) changes.push(`Start: ${request.startDate} → ${startDate}`);
+            if (request.endDate !== endDate) changes.push(`End: ${request.endDate} → ${endDate}`);
+            if ((request.reason || '') !== reason) changes.push('Notes updated');
+
+            if (changes.length === 0) {
+                showNotification('No changes detected', 'info');
+                closeModal();
+                return;
+            }
+
+            try {
+                const db = firebase.firestore();
+                const editEntry = {
+                    editedBy: currentUser?.name || 'Unknown',
+                    editedAt: new Date(),
+                    changes: changes.join(', ')
+                };
+
+                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').doc(requestId).update({
+                    requestType,
+                    startDate,
+                    endDate,
+                    reason,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    editHistory: firebase.firestore.FieldValue.arrayUnion(editEntry)
+                });
+
+                showNotification('Request updated successfully!', 'success');
+                closeModal();
+                await loadPTORequests();
+                renderPTORequestsPage();
+            } catch (error) {
+                console.error('Error updating PTO request:', error);
+                showNotification('Error updating request. Please try again.', 'error');
+            }
+        }
+
+        async function deletePTORequest(requestId) {
+            const request = ptoRequests.find(r => r.id === requestId);
+            if (!request) {
+                showNotification('Request not found', 'error');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            const isManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+            const isOwner = request.employeeId === currentUser?.id ||
+                           request.employeeId === currentUser?.firestoreId ||
+                           request.requestedBy === currentUser?.name;
+
+            if (!isManager && !isOwner) {
+                showNotification('You can only delete your own requests', 'error');
+                return;
+            }
+
+            showConfirmModal({
+                title: 'Delete Time Off Request',
+                message: `Are you sure you want to delete this ${PTO_REQUEST_TYPES[request.requestType]?.label || 'time off'} request for ${request.startDate} - ${request.endDate}?`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: async () => {
+                    try {
+                        const db = firebase.firestore();
+                        await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').doc(requestId).delete();
+                        showNotification('Request deleted', 'success');
+                        await loadPTORequests();
+                        renderPTORequestsPage();
+                    } catch (error) {
+                        console.error('Error deleting PTO request:', error);
+                        showNotification('Error deleting request', 'error');
+                    }
+                }
+            });
+        }
+
         function renderPTORequestsPage() {
             const dashboard = document.querySelector('.dashboard');
             if (!dashboard) return;
@@ -16282,7 +16518,7 @@ window.viewChecklistHistory = async function() {
                                 <i class="fas fa-user"></i> My Requests (${myRequests.length})
                             </h3>
                             <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
-                                ${myRequests.slice(0, 5).map(request => renderPTORequestCard(request, false)).join('')}
+                                ${myRequests.slice(0, 5).map(request => renderPTORequestCard(request, false, true)).join('')}
                             </div>
                         </div>
                     ` : ''}
@@ -16294,7 +16530,7 @@ window.viewChecklistHistory = async function() {
                                     <i class="fas fa-clock"></i> Pending Requests (${pendingRequests.length})
                                 </h3>
                                 <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
-                                    ${pendingRequests.map(request => renderPTORequestCard(request, true)).join('')}
+                                    ${pendingRequests.map(request => renderPTORequestCard(request, true, true)).join('')}
                                 </div>
                             </div>
                         ` : `
@@ -16311,7 +16547,7 @@ window.viewChecklistHistory = async function() {
                                     <i class="fas fa-history"></i> Recent History
                                 </h3>
                                 <div class="pto-requests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px;">
-                                    ${processedRequests.slice(0, 10).map(request => renderPTORequestCard(request, false)).join('')}
+                                    ${processedRequests.slice(0, 10).map(request => renderPTORequestCard(request, false, isManager)).join('')}
                                 </div>
                             </div>
                         ` : ''}
@@ -16413,7 +16649,7 @@ window.viewChecklistHistory = async function() {
         window.updateSelfPTODuration = updateSelfPTODuration;
         window.submitSelfPTORequest = submitSelfPTORequest;
 
-        function renderPTORequestCard(request, showActions = false) {
+        function renderPTORequestCard(request, showActions = false, canEdit = false) {
             const typeConfig = PTO_REQUEST_TYPES[request.requestType] || PTO_REQUEST_TYPES.pto;
             const statusConfig = PTO_STATUS_CONFIG[request.status] || PTO_STATUS_CONFIG.pending;
 
@@ -16424,6 +16660,9 @@ window.viewChecklistHistory = async function() {
             const requestedDate = request.requestedAt?.toDate ? request.requestedAt.toDate() : new Date(request.requestedAt);
 
             const emp = employees.find(e => e.id === request.employeeId || e.firestoreId === request.employeeId);
+
+            // Show edit/delete buttons for owner or manager (not for rejected requests)
+            const showEditButtons = canEdit && request.status !== 'rejected';
 
             return `
                 <div class="pto-request-card" style="background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
@@ -16438,9 +16677,19 @@ window.viewChecklistHistory = async function() {
                                     <div style="font-size: 12px; color: var(--text-muted);">${request.employeeStore || 'No store'}</div>
                                 </div>
                             </div>
-                            <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${statusConfig.color}20; color: ${statusConfig.color};">
-                                <i class="fas ${statusConfig.icon}"></i> ${statusConfig.label}
-                            </span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${showEditButtons ? `
+                                    <button onclick="openEditPTOModal('${request.id}')" style="padding: 6px 10px; border: none; border-radius: 6px; background: var(--bg-main); color: var(--text-secondary); cursor: pointer; font-size: 12px;" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deletePTORequest('${request.id}')" style="padding: 6px 10px; border: none; border-radius: 6px; background: var(--bg-main); color: #ef4444; cursor: pointer; font-size: 12px;" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                                <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${statusConfig.color}20; color: ${statusConfig.color};">
+                                    <i class="fas ${statusConfig.icon}"></i> ${statusConfig.label}
+                                </span>
+                            </div>
                         </div>
 
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
@@ -16459,6 +16708,12 @@ window.viewChecklistHistory = async function() {
                             <div style="margin-top: 10px; padding: 10px; background: var(--bg-main); border-radius: 6px; font-size: 13px; color: var(--text-secondary);">
                                 <i class="fas fa-quote-left" style="color: var(--text-muted); font-size: 10px;"></i>
                                 ${request.reason}
+                            </div>
+                        ` : ''}
+
+                        ${request.editHistory && request.editHistory.length > 0 ? `
+                            <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                                <i class="fas fa-history"></i> Edited ${request.editHistory.length} time${request.editHistory.length > 1 ? 's' : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -16521,6 +16776,10 @@ window.viewChecklistHistory = async function() {
         window.loadPTORequests = loadPTORequests;
         window.openRejectModal = openRejectModal;
         window.renderTimeOffRequests = renderTimeOffRequests;
+        window.openEditPTOModal = openEditPTOModal;
+        window.updateEditPTODuration = updateEditPTODuration;
+        window.updatePTORequest = updatePTORequest;
+        window.deletePTORequest = deletePTORequest;
 
         // Open day off picker for All Stores view - shows date selector modal
         function openStoreDayOffPicker(store) {
@@ -30398,6 +30657,7 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Chula Vista">VSU Chula Vista</option>
                                         <option value="North Park">VSU North Park</option>
                                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                                        <option value="Loyal Vaper">Loyal Vaper</option>
                                     </select>
                                 </div>
                             </div>
