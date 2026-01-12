@@ -48910,7 +48910,7 @@ function renderPodMatcher() {
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px;">
+        <div class="pod-matcher-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 20px;">
             <!-- Left Column - Camera/Upload -->
             <div class="card" style="padding: 0; overflow: hidden;">
                 <div style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); padding: 20px; color: white;">
@@ -48977,7 +48977,7 @@ function renderPodMatcher() {
         <!-- How it Works Section -->
         <div class="card" style="margin-top: 24px;">
             <h3 style="margin: 0 0 20px 0;"><i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 8px;"></i> How Pod Matcher Works</h3>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px;">
                 <div style="text-align: center; padding: 20px;">
                     <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
                         <i class="fas fa-camera" style="color: white; font-size: 24px;"></i>

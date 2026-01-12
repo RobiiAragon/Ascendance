@@ -182,3 +182,4 @@ class AuthenticationManager {
 
 // Initialize global authentication manager
 const authManager = new AuthenticationManager();
+window.authManager = authManager;
