@@ -455,7 +455,7 @@
                 <span class="nav-icon"><i class="fas fa-users"></i></span> Employees
                 <span class="nav-badge" id="employees-count-badge">0</span>
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('schedule'); return false;">
+            <a href="#" class="nav-item" data-page="schedule" onclick="window.navigateTo && window.navigateTo('schedule'); return false;">
                 <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Schedule
             </a>
             <a href="#" class="nav-item" data-page="clockin" onclick="window.navigateTo && window.navigateTo('clockin'); return false;">
@@ -474,10 +474,12 @@
 
             <!-- INVENTARIO -->
             <div class="nav-label">Inventory</div>
-            <a href="#" class="nav-item">
+            <!-- New Products - hidden until functionality is implemented
+            <a href="#" class="nav-item" data-page="newproducts" onclick="window.navigateTo && window.navigateTo('newproducts'); return false;">
                 <span class="nav-icon"><i class="fas fa-box"></i></span> New Products
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('restock'); return false;">
+            -->
+            <a href="#" class="nav-item" data-page="restock" onclick="window.navigateTo && window.navigateTo('restock'); return false;">
                 <span class="nav-icon"><i class="fas fa-boxes"></i></span> Running Low
             </a>
             <a href="#" class="nav-item" data-page="supplies" onclick="window.navigateTo && window.navigateTo('supplies'); return false;">
@@ -503,13 +505,13 @@
             <a href="#" class="nav-item" data-page="salesperformance" onclick="window.navigateTo && window.navigateTo('salesperformance'); return false;">
                 <span class="nav-icon"><i class="fas fa-ranking-star"></i></span> Sales Performance
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('gconomics'); return false;">
+            <a href="#" class="nav-item" data-page="gconomics" onclick="window.navigateTo && window.navigateTo('gconomics'); return false;">
                 <span class="nav-icon"><i class="fas fa-wallet"></i></span> G-conomics
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('invoices'); return false;">
+            <a href="#" class="nav-item" data-page="invoices" onclick="window.navigateTo && window.navigateTo('invoices'); return false;">
                 <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span> Invoices & Payments
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('cashout'); return false;">
+            <a href="#" class="nav-item" data-page="cashout" onclick="window.navigateTo && window.navigateTo('cashout'); return false;">
                 <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span> Cash Removed
             </a>
             <a href="#" class="nav-item" data-page="change" onclick="window.navigateTo && window.navigateTo('change'); return false;">
@@ -521,7 +523,7 @@
             <a href="#" class="nav-item" data-page="hrapplications" onclick="window.navigateTo && window.navigateTo('hrapplications'); return false;">
                 <span class="nav-icon"><i class="fas fa-user-plus"></i></span> Job Applications
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('vendors'); return false;">
+            <a href="#" class="nav-item" data-page="vendors" onclick="window.navigateTo && window.navigateTo('vendors'); return false;">
                 <span class="nav-icon"><i class="fas fa-truck"></i></span> Vendors & Suppliers
             </a>
             <a href="#" class="nav-item" data-page="leases" onclick="window.navigateTo && window.navigateTo('leases'); return false;">
@@ -542,19 +544,19 @@
             <a href="#" class="nav-item" data-page="employeepurchases" onclick="window.navigateTo && window.navigateTo('employeepurchases'); return false;">
                 <span class="nav-icon"><i class="fas fa-shopping-bag"></i></span> Employee Purchases
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('treasury'); return false;">
+            <a href="#" class="nav-item" data-page="treasury" onclick="window.navigateTo && window.navigateTo('treasury'); return false;">
                 <span class="nav-icon"><i class="fas fa-vault"></i></span> Heady Pieces
             </a>
 
             <!-- SEGURIDAD -->
             <div class="nav-label">Security</div>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('thieves'); return false;">
+            <a href="#" class="nav-item" data-page="thieves" onclick="window.navigateTo && window.navigateTo('thieves'); return false;">
                 <span class="nav-icon"><i class="fas fa-ban"></i></span> Banned Customers
             </a>
             <a href="#" class="nav-item" data-page="incidentlog" onclick="window.navigateTo && window.navigateTo('incidentlog'); return false;">
                 <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span> Incident Log
             </a>
-            <a href="#" class="nav-item" onclick="window.navigateTo && window.navigateTo('issues'); return false;">
+            <a href="#" class="nav-item" data-page="issues" onclick="window.navigateTo && window.navigateTo('issues'); return false;">
                 <span class="nav-icon"><i class="fas fa-headset"></i></span> Customer Issue Log
             </a>
             <a href="#" class="nav-item" data-page="risknotes" onclick="window.navigateTo && window.navigateTo('risknotes'); return false;">
