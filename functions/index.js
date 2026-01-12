@@ -817,3 +817,4 @@ If you cannot identify the device, still provide your best guess with confidence
         res.status(500).json({ error: error.message });
     }
 });
+
