@@ -485,6 +485,7 @@
                 console.error('Error loading read announcements:', error);
             }
         }
+        window.initializeFirebaseAnnouncements = initializeFirebaseAnnouncements;
 
         // Update announcement badge counts in sidebar and header (only unread)
         function updateAnnouncementsBadge() {
@@ -671,6 +672,7 @@
                 console.warn('Firebase not initialized, using fallback restock requests data');
             }
         }
+        window.initializeFirebaseRestockRequests = initializeFirebaseRestockRequests;
 
         async function initializeFirebaseChangeRecords() {
 
@@ -710,6 +712,7 @@
                 console.warn('Firebase not initialized, using fallback change records data');
             }
         }
+        window.initializeFirebaseChangeRecords = initializeFirebaseChangeRecords;
 
         async function initializeFirebaseCashOut() {
 
@@ -754,6 +757,7 @@
                 console.warn('Firebase not initialized, using fallback cash out records data');
             }
         }
+        window.initializeFirebaseCashOut = initializeFirebaseCashOut;
 
         let products = [
             { id: 1, name: 'JUUL Starter Kit', category: 'Vape Devices', quantity: 24, arrivalDate: '2025-12-10', store: 'Miramar', status: 'pending', supplier: 'JUUL Labs', price: 34.99, image: 'https://images.unsplash.com/photo-1560913210-fd4c0e4c3f75?w=400&h=300&fit=crop' },
@@ -1113,6 +1117,7 @@
 
             return false;
         }
+        window.initializeFirebaseEmployees = initializeFirebaseEmployees;
 
         /**
          * Save employee to Firebase
@@ -16188,6 +16193,7 @@ window.viewChecklistHistory = async function() {
 
             return false;
         }
+        window.initializeFirebaseThieves = initializeFirebaseThieves;
 
         /**
          * Save thief record to Firebase
@@ -21934,6 +21940,7 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             
             return false;
         }
+        window.initializeFirebaseGifts = initializeFirebaseGifts;
 
         /**
          * Save gift to Firebase
@@ -22035,6 +22042,7 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
 
             return false;
         }
+        window.initializeFirebaseIssues = initializeFirebaseIssues;
 
         // Initialize Firebase Licenses
         async function initializeFirebaseLicenses() {
@@ -22081,6 +22089,7 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
 
             return false;
         }
+        window.initializeFirebaseLicenses = initializeFirebaseLicenses;
 
         // Function to view/download a license PDF with aesthetic modal preview
         function viewLicensePdf(licenseId) {
@@ -31302,6 +31311,9 @@ Return ONLY the JSON object, no additional text.`,
             });
         }
 
+        // Expose filterNavigationByRole globally
+        window.filterNavigationByRole = filterNavigationByRole;
+
         function editEmployee(id) {
             // Check permission
             if (!checkPermission('canEditAllEmployees')) {
@@ -38841,6 +38853,7 @@ async function initializeFirebasePasswords() {
         console.error('Error initializing Firebase Passwords:', error);
     }
 }
+window.initializeFirebasePasswords = initializeFirebasePasswords;
 
 // Password categories with icons and colors
 var passwordCategories = {
