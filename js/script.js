@@ -1252,7 +1252,6 @@
                 customercare: 'Comps',
                 employeepurchases: 'Employee Purchases',
                 incidentlog: 'Incident Log',
-                risknotes: 'Risk Notes',
                 passwords: 'Password Manager',
                 projectanalytics: 'Project Analytics',
                 thechamps: 'The Champs',
@@ -1425,9 +1424,6 @@
                     break;
                 case 'gforce':
                     renderGForce();
-                    break;
-                case 'risknotes':
-                    renderRiskNotes();
                     break;
                 case 'incidentlog':
                     renderIncidentLog();
@@ -7126,7 +7122,14 @@
             });
 
             // Separate by status (in_progress items treated as pending for backwards compatibility)
-            const pendingSupplies = filteredSupplies.filter(s => s.status === 'pending' || s.status === 'in_progress');
+            // Sort pending by priority (critical first)
+            const pendingSupplies = filteredSupplies
+                .filter(s => s.status === 'pending' || s.status === 'in_progress')
+                .sort((a, b) => {
+                    if (a.priority === 'critical' && b.priority !== 'critical') return -1;
+                    if (b.priority === 'critical' && a.priority !== 'critical') return 1;
+                    return 0;
+                });
             const partialSupplies = filteredSupplies.filter(s => s.status === 'partial');
             const completedSupplies = filteredSupplies.filter(s => s.status === 'completed' || s.status === 'purchased');
             const cancelledSupplies = filteredSupplies.filter(s => s.status === 'cancelled');
@@ -7146,13 +7149,20 @@
                 const status = statusConfig[item.status] || statusConfig.pending;
                 const canProcess = isMiramar && (item.status === 'pending' || item.status === 'in_progress');
                 const canConfirm = item.store === userStore && item.status === 'partial';
+                const isCritical = item.priority === 'critical';
+                const cardBorderColor = isCritical && item.status === 'pending' ? '#ef4444' : status.color;
 
                 return `
-                    <div class="supply-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); border-left: 4px solid ${status.color}; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                    <div class="supply-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid ${isCritical && item.status === 'pending' ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)'}; border-left: 4px solid ${cardBorderColor}; transition: all 0.3s; ${isCritical && item.status === 'pending' ? 'box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.1);' : ''}" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='${isCritical && item.status === 'pending' ? '0 0 0 1px rgba(239, 68, 68, 0.1)' : 'none'}';">
                         <div style="padding: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                                <div style="background: ${status.bg}; color: ${status.color}; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
-                                    <i class="fas fa-${status.icon}"></i> ${status.label}
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <div style="background: ${status.bg}; color: ${status.color}; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                                        <i class="fas fa-${status.icon}"></i> ${status.label}
+                                    </div>
+                                    ${isCritical ? `<div style="background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; animation: ${item.status === 'pending' ? 'pulse-critical 2s infinite' : 'none'};">
+                                        <i class="fas fa-exclamation-triangle"></i> CRÍTICO
+                                    </div>` : ''}
                                 </div>
                                 <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
                                     <i class="fas fa-store"></i> ${item.store}
@@ -7205,15 +7215,20 @@
                 const status = statusConfig[item.status] || statusConfig.pending;
                 const canProcess = isMiramar && (item.status === 'pending' || item.status === 'in_progress');
                 const canConfirm = item.store === userStore && item.status === 'partial';
+                const isCritical = item.priority === 'critical';
+                const itemBorderColor = isCritical && item.status === 'pending' ? '#ef4444' : status.color;
 
                 return `
-                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${status.color};">
+                    <div class="supply-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${itemBorderColor}; ${isCritical && item.status === 'pending' ? 'border: 1px solid rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444;' : ''}">
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-                            <div style="width: 36px; height: 36px; background: ${status.bg}; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-${status.icon}" style="color: ${status.color}; font-size: 14px;"></i>
+                            <div style="width: 36px; height: 36px; background: ${isCritical && item.status === 'pending' ? 'rgba(239, 68, 68, 0.15)' : status.bg}; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-${isCritical && item.status === 'pending' ? 'exclamation-triangle' : status.icon}" style="color: ${isCritical && item.status === 'pending' ? '#ef4444' : status.color}; font-size: 14px;"></i>
                             </div>
                             <div style="min-width: 0; flex: 1;">
-                                <div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${(item.name || item.description).split('\n')[0]}</div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${(item.name || item.description).split('\n')[0]}</span>
+                                    ${isCritical ? `<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; flex-shrink: 0;">CRÍTICO</span>` : ''}
+                                </div>
                                 <div style="font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px;">
                                     <span><i class="fas fa-store"></i> ${item.store}</span>
                                     ${item.addedBy ? `<span><i class="fas fa-user"></i> ${item.addedBy}</span>` : ''}
@@ -7249,6 +7264,12 @@
             };
 
             dashboard.innerHTML = `
+                <style>
+                    @keyframes pulse-critical {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                </style>
                 <div class="page-header">
                     <div class="page-header-left">
                         <h2 class="section-title"><i class="fas fa-${isMiramar ? 'warehouse' : 'clipboard-list'}" style="margin-right: 10px;"></i>Supplies</h2>
@@ -7495,6 +7516,96 @@
                 showNotification('Added to supplies list!', 'success');
             } else {
                 showNotification('Error adding item. Please try again.', 'error');
+            }
+        }
+
+        // Adjust quantity for supply item
+        window.adjustSupplyQty = function(itemId, delta) {
+            const input = document.getElementById(`qty-${itemId}`);
+            if (input) {
+                let val = parseInt(input.value) || 1;
+                val = Math.max(1, Math.min(99, val + delta));
+                input.value = val;
+            }
+            updateSupplySelectionCount();
+        }
+
+        // Update selection count display
+        function updateSupplySelectionCount() {
+            const checkboxes = document.querySelectorAll('.modal-body input[type="checkbox"]:checked');
+            const countEl = document.getElementById('supply-selection-count');
+            if (countEl) {
+                const count = checkboxes.length;
+                countEl.textContent = `${count} item${count !== 1 ? 's' : ''} selected`;
+            }
+        }
+
+        // Add event listener for checkbox changes (called after modal opens)
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox' && e.target.id?.startsWith('supply-')) {
+                updateSupplySelectionCount();
+            }
+        });
+
+        // Add supplies from predefined list
+        window.addSupplyFromList = async function() {
+            const store = document.getElementById('supply-store')?.value;
+            if (!store) {
+                showNotification('Please select a store', 'error');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('.modal-body input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showNotification('Please select at least one item', 'error');
+                return;
+            }
+
+            const user = getCurrentUser();
+            let addedCount = 0;
+            let hasCritical = false;
+
+            // Collect all selected items
+            const selectedItems = [];
+            checkboxes.forEach(cb => {
+                const itemId = cb.id.replace('supply-', '');
+                const itemName = cb.dataset.name;
+                const priority = cb.dataset.priority;
+                const qtyInput = document.getElementById(`qty-${itemId}`);
+                const qty = parseInt(qtyInput?.value) || 1;
+
+                if (priority === 'critical') hasCritical = true;
+
+                selectedItems.push({
+                    name: `${qty}x ${itemName}`,
+                    description: `${qty}x ${itemName}`,
+                    quantity: qty,
+                    store,
+                    status: 'pending',
+                    priority: priority,
+                    month: suppliesCurrentMonth,
+                    addedBy: user?.name || 'Unknown'
+                });
+            });
+
+            // Add all items to Firebase
+            for (const supply of selectedItems) {
+                const id = await saveSupplyToFirebase(supply);
+                if (id) {
+                    supply.id = id;
+                    suppliesData.push(supply);
+                    addedCount++;
+                }
+            }
+
+            closeModal();
+            renderSupplies();
+
+            if (addedCount > 0) {
+                const criticalMsg = hasCritical ? ' (includes critical items)' : '';
+                showNotification(`Added ${addedCount} item${addedCount !== 1 ? 's' : ''} to supplies list${criticalMsg}!`, 'success');
+            } else {
+                showNotification('Error adding items. Please try again.', 'error');
             }
         }
 
@@ -12673,6 +12784,189 @@ window.viewChecklistHistory = async function() {
                         border-radius: 4px;
                         text-transform: uppercase;
                     }
+
+                    /* Hours Summary Panel */
+                    .schedule-layout {
+                        display: flex;
+                        gap: 20px;
+                    }
+                    .schedule-main {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .hours-summary-panel {
+                        width: 280px;
+                        flex-shrink: 0;
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        height: fit-content;
+                        position: sticky;
+                        top: 20px;
+                        max-height: calc(100vh - 200px);
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .hours-panel-header {
+                        padding: 16px 20px;
+                        border-bottom: 1px solid var(--border-color);
+                        background: var(--bg-secondary);
+                    }
+                    .hours-panel-header h3 {
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin: 0;
+                    }
+                    .hours-panel-header p {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                        margin: 4px 0 0 0;
+                    }
+                    .hours-panel-list {
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 12px;
+                    }
+                    .hours-employee-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 10px 12px;
+                        border-radius: 10px;
+                        margin-bottom: 6px;
+                        transition: all 0.2s;
+                        background: var(--bg-secondary);
+                        border: 1px solid transparent;
+                    }
+                    .hours-employee-item:hover {
+                        background: var(--bg-hover);
+                        border-color: var(--border-color);
+                    }
+                    .hours-employee-item:last-child {
+                        margin-bottom: 0;
+                    }
+                    .hours-employee-avatar {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .hours-employee-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .hours-employee-name {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .hours-employee-store {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                    }
+                    .hours-badge {
+                        font-size: 14px;
+                        font-weight: 700;
+                        padding: 6px 10px;
+                        border-radius: 8px;
+                        background: rgba(99, 102, 241, 0.1);
+                        color: var(--accent-primary);
+                        white-space: nowrap;
+                    }
+                    .hours-badge.high {
+                        background: rgba(16, 185, 129, 0.1);
+                        color: #10b981;
+                    }
+                    .hours-badge.low {
+                        background: rgba(245, 158, 11, 0.1);
+                        color: #f59e0b;
+                    }
+                    .hours-badge.zero {
+                        background: rgba(239, 68, 68, 0.1);
+                        color: #ef4444;
+                    }
+                    .hours-total-row {
+                        padding: 12px 16px;
+                        border-top: 1px solid var(--border-color);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .hours-total-label {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                    }
+                    .hours-total-value {
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: var(--accent-primary);
+                    }
+                    .hours-panel-empty {
+                        padding: 40px 20px;
+                        text-align: center;
+                        color: var(--text-muted);
+                    }
+                    .hours-panel-empty i {
+                        font-size: 32px;
+                        margin-bottom: 12px;
+                        opacity: 0.5;
+                    }
+                    .hours-panel-empty p {
+                        font-size: 13px;
+                        margin: 0;
+                    }
+                    @media (max-width: 1024px) {
+                        .schedule-layout {
+                            flex-direction: column;
+                        }
+                        .hours-summary-panel {
+                            width: 100%;
+                            position: relative;
+                            top: 0;
+                            max-height: 400px;
+                            order: -1;
+                            margin-bottom: 16px;
+                        }
+                    }
+                    @media (max-width: 768px) {
+                        .hours-summary-panel {
+                            max-height: 300px;
+                        }
+                        .hours-panel-list {
+                            padding: 8px;
+                        }
+                        .hours-employee-item {
+                            padding: 8px 10px;
+                        }
+                        .hours-employee-avatar {
+                            width: 32px;
+                            height: 32px;
+                            font-size: 11px;
+                        }
+                        .hours-employee-name {
+                            font-size: 12px;
+                        }
+                        .hours-badge {
+                            font-size: 12px;
+                            padding: 4px 8px;
+                        }
+                    }
                 </style>
 
                 <div class="schedule-header-bar">
@@ -12715,10 +13009,30 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
-                <div id="schedule-container">
-                    <div style="padding: 60px; text-align: center;">
-                        <div class="loading-spinner"></div>
-                        <p style="color: var(--text-muted); margin-top: 15px;">Loading schedules...</p>
+                <div class="schedule-layout">
+                    <div class="schedule-main">
+                        <div id="schedule-container">
+                            <div style="padding: 60px; text-align: center;">
+                                <div class="loading-spinner"></div>
+                                <p style="color: var(--text-muted); margin-top: 15px;">Loading schedules...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hours-summary-panel" id="hoursSummaryPanel">
+                        <div class="hours-panel-header">
+                            <h3><i class="fas fa-clock"></i> Hours This Week</h3>
+                            <p id="hoursPanelWeekRange">${weekRangeText}</p>
+                        </div>
+                        <div class="hours-panel-list" id="hoursPanelList">
+                            <div class="hours-panel-empty">
+                                <i class="fas fa-user-clock"></i>
+                                <p>Loading employee hours...</p>
+                            </div>
+                        </div>
+                        <div class="hours-total-row">
+                            <span class="hours-total-label">Total Hours</span>
+                            <span class="hours-total-value" id="hoursTotalValue">0h</span>
+                        </div>
                     </div>
                 </div>
 
@@ -12759,28 +13073,28 @@ window.viewChecklistHistory = async function() {
                                 <div class="time-editor-current-hours" id="timeEditorCurrentHours">8.0 hours</div>
                             </div>
                             <div class="time-editor-presets">
-                                <div class="time-editor-preset" onclick="setTimeEditorPreset('06:00', '14:00')">
-                                    <div class="time-editor-preset-time">6a - 2p</div>
-                                    <div class="time-editor-preset-label">Early</div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('08:45', '16:00')">
+                                    <div class="time-editor-preset-time">8:45a - 4p</div>
+                                    <div class="time-editor-preset-label">Morning</div>
                                 </div>
-                                <div class="time-editor-preset" onclick="setTimeEditorPreset('09:00', '17:00')">
-                                    <div class="time-editor-preset-time">9a - 5p</div>
-                                    <div class="time-editor-preset-label">Standard</div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('09:45', '16:00')">
+                                    <div class="time-editor-preset-time">9:45a - 4p</div>
+                                    <div class="time-editor-preset-label">Mid AM</div>
                                 </div>
-                                <div class="time-editor-preset" onclick="setTimeEditorPreset('10:00', '18:00')">
-                                    <div class="time-editor-preset-time">10a - 6p</div>
-                                    <div class="time-editor-preset-label">Mid</div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('08:45', '17:00')">
+                                    <div class="time-editor-preset-time">8:45a - 5p</div>
+                                    <div class="time-editor-preset-label">Full Day</div>
                                 </div>
-                                <div class="time-editor-preset" onclick="setTimeEditorPreset('12:00', '20:00')">
-                                    <div class="time-editor-preset-time">12p - 8p</div>
-                                    <div class="time-editor-preset-label">Afternoon</div>
-                                </div>
-                                <div class="time-editor-preset" onclick="setTimeEditorPreset('14:00', '22:00')">
-                                    <div class="time-editor-preset-time">2p - 10p</div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('16:00', '22:30')">
+                                    <div class="time-editor-preset-time">4p - 10:30p</div>
                                     <div class="time-editor-preset-label">Evening</div>
                                 </div>
-                                <div class="time-editor-preset" onclick="setTimeEditorPreset('16:00', '00:00')">
-                                    <div class="time-editor-preset-time">4p - 12a</div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('17:00', '23:30')">
+                                    <div class="time-editor-preset-time">5p - 11:30p</div>
+                                    <div class="time-editor-preset-label">Closing</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('18:00', '23:30')">
+                                    <div class="time-editor-preset-time">6p - 11:30p</div>
                                     <div class="time-editor-preset-label">Night</div>
                                 </div>
                             </div>
@@ -13143,7 +13457,110 @@ window.viewChecklistHistory = async function() {
 
             html += '</div>';
             container.innerHTML = html;
+
+            // Update hours summary panel
+            updateHoursSummaryPanel();
         }
+
+        // Calculate and render hours summary panel
+        function updateHoursSummaryPanel() {
+            const panelList = document.getElementById('hoursPanelList');
+            const totalValueEl = document.getElementById('hoursTotalValue');
+            const weekRangeEl = document.getElementById('hoursPanelWeekRange');
+
+            if (!panelList) return;
+
+            const weekDates = getWeekDates(currentWeekStart);
+            const weekRangeText = `${weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+
+            if (weekRangeEl) {
+                weekRangeEl.textContent = weekRangeText;
+            }
+
+            // Calculate hours for each employee this week
+            const employeeHours = {};
+            const weekDateKeys = weekDates.map(d => formatDateKey(d));
+
+            // Get all schedules for this week
+            const weekSchedules = schedules.filter(s => weekDateKeys.includes(s.date));
+
+            // Sum up hours per employee
+            weekSchedules.forEach(schedule => {
+                if (!schedule.employeeId) return;
+
+                const startTime = schedule.startTime || SHIFT_TYPES[schedule.shiftType]?.defaultStart || '09:00';
+                const endTime = schedule.endTime || SHIFT_TYPES[schedule.shiftType]?.defaultEnd || '17:00';
+                const hours = calculateHours(startTime, endTime);
+
+                if (!employeeHours[schedule.employeeId]) {
+                    employeeHours[schedule.employeeId] = 0;
+                }
+                employeeHours[schedule.employeeId] += hours;
+            });
+
+            // Create array of employees with hours, include all active employees
+            const employeeHoursArray = employees
+                .filter(emp => emp.status === 'active')
+                .map(emp => ({
+                    employee: emp,
+                    hours: employeeHours[emp.id] || 0
+                }))
+                .sort((a, b) => b.hours - a.hours); // Sort by hours descending
+
+            if (employeeHoursArray.length === 0) {
+                panelList.innerHTML = `
+                    <div class="hours-panel-empty">
+                        <i class="fas fa-user-clock"></i>
+                        <p>No employees found</p>
+                    </div>
+                `;
+                if (totalValueEl) totalValueEl.textContent = '0h';
+                return;
+            }
+
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+            let totalHours = 0;
+
+            let html = '';
+            employeeHoursArray.forEach(item => {
+                const emp = item.employee;
+                const hours = item.hours;
+                totalHours += hours;
+
+                const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+                const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+                // Determine badge class based on hours
+                let badgeClass = '';
+                if (hours === 0) {
+                    badgeClass = 'zero';
+                } else if (hours < 20) {
+                    badgeClass = 'low';
+                } else if (hours >= 40) {
+                    badgeClass = 'high';
+                }
+
+                html += `
+                    <div class="hours-employee-item">
+                        <div class="hours-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                        <div class="hours-employee-info">
+                            <div class="hours-employee-name">${emp.name || 'Unknown'}</div>
+                            <div class="hours-employee-store">${emp.store || 'No store'}</div>
+                        </div>
+                        <div class="hours-badge ${badgeClass}">${hours.toFixed(1)}h</div>
+                    </div>
+                `;
+            });
+
+            panelList.innerHTML = html;
+
+            if (totalValueEl) {
+                totalValueEl.textContent = `${totalHours.toFixed(1)}h`;
+            }
+        }
+
+        // Expose function globally
+        window.updateHoursSummaryPanel = updateHoursSummaryPanel;
 
         // Time editor modal functions
         let currentTimeEditorContext = null;
@@ -13600,6 +14017,9 @@ window.viewChecklistHistory = async function() {
             `;
 
             container.innerHTML = html;
+
+            // Update hours summary panel
+            updateHoursSummaryPanel();
         }
 
         // Individual Employee Schedule View
@@ -13966,6 +14386,9 @@ window.viewChecklistHistory = async function() {
             `;
 
             container.innerHTML = html;
+
+            // Update hours summary panel
+            updateHoursSummaryPanel();
         }
 
         // All Stores View
@@ -14105,6 +14528,9 @@ window.viewChecklistHistory = async function() {
 
             html += '</div>';
             container.innerHTML = html;
+
+            // Update hours summary panel
+            updateHoursSummaryPanel();
         }
 
         // Render Employees Hours View - shows worked hours from Clock In/Out data
@@ -14452,6 +14878,9 @@ window.viewChecklistHistory = async function() {
                 `;
 
                 container.innerHTML = html;
+
+                // Update hours summary panel
+                updateHoursSummaryPanel();
 
             } catch (error) {
                 console.error('Error rendering employees hours view:', error);
@@ -20661,22 +21090,82 @@ Return ONLY the JSON object, no additional text.`
 
         let changeFilterStore = 'all';
         let changeViewMode = 'list'; // 'list' or 'grid'
+        let changeCurrentWeekStart = getChangeWeekStart(new Date()); // Current week start date
+
+        // Helper function to get week start (Monday)
+        function getChangeWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+            d.setDate(diff);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        // Helper function to get week end (Sunday)
+        function getChangeWeekEnd(weekStart) {
+            const d = new Date(weekStart);
+            d.setDate(d.getDate() + 6);
+            d.setHours(23, 59, 59, 999);
+            return d;
+        }
+
+        // Format week range for display
+        function formatChangeWeekRange(weekStart) {
+            const weekEnd = getChangeWeekEnd(weekStart);
+            const options = { month: 'short', day: 'numeric' };
+            return `${weekStart.toLocaleDateString('en-US', options)} - ${weekEnd.toLocaleDateString('en-US', options)}, ${weekStart.getFullYear()}`;
+        }
+
+        // Navigate weeks
+        window.changeWeekPrev = function() {
+            const newDate = new Date(changeCurrentWeekStart);
+            newDate.setDate(newDate.getDate() - 7);
+            changeCurrentWeekStart = newDate;
+            renderChange();
+        };
+
+        window.changeWeekNext = function() {
+            const newDate = new Date(changeCurrentWeekStart);
+            newDate.setDate(newDate.getDate() + 7);
+            changeCurrentWeekStart = newDate;
+            renderChange();
+        };
+
+        window.changeWeekToday = function() {
+            changeCurrentWeekStart = getChangeWeekStart(new Date());
+            renderChange();
+        };
 
         function renderChange() {
             const dashboard = document.querySelector('.dashboard');
             const today = new Date().toISOString().split('T')[0];
 
-            // Filter records
-            const filteredRecords = changeFilterStore === 'all'
+            // Week boundaries
+            const weekStart = changeCurrentWeekStart;
+            const weekEnd = getChangeWeekEnd(weekStart);
+            const weekStartStr = weekStart.toISOString().split('T')[0];
+            const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+            // Filter records by store first
+            let filteredRecords = changeFilterStore === 'all'
                 ? changeRecords
                 : changeRecords.filter(r => r.store === changeFilterStore);
+
+            // Then filter by week
+            filteredRecords = filteredRecords.filter(r => {
+                const recordDate = r.date;
+                return recordDate >= weekStartStr && recordDate <= weekEndStr;
+            });
 
             // Sort by date descending
             const sortedRecords = [...filteredRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            // Today's records
-            const todayRecords = changeRecords.filter(r => r.date === today);
-            const todayTotal = todayRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+            // Week's total
+            const weekTotal = filteredRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+            // Check if current week contains today
+            const isCurrentWeek = today >= weekStartStr && today <= weekEndStr;
 
             dashboard.innerHTML = `
                 <div class="page-header">
@@ -20694,12 +21183,33 @@ Return ONLY the JSON object, no additional text.`
                     </button>
                 </div>
 
+                <!-- Week Navigation -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: var(--bg-secondary); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
+                    <button onclick="changeWeekPrev()" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 16px; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                        <i class="fas fa-chevron-left"></i> Prev Week
+                    </button>
+                    <div style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">${formatChangeWeekRange(weekStart)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${isCurrentWeek ? 'Current Week' : ''}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        ${!isCurrentWeek ? `
+                            <button onclick="changeWeekToday()" style="background: var(--accent-primary); border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; color: white; font-weight: 500; transition: all 0.2s;">
+                                <i class="fas fa-calendar-day"></i> Today
+                            </button>
+                        ` : ''}
+                        <button onclick="changeWeekNext()" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 16px; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                            Next Week <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Quick Stats -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 16px; padding: 20px; color: white;">
-                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Today's Total</div>
-                        <div style="font-size: 28px; font-weight: 700;">$${todayTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${todayRecords.length} record${todayRecords.length !== 1 ? 's' : ''}</div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Week Total</div>
+                        <div style="font-size: 28px; font-weight: 700;">$${weekTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${filteredRecords.length} record${filteredRecords.length !== 1 ? 's' : ''} this week</div>
                     </div>
                     <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px; padding: 20px; color: white;">
                         <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Total Records</div>
@@ -20721,7 +21231,7 @@ Return ONLY the JSON object, no additional text.`
                         <option value="Chula Vista" ${changeFilterStore === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
                         <option value="Miramar Wine & Liquor" ${changeFilterStore === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                     </select>
-                    <span style="font-size: 13px; color: var(--text-muted);">${filteredRecords.length} records</span>
+                    <span style="font-size: 13px; color: var(--text-muted);">${filteredRecords.length} records this week</span>
                     <!-- View Toggle -->
                     <div style="display: flex; background: var(--bg-secondary); border-radius: 8px; padding: 3px; border: 1px solid var(--border-color); margin-left: auto;">
                         <button onclick="setChangeViewMode('list')" id="change-view-list-btn" style="width: 34px; height: 34px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${changeViewMode === 'list' ? 'background: var(--accent-primary); color: white;' : 'background: transparent; color: var(--text-muted);'}" title="List View">
@@ -20739,8 +21249,8 @@ Return ONLY the JSON object, no additional text.`
                         <div class="card">
                             <div class="card-body" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
                                 <i class="fas fa-coins" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.3;"></i>
-                                <div style="font-size: 16px; margin-bottom: 8px;">No change records yet</div>
-                                <div style="font-size: 13px;">Click "New Daily Record" to add one</div>
+                                <div style="font-size: 16px; margin-bottom: 8px;">No change records for this week</div>
+                                <div style="font-size: 13px;">Click "New Daily Record" to add one or navigate to another week</div>
                             </div>
                         </div>
                     ` : changeViewMode === 'grid' ? `
@@ -23435,14 +23945,21 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                 </div>
 
                 <!-- Filters -->
-                <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
+                <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="min-width: 180px;">
+                        <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Month</label>
+                        <input type="month" id="emp-purchases-month-filter" value="${employeePurchasesCurrentMonth}" onchange="jumpToEmployeePurchasesMonth(this.value)" style="padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                    </div>
+                    <div style="min-width: 200px;">
                         <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Store</label>
                         <select id="emp-purchases-store-filter" onchange="filterEmployeePurchasesByStore(this.value)" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                             <option value="all">All Stores</option>
-                            <option value="Chula Vista" ${employeePurchasesStoreFilter === 'Chula Vista' ? 'selected' : ''}>Chula Vista</option>
-                            <option value="Miramar" ${employeePurchasesStoreFilter === 'Miramar' ? 'selected' : ''}>Miramar</option>
-                            <option value="Kearny Mesa" ${employeePurchasesStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>Kearny Mesa</option>
+                            <option value="Miramar" ${employeePurchasesStoreFilter === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
+                            <option value="Morena" ${employeePurchasesStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
+                            <option value="Kearny Mesa" ${employeePurchasesStoreFilter === 'Kearny Mesa' ? 'selected' : ''}>VSU Kearny Mesa</option>
+                            <option value="Chula Vista" ${employeePurchasesStoreFilter === 'Chula Vista' ? 'selected' : ''}>VSU Chula Vista</option>
+                            <option value="North Park" ${employeePurchasesStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
+                            <option value="Miramar Wine & Liquor" ${employeePurchasesStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                         </select>
                     </div>
                 </div>
@@ -23493,6 +24010,13 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
             date.setMonth(date.getMonth() + delta);
             employeePurchasesCurrentMonth = date.toISOString().slice(0, 7);
             renderEmployeePurchases();
+        }
+
+        window.jumpToEmployeePurchasesMonth = function(month) {
+            if (month) {
+                employeePurchasesCurrentMonth = month;
+                renderEmployeePurchases();
+            }
         }
 
         function filterEmployeePurchasesByStore(store) {
@@ -23747,8 +24271,10 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                                 <thead>
                                     <tr>
                                         <th>Date</th>
+                                        <th>Time</th>
                                         <th>Description</th>
                                         <th>Amount</th>
+                                        <th>Source</th>
                                         <th>Store</th>
                                         <th>Created By</th>
                                         <th>Actions</th>
@@ -23757,15 +24283,31 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                                 <tbody>
                                     ${filteredRecords.map(record => {
                                         const recordId = record.firestoreId || record.id;
+                                        const recordTime = record.createdTime || (record.createdAt?.toDate ? record.createdAt.toDate().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : '--');
+                                        const source = record.source || 'register';
+                                        const sourceIcon = source === 'envelope' ? 'fa-envelope' : 'fa-cash-register';
+                                        const sourceColor = source === 'envelope' ? '#f59e0b' : '#3b82f6';
+                                        const sourceLabel = source === 'envelope' ? 'Envelope' : 'Register';
                                         return `
                                         <tr>
                                             <td>${formatDate(record.createdDate)}</td>
+                                            <td style="font-size: 13px; color: var(--text-secondary);">${recordTime}</td>
                                             <td>
-                                                <strong>${record.name}</strong>
-                                                ${record.reason ? `<div style="font-size: 12px; color: var(--text-muted);">${record.reason}</div>` : ''}
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    ${record.photoUrl ? `<img src="${record.photoUrl}" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover; cursor: pointer;" onclick="viewCashOutPhoto('${record.photoUrl}')" title="View photo">` : ''}
+                                                    <div>
+                                                        <strong>${record.name}</strong>
+                                                        ${record.reason ? `<div style="font-size: 12px; color: var(--text-muted);">${record.reason}</div>` : ''}
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td style="font-weight: 600; color: var(--danger);">
                                                 $${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                            </td>
+                                            <td>
+                                                <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; background: ${sourceColor}15; color: ${sourceColor};">
+                                                    <i class="fas ${sourceIcon}"></i> ${sourceLabel}
+                                                </span>
                                             </td>
                                             <td><span class="status-badge">${record.store || 'N/A'}</span></td>
                                             <td>${record.createdBy}</td>
@@ -23907,17 +24449,23 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
         function renderCashOutCard(record) {
             const recordId = record.firestoreId || record.id;
             const recordDate = new Date(record.createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const recordTime = record.createdTime || '--';
+            const source = record.source || 'register';
+            const sourceIcon = source === 'envelope' ? 'fa-envelope' : 'fa-cash-register';
+            const sourceColor = source === 'envelope' ? '#f59e0b' : '#3b82f6';
+            const sourceLabel = source === 'envelope' ? 'Envelope' : 'Register';
 
             return `
                 <div class="cashout-grid-card" style="background: var(--bg-secondary); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.2s; display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                     <!-- Header -->
-                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); padding: 20px; color: white;">
+                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); padding: 20px; color: white; position: relative;">
+                        ${record.photoUrl ? `<div style="position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 8px; overflow: hidden; border: 2px solid rgba(255,255,255,0.3); cursor: pointer;" onclick="viewCashOutPhoto('${record.photoUrl}')"><img src="${record.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;"></div>` : ''}
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
-                                <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">${recordDate}</div>
+                                <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">${recordDate} · ${recordTime}</div>
                                 <div style="font-size: 28px; font-weight: 700;">$${record.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                             </div>
-                            <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; ${record.photoUrl ? 'margin-right: 45px;' : ''}">
                                 <i class="fas fa-money-bill-wave" style="font-size: 20px;"></i>
                             </div>
                         </div>
@@ -23941,6 +24489,9 @@ Count each bill/coin you can see clearly. If bills are stacked, try to estimate 
                         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                             <span style="background: var(--accent-primary); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
                                 ${record.store || 'N/A'}
+                            </span>
+                            <span style="background: ${sourceColor}20; color: ${sourceColor}; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="fas ${sourceIcon}" style="font-size: 10px;"></i> ${sourceLabel}
                             </span>
                         </div>
 
@@ -24372,12 +24923,89 @@ Return ONLY the JSON object, no additional text.`
             }
         }
 
+        // Helper functions for cashout photo and source selection
+        let cashoutSelectedPhoto = null;
+
+        window.selectCashOutSource = function(source) {
+            document.getElementById('cashout-source-register').checked = (source === 'register');
+            document.getElementById('cashout-source-envelope').checked = (source === 'envelope');
+
+            // Update visual styles
+            const registerIcon = document.getElementById('source-icon-register');
+            const envelopeIcon = document.getElementById('source-icon-envelope');
+
+            if (source === 'register') {
+                registerIcon.style.background = '#3b82f620';
+                registerIcon.querySelector('i').style.color = '#3b82f6';
+                registerIcon.parentElement.style.borderColor = '#3b82f6';
+                envelopeIcon.style.background = 'var(--bg-hover)';
+                envelopeIcon.querySelector('i').style.color = 'var(--text-muted)';
+                envelopeIcon.parentElement.style.borderColor = 'var(--border-color)';
+            } else {
+                envelopeIcon.style.background = '#f59e0b20';
+                envelopeIcon.querySelector('i').style.color = '#f59e0b';
+                envelopeIcon.parentElement.style.borderColor = '#f59e0b';
+                registerIcon.style.background = 'var(--bg-hover)';
+                registerIcon.querySelector('i').style.color = 'var(--text-muted)';
+                registerIcon.parentElement.style.borderColor = 'var(--border-color)';
+            }
+        }
+
+        window.previewCashOutPhoto = function(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                cashoutSelectedPhoto = file;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('cashout-photo-img').src = e.target.result;
+                    document.getElementById('cashout-photo-preview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        window.removeCashOutPhoto = function() {
+            cashoutSelectedPhoto = null;
+            document.getElementById('cashout-photo').value = '';
+            document.getElementById('cashout-photo-preview').style.display = 'none';
+            document.getElementById('cashout-photo-img').src = '';
+        }
+
+        window.viewCashOutPhoto = function(url) {
+            openModal('image-viewer', { url: url, title: 'Cash Out Photo' });
+        }
+
+        // Upload photo to Firebase Storage
+        async function uploadCashOutPhoto(file, recordId) {
+            if (!file || !firebase.storage) {
+                console.warn('Firebase Storage not available or no file');
+                return null;
+            }
+
+            try {
+                const storageRef = firebase.storage().ref();
+                const timestamp = Date.now();
+                const fileName = `cashout_${recordId}_${timestamp}.${file.name.split('.').pop()}`;
+                const photoRef = storageRef.child(`cashout-photos/${fileName}`);
+
+                const snapshot = await photoRef.put(file);
+                const downloadUrl = await snapshot.ref.getDownloadURL();
+                return downloadUrl;
+            } catch (error) {
+                console.error('Error uploading photo:', error);
+                return null;
+            }
+        }
+
         async function createCashOut() {
             const name = document.getElementById('cashout-name').value.trim();
             const amount = parseFloat(document.getElementById('cashout-amount').value);
             const store = document.getElementById('cashout-store').value;
             const date = document.getElementById('cashout-date').value;
+            const time = document.getElementById('cashout-time')?.value || new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
             const reason = document.getElementById('cashout-reason').value.trim();
+            const source = document.querySelector('input[name="cashout-source"]:checked')?.value || 'register';
 
             if (!name || !amount || !store) {
                 showNotification('Please fill in all required fields', 'error');
@@ -24397,11 +25025,14 @@ Return ONLY the JSON object, no additional text.`
                 amount,
                 store,
                 reason,
+                source,
                 createdDate: date || new Date().toISOString().split('T')[0],
+                createdTime: time,
                 createdBy: user?.name || 'Unknown',
                 status: 'open',
                 closedDate: null,
                 receiptPhoto: null,
+                photoUrl: null,
                 amountSpent: null,
                 moneyLeft: null,
                 hasMoneyLeft: null
@@ -24414,7 +25045,20 @@ Return ONLY the JSON object, no additional text.`
                     if (docId) {
                         newRecord.id = docId;
                         newRecord.firestoreId = docId;
+
+                        // Upload photo if selected
+                        if (cashoutSelectedPhoto) {
+                            showNotification('Uploading photo...', 'info');
+                            const photoUrl = await uploadCashOutPhoto(cashoutSelectedPhoto, docId);
+                            if (photoUrl) {
+                                newRecord.photoUrl = photoUrl;
+                                // Update the record with the photo URL
+                                await firebaseCashOutManager.updateCashOutRecord(docId, { photoUrl: photoUrl });
+                            }
+                        }
+
                         cashOutRecords.unshift(newRecord);
+                        cashoutSelectedPhoto = null;
                         closeModal();
                         renderCashOut();
                         showNotification('Cash out added!', 'success');
@@ -24425,6 +25069,7 @@ Return ONLY the JSON object, no additional text.`
                     // Fallback to local storage
                     newRecord.id = cashOutRecords.length > 0 ? Math.max(...cashOutRecords.map(r => r.id || 0)) + 1 : 1;
                     cashOutRecords.unshift(newRecord);
+                    cashoutSelectedPhoto = null;
                     closeModal();
                     renderCashOut();
                     showNotification('Cash out added!', 'success');
@@ -28263,17 +28908,119 @@ Return ONLY the JSON object, no additional text.`
                     const supplyUser = getCurrentUser();
                     const userStore = supplyUser?.store || 'Miramar';
                     const isAdmin = supplyUser?.role === 'admin';
+
+                    // Predefined supplies list with categories and priority
+                    const supplyCategories = [
+                        {
+                            name: 'Operaciones Críticas',
+                            icon: 'fa-exclamation-triangle',
+                            color: '#ef4444',
+                            priority: 'critical',
+                            items: [
+                                { id: 'bolsas_basura', name: 'Bolsas negras para basura', unit: 'paquete' },
+                                { id: 'bolsas_pequeñas', name: 'Bolsas pequeñas (para producto)', unit: 'paquete' },
+                                { id: 'papel_recibo', name: 'Papel para impresora de recibos', unit: 'rollo' },
+                                { id: 'papel_etiquetas', name: 'Papel para etiquetas', unit: 'rollo' },
+                                { id: 'cajas_grandes', name: 'Cajas grandes', unit: 'unidad' },
+                                { id: 'cajas_medianas', name: 'Cajas medianas', unit: 'unidad' },
+                                { id: 'cajas_pequeñas', name: 'Cajas pequeñas', unit: 'unidad' },
+                                { id: 'cinta_empacar', name: 'Cinta para empacar', unit: 'rollo' },
+                                { id: 'bubble_wrap', name: 'Bubble wrap / Plástico burbuja', unit: 'rollo' }
+                            ]
+                        },
+                        {
+                            name: 'Limpieza',
+                            icon: 'fa-broom',
+                            color: '#3b82f6',
+                            priority: 'normal',
+                            items: [
+                                { id: 'windex', name: 'Windex / Limpia vidrios', unit: 'botella' },
+                                { id: 'lysol', name: 'Lysol / Desinfectante', unit: 'botella' },
+                                { id: 'papel_toalla', name: 'Papel toalla', unit: 'rollo' },
+                                { id: 'escoba', name: 'Escoba', unit: 'unidad' },
+                                { id: 'trapeador', name: 'Trapeador / Mop', unit: 'unidad' },
+                                { id: 'cubeta', name: 'Cubeta', unit: 'unidad' },
+                                { id: 'jabon_manos', name: 'Jabón para manos', unit: 'botella' },
+                                { id: 'guantes', name: 'Guantes de limpieza', unit: 'par' },
+                                { id: 'desodorante_ambiente', name: 'Desodorante de ambiente', unit: 'unidad' }
+                            ]
+                        },
+                        {
+                            name: 'Oficina',
+                            icon: 'fa-pen',
+                            color: '#8b5cf6',
+                            priority: 'normal',
+                            items: [
+                                { id: 'plumas', name: 'Plumas / Bolígrafos', unit: 'paquete' },
+                                { id: 'marcadores', name: 'Marcadores Sharpie', unit: 'paquete' },
+                                { id: 'papel_impresora', name: 'Papel para impresora normal', unit: 'resma' },
+                                { id: 'grapadora', name: 'Grapadora', unit: 'unidad' },
+                                { id: 'grapas', name: 'Grapas', unit: 'caja' },
+                                { id: 'clips', name: 'Clips', unit: 'caja' },
+                                { id: 'post_its', name: 'Post-its / Notas adhesivas', unit: 'paquete' },
+                                { id: 'folders', name: 'Folders / Carpetas', unit: 'paquete' }
+                            ]
+                        },
+                        {
+                            name: 'Varios',
+                            icon: 'fa-box',
+                            color: '#f59e0b',
+                            priority: 'normal',
+                            items: [
+                                { id: 'baterias_aa', name: 'Baterías AA', unit: 'paquete' },
+                                { id: 'baterias_aaa', name: 'Baterías AAA', unit: 'paquete' },
+                                { id: 'extension', name: 'Extensión eléctrica', unit: 'unidad' },
+                                { id: 'foco', name: 'Focos / Bombillas', unit: 'unidad' },
+                                { id: 'tijeras', name: 'Tijeras', unit: 'unidad' },
+                                { id: 'cutter', name: 'Cutter / Exacto', unit: 'unidad' },
+                                { id: 'cinta_scotch', name: 'Cinta scotch', unit: 'rollo' }
+                            ]
+                        }
+                    ];
+
+                    let supplyCategoriesHtml = '';
+                    supplyCategories.forEach(cat => {
+                        supplyCategoriesHtml += `
+                            <div class="supply-category" style="margin-bottom: 16px;">
+                                <div class="supply-category-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 12px; background: ${cat.color}15; border-radius: 8px; border-left: 3px solid ${cat.color};">
+                                    <i class="fas ${cat.icon}" style="color: ${cat.color};"></i>
+                                    <span style="font-weight: 600; color: var(--text-primary);">${cat.name}</span>
+                                    ${cat.priority === 'critical' ? '<span style="font-size: 10px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: auto;">CRÍTICO</span>' : ''}
+                                </div>
+                                <div class="supply-items-grid" style="display: grid; gap: 8px;">
+                        `;
+                        cat.items.forEach(item => {
+                            supplyCategoriesHtml += `
+                                <div class="supply-item-row" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-secondary); border-radius: 8px; transition: all 0.2s;">
+                                    <input type="checkbox" id="supply-${item.id}" data-name="${item.name}" data-priority="${cat.priority}" style="width: 18px; height: 18px; cursor: pointer;">
+                                    <label for="supply-${item.id}" style="flex: 1; cursor: pointer; font-size: 14px;">${item.name}</label>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <button type="button" onclick="adjustSupplyQty('${item.id}', -1)" style="width: 24px; height: 24px; border: none; background: var(--bg-hover); border-radius: 4px; cursor: pointer; color: var(--text-secondary);">-</button>
+                                        <input type="number" id="qty-${item.id}" value="1" min="1" max="99" style="width: 40px; text-align: center; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px; background: var(--bg-card);">
+                                        <button type="button" onclick="adjustSupplyQty('${item.id}', 1)" style="width: 24px; height: 24px; border: none; background: var(--bg-hover); border-radius: 4px; cursor: pointer; color: var(--text-secondary);">+</button>
+                                    </div>
+                                    <span style="font-size: 11px; color: var(--text-muted); min-width: 50px;">${item.unit}</span>
+                                </div>
+                            `;
+                        });
+                        supplyCategoriesHtml += '</div></div>';
+                    });
+
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-clipboard-list" style="margin-right: 10px; color: var(--accent-primary);"></i>Add Supplies</h2>
+                            <h2><i class="fas fa-clipboard-list" style="margin-right: 10px; color: var(--accent-primary);"></i>Request Supplies</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label>What do you need?</label>
-                                <textarea class="form-input" id="supply-description" rows="5" placeholder="Write your list here...&#10;&#10;Example:&#10;5 cajas grandes&#10;Bolsas negras para basura&#10;Papel para impresora&#10;Windex" style="resize: vertical; min-height: 120px;"></textarea>
+                        <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                            <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05)); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <i class="fas fa-info-circle" style="color: var(--accent-primary);"></i>
+                                    <span style="font-weight: 600; font-size: 14px;">Select items and quantities</span>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Items marked as <span style="color: #ef4444; font-weight: 600;">CRÍTICO</span> affect daily operations and will be prioritized.</p>
                             </div>
-                            <div class="form-group">
+
+                            <div class="form-group" style="margin-bottom: 16px;">
                                 <label>Store</label>
                                 ${isAdmin ? `
                                     <select class="form-input" id="supply-store">
@@ -28289,11 +29036,14 @@ Return ONLY the JSON object, no additional text.`
                                     <input type="text" class="form-input" id="supply-store" value="${userStore}" readonly style="background: var(--bg-secondary); cursor: not-allowed;">
                                 `}
                             </div>
+
+                            ${supplyCategoriesHtml}
                         </div>
                         <div class="modal-footer">
+                            <div id="supply-selection-count" style="flex: 1; font-size: 13px; color: var(--text-muted);">0 items selected</div>
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="addSupply()">
-                                <i class="fas fa-plus"></i> Add to List
+                            <button class="btn-primary" onclick="addSupplyFromList()">
+                                <i class="fas fa-paper-plane"></i> Send Request
                             </button>
                         </div>
                     `;
@@ -29425,13 +30175,56 @@ Return ONLY the JSON object, no additional text.`,
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label>Source *</label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <label style="flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectCashOutSource('register')">
+                                            <input type="radio" name="cashout-source" id="cashout-source-register" value="register" checked style="display: none;">
+                                            <div id="source-icon-register" style="width: 36px; height: 36px; background: #3b82f620; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-cash-register" style="color: #3b82f6;"></i>
+                                            </div>
+                                            <span style="font-weight: 500;">Register</span>
+                                        </label>
+                                        <label style="flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectCashOutSource('envelope')">
+                                            <input type="radio" name="cashout-source" id="cashout-source-envelope" value="envelope" style="display: none;">
+                                            <div id="source-icon-envelope" style="width: 36px; height: 36px; background: var(--bg-hover); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-envelope" style="color: var(--text-muted);"></i>
+                                            </div>
+                                            <span style="font-weight: 500;">Envelope</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
                                     <label>Date</label>
                                     <input type="date" class="form-input" id="cashout-date" value="${new Date().toISOString().split('T')[0]}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Time</label>
+                                    <input type="time" class="form-input" id="cashout-time" value="${new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'})}">
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label>Notes</label>
                                 <textarea class="form-input" id="cashout-reason" rows="2" placeholder="Additional notes (optional)..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo/Receipt (optional)</label>
+                                <div id="cashout-photo-preview" style="display: none; margin-bottom: 10px; position: relative;">
+                                    <img id="cashout-photo-img" style="max-width: 100%; max-height: 200px; border-radius: 10px; border: 1px solid var(--border-color);">
+                                    <button type="button" onclick="removeCashOutPhoto()" style="position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="file" id="cashout-photo" accept="image/*" style="display: none;" onchange="previewCashOutPhoto(this)">
+                                    <button type="button" onclick="document.getElementById('cashout-photo').click()" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 2px dashed var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-secondary); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-secondary)';">
+                                        <i class="fas fa-camera"></i> Take Photo
+                                    </button>
+                                    <button type="button" onclick="document.getElementById('cashout-photo').click()" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 2px dashed var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-secondary); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-secondary)';">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -33785,7 +34578,6 @@ Return ONLY the JSON object, no additional text.`,
                 'vault': 'treasury',
                 'coins': 'change',
                 'gift': 'customercare',
-                'shield-halved': 'risknotes',
                 'key': 'passwords',
                 'bolt': 'gforce',
                 'code': 'projectanalytics'
@@ -34642,7 +35434,6 @@ Return ONLY the JSON object, no additional text.`,
                 { name: 'Heady Pieces', page: 'treasury', icon: 'fa-vault' },
                 { name: 'Change Records', page: 'change', icon: 'fa-coins' },
                 { name: 'Customer Care', page: 'customercare', icon: 'fa-heart' },
-                { name: 'Risk Notes', page: 'risknotes', icon: 'fa-shield-halved' },
                 { name: 'Password Manager', page: 'passwords', icon: 'fa-key' },
                 { name: 'G Force', page: 'gforce', icon: 'fa-bolt' },
                 { name: 'Project Analytics', page: 'projectanalytics', icon: 'fa-code' }
@@ -40104,7 +40895,6 @@ window.renderProjectAnalytics = function() {
         { name: 'Heady Pieces', icon: 'fa-vault', status: 'active', page: 'treasury', description: 'Art collection', fullDescription: 'Heady glass and art piece collection management with photos and valuations.', features: ['Photo gallery', 'Artist tracking', 'Valuation records', 'Location tracking'], version: '1.8', linesOfCode: 720 },
         { name: 'Change Records', icon: 'fa-coins', status: 'active', page: 'change', description: 'Cash flow between stores', fullDescription: 'Track change and cash transfers between store locations with photo verification.', features: ['Photo verification', 'Transfer tracking', 'Store-to-store', 'Balance history'], version: '1.6', linesOfCode: 580 },
         { name: 'Customer Care', icon: 'fa-heart', status: 'active', page: 'customercare', description: 'Customer care', fullDescription: 'Customer gift and promotional item tracking with recipient information.', features: ['Gift registry', 'Photo proof', 'Recipient tracking', 'Campaign linking'], version: '1.5', linesOfCode: 540 },
-        { name: 'Risk Notes', icon: 'fa-shield-halved', status: 'active', page: 'risknotes', description: 'Security alerts', fullDescription: 'Security risk documentation and alert system for potential threats.', features: ['Risk assessment', 'Alert system', 'Action tracking', 'Priority levels'], version: '1.3', linesOfCode: 480 },
         { name: 'Password Manager', icon: 'fa-key', status: 'active', page: 'passwords', description: 'Credentials vault', fullDescription: 'Secure password and credential storage with encrypted access.', features: ['Secure storage', 'Category organization', 'Quick copy', 'Access logging'], version: '1.8', linesOfCode: 620 },
         { name: 'G Force', icon: 'fa-bolt', status: 'active', page: 'gforce', description: 'Daily motivation', fullDescription: 'Daily motivational quotes, affirmations, and philosophy for team inspiration.', features: ['Daily quotes', 'Affirmations', 'Philosophy tips', 'Random generation'], version: '1.5', linesOfCode: 440 },
         { name: 'Job Applications', icon: 'fa-user-plus', status: 'active', page: 'hrapplications', description: 'Job applications', fullDescription: 'Human resources application management system for hiring and recruitment processes.', features: ['Application forms', 'Status tracking', 'Interview scheduling', 'Document upload'], version: '1.0', linesOfCode: 650 },
@@ -43655,7 +44445,7 @@ async function deleteLease(leaseId) {
     }
 
     const db = firebase.firestore();
-    const collections = ['cashOutRecords', 'invoices', 'issues', 'gifts', 'changeRecords', 'riskNotes', 'clockRecords'];
+    const collections = ['cashOutRecords', 'invoices', 'issues', 'gifts', 'changeRecords', 'clockRecords'];
     let totalUpdated = 0;
 
     console.log('🔄 Auto-migration: Carlos Admin -> VSU Admin');

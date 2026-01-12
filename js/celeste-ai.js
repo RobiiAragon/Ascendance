@@ -245,13 +245,6 @@ const CELESTE_ACTIONS = {
         action: 'recordGift',
         description: 'Registrar un regalo'
     },
-    // Risk notes
-    risk: {
-        keywords: ['riesgo', 'risk', 'peligro', 'danger', 'alerta', 'alert', 'cuidado'],
-        module: 'risknotes',
-        action: 'createRiskNote',
-        description: 'Crear nota de riesgo'
-    },
     // Clock in/out
     clock: {
         keywords: ['entrada', 'salida', 'clock in', 'clock out', 'llegué', 'me voy', 'checar'],
@@ -295,7 +288,6 @@ const MODULE_NAMES = {
     'restock': ['restock', 'pedidos', 'inventario'],
     'issues': ['problemas', 'issues', 'quejas'],
     'customercare': ['regalos', 'gifts', 'cortesías', 'customer care'],
-    'risknotes': ['riesgos', 'risk', 'alertas'],
     'labels': ['etiquetas', 'labels', 'códigos'],
     'supplies': ['suministros', 'supplies', 'materiales'],
     'treasury': ['treasury', 'heady', 'piezas', 'arte'],
@@ -1219,7 +1211,7 @@ ACTIONS - Include [ACTION:{"type":"...","data":{...}}] at end
 1. NAVIGATION
    {"type":"navigate","data":{"module":"module_name"}}
    Modules: dashboard, employees, clockin, analytics, cashout, thieves, announcements,
-            change, restock, issues, gifts, risknotes, labels, supplies, treasury,
+            change, restock, issues, gifts, labels, supplies, treasury,
             vendors, invoices, training, licenses, schedule, gconomics, passwords,
             gforce, abundancecloud, celesteai, projectanalytics
 
@@ -1635,28 +1627,6 @@ async function executeCelesteAction(action, data) {
                     };
                     const docRef = await db.collection('gifts').add(giftData);
                     return { success: true, message: `Gift to "${data.recipient}" recorded!`, id: docRef.id };
-                }
-                break;
-
-            // ═══════════════════════════════════════════════════════════
-            // CREATE RISK NOTE
-            // ═══════════════════════════════════════════════════════════
-            case 'create_risk':
-                if (db && data) {
-                    const riskData = {
-                        title: data.title || 'Risk Alert',
-                        description: data.description || '',
-                        level: data.level || 'medium',
-                        store: data.store || currentStore,
-                        actionRequired: data.actionRequired || '',
-                        date: timestamp.split('T')[0],
-                        createdAt: timestamp,
-                        createdBy: currentUser.name,
-                        createdByCeleste: true,
-                        status: 'active'
-                    };
-                    const docRef = await db.collection('risknotes').add(riskData);
-                    return { success: true, message: `Risk note "${data.title}" created!`, id: docRef.id };
                 }
                 break;
 
