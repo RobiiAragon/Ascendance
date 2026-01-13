@@ -15664,6 +15664,33 @@ window.viewChecklistHistory = async function() {
             }
         }
 
+        // Helper function to check if an employee has approved time off on a specific date
+        function getEmployeeTimeOffForDate(employeeId, dateKey) {
+            if (!ptoRequests || !dateKey) return null;
+
+            // Convert dateKey (YYYY-MM-DD) to compare with PTO request dates
+            return ptoRequests.find(request => {
+                if (request.status !== 'approved') return false;
+
+                // Check if employee matches
+                const emp = employees.find(e => e.id === employeeId);
+                if (!emp) return false;
+
+                const matchesEmployee = request.employeeId === employeeId ||
+                                        request.employeeId === emp.firestoreId ||
+                                        request.employeeName === emp.name;
+
+                if (!matchesEmployee) return false;
+
+                // Check if date falls within the request range
+                const requestStart = new Date(request.startDate);
+                const requestEnd = new Date(request.endDate);
+                const checkDate = new Date(dateKey);
+
+                return checkDate >= requestStart && checkDate <= requestEnd;
+            });
+        }
+
         function renderEmployeePickerList() {
             const list = document.getElementById('employeePickerList');
             const search = document.getElementById('employeePickerSearch')?.value?.toLowerCase() || '';
@@ -15710,39 +15737,82 @@ window.viewChecklistHistory = async function() {
 
             const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
 
+            // Check for employees with approved time off requests
+            const employeesWithTimeOff = new Map();
+            filteredEmployees.forEach(emp => {
+                const timeOffRequest = getEmployeeTimeOffForDate(emp.id, currentPickerContext.dateKey);
+                if (timeOffRequest) {
+                    employeesWithTimeOff.set(emp.id, timeOffRequest);
+                }
+            });
+
+            // Sort: employees without time off first, then those with time off
+            filteredEmployees.sort((a, b) => {
+                const aHasTimeOff = employeesWithTimeOff.has(a.id);
+                const bHasTimeOff = employeesWithTimeOff.has(b.id);
+                if (aHasTimeOff && !bHasTimeOff) return 1;
+                if (!aHasTimeOff && bHasTimeOff) return -1;
+                return (a.name || '').localeCompare(b.name || '');
+            });
+
             list.innerHTML = filteredEmployees.map(emp => {
                 const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
                 const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
                 const isSelected = selectedEmployees.has(emp.id);
+                const timeOffRequest = employeesWithTimeOff.get(emp.id);
+                const hasTimeOff = !!timeOffRequest;
+                const timeOffType = timeOffRequest ? (PTO_REQUEST_TYPES[timeOffRequest.requestType]?.label || 'Time Off') : '';
 
                 if (multiSelectMode) {
                     return `
-                        <div class="employee-picker-item multi-select ${isSelected ? 'selected' : ''}"
+                        <div class="employee-picker-item multi-select ${isSelected ? 'selected' : ''} ${hasTimeOff ? 'has-time-off' : ''}"
                              data-employee-id="${emp.id}"
-                             onclick="toggleEmployeeSelection('${emp.id}')">
+                             onclick="toggleEmployeeSelection('${emp.id}')"
+                             style="${hasTimeOff ? 'opacity: 0.7; border-left: 3px solid #f59e0b;' : ''}">
                             <div class="select-checkbox">
                                 <i class="fas fa-check"></i>
                             </div>
                             <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
                             <div class="employee-picker-info">
-                                <div class="employee-picker-name">${emp.name}</div>
-                                <div class="employee-picker-store">${emp.store || ''}</div>
+                                <div class="employee-picker-name">${emp.name}${hasTimeOff ? ` <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 11px;" title="${timeOffType} approved"></i>` : ''}</div>
+                                <div class="employee-picker-store">${hasTimeOff ? `<span style="color: #f59e0b; font-weight: 500;"><i class="fas fa-calendar-times"></i> ${timeOffType}</span>` : (emp.store || '')}</div>
                             </div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="employee-picker-item" onclick="assignEmployee('${emp.id}')">
+                        <div class="employee-picker-item ${hasTimeOff ? 'has-time-off' : ''}"
+                             onclick="${hasTimeOff ? `confirmAssignWithTimeOff('${emp.id}', '${timeOffType}')` : `assignEmployee('${emp.id}')`}"
+                             style="${hasTimeOff ? 'opacity: 0.7; border-left: 3px solid #f59e0b;' : ''}">
                             <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
                             <div class="employee-picker-info">
-                                <div class="employee-picker-name">${emp.name}</div>
-                                <div class="employee-picker-store">${emp.store || ''}</div>
+                                <div class="employee-picker-name">${emp.name}${hasTimeOff ? ` <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 11px;" title="${timeOffType} approved"></i>` : ''}</div>
+                                <div class="employee-picker-store">${hasTimeOff ? `<span style="color: #f59e0b; font-weight: 500;"><i class="fas fa-calendar-times"></i> ${timeOffType}</span>` : (emp.store || '')}</div>
                             </div>
                         </div>
                     `;
                 }
             }).join('') || '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No employees found</div>';
         }
+
+        // Show confirmation dialog when assigning employee with time off
+        function confirmAssignWithTimeOff(employeeId, timeOffType) {
+            const emp = employees.find(e => e.id === employeeId);
+            const empName = emp?.name || 'This employee';
+
+            showConfirmModal({
+                title: 'Time Off Conflict',
+                message: `${empName} has approved ${timeOffType} for this date. Are you sure you want to schedule them anyway?`,
+                confirmText: 'Assign Anyway',
+                type: 'warning',
+                onConfirm: () => {
+                    assignEmployee(employeeId);
+                }
+            });
+        }
+
+        // Make function globally accessible
+        window.confirmAssignWithTimeOff = confirmAssignWithTimeOff;
 
         async function assignEmployee(employeeId) {
             if (!currentPickerContext) return;
