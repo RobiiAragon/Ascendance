@@ -6339,6 +6339,10 @@
             const tableBody = document.getElementById('attendanceTableBody');
             if (!tableBody) return;
 
+            // Check if current user is admin or manager
+            const currentUser = getCurrentUser();
+            const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+
             tableBody.innerHTML = records.map(record => {
                 const status = getAttendanceStatus(record);
                 const totalHours = calculateAttendanceTotalHours(record);
@@ -6363,10 +6367,15 @@
                         <td><span class="total-hours">${totalHours}</span></td>
                         <td>${locationDisplay}</td>
                         <td><span class="status-badge ${status.class}">${status.text}</span></td>
-                        <td>
+                        <td style="display: flex; gap: 4px;">
                             <button class="table-action-btn" onclick="viewAttendanceDetails('${record.id}')">
-                                <i class="fas fa-eye"></i> View
+                                <i class="fas fa-eye"></i>
                             </button>
+                            ${canEdit ? `
+                                <button class="table-action-btn" onclick="openEditClockRecordModal('${record.id}')" style="background: var(--accent-primary); color: white;" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
                         </td>
                     </tr>
                 `;
@@ -6642,6 +6651,195 @@
             renderAttendanceTableRows(records);
             updateAttendanceStats(records);
         }
+
+        // ==========================================
+        // CLOCK RECORD EDITING (Admin/Manager Only)
+        // ==========================================
+
+        function openEditClockRecordModal(recordId) {
+            const record = clockinAttendanceRecords.find(r => r.id === recordId);
+            if (!record) {
+                showNotification('Record not found', 'error');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            if (currentUser?.role !== 'admin' && currentUser?.role !== 'manager') {
+                showNotification('Only admins and managers can edit clock records', 'error');
+                return;
+            }
+
+            // Convert time to 24h format for input fields
+            const convertTo24h = (time12h) => {
+                if (!time12h) return '';
+                const match = time12h.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                if (!match) return '';
+                let hours = parseInt(match[1]);
+                const minutes = match[2];
+                const period = match[3].toUpperCase();
+                if (period === 'PM' && hours !== 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+                return `${String(hours).padStart(2, '0')}:${minutes}`;
+            };
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit" style="color: var(--accent-primary);"></i> Edit Clock Record</h2>
+                    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="padding: 12px 16px; background: var(--bg-main); border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                            ${record.employeeInitials || '??'}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">${record.employeeName}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${record.store} - ${record.date}</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label><i class="fas fa-sign-in-alt" style="color: #10b981;"></i> Clock In</label>
+                            <input type="time" class="form-input" id="edit-clock-in" value="${convertTo24h(record.clockIn)}">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-sign-out-alt" style="color: #ef4444;"></i> Clock Out</label>
+                            <input type="time" class="form-input" id="edit-clock-out" value="${convertTo24h(record.clockOut)}">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-utensils" style="color: #f59e0b;"></i> Lunch Start</label>
+                            <input type="time" class="form-input" id="edit-lunch-start" value="${convertTo24h(record.lunchStart)}">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-utensils" style="color: #f59e0b;"></i> Lunch End</label>
+                            <input type="time" class="form-input" id="edit-lunch-end" value="${convertTo24h(record.lunchEnd)}">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label><i class="fas fa-sticky-note"></i> Edit Note (Optional)</label>
+                        <textarea class="form-input" id="edit-clock-note" rows="2" placeholder="Reason for editing...">${record.editNote || ''}</textarea>
+                    </div>
+
+                    ${record.editHistory && record.editHistory.length > 0 ? `
+                        <div style="margin-top: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+                                <i class="fas fa-history"></i> Edit History
+                            </div>
+                            ${record.editHistory.slice(-3).map(edit => `
+                                <div style="font-size: 11px; color: var(--text-secondary); padding: 4px 0; border-bottom: 1px solid var(--border-color);">
+                                    ${edit.editedBy} - ${new Date(edit.editedAt).toLocaleDateString()} - ${edit.changes}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn-primary" onclick="saveClockRecordEdit('${recordId}')" style="background: linear-gradient(135deg, var(--accent-primary) 0%, #8b5cf6 100%);">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        async function saveClockRecordEdit(recordId) {
+            const record = clockinAttendanceRecords.find(r => r.id === recordId);
+            if (!record) {
+                showNotification('Record not found', 'error');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+
+            // Get values from form
+            const clockIn24 = document.getElementById('edit-clock-in')?.value;
+            const clockOut24 = document.getElementById('edit-clock-out')?.value;
+            const lunchStart24 = document.getElementById('edit-lunch-start')?.value;
+            const lunchEnd24 = document.getElementById('edit-lunch-end')?.value;
+            const editNote = document.getElementById('edit-clock-note')?.value?.trim();
+
+            // Convert 24h to 12h format
+            const convertTo12h = (time24) => {
+                if (!time24) return null;
+                const [hours, minutes] = time24.split(':');
+                let h = parseInt(hours);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                return `${h}:${minutes} ${ampm}`;
+            };
+
+            const newClockIn = convertTo12h(clockIn24);
+            const newClockOut = convertTo12h(clockOut24);
+            const newLunchStart = convertTo12h(lunchStart24);
+            const newLunchEnd = convertTo12h(lunchEnd24);
+
+            // Track changes
+            const changes = [];
+            if (record.clockIn !== newClockIn) changes.push(`Clock In: ${record.clockIn || '-'} → ${newClockIn || '-'}`);
+            if (record.clockOut !== newClockOut) changes.push(`Clock Out: ${record.clockOut || '-'} → ${newClockOut || '-'}`);
+            if (record.lunchStart !== newLunchStart) changes.push(`Lunch Start: ${record.lunchStart || '-'} → ${newLunchStart || '-'}`);
+            if (record.lunchEnd !== newLunchEnd) changes.push(`Lunch End: ${record.lunchEnd || '-'} → ${newLunchEnd || '-'}`);
+
+            if (changes.length === 0) {
+                showNotification('No changes detected', 'info');
+                closeModal();
+                return;
+            }
+
+            // Prepare edit history entry
+            const editEntry = {
+                editedBy: currentUser?.name || 'Unknown',
+                editedAt: new Date().toISOString(),
+                changes: changes.join(', '),
+                note: editNote || ''
+            };
+
+            // Update record
+            record.clockIn = newClockIn;
+            record.clockOut = newClockOut;
+            record.lunchStart = newLunchStart;
+            record.lunchEnd = newLunchEnd;
+            record.editNote = editNote;
+            record.editHistory = [...(record.editHistory || []), editEntry];
+            record.lastEditedBy = currentUser?.name;
+            record.lastEditedAt = new Date().toISOString();
+
+            try {
+                // Save to Firebase
+                if (typeof firebaseClockInManager !== 'undefined' && firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.updateClockRecord(recordId, {
+                        clockIn: newClockIn,
+                        clockOut: newClockOut,
+                        lunchStart: newLunchStart,
+                        lunchEnd: newLunchEnd,
+                        editNote: editNote,
+                        editHistory: record.editHistory,
+                        lastEditedBy: currentUser?.name,
+                        lastEditedAt: new Date().toISOString()
+                    });
+                }
+
+                // Update local storage
+                localStorage.setItem('attendanceRecords', JSON.stringify(clockinAttendanceRecords));
+
+                showNotification('Clock record updated successfully!', 'success');
+                closeModal();
+                updateClockInUI();
+            } catch (error) {
+                console.error('Error saving clock record:', error);
+                showNotification('Error saving changes. Please try again.', 'error');
+            }
+        }
+
+        // Make edit functions globally accessible
+        window.openEditClockRecordModal = openEditClockRecordModal;
+        window.saveClockRecordEdit = saveClockRecordEdit;
 
         // ==========================================
         // END CLOCK IN/OUT FUNCTIONALITY

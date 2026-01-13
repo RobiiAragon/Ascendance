@@ -2386,6 +2386,32 @@ class FirebaseClockInManager {
             return null;
         }
     }
+
+    /**
+     * Update clock record in Firestore
+     * @param {string} recordId - Record Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateClockRecord(recordId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Clock In Manager not initialized.');
+                return false;
+            }
+
+            const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+            updateData.updatedAt = new Date();
+
+            await this.db.collection(clockinCollection).doc(recordId).update(updateData);
+
+            console.log('✅ Clock record updated:', recordId);
+            return true;
+        } catch (error) {
+            console.error('Error updating clock record:', error);
+            return false;
+        }
+    }
 }
 
 /**
