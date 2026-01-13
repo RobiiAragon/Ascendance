@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horarios - Vape Smoke Universe</title>
+    <title>Schedule - Vape Smoke Universe</title>
     <link rel="icon" type="image/x-icon" href="img/AH.ico">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -233,19 +233,29 @@
             margin-top: 5px;
         }
 
-        .store-badge.vsu1 {
+        .store-badge.miramar {
             background: rgba(16, 185, 129, 0.2);
             color: #10b981;
         }
 
-        .store-badge.vsu2 {
+        .store-badge.morena {
             background: rgba(59, 130, 246, 0.2);
             color: #3b82f6;
         }
 
-        .store-badge.vsu3 {
+        .store-badge.kearnymesa {
             background: rgba(245, 158, 11, 0.2);
             color: #f59e0b;
+        }
+
+        .store-badge.chulavista {
+            background: rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+        }
+
+        .store-badge.northpark {
+            background: rgba(236, 72, 153, 0.2);
+            color: #ec4899;
         }
 
         .footer {
@@ -264,32 +274,34 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-calendar-alt"></i> Horarios de la Semana</h1>
-            <p>Vape Smoke Universe - Consulta tu horario</p>
+            <h1><i class="fas fa-calendar-alt"></i> Weekly Schedule</h1>
+            <p>Vape Smoke Universe - View your schedule</p>
         </div>
 
         <div class="filters" id="store-filters">
-            <button class="filter-btn active" data-store="all">Todas las Tiendas</button>
-            <button class="filter-btn" data-store="VSU1">VSU 1</button>
-            <button class="filter-btn" data-store="VSU2">VSU 2</button>
-            <button class="filter-btn" data-store="VSU3">VSU 3</button>
+            <button class="filter-btn active" data-store="all">All Stores</button>
+            <button class="filter-btn" data-store="Miramar">Miramar</button>
+            <button class="filter-btn" data-store="Morena">Morena</button>
+            <button class="filter-btn" data-store="Kearny Mesa">Kearny Mesa</button>
+            <button class="filter-btn" data-store="Chula Vista">Chula Vista</button>
+            <button class="filter-btn" data-store="North Park">North Park</button>
         </div>
 
         <div class="week-nav">
-            <button id="prev-week"><i class="fas fa-chevron-left"></i> Anterior</button>
-            <span id="week-range">Cargando...</span>
-            <button id="next-week">Siguiente <i class="fas fa-chevron-right"></i></button>
+            <button id="prev-week"><i class="fas fa-chevron-left"></i> Previous</button>
+            <span id="week-range">Loading...</span>
+            <button id="next-week">Next <i class="fas fa-chevron-right"></i></button>
         </div>
 
         <div id="schedule-container">
             <div class="loading">
                 <i class="fas fa-spinner"></i>
-                <p style="margin-top: 15px;">Cargando horarios...</p>
+                <p style="margin-top: 15px;">Loading schedule...</p>
             </div>
         </div>
 
         <div class="footer">
-            <p>Ascendance Hub &copy; 2024 | <a href="index.html">Ir al Dashboard</a></p>
+            <p>Ascendance Hub &copy; 2025 | <a href="index.html">Go to Dashboard</a></p>
         </div>
     </div>
 
@@ -345,13 +357,13 @@
 
         // Format display date
         function formatDisplayDate(date) {
-            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             return `${date.getDate()} ${months[date.getMonth()]}`;
         }
 
         // Get day name
         function getDayName(date) {
-            const days = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             return days[date.getDay()];
         }
 
@@ -371,7 +383,7 @@
                     const data = doc.data();
                     employeeData[doc.id] = {
                         name: data.name || data.firstName + ' ' + (data.lastName || ''),
-                        store: data.store || data.assignedStore || 'VSU1'
+                        store: data.store || data.assignedStore || 'Miramar'
                     };
                 });
             } catch (error) {
@@ -402,7 +414,7 @@
                 document.getElementById('schedule-container').innerHTML = `
                     <div class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <p>Error al cargar los horarios</p>
+                        <p>Error loading schedule</p>
                         <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">${error.message}</p>
                     </div>
                 `;
@@ -437,7 +449,7 @@
                 `;
 
                 if (daySchedules.length === 0) {
-                    html += '<div class="no-shifts">Sin turnos</div>';
+                    html += '<div class="no-shifts">No shifts</div>';
                 } else {
                     // Sort by start time
                     daySchedules.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
@@ -445,8 +457,8 @@
                     daySchedules.forEach(schedule => {
                         const employeeName = schedule.employeeName ||
                             (employeeData[schedule.employeeId]?.name) ||
-                            'Empleado';
-                        const store = schedule.store || 'VSU1';
+                            'Employee';
+                        const store = schedule.store || 'Miramar';
                         const storeClass = store.toLowerCase().replace(/\s/g, '');
 
                         html += `
