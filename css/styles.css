@@ -7476,3 +7476,54 @@
         font-size: 14px;
     }
 }
+
+/* ==========================================
+   RESPONSIVE MODAL GRIDS (Added 2026-01-12)
+   Makes 2-column grids stack on mobile
+   ========================================== */
+@media (max-width: 600px) {
+    /* PTO request cards grid */
+    .pto-requests-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* PTO type selector - 2x2 to 1x4 */
+    .pto-type-selector {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Clock in/out table - smaller action buttons */
+    .table-action-btn {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+        min-width: 32px;
+    }
+
+    /* Attendance stats grid - 2x2 on mobile */
+    .attendance-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Modal footer buttons - stack on mobile */
+    .modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .modal-footer button {
+        width: 100%;
+        margin: 0 !important;
+    }
+
+    /* Modal body - reduce padding */
+    .modal-body {
+        padding: 16px !important;
+    }
+
+    /* Form row grids in modals - stack */
+    .form-row[style*="grid-template-columns"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+}
