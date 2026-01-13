@@ -13298,6 +13298,9 @@ window.viewChecklistHistory = async function() {
                             <button class="week-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid var(--border-color);">
                                 <i class="fas fa-clone"></i>
                             </button>
+                            <a href="schedule.html" target="_blank" class="week-nav-btn" title="Share public schedule" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-share-alt"></i>
+                            </a>
                             <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
                                 <option value="all">All Stores</option>
                                 <option value="all-employees">All Employees</option>
