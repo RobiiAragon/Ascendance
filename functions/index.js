@@ -818,18 +818,4 @@ If you cannot identify the device, still provide your best guess with confidence
     }
 });
 
-// TEMP: Change user email
-exports.changeUserEmail = functions.https.onRequest(async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
-    try {
-        const { oldEmail, newEmail } = req.body;
-        const user = await admin.auth().getUserByEmail(oldEmail);
-        await admin.auth().updateUser(user.uid, { email: newEmail, emailVerified: false });
-        res.json({ success: true, uid: user.uid, message: `${oldEmail} -> ${newEmail}` });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 
