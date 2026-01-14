@@ -1,11 +1,12 @@
-node_modules/
-.git/
-functions/node_modules/
-.firebase/
-.idx/
-dist/
-build/
+**/node_modules/
+**/.git/
+**/.firebase/
+**/.idx/
+**/dist/
+**/build/
 *.log
 *.lock
 package-lock.json
 *.map
+# Backup del archivo original grande
+js/script.js.backup
