@@ -607,12 +607,54 @@ async function saveDevLogEntry() {
     }
 }
 
+// ==========================================
+// QUICK ADD UTILITY - For Claude AI to log work
+// ==========================================
+
+/**
+ * Quick add a development log entry
+ * Usage: await logDevWork('Title', 'Description', 'feature', ['file1.js'], 'Carlos')
+ * Categories: feature, fix, enhancement, ui, security, performance, refactor, migration
+ */
+async function logDevWork(title, description, category = 'feature', files = [], requestedBy = 'Carlos') {
+    const today = new Date().toISOString().split('T')[0];
+
+    const newLog = {
+        id: 'log_' + Date.now(),
+        date: today,
+        title,
+        description,
+        category,
+        files: Array.isArray(files) ? files : [files],
+        developer: 'Claude AI',
+        requestedBy,
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            await db.collection('developmentLogs').doc(newLog.id).set({
+                ...newLog,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('✅ Dev log added:', title);
+            developmentLogs.unshift(newLog);
+            return true;
+        }
+    } catch (error) {
+        console.error('Error adding dev log:', error);
+    }
+    return false;
+}
+
 // Make functions globally available
 window.renderDevelopmentLog = renderDevelopmentLog;
 window.openAddDevLogModal = openAddDevLogModal;
 window.saveDevLogEntry = saveDevLogEntry;
 window.filterDevLogs = filterDevLogs;
 window.loadDevelopmentLogs = loadDevelopmentLogs;
+window.logDevWork = logDevWork; // Quick add for Claude AI
 
 // ==========================================
 // END DEVELOPMENT LOG MODULE
