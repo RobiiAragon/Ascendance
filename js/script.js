@@ -9388,7 +9388,7 @@ window.viewChecklistHistory = async function() {
         };
 
         // Running Low constants
-        const RUNNING_LOW_STORES = ['Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'MM', 'All Shops'];
+        const RUNNING_LOW_STORES = ['Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'Miramar', 'All Shops'];
         const RUNNING_LOW_URGENCIES = ['Low', 'High Priority', 'Sold Out'];
         const RUNNING_LOW_CATEGORIES = ['Detox', 'Coils/Pods', 'Wraps', 'Disposables', 'Juices', 'Heady', 'Glass', 'Smoke Shop', 'Vape Shop', 'Liquor', 'Cleaning Supplies', 'Office Supplies'];
         const RUNNING_LOW_STATUSES = ['Processing', 'Ordered', 'Not Ordered', 'Received'];
@@ -9428,7 +9428,8 @@ window.viewChecklistHistory = async function() {
                 'NP': { bg: '#f97316', text: '#ffffff' },
                 'KM': { bg: '#84cc16', text: '#ffffff' },
                 'MB': { bg: '#6366f1', text: '#ffffff' },
-                'MM': { bg: '#14b8a6', text: '#ffffff' },
+                'Miramar': { bg: '#22c55e', text: '#ffffff' },
+                'MM': { bg: '#22c55e', text: '#ffffff' },
                 'All Shops': { bg: '#64748b', text: '#ffffff' }
             };
 
@@ -9448,9 +9449,9 @@ window.viewChecklistHistory = async function() {
             };
 
             const urgencyColors = {
-                'Low': { bg: '#fbbf24', text: '#ffffff' },
-                'High Priority': { bg: '#ef4444', text: '#ffffff' },
-                'Sold Out': { bg: '#dc2626', text: '#ffffff' }
+                'Low': { bg: '#fbbf24', text: '#1f2937' },
+                'High Priority': { bg: '#f97316', text: '#ffffff' },
+                'Sold Out': { bg: '#ef4444', text: '#ffffff' }
             };
 
             const statusColors = {
@@ -9625,123 +9626,125 @@ window.viewChecklistHistory = async function() {
                                 // Generate dropdown options
                                 const storeOptions = RUNNING_LOW_STORES.map(s => {
                                     const sc = storeColors[s] || { bg: '#6b7280', text: '#ffffff' };
-                                    return \`<div class="inv-dropdown-item" onclick="updateInventoryField('\${reqId}', 'store', '\${s}')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: \${sc.bg};"></span>\${s}</div>\`;
+                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'store\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
                                 }).join('');
 
                                 const categoryOptions = RUNNING_LOW_CATEGORIES.map(c => {
                                     const cc = categoryColors[c] || { bg: '#6b7280', text: '#ffffff' };
-                                    return \`<div class="inv-dropdown-item" onclick="updateInventoryField('\${reqId}', 'category', '\${c}')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: \${cc.bg};"></span>\${c}</div>\`;
+                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'category\', \'' + c + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + cc.bg + ';"></span>' + c + '</div>';
                                 }).join('');
 
                                 const urgencyOptions = RUNNING_LOW_URGENCIES.map(u => {
                                     const uc = urgencyColors[u] || { bg: '#6b7280', text: '#ffffff' };
-                                    return \`<div class="inv-dropdown-item" onclick="updateInventoryField('\${reqId}', 'urgency', '\${u}')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: \${uc.bg};"></span>\${u}</div>\`;
+                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'urgency\', \'' + u + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + uc.bg + ';"></span>' + u + '</div>';
                                 }).join('');
 
                                 const statusOptions = RUNNING_LOW_STATUSES.map(s => {
                                     const sc = statusColors[s] || { bg: '#6b7280', text: '#ffffff' };
-                                    return \`<div class="inv-dropdown-item" onclick="updateInventoryField('\${reqId}', 'orderStatus', '\${s}')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: \${sc.bg};"></span>\${s}</div>\`;
+                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'orderStatus\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
                                 }).join('');
 
-                                return \`
+                                return `
                                     <!-- Desktop Row -->
                                     <div class="inventory-table-row" style="font-size: 14px;">
-                                        <div style="font-weight: 600; color: var(--text-primary);">\${request.productName || request.name || '-'}</div>
-                                        <div class="inv-editable-cell" onclick="makeSpecificsEditable(this, '\${reqId}')" style="color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 6px; min-width: 60px;" title="Click to edit">
-                                            <span class="specifics-display">\${request.specifics || request.quantity || '-'}</span>
+                                        <div style="font-weight: 600; color: var(--text-primary);">${request.productName || request.name || '-'}</div>
+                                        <div class="inv-editable-cell" onclick="makeSpecificsEditable(this, '${reqId}')" style="color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 6px; min-width: 60px;" title="Click to edit">
+                                            <span class="specifics-display">${request.specifics || request.quantity || '-'}</span>
                                             <i class="fas fa-pencil-alt" style="font-size: 10px; margin-left: 6px; opacity: 0.5;"></i>
                                         </div>
 
                                         <!-- Store Dropdown -->
                                         <div class="inv-dropdown-wrapper" style="position: relative;">
-                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${storeStyle.bg}; color: \${storeStyle.text}; cursor: pointer;">\${request.store || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
+                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${storeStyle.bg}; color: ${storeStyle.text}; cursor: pointer;">${request.store || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
                                             <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
-                                                \${storeOptions}
+                                                ${storeOptions}
                                             </div>
                                         </div>
 
                                         <!-- Category Dropdown -->
                                         <div class="inv-dropdown-wrapper" style="position: relative;">
-                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${catStyle.bg}; color: \${catStyle.text}; cursor: pointer;">\${request.category || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
+                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${catStyle.bg}; color: ${catStyle.text}; cursor: pointer;">${request.category || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
                                             <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 180px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 250px; overflow-y: auto;">
-                                                \${categoryOptions}
+                                                ${categoryOptions}
                                             </div>
                                         </div>
 
                                         <!-- Urgency Dropdown -->
                                         <div class="inv-dropdown-wrapper" style="position: relative;">
-                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${urgStyle.bg}; color: \${urgStyle.text}; cursor: pointer;">\${request.urgency || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
+                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${urgStyle.bg}; color: ${urgStyle.text}; cursor: pointer;">${request.urgency || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
                                             <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 150px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100;">
-                                                \${urgencyOptions}
+                                                ${urgencyOptions}
                                             </div>
                                         </div>
 
                                         <!-- Order Status Dropdown -->
                                         <div class="inv-dropdown-wrapper" style="position: relative;">
-                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${statStyle.bg}; color: \${statStyle.text}; cursor: pointer;">\${request.orderStatus || 'Not Ordered'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
+                                            <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${statStyle.bg}; color: ${statStyle.text}; cursor: pointer;">${request.orderStatus || 'Not Ordered'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
                                             <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 150px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100;">
-                                                \${statusOptions}
+                                                ${statusOptions}
                                             </div>
                                         </div>
 
-                                        <div style="color: var(--text-muted); font-size: 13px;">\${dateStr}</div>
-                                        <div style="color: var(--text-secondary);">\${addedBy}</div>
+                                        <div style="color: var(--text-muted); font-size: 13px;">${dateStr}</div>
+                                        <div style="color: var(--text-secondary);">${addedBy}</div>
                                         <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                                            <button onclick="deleteRestockRequest('\${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px;" title="Delete"><i class="fas fa-trash"></i></button>
+                                            <button onclick="openEditInventoryItemModal('${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px;" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                                            <button onclick="deleteRestockRequest('${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px;" title="Delete"><i class="fas fa-trash"></i></button>
                                         </div>
                                     </div>
 
                                     <!-- Mobile Card -->
                                     <div class="inventory-card">
-                                        <div style="font-weight: 700; font-size: 16px; color: var(--text-primary); margin-bottom: 12px;">\${request.productName || request.name || '-'}</div>
+                                        <div style="font-weight: 700; font-size: 16px; color: var(--text-primary); margin-bottom: 12px;">${request.productName || request.name || '-'}</div>
                                         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                                             <div class="inv-dropdown-wrapper" style="position: relative;">
-                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${storeStyle.bg}; color: \${storeStyle.text}; cursor: pointer;">\${request.store || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
+                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${storeStyle.bg}; color: ${storeStyle.text}; cursor: pointer;">${request.store || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
                                                 <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 150px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
-                                                    \${storeOptions}
+                                                    ${storeOptions}
                                                 </div>
                                             </div>
                                             <div class="inv-dropdown-wrapper" style="position: relative;">
-                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${catStyle.bg}; color: \${catStyle.text}; cursor: pointer;">\${request.category || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
+                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${catStyle.bg}; color: ${catStyle.text}; cursor: pointer;">${request.category || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
                                                 <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
-                                                    \${categoryOptions}
+                                                    ${categoryOptions}
                                                 </div>
                                             </div>
                                             <div class="inv-dropdown-wrapper" style="position: relative;">
-                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${urgStyle.bg}; color: \${urgStyle.text}; cursor: pointer;">\${request.urgency || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
+                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${urgStyle.bg}; color: ${urgStyle.text}; cursor: pointer;">${request.urgency || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
                                                 <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 140px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100;">
-                                                    \${urgencyOptions}
+                                                    ${urgencyOptions}
                                                 </div>
                                             </div>
                                             <div class="inv-dropdown-wrapper" style="position: relative;">
-                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: \${statStyle.bg}; color: \${statStyle.text}; cursor: pointer;">\${request.orderStatus || 'Not Ordered'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
+                                                <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${statStyle.bg}; color: ${statStyle.text}; cursor: pointer;">${request.orderStatus || 'Not Ordered'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
                                                 <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 140px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100;">
-                                                    \${statusOptions}
+                                                    ${statusOptions}
                                                 </div>
                                             </div>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
                                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                                <span class="inv-editable-cell" onclick="makeSpecificsEditable(this, '\${reqId}')" style="cursor: pointer; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
-                                                    <span class="specifics-display">\${request.specifics || request.quantity || 'Add specifics'}</span>
+                                                <span class="inv-editable-cell" onclick="makeSpecificsEditable(this, '${reqId}')" style="cursor: pointer; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <span class="specifics-display">${request.specifics || request.quantity || 'Add specifics'}</span>
                                                     <i class="fas fa-pencil-alt" style="font-size: 9px; opacity: 0.4;"></i>
                                                 </span>
                                                 <span style="opacity: 0.5;">•</span>
-                                                <span>\${dateStr}</span>
+                                                <span>${dateStr}</span>
                                                 <span style="opacity: 0.5;">•</span>
-                                                <span>\${addedBy}</span>
+                                                <span>${addedBy}</span>
                                             </div>
                                             <div style="display: flex; gap: 8px;">
-                                                <button onclick="deleteRestockRequest('\${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;"><i class="fas fa-trash"></i></button>
+                                                <button onclick="openEditInventoryItemModal('${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;"><i class="fas fa-pencil-alt"></i></button>
+                                                <button onclick="deleteRestockRequest('${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;"><i class="fas fa-trash"></i></button>
                                             </div>
                                         </div>
                                     </div>
-                                \`;
+                                `;
                             }).join('')}
                         </div>
-                    \`}
+                    `}
                 </div>
-            \`;
+            `;
         }
 
         // Running Low filter functions
@@ -9793,15 +9796,10 @@ window.viewChecklistHistory = async function() {
             if (cell.querySelector('.inv-editable-input')) return;
 
             const displaySpan = cell.querySelector('.specifics-display');
-            const currentValue = displaySpan.textContent === '-' ? '' : displaySpan.textContent;
+            const currentValue = displaySpan.textContent === '-' || displaySpan.textContent === 'Add specifics' ? '' : displaySpan.textContent;
 
             // Replace content with input
-            cell.innerHTML = \`
-                <input type="text" class="inv-editable-input" value="\${currentValue}"
-                    onblur="saveSpecificsField(this, '\${itemId}')"
-                    onkeydown="if(event.key === 'Enter') this.blur(); if(event.key === 'Escape') { this.dataset.cancelled = 'true'; this.blur(); }"
-                    placeholder="Enter specifics...">
-            \`;
+            cell.innerHTML = '<input type="text" class="inv-editable-input" value="' + currentValue + '" onblur="saveSpecificsField(this, \'' + itemId + '\')" onkeydown="if(event.key === \'Enter\') this.blur(); if(event.key === \'Escape\') { this.dataset.cancelled = \'true\'; this.blur(); }" placeholder="Enter specifics...">';
 
             const input = cell.querySelector('.inv-editable-input');
             input.focus();
@@ -9842,8 +9840,8 @@ window.viewChecklistHistory = async function() {
                 restockRequests[itemIndex][field] = value;
 
                 // Update in Firebase
-                if (firebaseRestockRequestsManager) {
-                    await firebaseRestockRequestsManager.update(itemId, { [field]: value });
+                if (firebaseRestockRequestsManager && firebaseRestockRequestsManager.isInitialized) {
+                    await firebaseRestockRequestsManager.updateRestockRequest(itemId, { [field]: value });
                 }
 
                 // Re-render to show updated value
@@ -9853,6 +9851,113 @@ window.viewChecklistHistory = async function() {
             } catch (error) {
                 console.error('Error updating inventory field:', error);
                 showNotification('Error updating item', 'error');
+            }
+        }
+
+        // Open edit modal for inventory item
+        function openEditInventoryItemModal(itemId) {
+            const item = restockRequests.find(r => (r.firestoreId || r.id) === itemId);
+            if (!item) {
+                showNotification('Item not found', 'error');
+                return;
+            }
+
+            // Helper to escape HTML attributes
+            function escapeAttr(str) {
+                if (!str) return '';
+                return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            const itemName = escapeAttr(item.productName || item.name || '');
+            const itemSpecifics = escapeAttr(item.specifics || item.quantity || '');
+            const itemNotes = escapeAttr(item.notes || '');
+
+            const storeOptions = RUNNING_LOW_STORES.map(s =>
+                '<option value="' + s + '"' + (item.store === s ? ' selected' : '') + '>' + s + '</option>'
+            ).join('');
+
+            const categoryOptions = RUNNING_LOW_CATEGORIES.map(c =>
+                '<option value="' + c + '"' + (item.category === c ? ' selected' : '') + '>' + c + '</option>'
+            ).join('');
+
+            const urgencyOptions = RUNNING_LOW_URGENCIES.map(u =>
+                '<option value="' + u + '"' + (item.urgency === u ? ' selected' : '') + '>' + u + '</option>'
+            ).join('');
+
+            const statusOptions = RUNNING_LOW_STATUSES.map(s =>
+                '<option value="' + s + '"' + (item.orderStatus === s ? ' selected' : '') + '>' + s + '</option>'
+            ).join('');
+
+            const modalContent = '<div class="modal-header"><h3 style="margin: 0; font-size: 20px; font-weight: 700;">Edit Item</h3><button onclick="closeModal()" class="modal-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted);">&times;</button></div>' +
+                '<div class="modal-body" style="padding: 20px;"><div style="display: grid; gap: 16px;">' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Item Name</label>' +
+                '<input type="text" id="edit-inv-name" value="' + itemName + '" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"></div>' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Specifics</label>' +
+                '<input type="text" id="edit-inv-specifics" value="' + itemSpecifics + '" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;" placeholder="Size, color, quantity..."></div>' +
+                '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Store</label>' +
+                '<select id="edit-inv-store" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"><option value="">Select Store</option>' + storeOptions + '</select></div>' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Category</label>' +
+                '<select id="edit-inv-category" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"><option value="">Select Category</option>' + categoryOptions + '</select></div></div>' +
+                '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Urgency</label>' +
+                '<select id="edit-inv-urgency" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"><option value="">Select Urgency</option>' + urgencyOptions + '</select></div>' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Order Status</label>' +
+                '<select id="edit-inv-status" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"><option value="">Select Status</option>' + statusOptions + '</select></div></div>' +
+                '<div><label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Notes</label>' +
+                '<textarea id="edit-inv-notes" rows="3" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; resize: vertical;">' + itemNotes + '</textarea></div>' +
+                '</div></div>' +
+                '<div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">' +
+                '<button onclick="closeModal()" style="padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 500;">Cancel</button>' +
+                '<button onclick="saveEditInventoryItem(\'' + itemId + '\')" style="padding: 10px 20px; border-radius: 8px; border: none; background: var(--primary-color); color: white; cursor: pointer; font-weight: 600;">Save Changes</button></div>';
+
+            openModal('edit-inventory-item', modalContent);
+        }
+
+        // Save edited inventory item
+        async function saveEditInventoryItem(itemId) {
+            const name = document.getElementById('edit-inv-name').value.trim();
+            const specifics = document.getElementById('edit-inv-specifics').value.trim();
+            const store = document.getElementById('edit-inv-store').value;
+            const category = document.getElementById('edit-inv-category').value;
+            const urgency = document.getElementById('edit-inv-urgency').value;
+            const orderStatus = document.getElementById('edit-inv-status').value;
+            const notes = document.getElementById('edit-inv-notes').value.trim();
+
+            if (!name) {
+                showNotification('Item name is required', 'error');
+                return;
+            }
+
+            try {
+                const updates = {
+                    productName: name,
+                    name: name,
+                    specifics: specifics,
+                    store: store,
+                    category: category,
+                    urgency: urgency,
+                    orderStatus: orderStatus,
+                    notes: notes
+                };
+
+                // Update locally
+                const itemIndex = restockRequests.findIndex(r => (r.firestoreId || r.id) === itemId);
+                if (itemIndex !== -1) {
+                    Object.assign(restockRequests[itemIndex], updates);
+                }
+
+                // Update in Firebase
+                if (firebaseRestockRequestsManager && firebaseRestockRequestsManager.isInitialized) {
+                    await firebaseRestockRequestsManager.updateRestockRequest(itemId, updates);
+                }
+
+                closeModal();
+                renderRestockRequests();
+                showNotification('Item updated successfully', 'success');
+            } catch (error) {
+                console.error('Error saving inventory item:', error);
+                showNotification('Error saving changes', 'error');
             }
         }
 
