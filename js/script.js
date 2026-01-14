@@ -9470,6 +9470,18 @@ window.viewChecklistHistory = async function() {
                     .inventory-card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
                     .inventory-card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
                     .inventory-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+                    .inv-dropdown-wrapper { position: relative; display: inline-block; }
+                    .inv-dropdown-trigger { transition: all 0.15s ease; }
+                    .inv-dropdown-trigger:hover { opacity: 0.85; transform: scale(1.02); }
+                    .inv-dropdown-menu { animation: invDropdownFadeIn 0.15s ease; }
+                    .inv-dropdown-item { transition: background 0.12s ease; font-size: 13px; color: var(--text-primary); }
+                    .inv-dropdown-item:hover { background: var(--bg-tertiary); }
+                    @keyframes invDropdownFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+                    .inv-editable-cell { transition: background 0.15s ease; }
+                    .inv-editable-cell:hover { background: var(--bg-tertiary); }
+                    .inv-editable-cell .fa-pencil-alt { transition: opacity 0.15s ease; }
+                    .inv-editable-cell:hover .fa-pencil-alt { opacity: 1 !important; }
+                    .inv-editable-input { padding: 6px 10px; font-size: 13px; border: 2px solid var(--primary-color); border-radius: 6px; background: var(--bg-card); color: var(--text-primary); width: 100%; outline: none; }
 
                     @media (min-width: 1024px) {
                         .inventory-table-header { display: grid; grid-template-columns: 2fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 70px; padding: 14px 20px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -9635,7 +9647,10 @@ window.viewChecklistHistory = async function() {
                                     <!-- Desktop Row -->
                                     <div class="inventory-table-row" style="font-size: 14px;">
                                         <div style="font-weight: 600; color: var(--text-primary);">\${request.productName || request.name || '-'}</div>
-                                        <div style="color: var(--text-secondary);">\${request.specifics || request.quantity || '-'}</div>
+                                        <div class="inv-editable-cell" onclick="makeSpecificsEditable(this, '\${reqId}')" style="color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 6px; min-width: 60px;" title="Click to edit">
+                                            <span class="specifics-display">\${request.specifics || request.quantity || '-'}</span>
+                                            <i class="fas fa-pencil-alt" style="font-size: 10px; margin-left: 6px; opacity: 0.5;"></i>
+                                        </div>
 
                                         <!-- Store Dropdown -->
                                         <div class="inv-dropdown-wrapper" style="position: relative;">
@@ -9705,12 +9720,16 @@ window.viewChecklistHistory = async function() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted);">
-                                            <div>
-                                                <span>\${request.specifics || request.quantity || ''}</span>
-                                                \${request.specifics || request.quantity ? ' • ' : ''}
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                <span class="inv-editable-cell" onclick="makeSpecificsEditable(this, '\${reqId}')" style="cursor: pointer; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <span class="specifics-display">\${request.specifics || request.quantity || 'Add specifics'}</span>
+                                                    <i class="fas fa-pencil-alt" style="font-size: 9px; opacity: 0.4;"></i>
+                                                </span>
+                                                <span style="opacity: 0.5;">•</span>
                                                 <span>\${dateStr}</span>
-                                                <span> • \${addedBy}</span>
+                                                <span style="opacity: 0.5;">•</span>
+                                                <span>\${addedBy}</span>
                                             </div>
                                             <div style="display: flex; gap: 8px;">
                                                 <button onclick="deleteRestockRequest('\${reqId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;"><i class="fas fa-trash"></i></button>
@@ -9734,6 +9753,107 @@ window.viewChecklistHistory = async function() {
         function clearRunningLowFilters() {
             runningLowFilters = { store: 'all', urgency: 'all', category: 'all', orderStatus: 'all' };
             renderRestockRequests();
+        }
+
+        // Toggle inline dropdown for inventory management
+        function toggleInvDropdown(trigger) {
+            const wrapper = trigger.closest('.inv-dropdown-wrapper');
+            const menu = wrapper.querySelector('.inv-dropdown-menu');
+            const isOpen = menu.style.display === 'block';
+
+            // Close all other dropdowns first
+            document.querySelectorAll('.inv-dropdown-menu').forEach(m => {
+                m.style.display = 'none';
+            });
+
+            // Toggle this dropdown
+            if (!isOpen) {
+                menu.style.display = 'block';
+
+                // Add click outside listener
+                setTimeout(() => {
+                    document.addEventListener('click', closeInvDropdownsOnClickOutside);
+                }, 10);
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        function closeInvDropdownsOnClickOutside(e) {
+            if (!e.target.closest('.inv-dropdown-wrapper')) {
+                document.querySelectorAll('.inv-dropdown-menu').forEach(m => {
+                    m.style.display = 'none';
+                });
+                document.removeEventListener('click', closeInvDropdownsOnClickOutside);
+            }
+        }
+
+        // Make specifics field editable inline
+        function makeSpecificsEditable(cell, itemId) {
+            // Prevent if already editing
+            if (cell.querySelector('.inv-editable-input')) return;
+
+            const displaySpan = cell.querySelector('.specifics-display');
+            const currentValue = displaySpan.textContent === '-' ? '' : displaySpan.textContent;
+
+            // Replace content with input
+            cell.innerHTML = \`
+                <input type="text" class="inv-editable-input" value="\${currentValue}"
+                    onblur="saveSpecificsField(this, '\${itemId}')"
+                    onkeydown="if(event.key === 'Enter') this.blur(); if(event.key === 'Escape') { this.dataset.cancelled = 'true'; this.blur(); }"
+                    placeholder="Enter specifics...">
+            \`;
+
+            const input = cell.querySelector('.inv-editable-input');
+            input.focus();
+            input.select();
+        }
+
+        // Save specifics field after editing
+        async function saveSpecificsField(input, itemId) {
+            const cell = input.parentElement;
+            const newValue = input.value.trim();
+
+            // If cancelled, just re-render
+            if (input.dataset.cancelled === 'true') {
+                renderRestockRequests();
+                return;
+            }
+
+            // Update the field
+            await updateInventoryField(itemId, 'specifics', newValue || '');
+        }
+
+        // Update inventory item field in Firebase
+        async function updateInventoryField(itemId, field, value) {
+            try {
+                // Close the dropdown
+                document.querySelectorAll('.inv-dropdown-menu').forEach(m => {
+                    m.style.display = 'none';
+                });
+
+                // Find the item in local array
+                const itemIndex = restockRequests.findIndex(r => (r.firestoreId || r.id) === itemId);
+                if (itemIndex === -1) {
+                    showNotification('Item not found', 'error');
+                    return;
+                }
+
+                // Update locally first for instant feedback
+                restockRequests[itemIndex][field] = value;
+
+                // Update in Firebase
+                if (firebaseRestockRequestsManager) {
+                    await firebaseRestockRequestsManager.update(itemId, { [field]: value });
+                }
+
+                // Re-render to show updated value
+                renderRestockRequests();
+
+                showNotification(`Updated ${field} to ${value}`, 'success');
+            } catch (error) {
+                console.error('Error updating inventory field:', error);
+                showNotification('Error updating item', 'error');
+            }
         }
 
         // Refresh inventory from Shopify
