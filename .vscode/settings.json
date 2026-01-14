@@ -1,0 +1,5 @@
+{
+  "extensions.experimental.affinity": {
+    "anthropics.claude-code": 1
+  }
+}
