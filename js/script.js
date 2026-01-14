@@ -29786,68 +29786,53 @@ Return ONLY the JSON object, no additional text.`
                     // Predefined supplies list with categories and priority
                     const supplyCategories = [
                         {
-                            name: 'Operaciones Críticas',
-                            icon: 'fa-exclamation-triangle',
-                            color: '#ef4444',
-                            priority: 'critical',
-                            items: [
-                                { id: 'bolsas_basura', name: 'Bolsas negras para basura', unit: 'paquete' },
-                                { id: 'bolsas_pequeñas', name: 'Bolsas pequeñas (para producto)', unit: 'paquete' },
-                                { id: 'papel_recibo', name: 'Papel para impresora de recibos', unit: 'rollo' },
-                                { id: 'papel_etiquetas', name: 'Papel para etiquetas', unit: 'rollo' },
-                                { id: 'cajas_grandes', name: 'Cajas grandes', unit: 'unidad' },
-                                { id: 'cajas_medianas', name: 'Cajas medianas', unit: 'unidad' },
-                                { id: 'cajas_pequeñas', name: 'Cajas pequeñas', unit: 'unidad' },
-                                { id: 'cinta_empacar', name: 'Cinta para empacar', unit: 'rollo' },
-                                { id: 'bubble_wrap', name: 'Bubble wrap / Plástico burbuja', unit: 'rollo' }
-                            ]
-                        },
-                        {
-                            name: 'Limpieza',
+                            name: 'Store Cleaning Supplies',
                             icon: 'fa-broom',
                             color: '#3b82f6',
                             priority: 'normal',
                             items: [
-                                { id: 'windex', name: 'Windex / Limpia vidrios', unit: 'botella' },
-                                { id: 'lysol', name: 'Lysol / Desinfectante', unit: 'botella' },
-                                { id: 'papel_toalla', name: 'Papel toalla', unit: 'rollo' },
-                                { id: 'escoba', name: 'Escoba', unit: 'unidad' },
-                                { id: 'trapeador', name: 'Trapeador / Mop', unit: 'unidad' },
-                                { id: 'cubeta', name: 'Cubeta', unit: 'unidad' },
-                                { id: 'jabon_manos', name: 'Jabón para manos', unit: 'botella' },
-                                { id: 'guantes', name: 'Guantes de limpieza', unit: 'par' },
-                                { id: 'desodorante_ambiente', name: 'Desodorante de ambiente', unit: 'unidad' }
+                                { id: 'vinegar', name: 'Vinegar (MMWL Only)', unit: 'bottle' },
+                                { id: 'trash_bags_13gal', name: '13 gallon trash bags (how many boxes)', unit: 'box' },
+                                { id: 'trash_bags_33gal', name: '33 gallon trash bags', unit: 'box' },
+                                { id: 'paper_towel_rolls', name: 'Paper towel rolls', unit: 'roll' },
+                                { id: 'black_tshirt_bags', name: 'Black t shirt bags (# of boxes left)', unit: 'box' },
+                                { id: 'rose_brown_bags', name: 'Rose/2 for 6 brown bags (# of packs left)', unit: 'pack' },
+                                { id: 'medium_sandwich_bags', name: 'Medium sandwich bags (# of packs left)', unit: 'pack' },
+                                { id: 'cc_receipt_rolls', name: 'Credit card receipt rolls', unit: 'roll' },
+                                { id: 'cash_receipt_rolls', name: 'Cash receipt rolls', unit: 'roll' },
+                                { id: 'toilet_paper_rolls', name: 'Toilet paper rolls', unit: 'roll' },
+                                { id: 'toilet_bowl_cleaner', name: 'Toilet bowl cleaner', unit: 'bottle' },
+                                { id: 'utensils', name: 'Utensils (how many boxes left)', unit: 'box' },
+                                { id: 'qtips_cleaning', name: 'Q tips (# of boxes left) for cleaning coils', unit: 'box' },
+                                { id: 'tape_dispenser', name: 'Tape dispenser', unit: 'unit' },
+                                { id: 'broom', name: 'Broom', unit: 'unit' },
+                                { id: 'dust_pan', name: 'Dust Pan', unit: 'unit' },
+                                { id: 'swiffer_dust_pads', name: 'Swiffer dust pads (# of boxes left)', unit: 'box' },
+                                { id: 'red_safety_alarms', name: 'Red safety alarms (only if needed)', unit: 'unit' },
+                                { id: 'microfiber_rags', name: 'Microfiber Rags', unit: 'pack' },
+                                { id: 'clorox_wipes', name: 'Clorox Wipes (# of bottles)', unit: 'container' },
+                                { id: 'packing_tape', name: 'Packing tape (# of rolls left)', unit: 'roll' },
+                                { id: 'hand_soap', name: 'Hand soap (# of bottles left)', unit: 'bottle' },
+                                { id: 'lysol_cleaner', name: 'Lysol cleaner (# of bottles)', unit: 'bottle' },
+                                { id: 'bleach_bottles', name: 'Bleach bottles - for TOILET ONLY', unit: 'bottle' },
+                                { id: 'mop_head', name: 'Mop Head', unit: 'unit' },
+                                { id: 'fabuloso', name: 'Fabuloso', unit: 'bottle' }
                             ]
                         },
                         {
-                            name: 'Oficina',
+                            name: 'Store Office Supplies',
                             icon: 'fa-pen',
-                            color: '#8b5cf6',
+                            color: '#10b981',
                             priority: 'normal',
                             items: [
-                                { id: 'plumas', name: 'Plumas / Bolígrafos', unit: 'paquete' },
-                                { id: 'marcadores', name: 'Marcadores Sharpie', unit: 'paquete' },
-                                { id: 'papel_impresora', name: 'Papel para impresora normal', unit: 'resma' },
-                                { id: 'grapadora', name: 'Grapadora', unit: 'unidad' },
-                                { id: 'grapas', name: 'Grapas', unit: 'caja' },
-                                { id: 'clips', name: 'Clips', unit: 'caja' },
-                                { id: 'post_its', name: 'Post-its / Notas adhesivas', unit: 'paquete' },
-                                { id: 'folders', name: 'Folders / Carpetas', unit: 'paquete' }
-                            ]
-                        },
-                        {
-                            name: 'Varios',
-                            icon: 'fa-box',
-                            color: '#f59e0b',
-                            priority: 'normal',
-                            items: [
-                                { id: 'baterias_aa', name: 'Baterías AA', unit: 'paquete' },
-                                { id: 'baterias_aaa', name: 'Baterías AAA', unit: 'paquete' },
-                                { id: 'extension', name: 'Extensión eléctrica', unit: 'unidad' },
-                                { id: 'foco', name: 'Focos / Bombillas', unit: 'unidad' },
-                                { id: 'tijeras', name: 'Tijeras', unit: 'unidad' },
-                                { id: 'cutter', name: 'Cutter / Exacto', unit: 'unidad' },
-                                { id: 'cinta_scotch', name: 'Cinta scotch', unit: 'rollo' }
+                                { id: 'post_its', name: 'Post-Its', unit: 'pack' },
+                                { id: 'calculator', name: 'Calculator', unit: 'unit' },
+                                { id: 'price_gun', name: 'Price Gun', unit: 'unit' },
+                                { id: 'price_gun_labels', name: 'Price Gun Stickers Labels', unit: 'roll' },
+                                { id: 'box_cutters', name: 'Box cutters', unit: 'unit' },
+                                { id: 'scissors', name: 'Scissors', unit: 'unit' },
+                                { id: 'scotch_tape', name: 'Scotch tape (# of rolls left)', unit: 'roll' },
+                                { id: 'sharpies', name: 'Sharpies', unit: 'pack' }
                             ]
                         }
                     ];
