@@ -9379,153 +9379,204 @@ window.viewChecklistHistory = async function() {
             }
         }
 
+        // Running Low filter states
+        let runningLowFilters = {
+            store: 'all',
+            urgency: 'all',
+            category: 'all',
+            orderStatus: 'all'
+        };
+
+        // Running Low constants
+        const RUNNING_LOW_STORES = ['Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'MM', 'All Shops'];
+        const RUNNING_LOW_URGENCIES = ['Low', 'High Priority', 'Sold Out'];
+        const RUNNING_LOW_CATEGORIES = ['Detox', 'Coils/Pods', 'Wraps', 'Disposables', 'Juices', 'Heady', 'Glass', 'Smoke Shop', 'Vape Shop', 'Liquor', 'Cleaning Supplies', 'Office Supplies'];
+        const RUNNING_LOW_STATUSES = ['Processing', 'Ordered', 'Not Ordered', 'Received'];
+
         async function renderRestockRequests() {
             const dashboard = document.querySelector('.dashboard');
             const user = getCurrentUser();
-            const canEditRequests = user && (user.role === 'administrator' || user.role === 'manager');
+            const canEditRequests = user && (user.role === 'administrator' || user.role === 'manager' || user.role === 'admin');
 
             // Get all requests sorted by date (newest first)
-            const allRequests = [...restockRequests].sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+            let allRequests = [...restockRequests].sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+
+            // Apply filters
+            let filteredRequests = allRequests.filter(r => {
+                if (runningLowFilters.store !== 'all' && r.store !== runningLowFilters.store) return false;
+                if (runningLowFilters.urgency !== 'all' && r.urgency !== runningLowFilters.urgency) return false;
+                if (runningLowFilters.category !== 'all' && r.category !== runningLowFilters.category) return false;
+                if (runningLowFilters.orderStatus !== 'all' && r.orderStatus !== runningLowFilters.orderStatus) return false;
+                return true;
+            });
+
+            // Calculate stats
+            const totalItems = allRequests.length;
+            const lowStockSoldOut = allRequests.filter(r => r.urgency === 'High Priority' || r.urgency === 'Sold Out').length;
+            const notOrdered = allRequests.filter(r => r.orderStatus === 'Not Ordered').length;
+            const activeInventory = allRequests.filter(r => r.orderStatus !== 'Received').length;
+
+            // Check if any filter is active
+            const hasActiveFilters = runningLowFilters.store !== 'all' || runningLowFilters.urgency !== 'all' ||
+                                    runningLowFilters.category !== 'all' || runningLowFilters.orderStatus !== 'all';
 
             dashboard.innerHTML = `
-                <div class="page-header">
+                <div class="page-header" style="margin-bottom: 24px;">
                     <div class="page-header-left">
-                        <h2 class="section-title">Product Requests</h2>
-                        <p class="section-subtitle">Request products for store inventory</p>
+                        <h2 class="section-title" style="font-size: 28px; font-weight: 700;">Inventory Management</h2>
+                        <p class="section-subtitle" style="color: var(--text-muted); font-size: 14px;">Track stock levels, categorize items, and monitor order statuses</p>
                     </div>
                     <button class="btn-primary" onclick="openNewRestockRequestModal()" style="padding: 12px 24px; border-radius: 10px;">
-                        <i class="fas fa-plus"></i> New Request
+                        <i class="fas fa-plus"></i> New Item
                     </button>
                 </div>
 
-                <!-- Simple Stats -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
-                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 14px 12px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">${allRequests.length}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Total</div>
+                <!-- KPI Stats Cards -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(139, 92, 246, 0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-box" style="font-size: 20px; color: var(--accent-primary);"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${totalItems}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Total Items</div>
+                            </div>
+                        </div>
                     </div>
-                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 14px 12px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">${allRequests.filter(r => r.priority === 'high').length}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">High Priority</div>
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 20px; color: #ef4444;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${lowStockSoldOut}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Low Stock / Sold Out</div>
+                            </div>
+                        </div>
                     </div>
-                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 14px 12px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 24px; font-weight: 700; color: #10b981;">${allRequests.reduce((sum, r) => sum + (r.quantity || 0), 0)}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Total Units</div>
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-shopping-cart" style="font-size: 20px; color: #f59e0b;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${notOrdered}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Not Ordered</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chart-line" style="font-size: 20px; color: #10b981;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${activeInventory}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Active Inventory</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Purchased progress -->
-                ${allRequests.length > 0 ? `
-                <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="font-size: 13px; color: var(--text-secondary);"><i class="fas fa-shopping-cart" style="color: #10b981; margin-right: 6px;"></i>Purchased: <strong>${allRequests.filter(r => r.purchased).length}</strong> / ${allRequests.length}</span>
-                        ${allRequests.filter(r => r.purchased).length > 0 ? `
-                            <button onclick="clearPurchasedRequests()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; padding: 4px 8px;">
-                                <i class="fas fa-broom"></i> Clear done
-                            </button>
-                        ` : ''}
-                    </div>
-                    <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
-                        <div style="height: 100%; width: ${allRequests.length > 0 ? (allRequests.filter(r => r.purchased).length / allRequests.length * 100) : 0}%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 3px; transition: width 0.3s ease;"></div>
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- Division Tabs (VSU / Loyal Vaper) -->
-                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-                    <button onclick="setRequestDivision('all')" id="req-division-all" style="padding: 14px 28px; font-size: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: white; cursor: pointer; font-weight: 700; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">All</button>
-                    <button onclick="setRequestDivision('vsu')" id="req-division-vsu" style="padding: 14px 28px; font-size: 15px; border-radius: 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 700;">VSU</button>
-                    <button onclick="setRequestDivision('loyalvaper')" id="req-division-loyalvaper" style="padding: 14px 28px; font-size: 15px; border-radius: 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 700;">Loyal Vaper</button>
-                </div>
-
-                <!-- Filter & Sort Row -->
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
-                    <!-- Priority Filters -->
-                    <button onclick="setRequestPriorityFilter('all')" id="req-filter-all" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 600;">All (${allRequests.length})</button>
-                    <button onclick="setRequestPriorityFilter('high')" id="req-filter-high" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: #ef4444; cursor: pointer; font-weight: 600;">High</button>
-                    <button onclick="setRequestPriorityFilter('medium')" id="req-filter-medium" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: #f59e0b; cursor: pointer; font-weight: 600;">Medium</button>
-                    <button onclick="setRequestPriorityFilter('low')" id="req-filter-low" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: #10b981; cursor: pointer; font-weight: 600;">Low</button>
-                    <button onclick="setRequestPriorityFilter('pending')" id="req-filter-pending" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;">Pending</button>
-
-                    <!-- Divider -->
-                    <div style="width: 2px; height: 35px; background: var(--border-color); margin: 0 10px;"></div>
-
-                    <!-- Store Filter Dropdown -->
-                    <select id="req-store-filter" onchange="setRequestStoreFilter(this.value)" style="padding: 12px 16px; font-size: 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 600; min-width: 150px;">
-                        <option value="all">All Stores</option>
-                        ${[...new Set(allRequests.map(r => r.store).filter(s => s))].sort().map(store => `<option value="${store}">${store}</option>`).join('')}
+                <!-- Filters Row -->
+                <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center;">
+                    <select id="running-low-store-filter" onchange="setRunningLowFilter('store', this.value)" style="padding: 10px 16px; font-size: 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; min-width: 150px;">
+                        <option value="all" ${runningLowFilters.store === 'all' ? 'selected' : ''}>All Stores</option>
+                        ${RUNNING_LOW_STORES.map(store => `<option value="${store}" ${runningLowFilters.store === store ? 'selected' : ''}>${store}</option>`).join('')}
                     </select>
 
-                    <!-- Divider -->
-                    <div style="width: 2px; height: 35px; background: var(--border-color); margin: 0 10px;"></div>
+                    <select id="running-low-urgency-filter" onchange="setRunningLowFilter('urgency', this.value)" style="padding: 10px 16px; font-size: 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; min-width: 150px;">
+                        <option value="all" ${runningLowFilters.urgency === 'all' ? 'selected' : ''}>All Urgency</option>
+                        ${RUNNING_LOW_URGENCIES.map(u => `<option value="${u}" ${runningLowFilters.urgency === u ? 'selected' : ''}>${u}</option>`).join('')}
+                    </select>
 
-                    <!-- Sort Options -->
-                    <button onclick="setRequestSort('alpha')" id="req-sort-alpha" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort A-Z">
-                        <i class="fas fa-sort-alpha-down"></i> A-Z
-                    </button>
-                    <button onclick="setRequestSort('qty')" id="req-sort-qty" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort by Quantity">
-                        <i class="fas fa-sort-amount-down"></i> Qty
-                    </button>
-                    <button onclick="setRequestSort('store')" id="req-sort-store" style="padding: 12px 20px; font-size: 14px; border-radius: 10px; border: none; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-weight: 600;" title="Sort by Store">
-                        <i class="fas fa-store"></i> Store
-                    </button>
+                    <select id="running-low-category-filter" onchange="setRunningLowFilter('category', this.value)" style="padding: 10px 16px; font-size: 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; min-width: 150px;">
+                        <option value="all" ${runningLowFilters.category === 'all' ? 'selected' : ''}>All Categories</option>
+                        ${RUNNING_LOW_CATEGORIES.map(c => `<option value="${c}" ${runningLowFilters.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+
+                    <select id="running-low-status-filter" onchange="setRunningLowFilter('orderStatus', this.value)" style="padding: 10px 16px; font-size: 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; min-width: 150px;">
+                        <option value="all" ${runningLowFilters.orderStatus === 'all' ? 'selected' : ''}>All Statuses</option>
+                        ${RUNNING_LOW_STATUSES.map(s => `<option value="${s}" ${runningLowFilters.orderStatus === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+
+                    ${hasActiveFilters ? `
+                        <button onclick="clearRunningLowFilters()" style="padding: 10px 16px; font-size: 14px; border-radius: 8px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-redo" style="font-size: 12px;"></i> Clear Filters
+                        </button>
+                    ` : ''}
                 </div>
 
-                <!-- Requests List -->
+                <!-- Inventory Items Table -->
                 <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
-                    <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;" id="requests-list-title">All Requests</span>
-                        <span style="font-size: 12px; color: var(--text-muted);" id="requests-list-count">${allRequests.length} items</span>
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: var(--text-primary); font-size: 16px;">Inventory Items</span>
+                        <span style="font-size: 13px; color: var(--text-muted);">${filteredRequests.length} items</span>
                     </div>
 
-                    ${allRequests.length === 0 ? `
+                    ${filteredRequests.length === 0 ? `
                         <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
-                            <i class="fas fa-box-open" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
-                            <p style="font-size: 15px; margin: 0;">No requests yet</p>
-                            <p style="font-size: 13px; margin-top: 8px;">Click "New Request" to add a product request</p>
+                            <i class="fas fa-search" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
+                            <p style="font-size: 15px; margin: 0; font-weight: 600;">No items found</p>
+                            <p style="font-size: 13px; margin-top: 8px;">No items available</p>
                         </div>
                     ` : `
-                        <!-- Mobile-friendly card list -->
-                        <div class="product-requests-list" style="display: flex; flex-direction: column;">
-                            ${allRequests.map(request => {
-                                const priorityColor = request.priority === 'high' ? '#ef4444' : request.priority === 'medium' ? '#f59e0b' : '#10b981';
-                                const isPurchased = request.purchased || false;
-                                const rowBg = isPurchased ? 'linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' : 'transparent';
-                                const rowBorder = isPurchased ? '2px solid #10b981' : '1px solid var(--border-color)';
+                        <!-- Table Header -->
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr 1fr 1fr 1fr 1fr 80px; padding: 12px 20px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">
+                            <div>Item Name</div>
+                            <div>Specifics</div>
+                            <div>Store</div>
+                            <div>Category</div>
+                            <div>Urgency</div>
+                            <div>Order Status</div>
+                            <div>Date</div>
+                            <div>Added By</div>
+                            <div></div>
+                        </div>
+
+                        <!-- Table Body -->
+                        <div class="inventory-table-body">
+                            ${filteredRequests.map(request => {
+                                const urgencyColors = {
+                                    'Low': { bg: '#fef3c7', text: '#f59e0b' },
+                                    'High Priority': { bg: '#fee2e2', text: '#ef4444' },
+                                    'Sold Out': { bg: '#fecaca', text: '#dc2626' }
+                                };
+                                const statusColors = {
+                                    'Not Ordered': { bg: '#fee2e2', text: '#ef4444' },
+                                    'Processing': { bg: '#fef3c7', text: '#f59e0b' },
+                                    'Ordered': { bg: '#d1fae5', text: '#10b981' },
+                                    'Received': { bg: '#dbeafe', text: '#3b82f6' }
+                                };
+                                const urgencyStyle = urgencyColors[request.urgency] || { bg: '#f3f4f6', text: '#6b7280' };
+                                const statusStyle = statusColors[request.orderStatus] || { bg: '#f3f4f6', text: '#6b7280' };
+
                                 return `
-                                    <div class="request-row" id="request-row-${request.firestoreId || request.id}" style="display: flex; align-items: center; padding: 12px 16px; border-bottom: ${rowBorder}; background: ${rowBg}; gap: 12px; transition: all 0.3s ease;">
-                                        <!-- Checkbox palomita -->
-                                        <div onclick="toggleRequestPurchased('${request.firestoreId || request.id}')" style="cursor: pointer; min-width: 32px; height: 32px; border-radius: 8px; border: 2px solid ${isPurchased ? '#10b981' : 'var(--border-color)'}; background: ${isPurchased ? '#10b981' : 'transparent'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                                            ${isPurchased ? '<i class="fas fa-check" style="color: white; font-size: 14px;"></i>' : ''}
-                                        </div>
-
-                                        <!-- Product info -->
-                                        <div style="flex: 1; min-width: 0;">
-                                            <div style="font-weight: 600; color: ${isPurchased ? '#10b981' : 'var(--text-primary)'}; font-size: 14px; ${isPurchased ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${request.productName}</div>
-                                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
-                                                <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-store" style="margin-right: 4px;"></i>${request.store || '-'}</span>
-                                                ${request.notes ? `<span style="font-size: 11px; color: var(--text-muted);">• ${request.notes.substring(0, 30)}${request.notes.length > 30 ? '...' : ''}</span>` : ''}
-                                            </div>
-                                        </div>
-
-                                        <!-- Quantity -->
-                                        <div style="text-align: center; min-width: 40px;">
-                                            <div style="font-weight: 700; font-size: 18px; color: ${isPurchased ? '#10b981' : 'var(--accent-primary)'};">${request.quantity}</div>
-                                        </div>
-
-                                        <!-- Priority badge -->
+                                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr 1fr 1fr 1fr 1fr 80px; padding: 14px 20px; border-bottom: 1px solid var(--border-color); align-items: center; font-size: 14px;">
+                                        <div style="font-weight: 600; color: var(--text-primary);">${request.productName || request.name || '-'}</div>
+                                        <div style="color: var(--text-secondary);">${request.specifics || request.quantity || '-'}</div>
                                         <div>
-                                            <span style="background: ${priorityColor}20; color: ${priorityColor}; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase;">${request.priority}</span>
+                                            <span style="background: #e0e7ff; color: #4f46e5; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">${request.store || '-'}</span>
                                         </div>
-
-                                        <!-- Actions -->
-                                        <div style="display: flex; gap: 4px;">
+                                        <div>
+                                            <span style="background: #f3e8ff; color: #9333ea; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">${request.category || '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span style="background: ${urgencyStyle.bg}; color: ${urgencyStyle.text}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">${request.urgency || '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span style="background: ${statusStyle.bg}; color: ${statusStyle.text}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">${request.orderStatus || 'Not Ordered'}</span>
+                                        </div>
+                                        <div style="color: var(--text-muted); font-size: 13px;">${request.requestDate ? new Date(request.requestDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</div>
+                                        <div style="color: var(--text-secondary);">${request.requestedBy || request.addedBy || '-'}</div>
+                                        <div style="display: flex; gap: 4px; justify-content: flex-end;">
                                             ${canEditRequests ? `
-                                                <button onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Edit" onmouseover="this.style.color='var(--accent-primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                                                <button onclick="openEditRestockRequestModal('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 4px;" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             ` : ''}
-                                            <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; font-size: 14px;" title="Delete" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'">
+                                            <button onclick="deleteRestockRequest('${request.firestoreId || request.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 4px;" title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -9536,6 +9587,17 @@ window.viewChecklistHistory = async function() {
                     `}
                 </div>
             `;
+        }
+
+        // Running Low filter functions
+        function setRunningLowFilter(filterType, value) {
+            runningLowFilters[filterType] = value;
+            renderRestockRequests();
+        }
+
+        function clearRunningLowFilters() {
+            runningLowFilters = { store: 'all', urgency: 'all', category: 'all', orderStatus: 'all' };
+            renderRestockRequests();
         }
 
         // Refresh inventory from Shopify
@@ -29786,53 +29848,68 @@ Return ONLY the JSON object, no additional text.`
                     // Predefined supplies list with categories and priority
                     const supplyCategories = [
                         {
-                            name: 'Store Cleaning Supplies',
+                            name: 'Operaciones Críticas',
+                            icon: 'fa-exclamation-triangle',
+                            color: '#ef4444',
+                            priority: 'critical',
+                            items: [
+                                { id: 'bolsas_basura', name: 'Bolsas negras para basura', unit: 'paquete' },
+                                { id: 'bolsas_pequeñas', name: 'Bolsas pequeñas (para producto)', unit: 'paquete' },
+                                { id: 'papel_recibo', name: 'Papel para impresora de recibos', unit: 'rollo' },
+                                { id: 'papel_etiquetas', name: 'Papel para etiquetas', unit: 'rollo' },
+                                { id: 'cajas_grandes', name: 'Cajas grandes', unit: 'unidad' },
+                                { id: 'cajas_medianas', name: 'Cajas medianas', unit: 'unidad' },
+                                { id: 'cajas_pequeñas', name: 'Cajas pequeñas', unit: 'unidad' },
+                                { id: 'cinta_empacar', name: 'Cinta para empacar', unit: 'rollo' },
+                                { id: 'bubble_wrap', name: 'Bubble wrap / Plástico burbuja', unit: 'rollo' }
+                            ]
+                        },
+                        {
+                            name: 'Limpieza',
                             icon: 'fa-broom',
                             color: '#3b82f6',
                             priority: 'normal',
                             items: [
-                                { id: 'vinegar', name: 'Vinegar (MMWL Only)', unit: 'bottle' },
-                                { id: 'trash_bags_13gal', name: '13 gallon trash bags (how many boxes)', unit: 'box' },
-                                { id: 'trash_bags_33gal', name: '33 gallon trash bags', unit: 'box' },
-                                { id: 'paper_towel_rolls', name: 'Paper towel rolls', unit: 'roll' },
-                                { id: 'black_tshirt_bags', name: 'Black t shirt bags (# of boxes left)', unit: 'box' },
-                                { id: 'rose_brown_bags', name: 'Rose/2 for 6 brown bags (# of packs left)', unit: 'pack' },
-                                { id: 'medium_sandwich_bags', name: 'Medium sandwich bags (# of packs left)', unit: 'pack' },
-                                { id: 'cc_receipt_rolls', name: 'Credit card receipt rolls', unit: 'roll' },
-                                { id: 'cash_receipt_rolls', name: 'Cash receipt rolls', unit: 'roll' },
-                                { id: 'toilet_paper_rolls', name: 'Toilet paper rolls', unit: 'roll' },
-                                { id: 'toilet_bowl_cleaner', name: 'Toilet bowl cleaner', unit: 'bottle' },
-                                { id: 'utensils', name: 'Utensils (how many boxes left)', unit: 'box' },
-                                { id: 'qtips_cleaning', name: 'Q tips (# of boxes left) for cleaning coils', unit: 'box' },
-                                { id: 'tape_dispenser', name: 'Tape dispenser', unit: 'unit' },
-                                { id: 'broom', name: 'Broom', unit: 'unit' },
-                                { id: 'dust_pan', name: 'Dust Pan', unit: 'unit' },
-                                { id: 'swiffer_dust_pads', name: 'Swiffer dust pads (# of boxes left)', unit: 'box' },
-                                { id: 'red_safety_alarms', name: 'Red safety alarms (only if needed)', unit: 'unit' },
-                                { id: 'microfiber_rags', name: 'Microfiber Rags', unit: 'pack' },
-                                { id: 'clorox_wipes', name: 'Clorox Wipes (# of bottles)', unit: 'container' },
-                                { id: 'packing_tape', name: 'Packing tape (# of rolls left)', unit: 'roll' },
-                                { id: 'hand_soap', name: 'Hand soap (# of bottles left)', unit: 'bottle' },
-                                { id: 'lysol_cleaner', name: 'Lysol cleaner (# of bottles)', unit: 'bottle' },
-                                { id: 'bleach_bottles', name: 'Bleach bottles - for TOILET ONLY', unit: 'bottle' },
-                                { id: 'mop_head', name: 'Mop Head', unit: 'unit' },
-                                { id: 'fabuloso', name: 'Fabuloso', unit: 'bottle' }
+                                { id: 'windex', name: 'Windex / Limpia vidrios', unit: 'botella' },
+                                { id: 'lysol', name: 'Lysol / Desinfectante', unit: 'botella' },
+                                { id: 'papel_toalla', name: 'Papel toalla', unit: 'rollo' },
+                                { id: 'escoba', name: 'Escoba', unit: 'unidad' },
+                                { id: 'trapeador', name: 'Trapeador / Mop', unit: 'unidad' },
+                                { id: 'cubeta', name: 'Cubeta', unit: 'unidad' },
+                                { id: 'jabon_manos', name: 'Jabón para manos', unit: 'botella' },
+                                { id: 'guantes', name: 'Guantes de limpieza', unit: 'par' },
+                                { id: 'desodorante_ambiente', name: 'Desodorante de ambiente', unit: 'unidad' }
                             ]
                         },
                         {
-                            name: 'Store Office Supplies',
+                            name: 'Oficina',
                             icon: 'fa-pen',
-                            color: '#10b981',
+                            color: '#8b5cf6',
                             priority: 'normal',
                             items: [
-                                { id: 'post_its', name: 'Post-Its', unit: 'pack' },
-                                { id: 'calculator', name: 'Calculator', unit: 'unit' },
-                                { id: 'price_gun', name: 'Price Gun', unit: 'unit' },
-                                { id: 'price_gun_labels', name: 'Price Gun Stickers Labels', unit: 'roll' },
-                                { id: 'box_cutters', name: 'Box cutters', unit: 'unit' },
-                                { id: 'scissors', name: 'Scissors', unit: 'unit' },
-                                { id: 'scotch_tape', name: 'Scotch tape (# of rolls left)', unit: 'roll' },
-                                { id: 'sharpies', name: 'Sharpies', unit: 'pack' }
+                                { id: 'plumas', name: 'Plumas / Bolígrafos', unit: 'paquete' },
+                                { id: 'marcadores', name: 'Marcadores Sharpie', unit: 'paquete' },
+                                { id: 'papel_impresora', name: 'Papel para impresora normal', unit: 'resma' },
+                                { id: 'grapadora', name: 'Grapadora', unit: 'unidad' },
+                                { id: 'grapas', name: 'Grapas', unit: 'caja' },
+                                { id: 'clips', name: 'Clips', unit: 'caja' },
+                                { id: 'post_its', name: 'Post-its / Notas adhesivas', unit: 'paquete' },
+                                { id: 'folders', name: 'Folders / Carpetas', unit: 'paquete' }
+                            ]
+                        },
+                        {
+                            name: 'Varios',
+                            icon: 'fa-box',
+                            color: '#f59e0b',
+                            priority: 'normal',
+                            items: [
+                                { id: 'baterias_aa', name: 'Baterías AA', unit: 'paquete' },
+                                { id: 'baterias_aaa', name: 'Baterías AAA', unit: 'paquete' },
+                                { id: 'extension', name: 'Extensión eléctrica', unit: 'unidad' },
+                                { id: 'foco', name: 'Focos / Bombillas', unit: 'unidad' },
+                                { id: 'tijeras', name: 'Tijeras', unit: 'unidad' },
+                                { id: 'cutter', name: 'Cutter / Exacto', unit: 'unidad' },
+                                { id: 'cinta_scotch', name: 'Cinta scotch', unit: 'rollo' }
                             ]
                         }
                     ];
@@ -30787,63 +30864,75 @@ Return ONLY the JSON object, no additional text.`
                 case 'new-restock-request':
                     content = `
                         <div class="modal-header">
-                            <h2><i class="fas fa-box"></i> New Product Request</h2>
+                            <h2><i class="fas fa-box"></i> New Inventory Item</h2>
                             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="modal-body">
                             <div class="form-group" style="position: relative;">
-                                <label>Product Name *</label>
+                                <label>Item Name *</label>
                                 <input type="text" class="form-input" id="new-restock-product" placeholder="Start typing to see suggestions..." autocomplete="off" oninput="showProductSuggestions(this.value, 'new-restock-suggestions')">
                                 <div id="new-restock-suggestions" class="product-suggestions-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);"></div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Quantity *</label>
-                                    <input type="number" class="form-input" id="new-restock-quantity" placeholder="0" min="1">
+                                    <label>Specifics</label>
+                                    <input type="text" class="form-input" id="new-restock-specifics" placeholder="e.g., 375ml, fgh, z.02...">
                                 </div>
                                 <div class="form-group">
-                                    <label>Priority</label>
-                                    <select class="form-input" id="new-restock-priority">
-                                        <option value="low">Low</option>
-                                        <option value="medium" selected>Medium</option>
-                                        <option value="high">High</option>
-                                        <option value="must_haves">Must Haves</option>
+                                    <label>Store *</label>
+                                    <select class="form-input" id="new-restock-store">
+                                        <option value="">Select store...</option>
+                                        <option value="Loyal Vaper">Loyal Vaper</option>
+                                        <option value="MMWL">MMWL</option>
+                                        <option value="CV">CV</option>
+                                        <option value="NP">NP</option>
+                                        <option value="KM">KM</option>
+                                        <option value="MB">MB</option>
+                                        <option value="MM">MM</option>
+                                        <option value="All Shops">All Shops</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Category *</label>
-                                    <select class="form-input" id="new-restock-category" onchange="toggleCustomCategory('new-restock')">
+                                    <select class="form-input" id="new-restock-category">
                                         <option value="">Select category...</option>
-                                        <option value="Disposables">Disposables</option>
-                                        <option value="Vape Liquids">Vape Liquids</option>
-                                        <option value="Coils & Pod">Coils & Pod</option>
-                                        <option value="Smokeshop">Smokeshop</option>
-                                        <option value="Rolling Papers">Rolling Papers</option>
+                                        <option value="Detox">Detox</option>
+                                        <option value="Coils/Pods">Coils/Pods</option>
                                         <option value="Wraps">Wraps</option>
-                                        <option value="Chips">Chips</option>
-                                        <option value="Other">Other (type your own)</option>
+                                        <option value="Disposables">Disposables</option>
+                                        <option value="Juices">Juices</option>
+                                        <option value="Heady">Heady</option>
+                                        <option value="Glass">Glass</option>
+                                        <option value="Smoke Shop">Smoke Shop</option>
+                                        <option value="Vape Shop">Vape Shop</option>
+                                        <option value="Liquor">Liquor</option>
+                                        <option value="Cleaning Supplies">Cleaning Supplies</option>
+                                        <option value="Office Supplies">Office Supplies</option>
                                     </select>
-                                    <input type="text" class="form-input" id="new-restock-category-custom" placeholder="Type custom category..." style="display: none; margin-top: 8px;">
                                 </div>
                                 <div class="form-group">
-                                    <label>Store *</label>
-                                    <select class="form-input" id="new-restock-store">
-                                        <option value="">Select store...</option>
-                                        <option value="Miramar">VSU Miramar</option>
-                                        <option value="Morena">VSU Morena</option>
-                                        <option value="Kearny Mesa">VSU Kearny Mesa</option>
-                                        <option value="Chula Vista">VSU Chula Vista</option>
-                                        <option value="North Park">VSU North Park</option>
-                                        <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
-                                        <option value="Loyal Vaper">Loyal Vaper</option>
+                                    <label>Urgency</label>
+                                    <select class="form-input" id="new-restock-urgency">
+                                        <option value="Low">Low</option>
+                                        <option value="High Priority">High Priority</option>
+                                        <option value="Sold Out">Sold Out</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Requested By</label>
+                                    <label>Order Status</label>
+                                    <select class="form-input" id="new-restock-order-status">
+                                        <option value="Not Ordered" selected>Not Ordered</option>
+                                        <option value="Processing">Processing</option>
+                                        <option value="Ordered">Ordered</option>
+                                        <option value="Received">Received</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Added By</label>
                                     <select class="form-input" id="new-restock-requested-by">
                                         <option value="">Select employee...</option>
                                     </select>
@@ -30856,7 +30945,7 @@ Return ONLY the JSON object, no additional text.`
                         </div>
                         <div class="modal-footer">
                             <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                            <button class="btn-primary" onclick="submitNewRestockRequest()">Add Request</button>
+                            <button class="btn-primary" onclick="submitNewRestockRequest()">Add Item</button>
                         </div>
                     `;
                     break;
@@ -35341,38 +35430,32 @@ Return ONLY the JSON object, no additional text.`,
 
         function submitNewRestockRequest() {
             const product = document.getElementById('new-restock-product').value;
-            const quantity = document.getElementById('new-restock-quantity').value;
-            const priority = document.getElementById('new-restock-priority').value || 'medium';
+            const specifics = document.getElementById('new-restock-specifics')?.value || '';
             const store = document.getElementById('new-restock-store').value;
+            const category = document.getElementById('new-restock-category').value;
+            const urgency = document.getElementById('new-restock-urgency')?.value || 'Low';
+            const orderStatus = document.getElementById('new-restock-order-status')?.value || 'Not Ordered';
             const requestedByEl = document.getElementById('new-restock-requested-by');
             const requestedBy = requestedByEl ? requestedByEl.value : '';
             const notes = document.getElementById('new-restock-notes').value;
 
-            // Get category (use custom if "Other" selected)
-            const categorySelect = document.getElementById('new-restock-category');
-            const categoryCustom = document.getElementById('new-restock-category-custom');
-            let category = categorySelect ? categorySelect.value : '';
-            if (category === 'Other' && categoryCustom) {
-                category = categoryCustom.value.trim() || 'Other';
-            }
-
             // Validation
-            if (!product || !quantity || !store || !category) {
-                alert('Please fill in Product, Quantity, Category and Store');
+            if (!product || !store || !category) {
+                alert('Please fill in Item Name, Store and Category');
                 return;
             }
 
-            // Create request object
+            // Create request object with new fields
             const newRequest = {
                 productName: product,
-                itemType: 'product',
-                quantity: parseInt(quantity),
+                specifics,
                 store,
                 category,
+                urgency,
+                orderStatus,
                 requestedBy: requestedBy || 'Unknown',
+                addedBy: requestedBy || 'Unknown',
                 requestDate: new Date().toISOString().split('T')[0],
-                status: 'approved',
-                priority,
                 notes: notes || ''
             };
 
