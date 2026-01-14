@@ -8189,9 +8189,9 @@ Return ONLY the JSON object, no additional text.`,
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
 
-            // Hide all nav items first
+            // Hide all nav items first (except super-admin-nav which has its own visibility logic)
             document.querySelectorAll('.nav-section a, .nav-section div').forEach(item => {
-                if (!item.classList.contains('nav-label')) {
+                if (!item.classList.contains('nav-label') && !item.closest('#super-admin-nav') && item.id !== 'super-admin-nav') {
                     item.style.display = 'none';
                 }
             });
