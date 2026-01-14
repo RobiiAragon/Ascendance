@@ -1,15 +1,14 @@
-// END BULK INVOICE UPLOAD MODULE
-// ==========================================
-
 // ==========================================
 // POD MATCHER MODULE - AI-Powered Pod/Coil Finder
+// Supports 1 or 2 device comparison
 // ==========================================
 
 let podMatcherState = {
     isAnalyzing: false,
-    currentImage: null,
-    identifiedDevice: null,
+    images: [null, null],           // Support 2 images
+    identifiedDevices: [null, null], // Support 2 devices
     compatibleProducts: [],
+    comparisonMode: false,
     analysisHistory: []
 };
 
@@ -23,193 +22,575 @@ function renderPodMatcher() {
                 <h2 class="section-title"><i class="fas fa-search-plus" style="margin-right: 10px; color: #8b5cf6;"></i>Pod Matcher</h2>
                 <p class="section-subtitle">AI-powered pod and coil compatibility finder</p>
             </div>
+            <div class="page-header-right">
+                <button onclick="togglePodMatcherMode()" id="podMatcherModeBtn" class="btn-secondary" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span id="podMatcherModeText">Compare 2 Devices</span>
+                </button>
+            </div>
         </div>
 
-        <div class="pod-matcher-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 20px;">
-            <!-- Left Column - Camera/Upload -->
-            <div class="card" style="padding: 0; overflow: hidden;">
-                <div style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); padding: 20px; color: white;">
-                    <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-camera"></i> Scan Your Device</h3>
-                    <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 13px;">Take a photo or upload an image of your vape device</p>
-                </div>
-
-                <div style="padding: 24px;">
-                    <!-- Upload Area -->
-                    <div id="podMatcherUploadArea"
-                         style="border: 3px dashed var(--border-color); border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg-secondary);"
-                         onclick="document.getElementById('podMatcherFileInput').click()"
-                         ondragover="handlePodMatcherDragOver(event)"
-                         ondragleave="handlePodMatcherDragLeave(event)"
-                         ondrop="handlePodMatcherDrop(event)">
-                        <div id="podMatcherPreview" style="display: none;">
-                            <img id="podMatcherImage" style="max-width: 100%; max-height: 300px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                            <button onclick="event.stopPropagation(); clearPodMatcherImage();" style="margin-top: 16px; padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                                <i class="fas fa-times"></i> Remove Image
-                            </button>
-                        </div>
-                        <div id="podMatcherPlaceholder">
-                            <i class="fas fa-cloud-upload-alt" style="font-size: 64px; color: #8b5cf6; margin-bottom: 16px;"></i>
-                            <p style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Drop image here or click to upload</p>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Supports JPG, PNG, HEIC</p>
-                        </div>
-                    </div>
-                    <input type="file" id="podMatcherFileInput" accept="image/*" style="display: none;" onchange="handlePodMatcherFileSelect(event)">
-
-                    <!-- Camera Button (Mobile) -->
-                    <div style="display: flex; gap: 12px; margin-top: 16px;">
-                        <button onclick="openPodMatcherCamera()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600;">
-                            <i class="fas fa-camera"></i> Take Photo
-                        </button>
-                        <button onclick="document.getElementById('podMatcherFileInput').click()" style="flex: 1; padding: 14px; background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600;">
-                            <i class="fas fa-folder-open"></i> Browse Files
-                        </button>
-                    </div>
-
-                    <!-- Analyze Button -->
-                    <button id="podMatcherAnalyzeBtn" onclick="analyzePodMatcherImage()" disabled style="width: 100%; margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 700; opacity: 0.5; transition: all 0.3s;">
-                        <i class="fas fa-magic"></i> Identify Device & Find Pods
-                    </button>
+        <!-- Main Content Grid -->
+        <div id="podMatcherMainGrid" class="pod-matcher-container">
+            <!-- Upload Section -->
+            <div id="podMatcherUploadSection" class="pod-matcher-upload-section">
+                ${renderUploadZone(0)}
+                <div id="podMatcherUploadZone2" class="pod-matcher-upload-zone-2" style="display: none;">
+                    ${renderUploadZone(1)}
                 </div>
             </div>
 
-            <!-- Right Column - Results -->
-            <div class="card" style="padding: 0; overflow: hidden;">
-                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; color: white;">
-                    <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-check-circle"></i> Compatible Products</h3>
-                    <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 13px;">Pods and coils from your inventory that match</p>
-                </div>
-
-                <div id="podMatcherResults" style="padding: 24px; min-height: 400px;">
-                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
-                        <i class="fas fa-search" style="font-size: 64px; opacity: 0.3; margin-bottom: 16px;"></i>
-                        <h3 style="margin: 0 0 8px 0; color: var(--text-secondary);">Ready to Scan</h3>
-                        <p style="margin: 0; font-size: 14px;">Upload a photo of a vape device to find compatible pods</p>
+            <!-- Results Section -->
+            <div class="pod-matcher-results-section">
+                <div class="card" style="padding: 0; overflow: hidden; height: 100%;">
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 16px 20px; color: white;">
+                        <h3 style="margin: 0; font-size: 16px;"><i class="fas fa-check-circle"></i> Compatible Products</h3>
+                        <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 12px;">Pods and coils from your inventory</p>
+                    </div>
+                    <div id="podMatcherResults" style="padding: 20px; min-height: 300px; max-height: calc(100vh - 400px); overflow-y: auto;">
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fas fa-search" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+                            <h3 style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 16px;">Ready to Scan</h3>
+                            <p style="margin: 0; font-size: 13px;">Upload a photo of a vape device to find compatible pods</p>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Analyze Button (Fixed at bottom on mobile) -->
+        <div class="pod-matcher-action-bar">
+            <button id="podMatcherAnalyzeBtn" onclick="analyzePodMatcherImages()" disabled class="pod-matcher-analyze-btn">
+                <i class="fas fa-magic"></i> <span id="analyzeBtnText">Identify Device & Find Pods</span>
+            </button>
         </div>
 
         <!-- How it Works Section -->
-        <div class="card" style="margin-top: 24px;">
-            <h3 style="margin: 0 0 20px 0;"><i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 8px;"></i> How Pod Matcher Works</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px;">
-                <div style="text-align: center; padding: 20px;">
-                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-                        <i class="fas fa-camera" style="color: white; font-size: 24px;"></i>
+        <div class="card pod-matcher-how-it-works" style="margin-top: 20px;">
+            <h3 style="margin: 0 0 16px 0; font-size: 16px;"><i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 8px;"></i> How Pod Matcher Works</h3>
+            <div class="pod-matcher-steps">
+                <div class="pod-matcher-step">
+                    <div class="pod-matcher-step-icon" style="background: linear-gradient(135deg, #8b5cf6, #6366f1);">
+                        <i class="fas fa-camera"></i>
                     </div>
-                    <h4 style="margin: 0 0 8px 0; font-size: 14px;">1. Capture</h4>
-                    <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Take a photo of the vape device</p>
+                    <h4>1. Capture</h4>
+                    <p>Take a photo of the vape device</p>
                 </div>
-                <div style="text-align: center; padding: 20px;">
-                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-                        <i class="fas fa-brain" style="color: white; font-size: 24px;"></i>
+                <div class="pod-matcher-step">
+                    <div class="pod-matcher-step-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                        <i class="fas fa-brain"></i>
                     </div>
-                    <h4 style="margin: 0 0 8px 0; font-size: 14px;">2. Identify</h4>
-                    <p style="margin: 0; font-size: 12px; color: var(--text-muted);">AI identifies the device model</p>
+                    <h4>2. Identify</h4>
+                    <p>AI identifies the device model</p>
                 </div>
-                <div style="text-align: center; padding: 20px;">
-                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-                        <i class="fas fa-search" style="color: white; font-size: 24px;"></i>
+                <div class="pod-matcher-step">
+                    <div class="pod-matcher-step-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-search"></i>
                     </div>
-                    <h4 style="margin: 0 0 8px 0; font-size: 14px;">3. Match</h4>
-                    <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Find compatible pods & coils</p>
+                    <h4>3. Match</h4>
+                    <p>Find compatible pods & coils</p>
                 </div>
-                <div style="text-align: center; padding: 20px;">
-                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-                        <i class="fas fa-box" style="color: white; font-size: 24px;"></i>
+                <div class="pod-matcher-step">
+                    <div class="pod-matcher-step-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-box"></i>
                     </div>
-                    <h4 style="margin: 0 0 8px 0; font-size: 14px;">4. Inventory</h4>
-                    <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Show products in your stock</p>
+                    <h4>4. Inventory</h4>
+                    <p>Show products in stock</p>
                 </div>
             </div>
         </div>
 
-        <!-- Hidden camera input for mobile -->
-        <input type="file" id="podMatcherCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handlePodMatcherFileSelect(event)">
+        <!-- Hidden camera inputs -->
+        <input type="file" id="podMatcherFileInput0" accept="image/*" style="display: none;" onchange="handlePodMatcherFileSelect(event, 0)">
+        <input type="file" id="podMatcherFileInput1" accept="image/*" style="display: none;" onchange="handlePodMatcherFileSelect(event, 1)">
+        <input type="file" id="podMatcherCameraInput0" accept="image/*" capture="environment" style="display: none;" onchange="handlePodMatcherFileSelect(event, 0)">
+        <input type="file" id="podMatcherCameraInput1" accept="image/*" capture="environment" style="display: none;" onchange="handlePodMatcherFileSelect(event, 1)">
+
+        <style>
+            .pod-matcher-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-top: 20px;
+            }
+
+            .pod-matcher-upload-section {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .pod-matcher-upload-zone-2 {
+                animation: slideDown 0.3s ease;
+            }
+
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .pod-matcher-results-section {
+                min-height: 400px;
+            }
+
+            .pod-matcher-action-bar {
+                margin-top: 16px;
+            }
+
+            .pod-matcher-analyze-btn {
+                width: 100%;
+                padding: 16px;
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 700;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .pod-matcher-analyze-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .pod-matcher-analyze-btn:not(:disabled):hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+            }
+
+            .pod-matcher-upload-card {
+                background: var(--bg-primary);
+                border-radius: 16px;
+                overflow: hidden;
+                border: 1px solid var(--border-color);
+            }
+
+            .pod-matcher-upload-header {
+                background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+                padding: 14px 18px;
+                color: white;
+            }
+
+            .pod-matcher-upload-header h3 {
+                margin: 0;
+                font-size: 15px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .pod-matcher-upload-body {
+                padding: 16px;
+            }
+
+            .pod-matcher-dropzone {
+                border: 2px dashed var(--border-color);
+                border-radius: 12px;
+                padding: 30px 20px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.3s;
+                background: var(--bg-secondary);
+            }
+
+            .pod-matcher-dropzone:hover {
+                border-color: #8b5cf6;
+                background: rgba(139, 92, 246, 0.05);
+            }
+
+            .pod-matcher-dropzone.dragover {
+                border-color: #8b5cf6;
+                background: rgba(139, 92, 246, 0.1);
+            }
+
+            .pod-matcher-dropzone-icon {
+                font-size: 40px;
+                color: #8b5cf6;
+                margin-bottom: 10px;
+            }
+
+            .pod-matcher-preview {
+                display: none;
+            }
+
+            .pod-matcher-preview img {
+                max-width: 100%;
+                max-height: 200px;
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+            .pod-matcher-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-top: 12px;
+            }
+
+            .pod-matcher-btn {
+                padding: 12px;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                transition: all 0.2s;
+            }
+
+            .pod-matcher-btn-primary {
+                background: linear-gradient(135deg, #8b5cf6, #6366f1);
+                color: white;
+                border: none;
+            }
+
+            .pod-matcher-btn-secondary {
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                border: 1px solid var(--border-color);
+            }
+
+            .pod-matcher-how-it-works {
+                padding: 20px;
+            }
+
+            .pod-matcher-steps {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+            }
+
+            .pod-matcher-step {
+                text-align: center;
+                padding: 12px;
+            }
+
+            .pod-matcher-step-icon {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 10px;
+            }
+
+            .pod-matcher-step-icon i {
+                color: white;
+                font-size: 20px;
+            }
+
+            .pod-matcher-step h4 {
+                margin: 0 0 4px 0;
+                font-size: 13px;
+            }
+
+            .pod-matcher-step p {
+                margin: 0;
+                font-size: 11px;
+                color: var(--text-muted);
+            }
+
+            /* Device Card in Results */
+            .pod-matcher-device-card {
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1));
+                border: 2px solid #8b5cf6;
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .pod-matcher-device-card.device-2 {
+                background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1));
+                border-color: #ec4899;
+            }
+
+            .pod-matcher-pods-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-top: 10px;
+            }
+
+            .pod-matcher-pod-tag {
+                background: rgba(139, 92, 246, 0.2);
+                color: #8b5cf6;
+                padding: 3px 10px;
+                border-radius: 15px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            .pod-matcher-pod-tag.device-2 {
+                background: rgba(236, 72, 153, 0.2);
+                color: #ec4899;
+            }
+
+            /* Responsive Styles */
+            @media (max-width: 900px) {
+                .pod-matcher-container {
+                    grid-template-columns: 1fr;
+                }
+
+                .pod-matcher-results-section {
+                    order: 2;
+                }
+
+                .pod-matcher-upload-section {
+                    order: 1;
+                }
+            }
+
+            @media (max-width: 600px) {
+                .page-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                }
+
+                .page-header-right {
+                    width: 100%;
+                }
+
+                .page-header-right button {
+                    width: 100%;
+                    justify-content: center;
+                }
+
+                .pod-matcher-steps {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .pod-matcher-dropzone {
+                    padding: 20px 15px;
+                }
+
+                .pod-matcher-dropzone-icon {
+                    font-size: 32px;
+                }
+
+                .pod-matcher-preview img {
+                    max-height: 150px;
+                }
+
+                .pod-matcher-action-bar {
+                    position: sticky;
+                    bottom: 0;
+                    background: var(--bg-primary);
+                    padding: 12px 0;
+                    margin: 0 -16px;
+                    padding: 12px 16px;
+                    border-top: 1px solid var(--border-color);
+                    z-index: 10;
+                }
+
+                .pod-matcher-how-it-works {
+                    margin-bottom: 80px;
+                }
+            }
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
     `;
+
+    updateAnalyzeButton();
+}
+
+// Render individual upload zone
+function renderUploadZone(index) {
+    const isSecond = index === 1;
+    const color = isSecond ? '#ec4899' : '#8b5cf6';
+    const gradient = isSecond
+        ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+        : 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
+
+    return `
+        <div class="pod-matcher-upload-card">
+            <div class="pod-matcher-upload-header" style="background: ${gradient};">
+                <h3><i class="fas fa-camera"></i> ${isSecond ? 'Device 2' : 'Scan Your Device'}</h3>
+            </div>
+            <div class="pod-matcher-upload-body">
+                <div id="podMatcherUploadArea${index}"
+                     class="pod-matcher-dropzone"
+                     onclick="document.getElementById('podMatcherFileInput${index}').click()"
+                     ondragover="handlePodMatcherDragOver(event)"
+                     ondragleave="handlePodMatcherDragLeave(event)"
+                     ondrop="handlePodMatcherDrop(event, ${index})">
+                    <div id="podMatcherPreview${index}" class="pod-matcher-preview">
+                        <img id="podMatcherImage${index}">
+                        <button onclick="event.stopPropagation(); clearPodMatcherImage(${index});"
+                                style="margin-top: 12px; padding: 6px 14px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div id="podMatcherPlaceholder${index}">
+                        <i class="fas fa-cloud-upload-alt pod-matcher-dropzone-icon" style="color: ${color};"></i>
+                        <p style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0;">
+                            ${isSecond ? 'Drop second device image' : 'Drop image here or click to upload'}
+                        </p>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">JPG, PNG, HEIC</p>
+                    </div>
+                </div>
+                <div class="pod-matcher-buttons">
+                    <button onclick="openPodMatcherCamera(${index})" class="pod-matcher-btn pod-matcher-btn-primary">
+                        <i class="fas fa-camera"></i> Photo
+                    </button>
+                    <button onclick="document.getElementById('podMatcherFileInput${index}').click()" class="pod-matcher-btn pod-matcher-btn-secondary">
+                        <i class="fas fa-folder-open"></i> Browse
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Toggle between single and comparison mode
+function togglePodMatcherMode() {
+    podMatcherState.comparisonMode = !podMatcherState.comparisonMode;
+
+    const zone2 = document.getElementById('podMatcherUploadZone2');
+    const modeText = document.getElementById('podMatcherModeText');
+    const modeBtn = document.getElementById('podMatcherModeBtn');
+
+    if (podMatcherState.comparisonMode) {
+        zone2.style.display = 'block';
+        zone2.innerHTML = renderUploadZone(1);
+        modeText.textContent = 'Single Device';
+        modeBtn.classList.remove('btn-secondary');
+        modeBtn.classList.add('btn-primary');
+        modeBtn.style.background = 'linear-gradient(135deg, #ec4899, #db2777)';
+    } else {
+        zone2.style.display = 'none';
+        modeText.textContent = 'Compare 2 Devices';
+        modeBtn.classList.remove('btn-primary');
+        modeBtn.classList.add('btn-secondary');
+        modeBtn.style.background = '';
+        // Clear second image
+        podMatcherState.images[1] = null;
+        podMatcherState.identifiedDevices[1] = null;
+    }
+
+    updateAnalyzeButton();
 }
 
 // Handle drag over
 function handlePodMatcherDragOver(event) {
     event.preventDefault();
-    event.currentTarget.style.borderColor = '#8b5cf6';
-    event.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
+    event.currentTarget.classList.add('dragover');
 }
 
 // Handle drag leave
 function handlePodMatcherDragLeave(event) {
     event.preventDefault();
-    event.currentTarget.style.borderColor = 'var(--border-color)';
-    event.currentTarget.style.background = 'var(--bg-secondary)';
+    event.currentTarget.classList.remove('dragover');
 }
 
 // Handle drop
-function handlePodMatcherDrop(event) {
+function handlePodMatcherDrop(event, index = 0) {
     event.preventDefault();
-    event.currentTarget.style.borderColor = 'var(--border-color)';
-    event.currentTarget.style.background = 'var(--bg-secondary)';
+    event.currentTarget.classList.remove('dragover');
 
     const files = event.dataTransfer.files;
     if (files.length > 0 && files[0].type.startsWith('image/')) {
-        loadPodMatcherImage(files[0]);
+        loadPodMatcherImage(files[0], index);
     }
 }
 
 // Handle file select
-function handlePodMatcherFileSelect(event) {
+function handlePodMatcherFileSelect(event, index = 0) {
     const files = event.target.files;
     if (files.length > 0) {
-        loadPodMatcherImage(files[0]);
+        loadPodMatcherImage(files[0], index);
     }
 }
 
 // Open camera (mobile)
-function openPodMatcherCamera() {
-    document.getElementById('podMatcherCameraInput').click();
+function openPodMatcherCamera(index = 0) {
+    document.getElementById(`podMatcherCameraInput${index}`).click();
 }
 
 // Load and preview image
-function loadPodMatcherImage(file) {
+function loadPodMatcherImage(file, index = 0) {
     const reader = new FileReader();
     reader.onload = function(e) {
-        podMatcherState.currentImage = e.target.result;
+        podMatcherState.images[index] = e.target.result;
 
-        const preview = document.getElementById('podMatcherPreview');
-        const placeholder = document.getElementById('podMatcherPlaceholder');
-        const img = document.getElementById('podMatcherImage');
-        const analyzeBtn = document.getElementById('podMatcherAnalyzeBtn');
+        const preview = document.getElementById(`podMatcherPreview${index}`);
+        const placeholder = document.getElementById(`podMatcherPlaceholder${index}`);
+        const img = document.getElementById(`podMatcherImage${index}`);
 
-        img.src = e.target.result;
-        preview.style.display = 'block';
-        placeholder.style.display = 'none';
-        analyzeBtn.disabled = false;
-        analyzeBtn.style.opacity = '1';
+        if (preview && placeholder && img) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+
+        updateAnalyzeButton();
     };
     reader.readAsDataURL(file);
 }
 
 // Clear image
-function clearPodMatcherImage() {
-    podMatcherState.currentImage = null;
-    podMatcherState.identifiedDevice = null;
+function clearPodMatcherImage(index = 0) {
+    podMatcherState.images[index] = null;
+    podMatcherState.identifiedDevices[index] = null;
 
-    const preview = document.getElementById('podMatcherPreview');
-    const placeholder = document.getElementById('podMatcherPlaceholder');
-    const analyzeBtn = document.getElementById('podMatcherAnalyzeBtn');
+    const preview = document.getElementById(`podMatcherPreview${index}`);
+    const placeholder = document.getElementById(`podMatcherPlaceholder${index}`);
 
-    preview.style.display = 'none';
-    placeholder.style.display = 'block';
-    analyzeBtn.disabled = true;
-    analyzeBtn.style.opacity = '0.5';
+    if (preview && placeholder) {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+    }
 
     // Clear file inputs
-    document.getElementById('podMatcherFileInput').value = '';
-    document.getElementById('podMatcherCameraInput').value = '';
+    const fileInput = document.getElementById(`podMatcherFileInput${index}`);
+    const cameraInput = document.getElementById(`podMatcherCameraInput${index}`);
+    if (fileInput) fileInput.value = '';
+    if (cameraInput) cameraInput.value = '';
+
+    updateAnalyzeButton();
 }
 
-// Analyze image with OpenAI Vision
-async function analyzePodMatcherImage() {
-    if (!podMatcherState.currentImage || podMatcherState.isAnalyzing) return;
+// Update analyze button state
+function updateAnalyzeButton() {
+    const btn = document.getElementById('podMatcherAnalyzeBtn');
+    const btnText = document.getElementById('analyzeBtnText');
+    if (!btn) return;
+
+    const hasImage1 = !!podMatcherState.images[0];
+    const hasImage2 = !!podMatcherState.images[1];
+
+    if (podMatcherState.comparisonMode) {
+        // Need both images for comparison
+        btn.disabled = !hasImage1 || !hasImage2;
+        btnText.textContent = hasImage1 && hasImage2
+            ? 'Compare Both Devices'
+            : 'Upload Both Device Photos';
+    } else {
+        // Single mode - need just one image
+        btn.disabled = !hasImage1;
+        btnText.textContent = 'Identify Device & Find Pods';
+    }
+}
+
+// Analyze image(s) with OpenAI Vision
+async function analyzePodMatcherImages() {
+    const hasImage1 = !!podMatcherState.images[0];
+    const hasImage2 = podMatcherState.comparisonMode && !!podMatcherState.images[1];
+
+    if (!hasImage1 || podMatcherState.isAnalyzing) return;
+    if (podMatcherState.comparisonMode && !hasImage2) return;
 
     podMatcherState.isAnalyzing = true;
     const resultsDiv = document.getElementById('podMatcherResults');
@@ -220,66 +601,77 @@ async function analyzePodMatcherImage() {
     analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
 
     resultsDiv.innerHTML = `
-        <div style="text-align: center; padding: 60px 20px;">
-            <div style="width: 80px; height: 80px; border: 4px solid var(--border-color); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-            <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">Analyzing Image...</h3>
-            <p style="margin: 0; color: var(--text-muted);">AI is identifying your device</p>
+        <div style="text-align: center; padding: 50px 20px;">
+            <div style="width: 60px; height: 60px; border: 4px solid var(--border-color); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+            <h3 style="margin: 0 0 8px 0; color: var(--text-primary); font-size: 16px;">Analyzing ${podMatcherState.comparisonMode ? 'Devices' : 'Device'}...</h3>
+            <p style="margin: 0; color: var(--text-muted); font-size: 13px;">AI is identifying your ${podMatcherState.comparisonMode ? 'devices' : 'device'}</p>
         </div>
-        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
     `;
 
     try {
-        // Call OpenAI Vision API via Firebase function
-        const response = await fetch('https://us-central1-vapesupplyusa.cloudfunctions.net/podMatcherAnalyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                image: podMatcherState.currentImage
-            })
-        });
+        // Analyze first image
+        const result1 = await analyzeOneImage(podMatcherState.images[0]);
+        podMatcherState.identifiedDevices[0] = result1;
 
-        if (!response.ok) {
-            throw new Error('Failed to analyze image');
+        // Analyze second image if in comparison mode
+        if (podMatcherState.comparisonMode && podMatcherState.images[1]) {
+            const result2 = await analyzeOneImage(podMatcherState.images[1]);
+            podMatcherState.identifiedDevices[1] = result2;
         }
 
-        const result = await response.json();
-        podMatcherState.identifiedDevice = result;
-
-        // Now search inventory for compatible products
-        await findCompatibleProducts(result);
+        // Search inventory for compatible products
+        await findCompatibleProducts();
 
     } catch (error) {
         console.error('Pod Matcher Error:', error);
         resultsDiv.innerHTML = `
-            <div style="text-align: center; padding: 60px 20px; color: #ef4444;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px;"></i>
-                <h3 style="margin: 0 0 8px 0;">Analysis Failed</h3>
-                <p style="margin: 0; font-size: 14px;">${error.message || 'Could not identify the device. Please try a clearer photo.'}</p>
-                <button onclick="analyzePodMatcherImage()" style="margin-top: 20px; padding: 12px 24px; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">
+            <div style="text-align: center; padding: 40px 20px; color: #ef4444;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; margin-bottom: 12px;"></i>
+                <h3 style="margin: 0 0 8px 0; font-size: 16px;">Analysis Failed</h3>
+                <p style="margin: 0; font-size: 13px;">${error.message || 'Could not identify the device. Please try a clearer photo.'}</p>
+                <button onclick="analyzePodMatcherImages()" style="margin-top: 16px; padding: 10px 20px; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
                     <i class="fas fa-redo"></i> Try Again
                 </button>
             </div>
         `;
     } finally {
         podMatcherState.isAnalyzing = false;
-        analyzeBtn.disabled = false;
-        analyzeBtn.innerHTML = '<i class="fas fa-magic"></i> Identify Device & Find Pods';
+        updateAnalyzeButton();
+        const btn = document.getElementById('podMatcherAnalyzeBtn');
+        if (btn) {
+            btn.innerHTML = `<i class="fas fa-magic"></i> <span id="analyzeBtnText">${podMatcherState.comparisonMode ? 'Compare Both Devices' : 'Identify Device & Find Pods'}</span>`;
+        }
     }
 }
 
+// Analyze a single image
+async function analyzeOneImage(imageData) {
+    const response = await fetch('https://us-central1-vapesupplyusa.cloudfunctions.net/podMatcherAnalyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageData })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to analyze image');
+    }
+
+    return await response.json();
+}
+
 // Find compatible products from Shopify inventory
-async function findCompatibleProducts(deviceInfo) {
+async function findCompatibleProducts() {
     const resultsDiv = document.getElementById('podMatcherResults');
 
     resultsDiv.innerHTML = `
-        <div style="text-align: center; padding: 40px 20px;">
-            <div style="width: 60px; height: 60px; border: 3px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
-            <p style="margin: 0; color: var(--text-muted);">Searching inventory for compatible products...</p>
+        <div style="text-align: center; padding: 30px 20px;">
+            <div style="width: 50px; height: 50px; border: 3px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+            <p style="margin: 0; color: var(--text-muted); font-size: 13px;">Searching inventory...</p>
         </div>
     `;
 
     try {
-        // Fetch inventory from both VSU and Loyal Vaper
+        // Fetch inventory from both stores
         const [vsuInventory, lvInventory] = await Promise.all([
             fetchStoreInventory('vsu', 500).catch(() => []),
             fetchStoreInventory('loyalvaper', 500).catch(() => [])
@@ -287,17 +679,24 @@ async function findCompatibleProducts(deviceInfo) {
 
         const allInventory = [...vsuInventory, ...lvInventory];
 
-        // Filter products based on device compatibility
-        const compatibleProducts = filterCompatibleProducts(allInventory, deviceInfo);
+        // Get devices
+        const device1 = podMatcherState.identifiedDevices[0];
+        const device2 = podMatcherState.comparisonMode ? podMatcherState.identifiedDevices[1] : null;
 
-        podMatcherState.compatibleProducts = compatibleProducts;
+        // Filter products for each device
+        const products1 = filterCompatibleProducts(allInventory, device1);
+        const products2 = device2 ? filterCompatibleProducts(allInventory, device2) : [];
+
+        // Merge and tag products
+        const mergedProducts = mergeProductResults(products1, products2);
+        podMatcherState.compatibleProducts = mergedProducts;
 
         // Render results
-        renderPodMatcherResults(deviceInfo, compatibleProducts);
+        renderPodMatcherResults(device1, device2, mergedProducts);
 
     } catch (error) {
         console.error('Error fetching inventory:', error);
-        renderPodMatcherResults(deviceInfo, []);
+        renderPodMatcherResults(podMatcherState.identifiedDevices[0], podMatcherState.identifiedDevices[1], []);
     }
 }
 
@@ -309,96 +708,179 @@ function filterCompatibleProducts(inventory, deviceInfo) {
 
     const searchTerms = deviceInfo.compatiblePods.map(term => term.toLowerCase());
     const brandName = (deviceInfo.brand || '').toLowerCase();
-    const modelName = (deviceInfo.model || '').toLowerCase();
 
     return inventory.filter(product => {
         const productName = (product.productName || product.title || product.name || '').toLowerCase();
         const sku = (product.sku || '').toLowerCase();
 
-        // Check if product matches any compatible pod/coil
         return searchTerms.some(term => {
             return productName.includes(term) || sku.includes(term);
         });
-    }).slice(0, 20); // Limit to 20 results
+    }).slice(0, 30);
+}
+
+// Merge products from both devices
+function mergeProductResults(products1, products2) {
+    const productMap = new Map();
+
+    // Add products from device 1
+    products1.forEach(p => {
+        const key = p.sku || p.productName || p.title;
+        productMap.set(key, { ...p, compatibleWith: [1] });
+    });
+
+    // Add/merge products from device 2
+    products2.forEach(p => {
+        const key = p.sku || p.productName || p.title;
+        if (productMap.has(key)) {
+            productMap.get(key).compatibleWith.push(2);
+        } else {
+            productMap.set(key, { ...p, compatibleWith: [2] });
+        }
+    });
+
+    // Convert to array and sort (both devices first)
+    return Array.from(productMap.values()).sort((a, b) => {
+        const aScore = a.compatibleWith.length === 2 ? 100 : 0;
+        const bScore = b.compatibleWith.length === 2 ? 100 : 0;
+        return bScore - aScore;
+    }).slice(0, 25);
 }
 
 // Render Pod Matcher results
-function renderPodMatcherResults(deviceInfo, products) {
+function renderPodMatcherResults(device1, device2, products) {
     const resultsDiv = document.getElementById('podMatcherResults');
+    const isComparison = podMatcherState.comparisonMode && device2;
 
-    const deviceCard = deviceInfo ? `
-        <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 2px solid #8b5cf6; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #8b5cf6, #6366f1); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-check" style="color: white; font-size: 24px;"></i>
-                </div>
-                <div style="flex: 1;">
-                    <div style="font-size: 12px; color: #8b5cf6; font-weight: 600; text-transform: uppercase;">Device Identified</div>
-                    <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">${deviceInfo.brand || 'Unknown'} ${deviceInfo.model || 'Device'}</div>
-                    ${deviceInfo.coilType ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;"><i class="fas fa-cog"></i> Coil Type: ${deviceInfo.coilType}</div>` : ''}
-                </div>
-            </div>
-            ${deviceInfo.compatiblePods && deviceInfo.compatiblePods.length > 0 ? `
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(139, 92, 246, 0.3);">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Compatible Pod/Coil Types:</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        ${deviceInfo.compatiblePods.map(pod => `
-                            <span style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">${pod}</span>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-        </div>
-    ` : '';
+    // Device card(s)
+    let deviceCards = '';
+
+    if (device1) {
+        deviceCards += renderDeviceCard(device1, 1);
+    }
+
+    if (isComparison && device2) {
+        deviceCards += renderDeviceCard(device2, 2);
+    }
 
     if (products.length === 0) {
         resultsDiv.innerHTML = `
-            ${deviceCard}
-            <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-                <i class="fas fa-box-open" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
-                <h3 style="margin: 0 0 8px 0; color: var(--text-secondary);">No Products in Stock</h3>
-                <p style="margin: 0; font-size: 14px;">We don't currently have compatible pods for this device in inventory.</p>
+            ${deviceCards}
+            <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
+                <i class="fas fa-box-open" style="font-size: 40px; opacity: 0.3; margin-bottom: 12px;"></i>
+                <h3 style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 15px;">No Products in Stock</h3>
+                <p style="margin: 0; font-size: 13px;">No compatible pods found in inventory.</p>
             </div>
         `;
         return;
     }
 
     resultsDiv.innerHTML = `
-        ${deviceCard}
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h4 style="margin: 0; color: var(--text-primary);"><i class="fas fa-box" style="color: #10b981; margin-right: 8px;"></i>In Stock (${products.length})</h4>
+        ${deviceCards}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h4 style="margin: 0; color: var(--text-primary); font-size: 14px;">
+                <i class="fas fa-box" style="color: #10b981; margin-right: 6px;"></i>In Stock (${products.length})
+            </h4>
+            ${isComparison ? `
+                <div style="display: flex; gap: 8px; font-size: 11px;">
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        <span style="width: 10px; height: 10px; background: #8b5cf6; border-radius: 50%;"></span> Device 1
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        <span style="width: 10px; height: 10px; background: #ec4899; border-radius: 50%;"></span> Device 2
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        <span style="width: 10px; height: 10px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border-radius: 50%;"></span> Both
+                    </span>
+                </div>
+            ` : ''}
         </div>
-        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
-            ${products.map(product => {
-                const qty = product.inventoryQuantity || product.stock || product.quantity || 0;
-                const qtyColor = qty < 5 ? '#ef4444' : qty < 15 ? '#f59e0b' : '#10b981';
-                const store = product.store || 'VSU';
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            ${products.map(product => renderProductCard(product, isComparison)).join('')}
+        </div>
+    `;
+}
 
-                return `
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
-                        <div style="width: 50px; height: 50px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-cube" style="color: var(--text-muted); font-size: 20px;"></i>
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.productName || product.title || product.name}</div>
-                            <div style="font-size: 12px; color: var(--text-muted); display: flex; gap: 12px; margin-top: 4px;">
-                                <span><i class="fas fa-store"></i> ${store}</span>
-                                ${product.sku ? `<span><i class="fas fa-barcode"></i> ${product.sku}</span>` : ''}
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 18px; font-weight: 700; color: ${qtyColor};">${qty}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">in stock</div>
-                        </div>
+// Render device identification card
+function renderDeviceCard(device, deviceNumber) {
+    const isSecond = deviceNumber === 2;
+    const color = isSecond ? '#ec4899' : '#8b5cf6';
+    const bgGradient = isSecond
+        ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))'
+        : 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1))';
+
+    return `
+        <div class="pod-matcher-device-card ${isSecond ? 'device-2' : ''}" style="background: ${bgGradient}; border-color: ${color};">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 45px; height: 45px; background: ${color}; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-check" style="color: white; font-size: 18px;"></i>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 11px; color: ${color}; font-weight: 600; text-transform: uppercase;">
+                        ${podMatcherState.comparisonMode ? `Device ${deviceNumber}` : 'Device Identified'}
                     </div>
-                `;
-            }).join('')}
+                    <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${device.brand || 'Unknown'} ${device.model || 'Device'}
+                    </div>
+                    ${device.coilType ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><i class="fas fa-cog"></i> ${device.coilType}</div>` : ''}
+                </div>
+            </div>
+            ${device.compatiblePods && device.compatiblePods.length > 0 ? `
+                <div class="pod-matcher-pods-tags">
+                    ${device.compatiblePods.slice(0, 5).map(pod => `
+                        <span class="pod-matcher-pod-tag ${isSecond ? 'device-2' : ''}" style="background: ${isSecond ? 'rgba(236, 72, 153, 0.2)' : 'rgba(139, 92, 246, 0.2)'}; color: ${color};">${pod}</span>
+                    `).join('')}
+                    ${device.compatiblePods.length > 5 ? `<span style="font-size: 11px; color: var(--text-muted);">+${device.compatiblePods.length - 5} more</span>` : ''}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Render product card
+function renderProductCard(product, isComparison) {
+    const qty = product.inventoryQuantity || product.stock || product.quantity || 0;
+    const qtyColor = qty < 5 ? '#ef4444' : qty < 15 ? '#f59e0b' : '#10b981';
+    const store = product.store || 'VSU';
+
+    // Compatibility indicator
+    let compatIndicator = '';
+    if (isComparison && product.compatibleWith) {
+        if (product.compatibleWith.length === 2) {
+            compatIndicator = `<div style="width: 8px; height: 8px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border-radius: 50%; flex-shrink: 0;" title="Compatible with both"></div>`;
+        } else if (product.compatibleWith.includes(1)) {
+            compatIndicator = `<div style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%; flex-shrink: 0;" title="Device 1"></div>`;
+        } else {
+            compatIndicator = `<div style="width: 8px; height: 8px; background: #ec4899; border-radius: 50%; flex-shrink: 0;" title="Device 2"></div>`;
+        }
+    }
+
+    return `
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
+            ${compatIndicator}
+            <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fas fa-cube" style="color: var(--text-muted); font-size: 16px;"></i>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${product.productName || product.title || product.name}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); display: flex; gap: 10px; margin-top: 2px;">
+                    <span><i class="fas fa-store"></i> ${store}</span>
+                    ${product.sku ? `<span>${product.sku}</span>` : ''}
+                </div>
+            </div>
+            <div style="text-align: right; flex-shrink: 0;">
+                <div style="font-size: 16px; font-weight: 700; color: ${qtyColor};">${qty}</div>
+                <div style="font-size: 10px; color: var(--text-muted);">in stock</div>
+            </div>
         </div>
     `;
 }
 
 // Make functions globally available
 window.renderPodMatcher = renderPodMatcher;
+window.togglePodMatcherMode = togglePodMatcherMode;
 window.handlePodMatcherDragOver = handlePodMatcherDragOver;
 window.handlePodMatcherDragLeave = handlePodMatcherDragLeave;
 window.handlePodMatcherDrop = handlePodMatcherDrop;
@@ -406,7 +888,7 @@ window.handlePodMatcherFileSelect = handlePodMatcherFileSelect;
 window.openPodMatcherCamera = openPodMatcherCamera;
 window.loadPodMatcherImage = loadPodMatcherImage;
 window.clearPodMatcherImage = clearPodMatcherImage;
-window.analyzePodMatcherImage = analyzePodMatcherImage;
+window.analyzePodMatcherImages = analyzePodMatcherImages;
 
 // ==========================================
 // END POD MATCHER MODULE
@@ -616,4 +1098,3 @@ window.formatRelativeTime = function(dateString) {
 // ==========================================
 // END ANNOUNCEMENT LIKES & COMMENTS
 // ==========================================
-
