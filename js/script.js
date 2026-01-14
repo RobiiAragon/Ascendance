@@ -1434,6 +1434,11 @@
                 case 'projectanalytics':
                     window.renderProjectAnalytics();
                     break;
+                case 'superadmin':
+                    if (typeof window.renderSuperAdmin === 'function') {
+                        await window.renderSuperAdmin();
+                    }
+                    break;
                 case 'labels':
                     renderLabels();
                     break;

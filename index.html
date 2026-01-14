@@ -574,6 +574,14 @@
             <a href="#" class="nav-item" data-page="projectanalytics" onclick="window.navigateTo && window.navigateTo('projectanalytics'); return false;">
                 <span class="nav-icon"><i class="fas fa-code"></i></span> Project Analytics
             </a>
+
+            <!-- SUPER ADMIN - Only visible for carlos@calidevs.com -->
+            <div id="super-admin-nav" style="display: none;">
+                <div class="nav-label" style="color: #ef4444;">Developer</div>
+                <a href="#" class="nav-item" data-page="superadmin" onclick="window.navigateTo && window.navigateTo('superadmin'); return false;" style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(185,28,28,0.15)); border: 1px solid rgba(239,68,68,0.3);">
+                    <span class="nav-icon"><i class="fas fa-skull" style="color: #ef4444;"></i></span> <span style="color: #ef4444;">Super Admin</span>
+                </a>
+            </div>
         </nav>
 
         <div class="sidebar-footer">
@@ -945,6 +953,7 @@
     <script src="js/thieves-module.js?v=1"></script>
     <script src="js/invoices-module.js?v=1"></script>
     <script src="js/password-manager.js?v=1"></script>
+    <script src="js/super-admin.js?v=1"></script>
     <script src="js/project-analytics.js?v=1"></script>
     <script src="js/voice-assistant.js?v=1"></script>
     <script src="js/leases-module.js?v=1"></script>
