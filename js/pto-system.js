@@ -17,6 +17,17 @@
 
         let ptoRequests = [];
 
+        /**
+         * Parse a YYYY-MM-DD date string as LOCAL time (not UTC)
+         * This fixes the timezone bug where dates appear as the previous day
+         */
+        function parseLocalDate(dateString) {
+            if (!dateString) return new Date();
+            // Split the date string and create a local date
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day); // month is 0-indexed
+        }
+
         function openPTORequestModal(employeeId) {
             const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
             if (!emp) {
@@ -124,8 +135,8 @@
             const countEl = document.getElementById('pto-days-count');
 
             if (startDate && endDate && display && countEl) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
+                const start = parseLocalDate(startDate);
+                const end = parseLocalDate(endDate);
                 const diffTime = end - start;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
@@ -160,7 +171,7 @@
                 return;
             }
 
-            if (new Date(endDate) < new Date(startDate)) {
+            if (parseLocalDate(endDate) < parseLocalDate(startDate)) {
                 showNotification('End date must be after start date', 'warning');
                 return;
             }
@@ -244,8 +255,8 @@
 
                 // Also add to daysOff collection for each day in the range
                 if (request) {
-                    const start = new Date(request.startDate);
-                    const end = new Date(request.endDate);
+                    const start = parseLocalDate(request.startDate);
+                    const end = parseLocalDate(request.endDate);
 
                     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                         const dateKey = formatDateKey(d);
@@ -362,7 +373,7 @@
                     </div>
 
                     <div id="edit-pto-duration-display" style="padding: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%); border-radius: 8px; text-align: center; margin-bottom: 16px;">
-                        <span style="font-size: 24px; font-weight: 700; color: var(--accent-primary);" id="edit-pto-days-count">${Math.ceil((new Date(request.endDate) - new Date(request.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
+                        <span style="font-size: 24px; font-weight: 700; color: var(--accent-primary);" id="edit-pto-days-count">${Math.ceil((parseLocalDate(request.endDate) - parseLocalDate(request.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
                         <span style="color: var(--text-muted);"> day(s) requested</span>
                     </div>
 
@@ -401,8 +412,8 @@
             const daysCount = document.getElementById('edit-pto-days-count');
 
             if (startDate && endDate && display && daysCount) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
+                const start = parseLocalDate(startDate);
+                const end = parseLocalDate(endDate);
                 const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
                 if (diffDays > 0) {
@@ -432,7 +443,7 @@
                 return;
             }
 
-            if (new Date(endDate) < new Date(startDate)) {
+            if (parseLocalDate(endDate) < parseLocalDate(startDate)) {
                 showNotification('End date must be after start date', 'error');
                 return;
             }
@@ -665,8 +676,8 @@
             const durationDiv = document.getElementById('self-pto-duration');
 
             if (durationDiv && startDate && endDate) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
+                const start = parseLocalDate(startDate);
+                const end = parseLocalDate(endDate);
                 const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
                 if (diffDays > 0) {
@@ -698,7 +709,7 @@
             // Validate 30 days in advance
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const startDateObj = new Date(startDate);
+            const startDateObj = parseLocalDate(startDate);
             const daysDiff = Math.ceil((startDateObj - today) / (1000 * 60 * 60 * 24));
 
             if (daysDiff < 30) {
@@ -706,7 +717,7 @@
                 return;
             }
 
-            if (new Date(endDate) < new Date(startDate)) {
+            if (parseLocalDate(endDate) < parseLocalDate(startDate)) {
                 showNotification('End date must be after start date', 'warning');
                 return;
             }
@@ -755,8 +766,8 @@
             const typeConfig = PTO_REQUEST_TYPES[request.requestType] || PTO_REQUEST_TYPES.pto;
             const statusConfig = PTO_STATUS_CONFIG[request.status] || PTO_STATUS_CONFIG.pending;
 
-            const start = new Date(request.startDate);
-            const end = new Date(request.endDate);
+            const start = parseLocalDate(request.startDate);
+            const end = parseLocalDate(request.endDate);
             const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
             const requestedDate = request.requestedAt?.toDate ? request.requestedAt.toDate() : new Date(request.requestedAt);
