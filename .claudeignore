@@ -12,3 +12,11 @@ package-lock.json
 .cache/
 coverage/
 .turbo/
+.firebase/
+.idx/
+functions/node_modules/
+*.map
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
