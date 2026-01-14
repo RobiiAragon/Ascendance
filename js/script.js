@@ -1439,6 +1439,11 @@
                         await window.renderSuperAdmin();
                     }
                     break;
+                case 'devlog':
+                    if (typeof window.renderDevelopmentLog === 'function') {
+                        await window.renderDevelopmentLog();
+                    }
+                    break;
                 case 'labels':
                     renderLabels();
                     break;
