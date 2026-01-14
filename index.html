@@ -433,6 +433,14 @@
         </div>
 
         <nav class="nav-section">
+            <!-- SUPER ADMIN - Only visible for carlos@calidevs.com -->
+            <div id="super-admin-nav" style="display: none;">
+                <div class="nav-label" style="color: #ef4444; font-weight: 700;">Developer Mode</div>
+                <a href="#" class="nav-item" data-page="superadmin" onclick="window.navigateTo && window.navigateTo('superadmin'); return false;" style="background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(185,28,28,0.2)); border: 1px solid rgba(239,68,68,0.4);">
+                    <span class="nav-icon"><i class="fas fa-crown" style="color: gold;"></i></span> <span style="color: #ef4444; font-weight: 600;">God Mode</span>
+                </a>
+            </div>
+
             <!-- PRINCIPAL -->
             <div class="nav-label">Principal</div>
             <a href="#" class="nav-item" data-page="celesteai" onclick="window.navigateTo && window.navigateTo('celesteai'); return false;" style="background: linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15)); border: 1px solid rgba(102,126,234,0.3);">
@@ -574,14 +582,6 @@
             <a href="#" class="nav-item" data-page="projectanalytics" onclick="window.navigateTo && window.navigateTo('projectanalytics'); return false;">
                 <span class="nav-icon"><i class="fas fa-code"></i></span> Project Analytics
             </a>
-
-            <!-- SUPER ADMIN - Only visible for carlos@calidevs.com -->
-            <div id="super-admin-nav" style="display: none;">
-                <div class="nav-label" style="color: #ef4444;">Developer</div>
-                <a href="#" class="nav-item" data-page="superadmin" onclick="window.navigateTo && window.navigateTo('superadmin'); return false;" style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(185,28,28,0.15)); border: 1px solid rgba(239,68,68,0.3);">
-                    <span class="nav-icon"><i class="fas fa-skull" style="color: #ef4444;"></i></span> <span style="color: #ef4444;">Super Admin</span>
-                </a>
-            </div>
         </nav>
 
         <div class="sidebar-footer">

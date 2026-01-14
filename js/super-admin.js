@@ -1461,22 +1461,61 @@ async function createAuthUser() {
 // ============================================
 function checkSuperAdminAccess() {
     const navElement = document.getElementById('super-admin-nav');
-    if (!navElement) return;
+    if (!navElement) {
+        console.log('👑 Super Admin nav element not found yet');
+        return;
+    }
 
-    if (isSuperAdmin()) {
+    // Try multiple ways to get current user
+    let userEmail = '';
+
+    // Method 1: getCurrentUser function
+    if (typeof getCurrentUser === 'function') {
+        const user = getCurrentUser();
+        userEmail = user?.email || user?.authEmail || '';
+    }
+
+    // Method 2: authManager
+    if (!userEmail && window.authManager?.getCurrentUser) {
+        const user = window.authManager.getCurrentUser();
+        userEmail = user?.email || user?.authEmail || '';
+    }
+
+    // Method 3: Firebase Auth directly
+    if (!userEmail && window.firebase?.auth) {
+        const fbUser = firebase.auth().currentUser;
+        userEmail = fbUser?.email || '';
+    }
+
+    console.log('👑 Checking access for:', userEmail);
+
+    if (userEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
         navElement.style.display = 'block';
-        console.log('👑 God Mode access granted to Carlos');
+        console.log('👑 GOD MODE ACCESS GRANTED');
     } else {
         navElement.style.display = 'none';
     }
 }
 
+// Check multiple times as auth may load later
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(checkSuperAdminAccess, 1000);
+    setTimeout(checkSuperAdminAccess, 500);
+    setTimeout(checkSuperAdminAccess, 1500);
     setTimeout(checkSuperAdminAccess, 3000);
+    setTimeout(checkSuperAdminAccess, 5000);
 });
+
+// Also check when Firebase auth state changes
+if (window.firebase?.auth) {
+    firebase.auth().onAuthStateChanged(() => {
+        setTimeout(checkSuperAdminAccess, 500);
+    });
+}
 
 window.checkSuperAdminAccess = checkSuperAdminAccess;
 window.exitGodMode = exitGodMode;
+
+// Force check on load
+setTimeout(checkSuperAdminAccess, 100);
 
 console.log('👑 Super Admin GOD MODE module loaded');
