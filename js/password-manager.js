@@ -361,14 +361,14 @@ window.renderPasswordManager = async function renderPasswordManager() {
         </div>
 
         <!-- Search Bar -->
-        <div style="margin-bottom: 20px;">
-            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                <div style="flex: 1; position: relative; min-width: 200px;">
+        <div class="password-filter-bar" style="margin-bottom: 20px;">
+            <div class="password-filters" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <div class="password-search-wrapper" style="flex: 1; position: relative; min-width: 200px;">
                     <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
                     <input type="text" id="password-search" class="form-input" placeholder="Search passwords..."
-                        style="padding-left: 46px; height: 48px; font-size: 15px; border-radius: 12px;" oninput="filterPasswords()">
+                        style="padding-left: 46px; height: 48px; font-size: 15px; border-radius: 12px; width: 100%;" oninput="filterPasswords()">
                 </div>
-                <select id="password-store-filter" class="form-input" onchange="filterPasswords()" style="width: 180px; height: 48px; border-radius: 12px;">
+                <select id="password-store-filter" class="form-input" onchange="filterPasswords()" style="min-width: 150px; height: 48px; border-radius: 12px;">
                     <option value="">All Stores</option>
                     <option value="Miramar">VSU Miramar</option>
                     <option value="Morena">VSU Morena</option>
@@ -377,7 +377,7 @@ window.renderPasswordManager = async function renderPasswordManager() {
                     <option value="North Park">VSU North Park</option>
                     <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                 </select>
-                <select id="password-category-filter" class="form-input" onchange="filterPasswords()" style="width: 180px; height: 48px; border-radius: 12px;">
+                <select id="password-category-filter" class="form-input" onchange="filterPasswords()" style="min-width: 150px; height: 48px; border-radius: 12px;">
                     <option value="">All Categories</option>
                     ${categoryOptions}
                 </select>
