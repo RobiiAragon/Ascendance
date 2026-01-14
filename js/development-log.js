@@ -56,7 +56,7 @@ function getInitialLogs() {
             description: 'Built a comprehensive Development Log module to track and document all system changes, bug fixes, new features, and improvements. The module includes a timeline view organized by month, category filters (Feature, Bug Fix, Enhancement, UI/UX, Security, Performance, Refactor, Migration), statistics cards showing total changes and monthly activity, and a modal form for adding new entries. Each entry displays the date, category badge, developer name, who requested the change, detailed description, and list of modified files. Also added a quick utility function logDevWork() for programmatic entry creation. This module serves as proof of all the work being done on the system.',
             category: 'feature',
             files: ['js/development-log.js', 'index.html', 'js/script.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -66,7 +66,7 @@ function getInitialLogs() {
             description: 'Fixed a critical timezone bug in the PTO (Paid Time Off) request system where dates were appearing as the previous day. The issue occurred because JavaScript was parsing date strings like "2026-01-14" as UTC midnight, which when converted to US timezones (UTC-5 to UTC-8) would display as January 13th instead of January 14th. Created a new parseLocalDate() helper function that splits the YYYY-MM-DD string and constructs a Date object using local time components. Updated 10+ locations throughout pto-system.js including renderPTORequestCard(), updatePTODuration(), updateEditPTODuration(), updateSelfPTODuration(), approvePTORequest(), and all date validation checks. This fix ensures employees see the correct dates they requested for their time off.',
             category: 'fix',
             files: ['js/pto-system.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Tiana Estrada'
         },
         {
@@ -76,7 +76,7 @@ function getInitialLogs() {
             description: 'Complete rewrite of the Pod Matcher module to support analyzing and comparing 2 vape devices simultaneously. Added a toggle button to switch between "Single Device" and "Compare 2 Devices" modes. In comparison mode, users can upload photos of two different devices, each with its own color-coded upload zone (Device 1 in purple, Device 2 in pink). The AI analyzes both devices separately using OpenAI Vision API, then merges the compatible product results. Products are tagged to show which device they work with - purple dot for Device 1, pink dot for Device 2, or a gradient dot for products compatible with both. Results are sorted to show dual-compatible products first. Added full responsive design with media queries for 900px and 600px breakpoints, including a sticky analyze button on mobile devices for easy access.',
             category: 'feature',
             files: ['js/pod-matcher.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -86,7 +86,7 @@ function getInitialLogs() {
             description: 'Created a comprehensive Super Admin module exclusively for carlos@calidevs.com with extensive administrative powers. Features include: (1) God Mode - ability to impersonate any user in the system and see the app from their perspective, (2) Database Explorer - browse, view, edit, and delete documents from any Firestore collection with real-time data display, (3) Live Monitor - real-time activity feed showing user actions, clock-ins, and system events using Firestore listeners, (4) Emergency Controls - maintenance mode toggle to lock out users, broadcast system-wide announcements, and force logout all users, (5) Mass Operations - bulk update or delete documents across collections, clone entire collections for backup, (6) Feature Flags - toggle system features on/off without code deployment, (7) Employee Management - view all employees with ability to permanently delete ("nuke") user accounts including all associated data. The module is completely hidden from non-super-admin users.',
             category: 'feature',
             files: ['js/super-admin.js', 'index.html', 'js/script.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -96,7 +96,7 @@ function getInitialLogs() {
             description: 'Developed a specialized migration utility for handling employee account changes when their email or authentication needs to be updated. The utility creates a new employee document with the updated email while preserving all historical data. It automatically migrates all related records across multiple collections: schedules (work shifts), clock-in/clock-out records (attendance history), day off requests (PTO submissions), and approved days off. Each migrated record is tagged with the original employee ID for audit trail purposes. Successfully used this utility to migrate Danny Barrantes from his old email (dbarrantes99@gmail.com) to his new work email (danny@mmwineliquor.com), transferring 2 schedules and preserving all his attendance history. The utility runs from the browser console while logged in as admin.',
             category: 'migration',
             files: ['js/migrate-employee.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -106,7 +106,7 @@ function getInitialLogs() {
             description: 'Implemented comprehensive mobile responsive styles for the Password Manager module to improve usability on smartphones and tablets. Added CSS classes to the filter bar elements for better targeting. Created media queries for 768px breakpoint (tablets) and 480px breakpoint (small phones). Changes include: filter bar stacks vertically on mobile with full-width search input, password list items reorganize with improved touch targets, grid cards adjust column count based on screen width, action buttons stack properly, modal dialogs are full-width on mobile with proper padding, and form inputs are sized appropriately for touch interaction. The password copy buttons and visibility toggles remain easily accessible on all screen sizes.',
             category: 'ui',
             files: ['css/styles.css', 'js/password-manager.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -116,7 +116,7 @@ function getInitialLogs() {
             description: 'Added social interaction features to the announcements system, transforming it into a more engaging communication platform. Users can now like announcements with a single click, and their name is recorded with the like. The like count displays with a heart icon and shows who liked it on hover. Added a full commenting system where users can write comments, see all comments in a threaded view, and delete their own comments. Comments show the author name, relative timestamp (e.g., "2h ago", "3d ago"), and comment text. All likes and comments sync in real-time with Firebase Firestore, so changes appear instantly for all users viewing the announcement. Added formatRelativeTime() utility function for human-readable timestamps.',
             category: 'feature',
             files: ['js/pod-matcher.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -126,7 +126,7 @@ function getInitialLogs() {
             description: 'Implemented multiple enhancements to the daily checklist module to improve store operations tracking. Added store-specific task lists so each location can have customized daily requirements. Implemented completion tracking with timestamps and employee attribution - managers can see who completed each task and when. Added manager approval workflow where supervisors can review and sign off on completed checklists. Created a history view showing past checklists with completion rates and any notes. Tasks can now be marked as critical (must complete) or optional. Added visual progress indicators showing percentage of tasks completed. The checklist resets daily at midnight local time, and incomplete critical tasks trigger notifications to managers.',
             category: 'enhancement',
             files: ['js/daily-checklist.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Management'
         },
         {
@@ -136,7 +136,7 @@ function getInitialLogs() {
             description: 'Built a complete PTO (Paid Time Off) / vacation request system from scratch. Employees can submit their own time off requests through a self-service interface, selecting request type (Vacation, Sick Leave, Personal Day, PTO), start date, end date, and optional reason. The system enforces a 30-day advance notice requirement for all requests. Managers receive pending requests in their dashboard and can approve or reject with optional notes. Approved requests automatically create entries in the days off calendar and block scheduling for those dates. Request cards show color-coded status (Pending in yellow, Approved in green, Rejected in red), duration calculation, and full audit trail of any edits. Employees can edit pending requests, and the system tracks edit history with timestamps and change descriptions.',
             category: 'feature',
             files: ['js/pto-system.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'HR'
         },
         {
@@ -146,7 +146,7 @@ function getInitialLogs() {
             description: 'Integrated Firebase Authentication to replace the previous authentication system, providing secure and scalable user management. Implemented email/password authentication with proper error handling for common issues (wrong password, user not found, email already in use). Added role-based access control (RBAC) with roles including employee, manager, admin, and super-admin. Each role has different permissions throughout the app - employees see their own data, managers see their store\'s data, admins see everything. Created employee self-registration flow where new hires can create their account using their work email, which automatically links to their employee record in Firestore. Added persistent sessions so users stay logged in across browser refreshes. Implemented secure logout that clears all local state and Firebase auth tokens.',
             category: 'security',
             files: ['js/firebase-utils.js', 'js/script.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Carlos'
         },
         {
@@ -156,7 +156,7 @@ function getInitialLogs() {
             description: 'Created a comprehensive vendor invoice tracking system to manage accounts payable. Features include: adding invoices with vendor name, invoice number, amount, due date, and category assignment. Invoices can be marked with status (Pending, Partial, Paid, Overdue) and the system automatically flags overdue invoices based on due date. Added support for recurring invoices that automatically generate new entries on a schedule (weekly, monthly, quarterly). Built a financial projections view showing expected payments for the coming months based on recurring invoices and due dates. Added payment tracking where partial payments can be recorded against an invoice. Dashboard shows total outstanding balance, overdue amount, and payments due this week. Invoice cards display vendor info, amount, due date with color coding (red for overdue, yellow for due soon), and payment history.',
             category: 'feature',
             files: ['js/vendors-module.js', 'js/pto-system.js'],
-            developer: 'Claude AI',
+            developer: 'Carlos',
             requestedBy: 'Accounting'
         }
     ];
@@ -549,7 +549,7 @@ function openAddDevLogModal() {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
                     <label>Developer</label>
-                    <input type="text" class="form-input" id="dev-log-developer" value="Claude AI">
+                    <input type="text" class="form-input" id="dev-log-developer" value="Carlos">
                 </div>
                 <div class="form-group">
                     <label>Requested By</label>
@@ -592,7 +592,7 @@ async function saveDevLogEntry() {
         category,
         description,
         files,
-        developer: developer || 'Claude AI',
+        developer: developer || 'Carlos',
         requestedBy: requestedBy || null,
         createdAt: new Date().toISOString()
     };
@@ -618,7 +618,7 @@ async function saveDevLogEntry() {
 }
 
 // ==========================================
-// QUICK ADD UTILITY - For Claude AI to log work
+// QUICK ADD UTILITY - For logging work
 // ==========================================
 
 /**
@@ -636,7 +636,7 @@ async function logDevWork(title, description, category = 'feature', files = [], 
         description,
         category,
         files: Array.isArray(files) ? files : [files],
-        developer: 'Claude AI',
+        developer: 'Carlos',
         requestedBy,
         createdAt: new Date().toISOString()
     };
@@ -664,7 +664,7 @@ window.openAddDevLogModal = openAddDevLogModal;
 window.saveDevLogEntry = saveDevLogEntry;
 window.filterDevLogs = filterDevLogs;
 window.loadDevelopmentLogs = loadDevelopmentLogs;
-window.logDevWork = logDevWork; // Quick add for Claude AI
+window.logDevWork = logDevWork;
 
 // ==========================================
 // END DEVELOPMENT LOG MODULE

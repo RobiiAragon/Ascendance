@@ -1514,6 +1514,7 @@ if (window.firebase?.auth) {
 
 window.checkSuperAdminAccess = checkSuperAdminAccess;
 window.exitGodMode = exitGodMode;
+window.loadSuperAdminTab = loadSuperAdminTab;
 
 // Force check on load
 setTimeout(checkSuperAdminAccess, 100);
