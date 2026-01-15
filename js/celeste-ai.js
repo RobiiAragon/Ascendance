@@ -201,77 +201,77 @@ const CELESTE_ACTIONS = {
         keywords: ['gasto', 'expense', 'gastar', 'compré', 'pagué', 'cash out', 'pagar'],
         module: 'cashout',
         action: 'addExpense',
-        description: 'Registrar un gasto'
+        description: 'Record an expense'
     },
     // Thieves / Suspicious person
     thief: {
         keywords: ['sospechoso', 'thief', 'ladrón', 'robó', 'suspicious', 'robo', 'stealing', 'ratero'],
         module: 'thieves',
         action: 'reportThief',
-        description: 'Reportar persona sospechosa'
+        description: 'Report suspicious person'
     },
     // Announcements
     announcement: {
         keywords: ['anuncio', 'announcement', 'avisar', 'comunicar', 'notify', 'aviso'],
         module: 'announcements',
         action: 'createAnnouncement',
-        description: 'Crear un anuncio'
+        description: 'Create an announcement'
     },
     // Change records
     change: {
         keywords: ['cambio', 'change', 'feria', 'monedas', 'coins', 'billetes'],
         module: 'change',
         action: 'recordChange',
-        description: 'Registrar cambio'
+        description: 'Record change'
     },
     // Restock
     restock: {
         keywords: ['restock', 'pedir', 'ordenar', 'falta', 'necesito', 'order', 'supply'],
         module: 'restock',
         action: 'createRestock',
-        description: 'Crear solicitud de restock'
+        description: 'Create restock request'
     },
     // Issues
     issue: {
         keywords: ['problema', 'issue', 'queja', 'complaint', 'cliente molesto', 'reclamo'],
         module: 'issues',
         action: 'reportIssue',
-        description: 'Reportar un problema'
+        description: 'Report an issue'
     },
     // Gifts
     gift: {
         keywords: ['regalo', 'gift', 'regalé', 'gave away', 'cortesía', 'gratis'],
         module: 'customercare',
         action: 'recordGift',
-        description: 'Registrar un regalo'
+        description: 'Record a gift'
     },
     // Clock in/out
     clock: {
         keywords: ['entrada', 'salida', 'clock in', 'clock out', 'llegué', 'me voy', 'checar'],
         module: 'clockin',
         action: 'toggleClock',
-        description: 'Registrar entrada/salida'
+        description: 'Clock in/out'
     },
     // Navigate
     navigate: {
         keywords: ['ir a', 'abrir', 'mostrar', 'go to', 'open', 'show', 'ver'],
         module: null,
         action: 'navigate',
-        description: 'Navegar a un módulo'
+        description: 'Navigate to a module'
     },
     // Labels
     label: {
         keywords: ['etiqueta', 'label', 'barcode', 'código de barras', 'imprimir etiqueta'],
         module: 'labels',
         action: 'createLabel',
-        description: 'Crear etiquetas'
+        description: 'Create labels'
     },
     // Supplies
     supplies: {
         keywords: ['supplies', 'suministros', 'material', 'necesitamos', 'comprar para tienda'],
         module: 'supplies',
         action: 'addSupply',
-        description: 'Agregar suministro'
+        description: 'Add supply request'
     }
 };
 

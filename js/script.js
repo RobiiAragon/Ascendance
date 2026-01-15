@@ -995,7 +995,7 @@
                 date: '2025-12-10',
                 leftBy: 'Marcus Rodriguez',
                 receivedBy: 'Lauren Barrantes',
-                notes: 'Se dejó en caja 1',
+                notes: 'Left in drawer 1',
                 photo: null
             },
             {

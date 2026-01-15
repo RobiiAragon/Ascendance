@@ -5035,68 +5035,69 @@ Return ONLY the JSON object, no additional text.`
                     // Predefined supplies list with categories and priority
                     const supplyCategories = [
                         {
-                            name: 'Operaciones Críticas',
+                            name: 'Critical Operations',
                             icon: 'fa-exclamation-triangle',
                             color: '#ef4444',
                             priority: 'critical',
                             items: [
-                                { id: 'bolsas_basura', name: 'Bolsas negras para basura', unit: 'paquete' },
-                                { id: 'bolsas_pequeñas', name: 'Bolsas pequeñas (para producto)', unit: 'paquete' },
-                                { id: 'papel_recibo', name: 'Papel para impresora de recibos', unit: 'rollo' },
-                                { id: 'papel_etiquetas', name: 'Papel para etiquetas', unit: 'rollo' },
-                                { id: 'cajas_grandes', name: 'Cajas grandes', unit: 'unidad' },
-                                { id: 'cajas_medianas', name: 'Cajas medianas', unit: 'unidad' },
-                                { id: 'cajas_pequeñas', name: 'Cajas pequeñas', unit: 'unidad' },
-                                { id: 'cinta_empacar', name: 'Cinta para empacar', unit: 'rollo' },
-                                { id: 'bubble_wrap', name: 'Bubble wrap / Plástico burbuja', unit: 'rollo' }
+                                { id: 'trash_bags', name: 'Black Trash Bags', unit: 'pack' },
+                                { id: 'small_bags', name: 'Small Bags (for product)', unit: 'pack' },
+                                { id: 'receipt_paper', name: 'Receipt Printer Paper', unit: 'roll' },
+                                { id: 'label_paper', name: 'Label Paper', unit: 'roll' },
+                                { id: 'large_boxes', name: 'Large Boxes', unit: 'unit' },
+                                { id: 'medium_boxes', name: 'Medium Boxes', unit: 'unit' },
+                                { id: 'small_boxes', name: 'Small Boxes', unit: 'unit' },
+                                { id: 'packing_tape', name: 'Packing Tape', unit: 'roll' },
+                                { id: 'bubble_wrap', name: 'Bubble Wrap', unit: 'roll' }
                             ]
                         },
                         {
-                            name: 'Limpieza',
+                            name: 'Cleaning',
                             icon: 'fa-broom',
                             color: '#3b82f6',
                             priority: 'normal',
                             items: [
-                                { id: 'windex', name: 'Windex / Limpia vidrios', unit: 'botella' },
-                                { id: 'lysol', name: 'Lysol / Desinfectante', unit: 'botella' },
-                                { id: 'papel_toalla', name: 'Papel toalla', unit: 'rollo' },
-                                { id: 'escoba', name: 'Escoba', unit: 'unidad' },
-                                { id: 'trapeador', name: 'Trapeador / Mop', unit: 'unidad' },
-                                { id: 'cubeta', name: 'Cubeta', unit: 'unidad' },
-                                { id: 'jabon_manos', name: 'Jabón para manos', unit: 'botella' },
-                                { id: 'guantes', name: 'Guantes de limpieza', unit: 'par' },
-                                { id: 'desodorante_ambiente', name: 'Desodorante de ambiente', unit: 'unidad' }
+                                { id: 'windex', name: 'Windex / Glass Cleaner', unit: 'bottle' },
+                                { id: 'lysol', name: 'Lysol / Disinfectant', unit: 'bottle' },
+                                { id: 'paper_towels', name: 'Paper Towels', unit: 'roll' },
+                                { id: 'broom', name: 'Broom', unit: 'unit' },
+                                { id: 'mop', name: 'Mop', unit: 'unit' },
+                                { id: 'bucket', name: 'Bucket', unit: 'unit' },
+                                { id: 'hand_soap', name: 'Hand Soap', unit: 'bottle' },
+                                { id: 'gloves', name: 'Cleaning Gloves', unit: 'pair' },
+                                { id: 'air_freshener', name: 'Air Freshener', unit: 'unit' }
                             ]
                         },
                         {
-                            name: 'Oficina',
+                            name: 'Office',
                             icon: 'fa-pen',
                             color: '#8b5cf6',
                             priority: 'normal',
                             items: [
-                                { id: 'plumas', name: 'Plumas / Bolígrafos', unit: 'paquete' },
-                                { id: 'marcadores', name: 'Marcadores Sharpie', unit: 'paquete' },
-                                { id: 'papel_impresora', name: 'Papel para impresora normal', unit: 'resma' },
-                                { id: 'grapadora', name: 'Grapadora', unit: 'unidad' },
-                                { id: 'grapas', name: 'Grapas', unit: 'caja' },
-                                { id: 'clips', name: 'Clips', unit: 'caja' },
-                                { id: 'post_its', name: 'Post-its / Notas adhesivas', unit: 'paquete' },
-                                { id: 'folders', name: 'Folders / Carpetas', unit: 'paquete' }
+                                { id: 'pens', name: 'Pens', unit: 'pack' },
+                                { id: 'sharpies', name: 'Sharpie Markers', unit: 'pack' },
+                                { id: 'printer_paper', name: 'Printer Paper', unit: 'ream' },
+                                { id: 'envelopes', name: 'Envelopes', unit: 'pack' },
+                                { id: 'stapler', name: 'Stapler', unit: 'unit' },
+                                { id: 'staples', name: 'Staples', unit: 'box' },
+                                { id: 'clips', name: 'Paper Clips', unit: 'box' },
+                                { id: 'post_its', name: 'Post-its / Sticky Notes', unit: 'pack' },
+                                { id: 'folders', name: 'Folders', unit: 'pack' }
                             ]
                         },
                         {
-                            name: 'Varios',
+                            name: 'Miscellaneous',
                             icon: 'fa-box',
                             color: '#f59e0b',
                             priority: 'normal',
                             items: [
-                                { id: 'baterias_aa', name: 'Baterías AA', unit: 'paquete' },
-                                { id: 'baterias_aaa', name: 'Baterías AAA', unit: 'paquete' },
-                                { id: 'extension', name: 'Extensión eléctrica', unit: 'unidad' },
-                                { id: 'foco', name: 'Focos / Bombillas', unit: 'unidad' },
-                                { id: 'tijeras', name: 'Tijeras', unit: 'unidad' },
-                                { id: 'cutter', name: 'Cutter / Exacto', unit: 'unidad' },
-                                { id: 'cinta_scotch', name: 'Cinta scotch', unit: 'rollo' }
+                                { id: 'batteries_aa', name: 'AA Batteries', unit: 'pack' },
+                                { id: 'batteries_aaa', name: 'AAA Batteries', unit: 'pack' },
+                                { id: 'extension_cord', name: 'Extension Cord', unit: 'unit' },
+                                { id: 'light_bulbs', name: 'Light Bulbs', unit: 'unit' },
+                                { id: 'scissors', name: 'Scissors', unit: 'unit' },
+                                { id: 'box_cutter', name: 'Box Cutter / Exacto', unit: 'unit' },
+                                { id: 'scotch_tape', name: 'Scotch Tape', unit: 'roll' }
                             ]
                         }
                     ];
@@ -5230,7 +5231,7 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-group">
                                 <label><i class="fas fa-sticky-note" style="color: #f97316;"></i> What couldn't be delivered? *</label>
-                                <textarea class="form-input" id="partial-supply-notes" rows="4" placeholder="Explain what items couldn't be sent and why...&#10;&#10;Example:&#10;Solo enviamos 3 de 5 cajas - no hay stock&#10;El Windex se agoto, llega el martes" style="resize: vertical;"></textarea>
+                                <textarea class="form-input" id="partial-supply-notes" rows="4" placeholder="Explain what items couldn't be sent and why...&#10;&#10;Example:&#10;Only sent 3 of 5 boxes - out of stock&#10;Windex sold out, arrives Tuesday" style="resize: vertical;"></textarea>
                             </div>
                             <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid #f97316; padding: 12px; border-radius: 8px; font-size: 13px; color: #f97316;">
                                 <i class="fas fa-info-circle"></i> The store will see this note and must confirm reception of the partial delivery.
@@ -7137,7 +7138,7 @@ Return ONLY the JSON object, no additional text.`,
                             </div>
                             <div class="form-group">
                                 <label>Notes (Optional)</label>
-                                <textarea class="form-input" id="change-notes" rows="3" placeholder="e.g., 'Se dejó en caja 1', 'Se metió extra por falta de cambio'..."></textarea>
+                                <textarea class="form-input" id="change-notes" rows="3" placeholder="e.g., 'Left in drawer 1', 'Added extra due to lack of change'..."></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
