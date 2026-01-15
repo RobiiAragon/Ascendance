@@ -143,8 +143,8 @@ function glabsInitSheet(sheetName) {
 }
 
 // Load G-Labs from localStorage for current month
-function glabsLoadData() {
-    glabsLoadDataForMonth();
+async function glabsLoadData() {
+    await glabsLoadDataForMonth();
 }
 
 // Load data for specific month from Firebase

@@ -455,7 +455,7 @@ let glabsSelectionEnd = null;
 let glabsIsSelecting = false;
 let glabsSelectedCells = [];
 
-function renderGLabs() {
+async function renderGLabs() {
     const dashboard = document.querySelector('.dashboard');
 
     // Register keyboard handler (only once)
@@ -464,8 +464,8 @@ function renderGLabs() {
         window.glabsKeyboardRegistered = true;
     }
 
-    // Load data
-    glabsLoadData();
+    // Load data and wait for it
+    await glabsLoadData();
 
     const sheet = glabsSheets[glabsCurrentSheet];
     const glabsData = sheet.data;
@@ -894,6 +894,15 @@ function glabsStartSelection(event, row, col) {
 
     // Check if clicking on an input (already editing)
     if (event.target.tagName === 'INPUT') return;
+
+    // If clicking on already selected cell, enter edit mode directly
+    if (glabsSelectedCell && glabsSelectedCell.row === row && glabsSelectedCell.col === col) {
+        const td = document.querySelector(`.glabs-cell[data-row="${row}"][data-col="${col}"]`);
+        if (td) {
+            glabsEditCellDirectly(row, col, td);
+        }
+        return;
+    }
 
     glabsIsSelecting = true;
     glabsIsDragging = false;

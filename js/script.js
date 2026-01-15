@@ -1480,7 +1480,7 @@
                     renderLeases();
                     break;
                 case 'glabs':
-                    renderGLabs();
+                    await renderGLabs();
                     break;
                 case 'podmatcher':
                     renderPodMatcher();

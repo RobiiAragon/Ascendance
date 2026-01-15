@@ -3946,3 +3946,56 @@
             previewInvoiceFile(input);
         }
 
+
+
+        // Admin function to add PTO request directly (approved)
+        async function adminAddPTORequest(employeeName, store, startDate, endDate, reason) {
+            try {
+                const db = firebase.firestore();
+                const currentUser = getCurrentUser();
+                
+                const requestData = {
+                    employeeId: 'admin-added',
+                    employeeName: employeeName,
+                    employeeStore: store,
+                    requestType: 'personal',
+                    startDate: startDate,
+                    endDate: endDate,
+                    reason: reason || 'Admin approved request',
+                    status: 'approved',
+                    requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    requestedBy: employeeName,
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: currentUser?.name || 'Admin'
+                };
+
+                const docRef = await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').add(requestData);
+                
+                // Also add to daysOff collection
+                const start = new Date(startDate + 'T00:00:00');
+                const end = new Date(endDate + 'T00:00:00');
+                
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateKey = d.toISOString().split('T')[0];
+                    const dayOffData = {
+                        employeeId: 'admin-added',
+                        employeeName: employeeName,
+                        store: store,
+                        date: dateKey,
+                        createdAt: new Date().toISOString(),
+                        createdBy: currentUser?.name || 'Admin',
+                        ptoRequestId: docRef.id
+                    };
+                    await db.collection(window.FIREBASE_COLLECTIONS?.daysOff || 'daysOff').add(dayOffData);
+                }
+
+                console.log('✅ PTO Request added for ' + employeeName + ' on ' + startDate);
+                showNotification('PTO Request added for ' + employeeName, 'success');
+                return true;
+            } catch (error) {
+                console.error('Error adding PTO request:', error);
+                showNotification('Error adding PTO request', 'error');
+                return false;
+            }
+        }
+        window.adminAddPTORequest = adminAddPTORequest;
