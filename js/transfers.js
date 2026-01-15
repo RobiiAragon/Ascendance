@@ -10,8 +10,17 @@ let transfersState = {
     selectedProduct: null,
     productsCache: [],
     isLoadingProducts: false,
-    viewMode: 'table' // 'table' or 'grid'
+    viewMode: 'table', // 'table' or 'grid'
+    currentStore: 'vsu' // 'vsu' or 'loyalvaper'
 };
+
+// Set transfer store mode (VSU or Loyal Vaper)
+function setTransferStore(store) {
+    transfersState.currentStore = store;
+    transfersState.productsCache = []; // Clear cache to reload products for selected store
+    console.log('🏪 Transfer store set to:', store);
+}
+window.setTransferStore = setTransferStore;
 
 // Store names mapping
 const STORE_NAMES = {
@@ -229,12 +238,18 @@ function renderTransfersPage() {
 
     // Calculate stats
     const stats = calculateTransferStats();
+    const isLoyalVaper = transfersState.currentStore === 'loyalvaper';
+    const storeLabel = isLoyalVaper ? 'Loyal Vaper' : 'VSU';
+    const storeColor = isLoyalVaper ? '#f59e0b' : '#6366f1';
 
     dashboard.innerHTML = `
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-left">
-                <h2 class="section-title">Store Transfers</h2>
+                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+                    Store Transfers
+                    <span style="background: ${storeColor}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">${storeLabel}</span>
+                </h2>
                 <p class="section-subtitle">Manage inventory movement between locations</p>
             </div>
             <div style="display: flex; gap: 12px;">
@@ -244,7 +259,7 @@ function renderTransfersPage() {
                 <button class="btn-secondary" onclick="loadTransfers(); renderTransfersPage();">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
-                <button onclick="openUnifiedTransferModal()" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <button onclick="openUnifiedTransferModal()" style="background: linear-gradient(135deg, ${storeColor} 0%, ${isLoyalVaper ? '#d97706' : '#8b5cf6'} 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-plus"></i> New Transfer
                 </button>
             </div>
@@ -989,18 +1004,14 @@ async function searchProducts(query) {
     try {
         // Check if we have cached products
         if (transfersState.productsCache.length === 0) {
-            // Fetch products from BOTH Shopify stores (VSU + Loyal Vaper)
+            // Fetch products from selected store only
             if (typeof fetchStoreInventory === 'function') {
-                console.log('🔄 Fetching products from VSU and Loyal Vaper...');
-                const [vsuProducts, loyalProducts] = await Promise.all([
-                    fetchStoreInventory('vsu', 250).catch(e => { console.warn('VSU fetch failed:', e); return []; }),
-                    fetchStoreInventory('loyalvaper', 250).catch(e => { console.warn('Loyal Vaper fetch failed:', e); return []; })
-                ]);
-                // Mark products with their source store
-                vsuProducts.forEach(p => p.sourceStore = 'VSU');
-                loyalProducts.forEach(p => p.sourceStore = 'Loyal Vaper');
-                transfersState.productsCache = [...vsuProducts, ...loyalProducts];
-                console.log('✅ Loaded', vsuProducts.length, 'VSU products +', loyalProducts.length, 'Loyal Vaper products');
+                const storeKey = transfersState.currentStore || 'vsu';
+                const storeName = storeKey === 'loyalvaper' ? 'Loyal Vaper' : 'VSU';
+                console.log('🔄 Fetching products from', storeName + '...');
+                transfersState.productsCache = await fetchStoreInventory(storeKey, 250);
+                transfersState.productsCache.forEach(p => p.sourceStore = storeName);
+                console.log('✅ Loaded', transfersState.productsCache.length, storeName, 'products');
             } else {
                 throw new Error('fetchStoreInventory function not available');
             }
@@ -2007,31 +2018,41 @@ function openUnifiedTransferModal() {
 // Get HTML for unified modal
 function getUnifiedTransferModalHTML() {
     return `
-        <div class="modal-content" style="max-width: 560px; max-height: 90vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+        <style>
+            @media (max-width: 480px) {
+                #unifiedTransferModal .modal-content { margin: 10px; max-height: calc(100vh - 20px) !important; }
+                #unifiedTransferModal .store-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+                #unifiedTransferModal .store-arrow { display: none !important; }
+                #unifiedTransferModal .tab-buttons { flex-wrap: wrap; }
+                #unifiedTransferModal .tab-buttons button { flex: 1 1 30%; min-width: 90px; padding: 8px 10px !important; font-size: 11px !important; }
+                #unifiedTransferModal .tab-buttons button i { display: none; }
+            }
+        </style>
+        <div class="modal-content" style="max-width: 560px; max-height: 90vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column; margin: 20px;">
             <!-- Header -->
-            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); padding: 20px 24px; position: relative;">
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); padding: 16px 20px; position: relative;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-exchange-alt" style="color: white; font-size: 18px;"></i>
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-exchange-alt" style="color: white; font-size: 16px;"></i>
                     </div>
                     <div>
-                        <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">New Transfer</h3>
-                        <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 12px;">AI scan or search products</p>
+                        <h3 style="color: white; margin: 0; font-size: 16px; font-weight: 700;">New Transfer</h3>
+                        <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 11px;">AI scan, search or manual</p>
                     </div>
                 </div>
-                <button onclick="closeUnifiedTransferModal()" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                <button onclick="closeUnifiedTransferModal()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-times" style="color: white; font-size: 16px;"></i>
                 </button>
             </div>
 
-            <div class="modal-body" style="padding: 20px 24px; overflow-y: auto; flex: 1;">
+            <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; flex: 1;">
                 <!-- Store Selection -->
-                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; margin-bottom: 20px;">
+                <div class="store-grid" style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: end; margin-bottom: 16px;">
                     <div>
-                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">From</label>
-                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-warehouse" style="color: #6366f1; font-size: 14px;"></i>
-                            <select id="unifiedTransferOrigin" onchange="handleUnifiedOriginChange()" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
+                        <label style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">From</label>
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-warehouse" style="color: #6366f1; font-size: 12px;"></i>
+                            <select id="unifiedTransferOrigin" onchange="handleUnifiedOriginChange()" style="background: transparent; border: none; color: var(--text-primary); font-size: 12px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
                                 <option value="">Select</option>
                                 <option value="1">Miramar</option>
                                 <option value="2">Morena</option>
@@ -2042,14 +2063,14 @@ function getUnifiedTransferModalHTML() {
                             </select>
                         </div>
                     </div>
-                    <div style="padding-bottom: 8px;">
-                        <i class="fas fa-arrow-right" style="color: var(--text-muted); font-size: 14px;"></i>
+                    <div class="store-arrow" style="padding-bottom: 6px;">
+                        <i class="fas fa-arrow-right" style="color: var(--text-muted); font-size: 12px;"></i>
                     </div>
                     <div>
-                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">To</label>
-                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-store" style="color: #10b981; font-size: 14px;"></i>
-                            <select id="unifiedTransferDestination" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
+                        <label style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">To</label>
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-store" style="color: #10b981; font-size: 12px;"></i>
+                            <select id="unifiedTransferDestination" style="background: transparent; border: none; color: var(--text-primary); font-size: 12px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
                                 <option value="">Select</option>
                                 <option value="1">Miramar</option>
                                 <option value="2">Morena</option>
@@ -2062,20 +2083,22 @@ function getUnifiedTransferModalHTML() {
                     </div>
                 </div>
 
-                <!-- Tabs -->
-                <div style="display: flex; gap: 8px; margin-bottom: 16px; background: var(--bg-secondary); padding: 4px; border-radius: 12px;">
-                    <button id="unifiedTabAI" onclick="switchUnifiedTab('ai')" style="flex: 1; padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;">
+                <!-- Tabs - 3 options -->
+                <div class="tab-buttons" style="display: flex; gap: 6px; margin-bottom: 14px; background: var(--bg-secondary); padding: 4px; border-radius: 10px;">
+                    <button id="unifiedTabAI" onclick="switchUnifiedTab('ai')" style="flex: 1; padding: 10px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;">
                         <i class="fas fa-wand-magic-sparkles"></i> AI Scan
                     </button>
-                    <button id="unifiedTabSearch" onclick="switchUnifiedTab('search')" style="flex: 1; padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; background: transparent; color: var(--text-muted);">
+                    <button id="unifiedTabSearch" onclick="switchUnifiedTab('search')" style="flex: 1; padding: 10px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; background: transparent; color: var(--text-muted);">
                         <i class="fas fa-search"></i> Search
+                    </button>
+                    <button id="unifiedTabManual" onclick="switchUnifiedTab('manual')" style="flex: 1; padding: 10px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; background: transparent; color: var(--text-muted);">
+                        <i class="fas fa-keyboard"></i> Manual
                     </button>
                 </div>
 
                 <!-- AI Scan Section -->
                 <div id="unifiedAISection">
-                    <!-- Media Upload Area -->
-                    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08)); border: 2px dashed rgba(99, 102, 241, 0.3); border-radius: 14px; padding: 16px; margin-bottom: 16px; position: relative;" id="unifiedMediaDropzone"
+                    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08)); border: 2px dashed rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 14px; position: relative;" id="unifiedMediaDropzone"
                          ondragover="handleUnifiedDragOver(event)"
                          ondragleave="handleUnifiedDragLeave(event)"
                          ondrop="handleUnifiedDrop(event)">
@@ -2084,78 +2107,78 @@ function getUnifiedTransferModalHTML() {
                         <input type="file" id="unifiedCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="processUnifiedMedia(this)">
 
                         <!-- Media Preview -->
-                        <div id="unifiedMediaPreview" style="display: none; margin-bottom: 12px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);" id="unifiedMediaCount">0 files</span>
-                                <button onclick="clearUnifiedMedia()" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                        <div id="unifiedMediaPreview" style="display: none; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-size: 11px; font-weight: 600; color: var(--text-primary);" id="unifiedMediaCount">0 files</span>
+                                <button onclick="clearUnifiedMedia()" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: 600;">
                                     <i class="fas fa-trash"></i> Clear
                                 </button>
                             </div>
-                            <div id="unifiedMediaGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; max-height: 120px; overflow-y: auto;"></div>
+                            <div id="unifiedMediaGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 6px; max-height: 100px; overflow-y: auto;"></div>
                         </div>
 
                         <!-- Upload Placeholder -->
                         <div id="unifiedMediaPlaceholder">
-                            <div style="text-align: center; padding: 8px 0;">
-                                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-camera" style="color: white; font-size: 16px;"></i>
+                            <div style="text-align: center; padding: 6px 0;">
+                                <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;">
+                                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-camera" style="color: white; font-size: 14px;"></i>
                                     </div>
-                                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-video" style="color: white; font-size: 16px;"></i>
+                                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-video" style="color: white; font-size: 14px;"></i>
                                     </div>
-                                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-microphone" style="color: white; font-size: 16px;"></i>
+                                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-microphone" style="color: white; font-size: 14px;"></i>
                                     </div>
                                 </div>
-                                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">Scan with AI</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Photos, videos, or audio</div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Scan with AI</div>
+                                <div style="font-size: 10px; color: var(--text-muted);">Photos, videos, or audio</div>
                             </div>
                             <div style="display: flex; gap: 8px; margin-top: 10px;">
-                                <button onclick="openUnifiedCamera()" style="flex: 1; padding: 10px 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 12px;">
+                                <button onclick="openUnifiedCamera()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 13px; min-height: 48px;">
                                     <i class="fas fa-camera"></i> Camera
                                 </button>
-                                <button onclick="document.getElementById('unifiedMediaInput').click()" style="flex: 1; padding: 10px 14px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 12px;">
+                                <button onclick="document.getElementById('unifiedMediaInput').click()" style="flex: 1; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 13px; min-height: 48px;">
                                     <i class="fas fa-images"></i> Gallery
                                 </button>
                             </div>
                         </div>
 
                         <!-- Process Button -->
-                        <button id="unifiedProcessBtn" onclick="processUnifiedWithAI()" style="display: none; width: 100%; margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                        <button id="unifiedProcessBtn" onclick="processUnifiedWithAI()" style="display: none; width: 100%; margin-top: 10px; padding: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; min-height: 48px;">
                             <i class="fas fa-wand-magic-sparkles"></i> Analyze with AI
                         </button>
                     </div>
-
-                    <!-- Manual Text Input -->
-                    <details style="margin-bottom: 12px;">
-                        <summary style="font-size: 12px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-keyboard"></i> Or type products manually
-                        </summary>
-                        <div style="display: flex; gap: 8px; margin-top: 10px;">
-                            <textarea id="unifiedTransferInput" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry..." style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; font-size: 12px; resize: none; height: 70px; color: var(--text-primary);"></textarea>
-                            <div style="display: flex; flex-direction: column; gap: 6px;">
-                                <button onclick="parseUnifiedTextInput()" style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Parse">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                                <button onclick="startUnifiedVoiceInput()" style="width: 40px; height: 32px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Voice">
-                                    <i class="fas fa-microphone" style="color: var(--text-muted);"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </details>
                 </div>
 
                 <!-- Search Section -->
                 <div id="unifiedSearchSection" style="display: none;">
                     <div style="position: relative; margin-bottom: 12px;">
                         <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;"></i>
-                        <input type="text" id="unifiedProductSearch" placeholder="Search by name, SKU, or brand..." autocomplete="off" style="width: 100%; padding: 12px 12px 12px 38px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; box-sizing: border-box; transition: all 0.2s;" onfocus="this.style.borderColor='#8b5cf6'; this.style.background='var(--bg-primary)'" onblur="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)'" oninput="searchUnifiedProducts(this.value)">
-                        <div id="unifiedSearchLoading" style="display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);">
+                        <input type="text" id="unifiedProductSearch" placeholder="Search by name, SKU, or brand..." autocomplete="off" style="width: 100%; padding: 14px 14px 14px 40px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; box-sizing: border-box; transition: all 0.2s;" onfocus="this.style.borderColor='#8b5cf6'; this.style.background='var(--bg-primary)'" onblur="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)'" oninput="searchUnifiedProducts(this.value)">
+                        <div id="unifiedSearchLoading" style="display: none; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);">
                             <i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i>
                         </div>
                     </div>
                     <div id="unifiedSearchResults" style="display: none; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.15);"></div>
+                </div>
+
+                <!-- Manual Section -->
+                <div id="unifiedManualSection" style="display: none;">
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-edit" style="margin-right: 4px;"></i> Type products manually
+                        </label>
+                        <textarea id="unifiedTransferInput" placeholder="Enter products with quantities:&#10;&#10;5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry&#10;3 Geek Bar Strawberry" style="width: 100%; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; font-size: 14px; resize: none; height: 120px; color: var(--text-primary); box-sizing: border-box; font-family: inherit; line-height: 1.5;" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border-color)'"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="parseUnifiedTextInput()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 14px; min-height: 48px;">
+                            <i class="fas fa-plus-circle"></i> Add Products
+                        </button>
+                        <button onclick="startUnifiedVoiceInput()" style="width: 52px; min-height: 48px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Voice Input">
+                            <i class="fas fa-microphone" style="color: var(--text-muted); font-size: 18px;"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Loading Indicator -->
@@ -2172,13 +2195,13 @@ function getUnifiedTransferModalHTML() {
                         </h4>
                         <span id="unifiedItemCount" style="background: var(--bg-secondary); padding: 3px 10px; border-radius: 20px; font-size: 11px; color: var(--text-muted);"></span>
                     </div>
-                    <div id="unifiedItemsList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+                    <div id="unifiedItemsList" style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                    <button onclick="closeUnifiedTransferModal()" style="padding: 14px; min-height: 50px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; font-size: 14px; color: var(--text-secondary); cursor: pointer;">Cancel</button>
-                    <button id="unifiedSubmitBtn" onclick="createUnifiedTransfer()" style="padding: 14px; min-height: 50px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.5;" disabled>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+                    <button onclick="closeUnifiedTransferModal()" style="padding: 14px; min-height: 52px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; font-size: 14px; color: var(--text-secondary); cursor: pointer;">Cancel</button>
+                    <button id="unifiedSubmitBtn" onclick="createUnifiedTransfer()" style="padding: 14px; min-height: 52px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.5;" disabled>
                         <i class="fas fa-paper-plane"></i> Create Transfer
                     </button>
                 </div>
@@ -2209,31 +2232,43 @@ function switchUnifiedTab(tab) {
 function updateUnifiedTabUI() {
     const aiTab = document.getElementById('unifiedTabAI');
     const searchTab = document.getElementById('unifiedTabSearch');
+    const manualTab = document.getElementById('unifiedTabManual');
     const aiSection = document.getElementById('unifiedAISection');
     const searchSection = document.getElementById('unifiedSearchSection');
+    const manualSection = document.getElementById('unifiedManualSection');
 
+    // Reset all tabs
+    [aiTab, searchTab, manualTab].forEach(tab => {
+        if (tab) {
+            tab.style.background = 'transparent';
+            tab.style.color = 'var(--text-muted)';
+        }
+    });
+
+    // Hide all sections
+    if (aiSection) aiSection.style.display = 'none';
+    if (searchSection) searchSection.style.display = 'none';
+    if (manualSection) manualSection.style.display = 'none';
+
+    // Show active tab and section
     if (unifiedTransferState.activeTab === 'ai') {
         if (aiTab) {
             aiTab.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
             aiTab.style.color = 'white';
         }
-        if (searchTab) {
-            searchTab.style.background = 'transparent';
-            searchTab.style.color = 'var(--text-muted)';
-        }
         if (aiSection) aiSection.style.display = 'block';
-        if (searchSection) searchSection.style.display = 'none';
-    } else {
+    } else if (unifiedTransferState.activeTab === 'search') {
         if (searchTab) {
             searchTab.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
             searchTab.style.color = 'white';
         }
-        if (aiTab) {
-            aiTab.style.background = 'transparent';
-            aiTab.style.color = 'var(--text-muted)';
-        }
-        if (aiSection) aiSection.style.display = 'none';
         if (searchSection) searchSection.style.display = 'block';
+    } else if (unifiedTransferState.activeTab === 'manual') {
+        if (manualTab) {
+            manualTab.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+            manualTab.style.color = 'white';
+        }
+        if (manualSection) manualSection.style.display = 'block';
     }
 }
 
