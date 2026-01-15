@@ -8108,7 +8108,10 @@ window.viewChecklistHistory = async function() {
                 console.log('🏖️ Employee IDs with day off:', employeesWithDayOff);
 
                 const beforeFilter = filteredEmployees.length;
-                filteredEmployees = filteredEmployees.filter(e => !employeesWithDayOff.includes(e.id));
+                filteredEmployees = filteredEmployees.filter(e =>
+                    !employeesWithDayOff.includes(e.id) &&
+                    !employeesWithDayOff.includes(e.firestoreId)
+                );
                 console.log(`🏖️ Filtered out ${beforeFilter - filteredEmployees.length} employees with days off`);
             }
 
