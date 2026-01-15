@@ -8774,7 +8774,9 @@ Return ONLY the JSON object, no additional text.`,
             const store = document.getElementById('store-filter').value;
             const status = document.getElementById('status-filter').value;
 
+            // Always exclude inactive employees from main view - they only show in Inactive modal
             const filtered = employees.filter(emp => {
+                if (emp.status === 'inactive') return false; // Never show inactive in main view
                 const matchSearch = emp.name.toLowerCase().includes(search) || emp.role.toLowerCase().includes(search);
                 const matchStore = !store || emp.store === store;
                 const matchStatus = !status || emp.status === status;

@@ -2754,10 +2754,9 @@
                         <option value="North Park">VSU North Park</option>
                         <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
                     </select>
-                    <select class="filter-select" id="status-filter" onchange="filterEmployees()">
+                    <select class="filter-select" id="status-filter" onchange="filterEmployees()" style="display: none;">
                         <option value="">All Status</option>
                         <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
                     </select>
                     <div class="view-toggle" style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 8px;">
                         <button class="view-toggle-btn ${employeeViewMode === 'grid' ? 'active' : ''}" onclick="setEmployeeViewMode('grid')" title="Grid View" style="padding: 8px 12px; border: none; background: ${employeeViewMode === 'grid' ? 'var(--accent-primary)' : 'transparent'}; color: ${employeeViewMode === 'grid' ? 'white' : 'var(--text-muted)'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
@@ -2961,14 +2960,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${employees.map(emp => renderEmployeeListRow(emp)).join('')}
+                                        ${employees.filter(emp => emp.status !== 'inactive').map(emp => renderEmployeeListRow(emp)).join('')}
                                     </tbody>
                                 </table>
                             </div>
                         `;
                     } else {
                         grid.className = 'employees-grid';
-                        grid.innerHTML = employees.map(emp => renderEmployeeCard(emp)).join('');
+                        grid.innerHTML = employees.filter(emp => emp.status !== 'inactive').map(emp => renderEmployeeCard(emp)).join('');
                     }
                 }
             }

@@ -22,6 +22,15 @@ function setTransferStore(store) {
 }
 window.setTransferStore = setTransferStore;
 
+// Switch transfer store and reload page
+function switchTransferStore(store) {
+    transfersState.currentStore = store;
+    transfersState.productsCache = []; // Clear cache to reload products for selected store
+    console.log('🏪 Switching to:', store);
+    renderTransfersPage();
+}
+window.switchTransferStore = switchTransferStore;
+
 // Store names mapping
 const STORE_NAMES = {
     '1': 'Miramar',
@@ -239,30 +248,35 @@ function renderTransfersPage() {
     // Calculate stats
     const stats = calculateTransferStats();
     const isLoyalVaper = transfersState.currentStore === 'loyalvaper';
-    const storeLabel = isLoyalVaper ? 'Loyal Vaper' : 'VSU';
-    const storeColor = isLoyalVaper ? '#f59e0b' : '#6366f1';
 
     dashboard.innerHTML = `
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-left">
-                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px;">
-                    Store Transfers
-                    <span style="background: ${storeColor}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">${storeLabel}</span>
-                </h2>
+                <h2 class="section-title">Store Transfers</h2>
                 <p class="section-subtitle">Manage inventory movement between locations</p>
             </div>
-            <div style="display: flex; gap: 12px;">
+            <div style="display: flex; gap: 12px; align-items: center;">
                 <button onclick="openTransferReports()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-primary);">
                     <i class="fas fa-chart-bar" style="color: #8b5cf6;"></i> Reports
                 </button>
                 <button class="btn-secondary" onclick="loadTransfers(); renderTransfersPage();">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
-                <button onclick="openUnifiedTransferModal()" style="background: linear-gradient(135deg, ${storeColor} 0%, ${isLoyalVaper ? '#d97706' : '#8b5cf6'} 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <button onclick="openUnifiedTransferModal()" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-plus"></i> New Transfer
                 </button>
             </div>
+        </div>
+
+        <!-- Store Tabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; background: var(--bg-secondary); padding: 6px; border-radius: 14px; width: fit-content;">
+            <button onclick="switchTransferStore('vsu')" style="padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: all 0.2s; ${!isLoyalVaper ? 'background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;' : 'background: transparent; color: var(--text-muted);'}">
+                <i class="fas fa-store"></i> VSU
+            </button>
+            <button onclick="switchTransferStore('loyalvaper')" style="padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: all 0.2s; ${isLoyalVaper ? 'background: linear-gradient(135deg, #f59e0b, #d97706); color: white;' : 'background: transparent; color: var(--text-muted);'}">
+                <i class="fas fa-store"></i> Loyal Vaper
+            </button>
         </div>
 
         <!-- Stats Cards -->
@@ -2785,6 +2799,7 @@ async function createUnifiedTransfer() {
         const transfer = {
             id: Date.now().toString(),
             folio: generateTransferFolio(),
+            storeType: transfersState.currentStore || 'vsu', // 'vsu' or 'loyalvaper'
             storeOrigin: origin,
             storeDestination: destination,
             items: unifiedTransferState.items.map(item => ({
