@@ -576,9 +576,6 @@
 
             <!-- SISTEMA -->
             <div class="nav-label">System</div>
-            <a href="#" class="nav-item" data-page="devlog" onclick="window.navigateTo && window.navigateTo('devlog'); return false;">
-                <span class="nav-icon"><i class="fas fa-code"></i></span> Development
-            </a>
             <a href="#" class="nav-item" data-page="activitylog" onclick="window.navigateTo && window.navigateTo('activitylog'); return false;">
                 <span class="nav-icon"><i class="fas fa-history"></i></span> Activity Log
             </a>
@@ -596,6 +593,9 @@
             </button>
             <button class="sidebar-footer-btn" onclick="toggleTheme()" title="Toggle Theme">
                 <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+            <button class="sidebar-footer-btn sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse Menu">
+                <i class="fas fa-angles-left" id="collapse-icon"></i>
             </button>
         </div>
     </aside>

@@ -11335,6 +11335,77 @@ Return ONLY the JSON object, no additional text.`,
             }
         }
 
+        // Sidebar collapse functionality (Desktop only)
+        function toggleSidebarCollapse() {
+            // Don't collapse on mobile
+            if (window.innerWidth <= 768) return;
+
+            const sidebar = document.querySelector('.sidebar');
+            const body = document.body;
+
+            sidebar.classList.toggle('collapsed');
+            body.classList.toggle('sidebar-collapsed');
+
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+
+            // Update tooltip
+            const collapseBtn = document.querySelector('.sidebar-collapse-btn');
+            if (collapseBtn) {
+                collapseBtn.title = isCollapsed ? 'Expand Menu' : 'Collapse Menu';
+            }
+        }
+
+        // Load sidebar collapse state on page load
+        function loadSidebarState() {
+            // Only apply on desktop
+            if (window.innerWidth <= 768) return;
+
+            // Add data-tooltip to all nav-items for collapsed state
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const text = item.textContent.trim();
+                if (text && !item.hasAttribute('data-tooltip')) {
+                    item.setAttribute('data-tooltip', text);
+                }
+            });
+
+            const savedState = localStorage.getItem('sidebarCollapsed');
+            if (savedState === 'true') {
+                const sidebar = document.querySelector('.sidebar');
+                const body = document.body;
+
+                if (sidebar) {
+                    sidebar.classList.add('collapsed');
+                    body.classList.add('sidebar-collapsed');
+
+                    const collapseBtn = document.querySelector('.sidebar-collapse-btn');
+                    if (collapseBtn) {
+                        collapseBtn.title = 'Expand Menu';
+                    }
+                }
+            }
+        }
+
+        // Initialize sidebar state
+        document.addEventListener('DOMContentLoaded', loadSidebarState);
+
+        // Reset collapse on resize to mobile
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const body = document.body;
+                if (sidebar) {
+                    sidebar.classList.remove('collapsed');
+                    body.classList.remove('sidebar-collapsed');
+                }
+            }
+        });
+
+        // Expose functions globally
+        window.toggleSidebarCollapse = toggleSidebarCollapse;
+        window.loadSidebarState = loadSidebarState;
+
         // User menu dropdown functionality
         function toggleUserMenu() {
             const container = document.querySelector('.user-menu-container');
