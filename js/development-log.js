@@ -50,6 +50,66 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_015',
+            date: '2026-01-15',
+            title: 'Announcement Likes/Comments Fix',
+            description: 'Fixed critical bug where likes and comments on announcements were not working. The issue was caused by duplicate function definitions - toggleAnnouncementLike, toggleAnnouncementComments, addAnnouncementComment, and deleteAnnouncementComment were defined in both script.js and pod-matcher.js. Since pod-matcher.js loads after script.js, its versions would overwrite the correct ones. The pod-matcher.js versions only updated window.announcements but not the local announcements variable used by renderAnnouncements(), causing the UI to render with stale data. Removed the duplicate functions from pod-matcher.js so the properly synced versions in script.js are used.',
+            category: 'fix',
+            files: ['js/pod-matcher.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_014',
+            date: '2026-01-15',
+            title: 'Collapsible Sidebar Feature',
+            description: 'Added ability to collapse the sidebar to show only icons, giving users more screen space for content. Click the collapse button (double arrows) at the bottom of the sidebar to toggle. When collapsed, the sidebar shrinks to 72px width showing only navigation icons. Hovering over icons shows a tooltip with the full name. The collapse state persists in localStorage so it remembers your preference. This feature only works on desktop - mobile devices keep the standard slide-out sidebar behavior. Fixed an issue where text was still visible when collapsed by using font-size: 0 technique since nav item text was not wrapped in spans.',
+            category: 'feature',
+            files: ['css/styles.css', 'js/vendors-module.js', 'index.html'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_013',
+            date: '2026-01-15',
+            title: 'Customer Issue Log - Removed Emojis',
+            description: 'Replaced emoji faces in the Customer Issue Log perception ratings with Font Awesome icons for a more professional/sober appearance. The getPerceptionEmoji() function now returns Font Awesome icon HTML instead of emoji characters. Updated the perception distribution grid in the statistics section and the rating selector in the issue form. Icons used: fa-face-angry (1), fa-face-frown (2), fa-face-meh (3), fa-face-smile (4), fa-face-grin-beam (5).',
+            category: 'ui',
+            files: ['js/vendors-module.js'],
+            developer: 'Carlos',
+            requestedBy: 'Staff'
+        },
+        {
+            id: 'log_012',
+            date: '2026-01-15',
+            title: 'Blank Excel Double-Click Fix',
+            description: 'Fixed bug where the Blank Excel (G-Labs) module required clicking twice in the menu to open properly. The issue was that renderGLabs() was calling glabsLoadData() without awaiting it, so the first click would render the UI with no data, and only the second click would show the loaded data. Made both renderGLabs() and glabsLoadData() async functions and added proper await to ensure data is loaded before rendering.',
+            category: 'fix',
+            files: ['js/activity-log.js', 'js/g-labs.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_011',
+            date: '2026-01-15',
+            title: 'Schedule/PTO Integration Fix',
+            description: 'Fixed bug where approved days off were not properly blocking employees from being scheduled on those dates. The issue was that the day-off checks were only comparing employeeId against e.id, but some employees use firestoreId as their identifier. Updated the filtering logic in daily-checklist.js to check both e.id and e.firestoreId when determining if an employee has an approved day off. This fix was applied in three locations: the employee filter for scheduling, the day-off indicator display, and the scheduling validation.',
+            category: 'fix',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_010b',
+            date: '2026-01-15',
+            title: 'God Mode Navigation Fix',
+            description: 'Fixed issue where clicking on God Mode menu items would not navigate to the page. The navigateTo() function was checking role permissions and blocking access because "superadmin" and "devlog" pages were not in the ROLE_PERMISSIONS allowed pages list. Added a special bypass for super admin pages that checks if the user email is carlos@calidevs.com before allowing access, maintaining security while enabling God Mode functionality.',
+            category: 'fix',
+            files: ['js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
             id: 'log_001',
             date: '2026-01-14',
             title: 'Development Log Module Created',
