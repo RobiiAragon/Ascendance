@@ -524,6 +524,7 @@ function renderDevLogEntry(log) {
     const date = new Date(log.date);
     const formattedDate = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
+    // Note: We filter out 'Claude AI' and 'Claude' from developer/requestedBy fields
     return `
         <div class="dev-log-entry" data-category="${log.category}">
             <div class="dev-log-entry-header">
@@ -535,8 +536,8 @@ function renderDevLogEntry(log) {
                     <div class="dev-log-entry-meta">
                         <span><i class="fas fa-calendar"></i> ${formattedDate}</span>
                         <span><i class="fas fa-tag"></i> ${category.label}</span>
-                        ${log.developer ? `<span><i class="fas fa-user-cog"></i> ${log.developer}</span>` : ''}
-                        ${log.requestedBy ? `<span><i class="fas fa-user"></i> Requested by ${log.requestedBy}</span>` : ''}
+                        ${log.developer && log.developer !== 'Claude AI' && log.developer !== 'Claude' ? `<span><i class="fas fa-user-cog"></i> ${log.developer}</span>` : ''}
+                        ${log.requestedBy && log.requestedBy !== 'Claude AI' && log.requestedBy !== 'Claude' ? `<span><i class="fas fa-user"></i> Requested by ${log.requestedBy}</span>` : ''}
                     </div>
                 </div>
             </div>
