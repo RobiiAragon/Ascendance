@@ -8207,7 +8207,7 @@ window.viewChecklistHistory = async function() {
             // Check if employee has a day off on this date
             const hasDayOff = daysOff.some(d =>
                 d.date === dateKey &&
-                d.employeeId === employeeId
+                (d.employeeId === employeeId || d.employeeId === emp?.firestoreId)
             );
 
             if (hasDayOff) {
@@ -8357,7 +8357,7 @@ window.viewChecklistHistory = async function() {
                     // Check if employee has a day off on this date
                     const hasDayOff = daysOff.some(d =>
                         d.date === dateKey &&
-                        d.employeeId === employeeId
+                        (d.employeeId === employeeId || d.employeeId === emp?.firestoreId)
                     );
 
                     if (hasDayOff) {
