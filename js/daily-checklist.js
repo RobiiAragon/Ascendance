@@ -1579,22 +1579,22 @@ window.viewChecklistHistory = async function() {
                                 // Generate dropdown options
                                 const storeOptions = RUNNING_LOW_STORES.map(s => {
                                     const sc = storeColors[s] || { bg: '#6b7280', text: '#ffffff' };
-                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'store\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
+                                    return '<div class="inv-dropdown-item" onclick="event.stopPropagation(); updateInventoryField(\'' + reqId + '\', \'store\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
                                 }).join('');
 
                                 const categoryOptions = RUNNING_LOW_CATEGORIES.map(c => {
                                     const cc = categoryColors[c] || { bg: '#6b7280', text: '#ffffff' };
-                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'category\', \'' + c + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + cc.bg + ';"></span>' + c + '</div>';
+                                    return '<div class="inv-dropdown-item" onclick="event.stopPropagation(); updateInventoryField(\'' + reqId + '\', \'category\', \'' + c + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + cc.bg + ';"></span>' + c + '</div>';
                                 }).join('');
 
                                 const urgencyOptions = RUNNING_LOW_URGENCIES.map(u => {
                                     const uc = urgencyColors[u] || { bg: '#6b7280', text: '#ffffff' };
-                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'urgency\', \'' + u + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + uc.bg + ';"></span>' + u + '</div>';
+                                    return '<div class="inv-dropdown-item" onclick="event.stopPropagation(); updateInventoryField(\'' + reqId + '\', \'urgency\', \'' + u + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + uc.bg + ';"></span>' + u + '</div>';
                                 }).join('');
 
                                 const statusOptions = RUNNING_LOW_STATUSES.map(s => {
                                     const sc = statusColors[s] || { bg: '#6b7280', text: '#ffffff' };
-                                    return '<div class="inv-dropdown-item" onclick="updateInventoryField(\'' + reqId + '\', \'orderStatus\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
+                                    return '<div class="inv-dropdown-item" onclick="event.stopPropagation(); updateInventoryField(\'' + reqId + '\', \'orderStatus\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
                                 }).join('');
 
                                 return `
@@ -1913,6 +1913,14 @@ window.viewChecklistHistory = async function() {
                 showNotification('Error saving changes', 'error');
             }
         }
+
+        // Export functions to window for onclick handlers
+        window.toggleInvDropdown = toggleInvDropdown;
+        window.updateInventoryField = updateInventoryField;
+        window.makeSpecificsEditable = makeSpecificsEditable;
+        window.saveSpecificsField = saveSpecificsField;
+        window.openEditInventoryItemModal = openEditInventoryItemModal;
+        window.saveEditInventoryItem = saveEditInventoryItem;
 
         // Refresh inventory from Shopify
         async function refreshShopifyInventory() {
