@@ -1341,7 +1341,7 @@ window.viewChecklistHistory = async function() {
         };
 
         // Running Low constants
-        const RUNNING_LOW_STORES = ['Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'Miramar', 'All Shops'];
+        const RUNNING_LOW_STORES = ['Miramar', 'Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'All Shops'];
         const RUNNING_LOW_URGENCIES = ['Low', 'High Priority', 'Sold Out'];
         const RUNNING_LOW_CATEGORIES = ['Detox', 'Coils/Pods', 'Wraps', 'Disposables', 'Juices', 'Heady', 'Glass', 'Smoke Shop', 'Vape Shop', 'Liquor', 'Cleaning Supplies', 'Office Supplies'];
         const RUNNING_LOW_STATUSES = ['Processing', 'Ordered', 'Not Ordered', 'Received'];
@@ -1609,7 +1609,7 @@ window.viewChecklistHistory = async function() {
                                         <!-- Store Dropdown -->
                                         <div class="inv-dropdown-wrapper" style="position: relative;">
                                             <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${storeStyle.bg}; color: ${storeStyle.text}; cursor: pointer;">${request.store || '-'} <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
-                                            <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
+                                            <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto;">
                                                 ${storeOptions}
                                             </div>
                                         </div>
@@ -1652,13 +1652,13 @@ window.viewChecklistHistory = async function() {
                                         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                                             <div class="inv-dropdown-wrapper" style="position: relative;">
                                                 <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${storeStyle.bg}; color: ${storeStyle.text}; cursor: pointer;">${request.store || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
-                                                <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 150px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
+                                                <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 150px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto;">
                                                     ${storeOptions}
                                                 </div>
                                             </div>
                                             <div class="inv-dropdown-wrapper" style="position: relative;">
                                                 <span class="inventory-badge inv-dropdown-trigger" onclick="toggleInvDropdown(this)" style="background: ${catStyle.bg}; color: ${catStyle.text}; cursor: pointer;">${request.category || '-'} <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 3px;"></i></span>
-                                                <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
+                                                <div class="inv-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto;">
                                                     ${categoryOptions}
                                                 </div>
                                             </div>
