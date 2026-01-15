@@ -244,10 +244,7 @@ function renderTransfersPage() {
                 <button class="btn-secondary" onclick="loadTransfers(); renderTransfersPage();">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
-                <button onclick="openAITransferModal()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-wand-magic-sparkles"></i> AI Transfer
-                </button>
-                <button class="btn-primary" onclick="openTransferModal()">
+                <button onclick="openUnifiedTransferModal()" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-plus"></i> New Transfer
                 </button>
             </div>
@@ -992,11 +989,18 @@ async function searchProducts(query) {
     try {
         // Check if we have cached products
         if (transfersState.productsCache.length === 0) {
-            // Fetch products from Shopify using the existing function
+            // Fetch products from BOTH Shopify stores (VSU + Loyal Vaper)
             if (typeof fetchStoreInventory === 'function') {
-                console.log('🔄 Fetching products from Shopify...');
-                transfersState.productsCache = await fetchStoreInventory('vsu', 250);
-                console.log('✅ Loaded', transfersState.productsCache.length, 'products');
+                console.log('🔄 Fetching products from VSU and Loyal Vaper...');
+                const [vsuProducts, loyalProducts] = await Promise.all([
+                    fetchStoreInventory('vsu', 250).catch(e => { console.warn('VSU fetch failed:', e); return []; }),
+                    fetchStoreInventory('loyalvaper', 250).catch(e => { console.warn('Loyal Vaper fetch failed:', e); return []; })
+                ]);
+                // Mark products with their source store
+                vsuProducts.forEach(p => p.sourceStore = 'VSU');
+                loyalProducts.forEach(p => p.sourceStore = 'Loyal Vaper');
+                transfersState.productsCache = [...vsuProducts, ...loyalProducts];
+                console.log('✅ Loaded', vsuProducts.length, 'VSU products +', loyalProducts.length, 'Loyal Vaper products');
             } else {
                 throw new Error('fetchStoreInventory function not available');
             }
@@ -1030,6 +1034,8 @@ async function searchProducts(query) {
         resultsContainer.innerHTML = filteredProducts.map(product => {
             const productData = encodeURIComponent(JSON.stringify(product));
             const stockColor = parseInt(product.stock) <= 5 ? '#ef4444' : parseInt(product.stock) <= 20 ? '#f59e0b' : '#10b981';
+            const storeColor = product.sourceStore === 'Loyal Vaper' ? '#f59e0b' : '#6366f1';
+            const storeBadge = product.sourceStore ? `<span style="font-size: 10px; color: white; background: ${storeColor}; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${product.sourceStore}</span>` : '';
 
             return `
                 <div onclick="selectProductFromSearch('${productData}')" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
@@ -1039,6 +1045,7 @@ async function searchProducts(query) {
                                 ${product.productName}${product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''}
                             </div>
                             <div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
+                                ${storeBadge}
                                 ${product.sku ? `<span style="font-size: 11px; color: var(--text-muted); background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">SKU: ${product.sku}</span>` : ''}
                                 ${product.brand ? `<span style="font-size: 11px; color: #8b5cf6; background: rgba(139,92,246,0.1); padding: 2px 6px; border-radius: 4px;">${product.brand}</span>` : ''}
                             </div>
@@ -1944,6 +1951,859 @@ function closeAITransferModal() {
     }
 }
 
+// ========================================
+// UNIFIED TRANSFER MODAL
+// ========================================
+
+// State for unified transfer
+let unifiedTransferState = {
+    items: [],
+    activeTab: 'ai', // 'ai' or 'search'
+    mediaFiles: [],
+    processedPhoto: null
+};
+
+// Open Unified Transfer Modal
+function openUnifiedTransferModal() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('unifiedTransferModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'unifiedTransferModal';
+        modal.className = 'modal';
+        modal.innerHTML = getUnifiedTransferModalHTML();
+        document.body.appendChild(modal);
+    }
+
+    // Reset state
+    unifiedTransferState.items = [];
+    unifiedTransferState.mediaFiles = [];
+    unifiedTransferState.processedPhoto = null;
+    unifiedTransferState.activeTab = 'ai';
+
+    // Reset form fields
+    const modal2 = document.getElementById('unifiedTransferModal');
+    if (modal2) {
+        const textInput = modal2.querySelector('#unifiedTransferInput');
+        if (textInput) textInput.value = '';
+
+        const searchInput = modal2.querySelector('#unifiedProductSearch');
+        if (searchInput) searchInput.value = '';
+
+        const searchResults = modal2.querySelector('#unifiedSearchResults');
+        if (searchResults) searchResults.style.display = 'none';
+    }
+
+    // Render items and update UI
+    renderUnifiedItems();
+    updateUnifiedTabUI();
+
+    // Reset media section
+    resetUnifiedMediaSection();
+
+    modal.classList.add('active');
+}
+
+// Get HTML for unified modal
+function getUnifiedTransferModalHTML() {
+    return `
+        <div class="modal-content" style="max-width: 560px; max-height: 90vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); padding: 20px 24px; position: relative;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-exchange-alt" style="color: white; font-size: 18px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">New Transfer</h3>
+                        <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 12px;">AI scan or search products</p>
+                    </div>
+                </div>
+                <button onclick="closeUnifiedTransferModal()" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    <i class="fas fa-times" style="color: white; font-size: 16px;"></i>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px 24px; overflow-y: auto; flex: 1;">
+                <!-- Store Selection -->
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">From</label>
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-warehouse" style="color: #6366f1; font-size: 14px;"></i>
+                            <select id="unifiedTransferOrigin" onchange="handleUnifiedOriginChange()" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
+                                <option value="">Select</option>
+                                <option value="1">Miramar</option>
+                                <option value="2">Morena</option>
+                                <option value="3">Kearny Mesa</option>
+                                <option value="4">Chula Vista</option>
+                                <option value="5">North Park</option>
+                                <option value="6">Loyal Vaper</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="padding-bottom: 8px;">
+                        <i class="fas fa-arrow-right" style="color: var(--text-muted); font-size: 14px;"></i>
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">To</label>
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-store" style="color: #10b981; font-size: 14px;"></i>
+                            <select id="unifiedTransferDestination" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; cursor: pointer; outline: none;">
+                                <option value="">Select</option>
+                                <option value="1">Miramar</option>
+                                <option value="2">Morena</option>
+                                <option value="3">Kearny Mesa</option>
+                                <option value="4">Chula Vista</option>
+                                <option value="5">North Park</option>
+                                <option value="6">Loyal Vaper</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; background: var(--bg-secondary); padding: 4px; border-radius: 12px;">
+                    <button id="unifiedTabAI" onclick="switchUnifiedTab('ai')" style="flex: 1; padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;">
+                        <i class="fas fa-wand-magic-sparkles"></i> AI Scan
+                    </button>
+                    <button id="unifiedTabSearch" onclick="switchUnifiedTab('search')" style="flex: 1; padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; background: transparent; color: var(--text-muted);">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+
+                <!-- AI Scan Section -->
+                <div id="unifiedAISection">
+                    <!-- Media Upload Area -->
+                    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08)); border: 2px dashed rgba(99, 102, 241, 0.3); border-radius: 14px; padding: 16px; margin-bottom: 16px; position: relative;" id="unifiedMediaDropzone"
+                         ondragover="handleUnifiedDragOver(event)"
+                         ondragleave="handleUnifiedDragLeave(event)"
+                         ondrop="handleUnifiedDrop(event)">
+
+                        <input type="file" id="unifiedMediaInput" accept="image/*,image/heic,image/heif,.heic,.heif,video/*,audio/*" multiple style="display: none;" onchange="processUnifiedMedia(this)">
+                        <input type="file" id="unifiedCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="processUnifiedMedia(this)">
+
+                        <!-- Media Preview -->
+                        <div id="unifiedMediaPreview" style="display: none; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);" id="unifiedMediaCount">0 files</span>
+                                <button onclick="clearUnifiedMedia()" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                                    <i class="fas fa-trash"></i> Clear
+                                </button>
+                            </div>
+                            <div id="unifiedMediaGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; max-height: 120px; overflow-y: auto;"></div>
+                        </div>
+
+                        <!-- Upload Placeholder -->
+                        <div id="unifiedMediaPlaceholder">
+                            <div style="text-align: center; padding: 8px 0;">
+                                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-camera" style="color: white; font-size: 16px;"></i>
+                                    </div>
+                                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-video" style="color: white; font-size: 16px;"></i>
+                                    </div>
+                                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-microphone" style="color: white; font-size: 16px;"></i>
+                                    </div>
+                                </div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">Scan with AI</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Photos, videos, or audio</div>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                <button onclick="openUnifiedCamera()" style="flex: 1; padding: 10px 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 12px;">
+                                    <i class="fas fa-camera"></i> Camera
+                                </button>
+                                <button onclick="document.getElementById('unifiedMediaInput').click()" style="flex: 1; padding: 10px 14px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 12px;">
+                                    <i class="fas fa-images"></i> Gallery
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Process Button -->
+                        <button id="unifiedProcessBtn" onclick="processUnifiedWithAI()" style="display: none; width: 100%; margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            <i class="fas fa-wand-magic-sparkles"></i> Analyze with AI
+                        </button>
+                    </div>
+
+                    <!-- Manual Text Input -->
+                    <details style="margin-bottom: 12px;">
+                        <summary style="font-size: 12px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-keyboard"></i> Or type products manually
+                        </summary>
+                        <div style="display: flex; gap: 8px; margin-top: 10px;">
+                            <textarea id="unifiedTransferInput" placeholder="5 Lost Mary Watermelon&#10;10 Elf Bar Blueberry..." style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; font-size: 12px; resize: none; height: 70px; color: var(--text-primary);"></textarea>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <button onclick="parseUnifiedTextInput()" style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Parse">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button onclick="startUnifiedVoiceInput()" style="width: 40px; height: 32px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Voice">
+                                    <i class="fas fa-microphone" style="color: var(--text-muted);"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Search Section -->
+                <div id="unifiedSearchSection" style="display: none;">
+                    <div style="position: relative; margin-bottom: 12px;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;"></i>
+                        <input type="text" id="unifiedProductSearch" placeholder="Search by name, SKU, or brand..." autocomplete="off" style="width: 100%; padding: 12px 12px 12px 38px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; box-sizing: border-box; transition: all 0.2s;" onfocus="this.style.borderColor='#8b5cf6'; this.style.background='var(--bg-primary)'" onblur="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-secondary)'" oninput="searchUnifiedProducts(this.value)">
+                        <div id="unifiedSearchLoading" style="display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);">
+                            <i class="fas fa-spinner fa-spin" style="color: #8b5cf6;"></i>
+                        </div>
+                    </div>
+                    <div id="unifiedSearchResults" style="display: none; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.15);"></div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="unifiedLoading" style="display: none; text-align: center; padding: 20px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #8b5cf6;"></i>
+                    <p style="margin-top: 10px; color: var(--text-muted); font-size: 13px;">Processing with AI...</p>
+                </div>
+
+                <!-- Items List -->
+                <div id="unifiedItemsSection" style="display: none; margin-top: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <h4 style="margin: 0; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-box-open" style="color: #10b981;"></i> Products to Transfer
+                        </h4>
+                        <span id="unifiedItemCount" style="background: var(--bg-secondary); padding: 3px 10px; border-radius: 20px; font-size: 11px; color: var(--text-muted);"></span>
+                    </div>
+                    <div id="unifiedItemsList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                    <button onclick="closeUnifiedTransferModal()" style="padding: 14px; min-height: 50px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; font-weight: 600; font-size: 14px; color: var(--text-secondary); cursor: pointer;">Cancel</button>
+                    <button id="unifiedSubmitBtn" onclick="createUnifiedTransfer()" style="padding: 14px; min-height: 50px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; font-weight: 600; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.5;" disabled>
+                        <i class="fas fa-paper-plane"></i> Create Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Close Unified Transfer Modal
+function closeUnifiedTransferModal() {
+    const modal = document.getElementById('unifiedTransferModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    // Clean up media URLs
+    unifiedTransferState.mediaFiles.forEach(m => {
+        if (m.url) URL.revokeObjectURL(m.url);
+    });
+}
+
+// Switch tabs in unified modal
+function switchUnifiedTab(tab) {
+    unifiedTransferState.activeTab = tab;
+    updateUnifiedTabUI();
+}
+
+// Update tab UI
+function updateUnifiedTabUI() {
+    const aiTab = document.getElementById('unifiedTabAI');
+    const searchTab = document.getElementById('unifiedTabSearch');
+    const aiSection = document.getElementById('unifiedAISection');
+    const searchSection = document.getElementById('unifiedSearchSection');
+
+    if (unifiedTransferState.activeTab === 'ai') {
+        if (aiTab) {
+            aiTab.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+            aiTab.style.color = 'white';
+        }
+        if (searchTab) {
+            searchTab.style.background = 'transparent';
+            searchTab.style.color = 'var(--text-muted)';
+        }
+        if (aiSection) aiSection.style.display = 'block';
+        if (searchSection) searchSection.style.display = 'none';
+    } else {
+        if (searchTab) {
+            searchTab.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+            searchTab.style.color = 'white';
+        }
+        if (aiTab) {
+            aiTab.style.background = 'transparent';
+            aiTab.style.color = 'var(--text-muted)';
+        }
+        if (aiSection) aiSection.style.display = 'none';
+        if (searchSection) searchSection.style.display = 'block';
+    }
+}
+
+// Handle origin store change
+function handleUnifiedOriginChange() {
+    const origin = document.getElementById('unifiedTransferOrigin')?.value;
+    const destSelect = document.getElementById('unifiedTransferDestination');
+
+    if (!destSelect) return;
+
+    // Enable all options first
+    Array.from(destSelect.options).forEach(option => {
+        option.disabled = false;
+    });
+
+    // Disable same store
+    if (origin) {
+        Array.from(destSelect.options).forEach(option => {
+            if (option.value === origin) {
+                option.disabled = true;
+            }
+        });
+        if (destSelect.value === origin) {
+            destSelect.value = '';
+        }
+    }
+}
+
+// Reset media section
+function resetUnifiedMediaSection() {
+    const preview = document.getElementById('unifiedMediaPreview');
+    const placeholder = document.getElementById('unifiedMediaPlaceholder');
+    const processBtn = document.getElementById('unifiedProcessBtn');
+    const mediaInput = document.getElementById('unifiedMediaInput');
+
+    if (preview) preview.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'block';
+    if (processBtn) processBtn.style.display = 'none';
+    if (mediaInput) mediaInput.value = '';
+
+    unifiedTransferState.mediaFiles = [];
+}
+
+// Open camera for unified modal
+function openUnifiedCamera() {
+    document.getElementById('unifiedCameraInput')?.click();
+}
+
+// Process unified media files
+function processUnifiedMedia(input) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+
+    files.forEach(file => {
+        const fileType = file.type.startsWith('image/') ? 'image' :
+                        file.type.startsWith('video/') ? 'video' :
+                        file.type.startsWith('audio/') ? 'audio' : 'unknown';
+
+        const mediaObj = {
+            file: file,
+            type: fileType,
+            name: file.name,
+            url: URL.createObjectURL(file)
+        };
+
+        unifiedTransferState.mediaFiles.push(mediaObj);
+    });
+
+    renderUnifiedMediaPreview();
+    input.value = '';
+}
+
+// Render media preview
+function renderUnifiedMediaPreview() {
+    const preview = document.getElementById('unifiedMediaPreview');
+    const placeholder = document.getElementById('unifiedMediaPlaceholder');
+    const grid = document.getElementById('unifiedMediaGrid');
+    const count = document.getElementById('unifiedMediaCount');
+    const processBtn = document.getElementById('unifiedProcessBtn');
+
+    if (!unifiedTransferState.mediaFiles.length) {
+        if (preview) preview.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'block';
+        if (processBtn) processBtn.style.display = 'none';
+        return;
+    }
+
+    if (preview) preview.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+    if (processBtn) processBtn.style.display = 'block';
+    if (count) count.textContent = `${unifiedTransferState.mediaFiles.length} file${unifiedTransferState.mediaFiles.length > 1 ? 's' : ''}`;
+
+    if (grid) {
+        grid.innerHTML = unifiedTransferState.mediaFiles.map((media, index) => {
+            if (media.type === 'image') {
+                return `<div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--bg-tertiary);">
+                    <img src="${media.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <button onclick="removeUnifiedMedia(${index})" style="position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(0,0,0,0.6); border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">×</button>
+                </div>`;
+            } else if (media.type === 'video') {
+                return `<div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-video" style="color: white; font-size: 20px;"></i>
+                    <button onclick="removeUnifiedMedia(${index})" style="position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(0,0,0,0.6); border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">×</button>
+                </div>`;
+            } else {
+                return `<div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-microphone" style="color: white; font-size: 20px;"></i>
+                    <button onclick="removeUnifiedMedia(${index})" style="position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(0,0,0,0.6); border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">×</button>
+                </div>`;
+            }
+        }).join('');
+    }
+}
+
+// Remove media file
+function removeUnifiedMedia(index) {
+    const media = unifiedTransferState.mediaFiles[index];
+    if (media && media.url) {
+        URL.revokeObjectURL(media.url);
+    }
+    unifiedTransferState.mediaFiles.splice(index, 1);
+    renderUnifiedMediaPreview();
+}
+
+// Clear all media
+function clearUnifiedMedia() {
+    unifiedTransferState.mediaFiles.forEach(m => {
+        if (m.url) URL.revokeObjectURL(m.url);
+    });
+    unifiedTransferState.mediaFiles = [];
+    renderUnifiedMediaPreview();
+}
+
+// Handle drag and drop
+function handleUnifiedDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropzone = document.getElementById('unifiedMediaDropzone');
+    if (dropzone) {
+        dropzone.style.borderColor = '#6366f1';
+        dropzone.style.background = 'rgba(99, 102, 241, 0.15)';
+    }
+}
+
+function handleUnifiedDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropzone = document.getElementById('unifiedMediaDropzone');
+    if (dropzone) {
+        dropzone.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+        dropzone.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08))';
+    }
+}
+
+function handleUnifiedDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const dropzone = document.getElementById('unifiedMediaDropzone');
+    if (dropzone) {
+        dropzone.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+        dropzone.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08))';
+    }
+
+    const files = Array.from(event.dataTransfer.files);
+    files.forEach(file => {
+        const fileType = file.type.startsWith('image/') ? 'image' :
+                        file.type.startsWith('video/') ? 'video' :
+                        file.type.startsWith('audio/') ? 'audio' : 'unknown';
+
+        if (fileType !== 'unknown') {
+            unifiedTransferState.mediaFiles.push({
+                file: file,
+                type: fileType,
+                name: file.name,
+                url: URL.createObjectURL(file)
+            });
+        }
+    });
+
+    renderUnifiedMediaPreview();
+}
+
+// Process media with AI (uses existing AI transfer functions)
+async function processUnifiedWithAI() {
+    const loading = document.getElementById('unifiedLoading');
+    const processBtn = document.getElementById('unifiedProcessBtn');
+
+    if (!unifiedTransferState.mediaFiles.length) {
+        showTransferToast('Please add photos, videos, or audio first', 'warning');
+        return;
+    }
+
+    if (loading) loading.style.display = 'block';
+    if (processBtn) processBtn.style.display = 'none';
+
+    try {
+        // Store processed photo before clearing
+        if (unifiedTransferState.mediaFiles.length > 0) {
+            const firstImage = unifiedTransferState.mediaFiles.find(m => m.type === 'image');
+            if (firstImage) {
+                const base64 = await fileToBase64(firstImage.file);
+                unifiedTransferState.processedPhoto = base64;
+            }
+        }
+
+        // Use existing AI processing function
+        aiTransferState.mediaFiles = unifiedTransferState.mediaFiles.map(m => ({...m}));
+        await processAllTransferMedia();
+
+        // Copy parsed items to unified state
+        unifiedTransferState.items = [...aiTransferState.parsedItems];
+
+        renderUnifiedItems();
+
+        // Clear media after processing
+        clearUnifiedMedia();
+
+    } catch (error) {
+        console.error('Error processing media:', error);
+        showTransferToast('Error processing media: ' + error.message, 'error');
+    }
+
+    if (loading) loading.style.display = 'none';
+}
+
+// Parse manual text input
+function parseUnifiedTextInput() {
+    const input = document.getElementById('unifiedTransferInput')?.value.trim();
+    if (!input) {
+        showTransferToast('Please enter products to add', 'warning');
+        return;
+    }
+
+    const items = simpleParseTransferInput(input);
+    if (items.length === 0) {
+        showTransferToast('Could not parse any items', 'error');
+        return;
+    }
+
+    // Add to existing items
+    unifiedTransferState.items.push(...items);
+    renderUnifiedItems();
+
+    // Clear input
+    document.getElementById('unifiedTransferInput').value = '';
+    showTransferToast(`Added ${items.length} product${items.length > 1 ? 's' : ''}`, 'success');
+}
+
+// Voice input for unified modal
+function startUnifiedVoiceInput() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showTransferToast('Voice recognition not supported. Try Chrome.', 'warning');
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const input = document.getElementById('unifiedTransferInput');
+        if (input) {
+            input.value = (input.value ? input.value + '\n' : '') + transcript;
+        }
+    };
+
+    recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        showTransferToast('Voice recognition error', 'error');
+    };
+
+    recognition.start();
+    showTransferToast('Listening...', 'info');
+}
+
+// Search products in unified modal
+let unifiedSearchDebounce;
+async function searchUnifiedProducts(query) {
+    const resultsContainer = document.getElementById('unifiedSearchResults');
+    const loading = document.getElementById('unifiedSearchLoading');
+
+    clearTimeout(unifiedSearchDebounce);
+
+    if (query.length < 2) {
+        if (resultsContainer) resultsContainer.style.display = 'none';
+        return;
+    }
+
+    unifiedSearchDebounce = setTimeout(async () => {
+        if (loading) loading.style.display = 'block';
+        if (resultsContainer) {
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+        }
+
+        try {
+            // Use cached products or fetch from BOTH stores
+            if (transfersState.productsCache.length === 0 && typeof fetchStoreInventory === 'function') {
+                console.log('🔄 Fetching products from VSU and Loyal Vaper...');
+                const [vsuProducts, loyalProducts] = await Promise.all([
+                    fetchStoreInventory('vsu', 250).catch(e => { console.warn('VSU fetch failed:', e); return []; }),
+                    fetchStoreInventory('loyalvaper', 250).catch(e => { console.warn('Loyal Vaper fetch failed:', e); return []; })
+                ]);
+                vsuProducts.forEach(p => p.sourceStore = 'VSU');
+                loyalProducts.forEach(p => p.sourceStore = 'Loyal Vaper');
+                transfersState.productsCache = [...vsuProducts, ...loyalProducts];
+                console.log('✅ Loaded', vsuProducts.length, 'VSU +', loyalProducts.length, 'Loyal Vaper products');
+            }
+
+            const queryLower = query.toLowerCase();
+            const filtered = transfersState.productsCache.filter(p =>
+                (p.productName && p.productName.toLowerCase().includes(queryLower)) ||
+                (p.sku && p.sku.toLowerCase().includes(queryLower)) ||
+                (p.brand && p.brand.toLowerCase().includes(queryLower))
+            ).slice(0, 10);
+
+            if (loading) loading.style.display = 'none';
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted);"><i class="fas fa-box-open" style="font-size: 24px; display: block; margin-bottom: 8px; opacity: 0.5;"></i>No products found</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = filtered.map(product => {
+                const stockColor = parseInt(product.stock) <= 5 ? '#ef4444' : parseInt(product.stock) <= 20 ? '#f59e0b' : '#10b981';
+                const storeColor = product.sourceStore === 'Loyal Vaper' ? '#f59e0b' : '#6366f1';
+                const storeBadge = product.sourceStore ? `<span style="font-size: 9px; color: white; background: ${storeColor}; padding: 1px 5px; border-radius: 3px; font-weight: 600; margin-right: 6px;">${product.sourceStore === 'Loyal Vaper' ? 'LV' : 'VSU'}</span>` : '';
+                return `
+                    <div onclick="addUnifiedProduct('${encodeURIComponent(JSON.stringify(product))}')" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: all 0.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${storeBadge}${product.productName}${product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    ${product.sku ? `SKU: ${product.sku}` : ''}${product.brand ? ` • ${product.brand}` : ''}
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; font-weight: 700; color: ${stockColor}; margin-left: 10px;">${product.stock}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Search error:', error);
+            if (loading) loading.style.display = 'none';
+            resultsContainer.innerHTML = '<div style="padding: 16px; text-align: center; color: #ef4444;"><i class="fas fa-exclamation-circle"></i> Error loading products</div>';
+        }
+    }, 300);
+}
+
+// Add product from search
+function addUnifiedProduct(encodedProduct) {
+    try {
+        const product = JSON.parse(decodeURIComponent(encodedProduct));
+
+        // Check if already in list
+        const existingIndex = unifiedTransferState.items.findIndex(item =>
+            item.productName === product.productName ||
+            (item.matchedProduct && item.matchedProduct.id === product.id)
+        );
+
+        if (existingIndex >= 0) {
+            // Increment quantity
+            unifiedTransferState.items[existingIndex].quantity += 1;
+        } else {
+            // Add new item
+            unifiedTransferState.items.push({
+                productName: product.productName + (product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''),
+                name: product.productName + (product.flavor && product.flavor !== 'N/A' ? ` - ${product.flavor}` : ''),
+                quantity: 1,
+                sku: product.sku,
+                matchedProduct: product,
+                matched: true
+            });
+        }
+
+        renderUnifiedItems();
+
+        // Clear search
+        const searchInput = document.getElementById('unifiedProductSearch');
+        const resultsContainer = document.getElementById('unifiedSearchResults');
+        if (searchInput) searchInput.value = '';
+        if (resultsContainer) resultsContainer.style.display = 'none';
+
+        showTransferToast(`Added ${product.productName}`, 'success');
+
+    } catch (error) {
+        console.error('Error adding product:', error);
+    }
+}
+
+// Render items list
+function renderUnifiedItems() {
+    const section = document.getElementById('unifiedItemsSection');
+    const list = document.getElementById('unifiedItemsList');
+    const count = document.getElementById('unifiedItemCount');
+    const submitBtn = document.getElementById('unifiedSubmitBtn');
+
+    if (!unifiedTransferState.items.length) {
+        if (section) section.style.display = 'none';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+        }
+        return;
+    }
+
+    if (section) section.style.display = 'block';
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+    }
+
+    const totalUnits = unifiedTransferState.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    if (count) {
+        count.textContent = `${unifiedTransferState.items.length} product${unifiedTransferState.items.length > 1 ? 's' : ''} · ${totalUnits} units`;
+    }
+
+    if (list) {
+        list.innerHTML = unifiedTransferState.items.map((item, index) => `
+            <div style="padding: 10px 12px; background: var(--bg-secondary); border-radius: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="flex: 1; min-width: 0; padding-right: 8px;">
+                        <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || item.productName}</div>
+                    </div>
+                    <button onclick="removeUnifiedItem(${index})" style="width: 32px; height: 32px; background: rgba(239,68,68,0.1); border: none; cursor: pointer; color: #ef4444; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-trash-alt" style="font-size: 11px;"></i>
+                    </button>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button onclick="updateUnifiedQty(${index}, -1)" style="width: 42px; height: 42px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-primary); font-size: 16px; font-weight: bold;">−</button>
+                    <input type="number" value="${item.quantity}" min="1" onchange="setUnifiedQty(${index}, this.value)" style="width: 60px; height: 42px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 18px; color: white;">
+                    <button onclick="updateUnifiedQty(${index}, 1)" style="width: 42px; height: 42px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-primary); font-size: 16px; font-weight: bold;">+</button>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Remove item from list
+function removeUnifiedItem(index) {
+    unifiedTransferState.items.splice(index, 1);
+    renderUnifiedItems();
+}
+
+// Update item quantity
+function updateUnifiedQty(index, delta) {
+    const item = unifiedTransferState.items[index];
+    if (item) {
+        item.quantity = Math.max(1, (item.quantity || 1) + delta);
+        renderUnifiedItems();
+    }
+}
+
+// Set item quantity
+function setUnifiedQty(index, value) {
+    const item = unifiedTransferState.items[index];
+    if (item) {
+        item.quantity = Math.max(1, parseInt(value) || 1);
+        renderUnifiedItems();
+    }
+}
+
+// Create transfer from unified modal
+async function createUnifiedTransfer() {
+    const origin = document.getElementById('unifiedTransferOrigin')?.value;
+    const destination = document.getElementById('unifiedTransferDestination')?.value;
+
+    if (!origin) {
+        showTransferToast('Please select origin store', 'warning');
+        return;
+    }
+
+    if (!destination) {
+        showTransferToast('Please select destination store', 'warning');
+        return;
+    }
+
+    if (origin === destination) {
+        showTransferToast('Origin and destination cannot be the same', 'error');
+        return;
+    }
+
+    if (!unifiedTransferState.items.length) {
+        showTransferToast('Please add at least one product', 'warning');
+        return;
+    }
+
+    const submitBtn = document.getElementById('unifiedSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    }
+
+    try {
+        // Get current user
+        let sentBy = 'Staff';
+        try {
+            const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+            sentBy = user.name || user.email || 'Staff';
+        } catch (e) {}
+
+        const today = new Date().toISOString().split('T')[0];
+        const totalItems = unifiedTransferState.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+        // Create transfer
+        const transfer = {
+            id: Date.now().toString(),
+            folio: generateTransferFolio(),
+            storeOrigin: origin,
+            storeDestination: destination,
+            items: unifiedTransferState.items.map(item => ({
+                productId: item.matchedProduct?.id || null,
+                productName: item.name || item.productName || 'Unknown Product',
+                productSku: item.sku || item.matchedProduct?.sku || 'MANUAL',
+                quantity: item.quantity || 1,
+                received: false,
+                receivedQty: 0
+            })),
+            totalItems: totalItems,
+            totalProducts: unifiedTransferState.items.length,
+            shipDate: today,
+            sentBy: sentBy,
+            notes: 'Created via Unified Transfer',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            receivedAt: null,
+            receivedBy: null,
+            photo: unifiedTransferState.processedPhoto || null
+        };
+
+        // Add to state
+        transfersState.transfers.unshift(transfer);
+        saveTransfers();
+
+        try {
+            await saveTransferToFirebase(transfer);
+        } catch (e) {
+            console.warn('Firebase save failed:', e);
+        }
+
+        try {
+            await sendTransferNotification(transfer, 'created');
+        } catch (e) {
+            console.warn('Notification failed:', e);
+        }
+
+        closeUnifiedTransferModal();
+        renderTransfersPage();
+
+        showTransferToast(`Transfer ${transfer.folio} created! ${transfer.totalProducts} products → ${getStoreName(destination)}`, 'success');
+
+    } catch (error) {
+        console.error('Error creating transfer:', error);
+        showTransferToast('Error creating transfer: ' + error.message, 'error');
+
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Create Transfer';
+        }
+    }
+}
+
 // Parse AI Transfer Input
 async function parseAITransferInput() {
     const input = document.getElementById('aiTransferInput').value.trim();
@@ -2047,11 +2907,19 @@ async function parseTransferWithAI(input) {
     // First try simple parsing
     const simpleItems = simpleParseTransferInput(input);
 
-    // Try to match with actual products from Shopify
+    // Try to match with actual products from BOTH Shopify stores
     if (transfersState.productsCache.length === 0) {
         try {
             if (typeof fetchStoreInventory === 'function') {
-                transfersState.productsCache = await fetchStoreInventory('vsu', 250);
+                console.log('🔄 Fetching products from VSU and Loyal Vaper...');
+                const [vsuProducts, loyalProducts] = await Promise.all([
+                    fetchStoreInventory('vsu', 250).catch(e => { console.warn('VSU fetch failed:', e); return []; }),
+                    fetchStoreInventory('loyalvaper', 250).catch(e => { console.warn('Loyal Vaper fetch failed:', e); return []; })
+                ]);
+                vsuProducts.forEach(p => p.sourceStore = 'VSU');
+                loyalProducts.forEach(p => p.sourceStore = 'Loyal Vaper');
+                transfersState.productsCache = [...vsuProducts, ...loyalProducts];
+                console.log('✅ Loaded', vsuProducts.length, 'VSU +', loyalProducts.length, 'Loyal Vaper products');
             }
         } catch (e) {
             console.warn('Could not load products:', e);
