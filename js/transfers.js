@@ -270,11 +270,58 @@ function renderTransfersPage() {
         </div>
 
         <!-- Store Tabs -->
-        <div style="display: flex; gap: 8px; margin-bottom: 20px; background: var(--bg-secondary); padding: 6px; border-radius: 14px; width: fit-content;">
-            <button onclick="switchTransferStore('vsu')" style="padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: all 0.2s; ${!isLoyalVaper ? 'background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;' : 'background: transparent; color: var(--text-muted);'}">
+        <style>
+            .transfer-store-tabs {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 20px;
+                background: var(--bg-secondary);
+                padding: 6px;
+                border-radius: 14px;
+                width: fit-content;
+            }
+            .transfer-store-tabs button {
+                padding: 12px 24px;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.2s;
+            }
+            @media (max-width: 640px) {
+                .transfer-store-tabs {
+                    width: 100%;
+                }
+                .transfer-store-tabs button {
+                    flex: 1;
+                    justify-content: center;
+                    padding: 14px 16px;
+                    font-size: 13px;
+                }
+                .page-header {
+                    flex-direction: column !important;
+                    gap: 12px !important;
+                }
+                .page-header > div:last-child {
+                    width: 100%;
+                    flex-wrap: wrap;
+                }
+                .page-header button {
+                    flex: 1;
+                    min-width: 100px;
+                    justify-content: center;
+                }
+            }
+        </style>
+        <div class="transfer-store-tabs">
+            <button onclick="switchTransferStore('vsu')" style="${!isLoyalVaper ? 'background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;' : 'background: transparent; color: var(--text-muted);'}">
                 <i class="fas fa-store"></i> VSU
             </button>
-            <button onclick="switchTransferStore('loyalvaper')" style="padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: all 0.2s; ${isLoyalVaper ? 'background: linear-gradient(135deg, #f59e0b, #d97706); color: white;' : 'background: transparent; color: var(--text-muted);'}">
+            <button onclick="switchTransferStore('loyalvaper')" style="${isLoyalVaper ? 'background: linear-gradient(135deg, #f59e0b, #d97706); color: white;' : 'background: transparent; color: var(--text-muted);'}">
                 <i class="fas fa-store"></i> Loyal Vaper
             </button>
         </div>
@@ -494,9 +541,11 @@ function renderTransfersPage() {
     `;
 }
 
-// Calculate transfer statistics
+// Calculate transfer statistics (filtered by current store)
 function calculateTransferStats() {
-    const transfers = transfersState.transfers;
+    const currentStore = transfersState.currentStore || 'vsu';
+    // Filter transfers by storeType (default to 'vsu' for legacy transfers without storeType)
+    const transfers = transfersState.transfers.filter(t => (t.storeType || 'vsu') === currentStore);
     return {
         total: transfers.length,
         pending: transfers.filter(t => t.status === 'pending').length,
@@ -506,9 +555,11 @@ function calculateTransferStats() {
 
 // Render transfers table
 function renderTransfersTable() {
-    let transfers = [...transfersState.transfers];
+    const currentStore = transfersState.currentStore || 'vsu';
+    // Filter by storeType first (default to 'vsu' for legacy transfers)
+    let transfers = transfersState.transfers.filter(t => (t.storeType || 'vsu') === currentStore);
 
-    // Apply filter
+    // Apply status filter
     if (transfersState.currentFilter !== 'all') {
         transfers = transfers.filter(t => t.status === transfersState.currentFilter);
     }
@@ -555,9 +606,11 @@ function setTransferViewMode(mode) {
 
 // Render transfers grid view
 function renderTransfersGrid() {
-    let transfers = [...transfersState.transfers];
+    const currentStore = transfersState.currentStore || 'vsu';
+    // Filter by storeType first (default to 'vsu' for legacy transfers)
+    let transfers = transfersState.transfers.filter(t => (t.storeType || 'vsu') === currentStore);
 
-    // Apply filter
+    // Apply status filter
     if (transfersState.currentFilter !== 'all') {
         transfers = transfers.filter(t => t.status === transfersState.currentFilter);
     }
