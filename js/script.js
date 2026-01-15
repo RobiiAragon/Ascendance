@@ -1189,10 +1189,20 @@
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
 
-            // If page not in allowed list, silently deny access and return to current page
+            // Special bypass for super admin pages (carlos@calidevs.com only)
+            const superAdminPages = ['superadmin', 'devlog'];
+            const userEmail = (user.email || user.authEmail || '').toLowerCase();
+            const isSuperAdmin = userEmail === 'carlos@calidevs.com';
+
+            // If page not in allowed list, check for super admin bypass
             if (!allowedPages.includes(page)) {
-                console.warn(`⚠️ Access denied: ${userPermissions.label} role cannot access ${page}`);
-                return;
+                // Allow super admin pages for carlos@calidevs.com
+                if (superAdminPages.includes(page) && isSuperAdmin) {
+                    console.log(`👑 Super Admin bypass for ${page}`);
+                } else {
+                    console.warn(`⚠️ Access denied: ${userPermissions.label} role cannot access ${page}`);
+                    return;
+                }
             }
 
             currentPage = page;
