@@ -1777,6 +1777,8 @@
         .sidebar.collapsed .nav-item {
             justify-content: center;
             padding: 12px;
+            font-size: 0; /* Hide text nodes */
+            overflow: hidden;
         }
 
         .sidebar.collapsed .nav-item span:not(.nav-icon) {
@@ -1785,6 +1787,11 @@
 
         .sidebar.collapsed .nav-icon {
             margin-right: 0;
+            font-size: 16px; /* Restore icon size */
+        }
+
+        .sidebar.collapsed .nav-icon i {
+            font-size: 18px;
         }
 
         .sidebar.collapsed .sidebar-footer {
