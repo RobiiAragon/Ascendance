@@ -3851,6 +3851,8 @@ class FirebaseAnnouncementsManager {
                     content: data.content || '',
                     author: data.author || 'Unknown',
                     targetStores: data.targetStores || 'all',
+                    likes: data.likes || [],
+                    comments: data.comments || [],
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt
                 });
