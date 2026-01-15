@@ -5108,7 +5108,7 @@ Return ONLY the JSON object, no additional text.`
                                 <div class="supply-category-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 12px; background: ${cat.color}15; border-radius: 8px; border-left: 3px solid ${cat.color};">
                                     <i class="fas ${cat.icon}" style="color: ${cat.color};"></i>
                                     <span style="font-weight: 600; color: var(--text-primary);">${cat.name}</span>
-                                    ${cat.priority === 'critical' ? '<span style="font-size: 10px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: auto;">CRÍTICO</span>' : ''}
+                                    ${cat.priority === 'critical' ? '<span style="font-size: 10px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: auto;">CRITICAL</span>' : ''}
                                 </div>
                                 <div class="supply-items-grid" style="display: grid; gap: 8px;">
                         `;
@@ -5140,7 +5140,7 @@ Return ONLY the JSON object, no additional text.`
                                     <i class="fas fa-info-circle" style="color: var(--accent-primary);"></i>
                                     <span style="font-weight: 600; font-size: 14px;">Select items and quantities</span>
                                 </div>
-                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Items marked as <span style="color: #ef4444; font-weight: 600;">CRÍTICO</span> affect daily operations and will be prioritized.</p>
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Items marked as <span style="color: #ef4444; font-weight: 600;">CRITICAL</span> affect daily operations and will be prioritized.</p>
                             </div>
 
                             <div class="form-group" style="margin-bottom: 16px;">

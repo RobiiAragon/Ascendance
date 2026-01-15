@@ -7379,7 +7379,7 @@
                                         <i class="fas fa-${status.icon}"></i> ${status.label}
                                     </div>
                                     ${isCritical ? `<div style="background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; animation: ${item.status === 'pending' ? 'pulse-critical 2s infinite' : 'none'};">
-                                        <i class="fas fa-exclamation-triangle"></i> CRÍTICO
+                                        <i class="fas fa-exclamation-triangle"></i> CRITICAL
                                     </div>` : ''}
                                 </div>
                                 <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
@@ -7445,7 +7445,7 @@
                             <div style="min-width: 0; flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${(item.name || item.description).split('\n')[0]}</span>
-                                    ${isCritical ? `<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; flex-shrink: 0;">CRÍTICO</span>` : ''}
+                                    ${isCritical ? `<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; flex-shrink: 0;">CRITICAL</span>` : ''}
                                 </div>
                                 <div style="font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px;">
                                     <span><i class="fas fa-store"></i> ${item.store}</span>
