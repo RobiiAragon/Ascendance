@@ -112,7 +112,7 @@ function updateShiftExchangeBadge() {
  * Render Shift Exchanges Page
  */
 async function renderShiftExchangesPage() {
-    const mainContent = document.getElementById('main-content');
+    const mainContent = document.querySelector('.dashboard');
     if (!mainContent) return;
 
     await loadShiftExchanges();
