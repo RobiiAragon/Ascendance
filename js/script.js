@@ -8067,3 +8067,62 @@
             }
         }
 
+        // ============================================
+        // VERSION CHECK - Auto-refresh notification
+        // ============================================
+        (function() {
+            let currentVersion = null;
+            const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
+
+            async function checkForUpdates() {
+                try {
+                    const response = await fetch('/version.json?t=' + Date.now());
+                    if (!response.ok) return;
+
+                    const data = await response.json();
+
+                    if (currentVersion === null) {
+                        // First load - store the version
+                        currentVersion = data.version;
+                        console.log('App version:', currentVersion);
+                    } else if (data.version !== currentVersion) {
+                        // New version available!
+                        showUpdateBanner();
+                    }
+                } catch (error) {
+                    console.log('Version check skipped:', error.message);
+                }
+            }
+
+            function showUpdateBanner() {
+                // Don't show multiple banners
+                if (document.getElementById('update-banner')) return;
+
+                const banner = document.createElement('div');
+                banner.id = 'update-banner';
+                banner.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 12px 20px; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 99999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <i class="fas fa-arrow-circle-up" style="font-size: 20px;"></i>
+                        <span style="font-weight: 500;">A new version is available!</span>
+                        <button onclick="location.reload()" style="background: white; color: #6366f1; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
+                            Refresh Now
+                        </button>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: transparent; border: none; color: white; cursor: pointer; padding: 8px; opacity: 0.8;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                document.body.prepend(banner);
+            }
+
+            // Start checking after page loads
+            if (document.readyState === 'complete') {
+                checkForUpdates();
+            } else {
+                window.addEventListener('load', checkForUpdates);
+            }
+
+            // Continue checking periodically
+            setInterval(checkForUpdates, CHECK_INTERVAL);
+        })();
+
