@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_017',
+            date: '2026-01-16',
+            title: 'Shift Exchanges Module Fix - Menu, Render & Responsive',
+            description: 'Fixed multiple issues with the Shift Exchanges module that prevented it from working. 1) Menu Visibility: Added super admin bypass in filterNavigationByRole() so carlos@calidevs.com sees all menu items without role filtering. 2) Page Not Rendering: Changed DOM selector from getElementById("main-content") to querySelector(".dashboard") to match the actual HTML structure used by other pages. 3) Global Functions: Exposed all shift exchange functions (renderShiftExchangesPage, openRequestCoverageModal, approveShiftExchange, etc.) to the window object for proper navigation access. 4) Responsive Design: Improved mobile CSS with better breakpoints - stats grid shows 2x2 on mobile, filter tabs display as 2x2 grid on small screens, better spacing and sizing for cards and buttons on mobile devices.',
+            category: 'fix',
+            files: ['js/shift-exchanges.js', 'js/vendors-module.js', 'index.html'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
             id: 'log_016',
             date: '2026-01-15',
             title: 'Pod Matcher Rewrite - Device vs Pods Mode',
