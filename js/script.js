@@ -1497,6 +1497,9 @@
                 case 'timeoffrequests':
                     renderTimeOffRequests();
                     break;
+                case 'shiftexchanges':
+                    renderShiftExchangesPage();
+                    break;
                 default:
                     render404(page);
             }

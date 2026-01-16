@@ -89,7 +89,8 @@ window.FIREBASE_COLLECTIONS = {
     licenses: 'licenses',       // Firestore collection for licenses and documents
     passwords: 'passwords',     // Firestore collection for password manager
     settings: 'settings',       // Firestore collection for app settings (store locations, geofence config, etc.)
-    jobApplications: 'job_applications' // Firestore collection for HR job applications
+    jobApplications: 'job_applications', // Firestore collection for HR job applications
+    shiftExchanges: 'shiftExchanges' // Firestore collection for shift exchange requests
 };
 
 // Store Locations for Geofencing (Clock In/Out)
@@ -168,7 +169,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'salesperformance', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs', 'activitylog', 'thechamps', 'timeoffrequests', 'devlog']
+        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'salesperformance', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs', 'activitylog', 'thechamps', 'timeoffrequests', 'devlog', 'shiftexchanges']
     },
     'manager': {
         // Action Permissions
@@ -182,7 +183,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs', 'thechamps', 'thieves', 'timeoffrequests', 'devlog']
+        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'labels', 'hrapplications', 'glabs', 'thechamps', 'thieves', 'timeoffrequests', 'devlog', 'shiftexchanges']
     },
     'employee': {
         // Action Permissions
@@ -196,7 +197,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'incidentlog', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves', 'timeoffrequests']
+        pages: ['celesteai', 'podmatcher', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'incidentlog', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves', 'timeoffrequests', 'shiftexchanges']
     }
 };
 

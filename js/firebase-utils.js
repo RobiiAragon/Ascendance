@@ -5429,3 +5429,300 @@ class FirebaseLicensesManager {
 
 // Initialize global Firebase Licenses Manager
 const firebaseLicensesManager = new FirebaseLicensesManager();
+
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE SHIFT EXCHANGE MANAGER
+// Handles shift coverage/swap requests between employees
+// ═══════════════════════════════════════════════════════════════
+
+class FirebaseShiftExchangeManager {
+    constructor() {
+        this.db = null;
+        this.isInitialized = false;
+        this.collectionName = 'shiftExchanges';
+    }
+
+    /**
+     * Initialize Firebase (uses shared Firebase instance)
+     */
+    async initialize() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                this.db = firebase.firestore();
+                this.isInitialized = true;
+                return true;
+            } else {
+                console.error('Firebase not loaded for Shift Exchange Manager');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error initializing Firebase Shift Exchange Manager:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load all shift exchange requests from Firestore
+     * @returns {Promise<Array>} Array of shift exchange requests
+     */
+    async loadShiftExchanges() {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.warn('Firebase Shift Exchange Manager not initialized.');
+                return [];
+            }
+
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+            const snapshot = await this.db.collection(collectionName)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const exchanges = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                exchanges.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    // Requester info
+                    requesterId: data.requesterId || '',
+                    requesterName: data.requesterName || '',
+                    requesterStore: data.requesterStore || '',
+                    // Original shift info
+                    originalDate: data.originalDate || '',
+                    originalStartTime: data.originalStartTime || '',
+                    originalEndTime: data.originalEndTime || '',
+                    // Cover employee info
+                    coverEmployeeId: data.coverEmployeeId || null,
+                    coverEmployeeName: data.coverEmployeeName || null,
+                    // Status and tracking
+                    status: data.status || 'pending',
+                    reason: data.reason || '',
+                    urgency: data.urgency || 'normal',
+                    // Timestamps
+                    createdAt: data.createdAt,
+                    acceptedAt: data.acceptedAt || null,
+                    reviewedAt: data.reviewedAt || null,
+                    reviewedBy: data.reviewedBy || null,
+                    reviewNotes: data.reviewNotes || ''
+                });
+            });
+
+            return exchanges;
+        } catch (error) {
+            console.error('Error loading shift exchanges from Firestore:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add new shift exchange request to Firestore
+     * @param {Object} requestData - Request data to add
+     * @returns {Promise<string>} New document ID
+     */
+    async addShiftExchange(requestData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Shift Exchange Manager not initialized.');
+                return null;
+            }
+
+            requestData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            requestData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+            const docRef = await this.db.collection(collectionName).add(requestData);
+
+            return docRef.id;
+        } catch (error) {
+            console.error('Error adding shift exchange request:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update shift exchange request in Firestore
+     * @param {string} requestId - Request Firestore ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<boolean>} Success status
+     */
+    async updateShiftExchange(requestId, updateData) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Shift Exchange Manager not initialized.');
+                return false;
+            }
+
+            updateData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+            await this.db.collection(collectionName).doc(requestId).update(updateData);
+
+            return true;
+        } catch (error) {
+            console.error('Error updating shift exchange request:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete shift exchange request from Firestore
+     * @param {string} requestId - Request Firestore ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteShiftExchange(requestId) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Shift Exchange Manager not initialized.');
+                return false;
+            }
+
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+            await this.db.collection(collectionName).doc(requestId).delete();
+
+            return true;
+        } catch (error) {
+            console.error('Error deleting shift exchange request:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Listen to real-time updates for shift exchanges
+     * @param {Function} callback - Callback function to handle updates
+     * @returns {Function} Unsubscribe function
+     */
+    listenToShiftExchanges(callback) {
+        try {
+            if (!this.isInitialized || !this.db) {
+                console.error('Firebase Shift Exchange Manager not initialized.');
+                return null;
+            }
+
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+
+            return this.db.collection(collectionName)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(snapshot => {
+                    const exchanges = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        exchanges.push({
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            requesterId: data.requesterId || '',
+                            requesterName: data.requesterName || '',
+                            requesterStore: data.requesterStore || '',
+                            originalDate: data.originalDate || '',
+                            originalStartTime: data.originalStartTime || '',
+                            originalEndTime: data.originalEndTime || '',
+                            coverEmployeeId: data.coverEmployeeId || null,
+                            coverEmployeeName: data.coverEmployeeName || null,
+                            status: data.status || 'pending',
+                            reason: data.reason || '',
+                            urgency: data.urgency || 'normal',
+                            createdAt: data.createdAt,
+                            acceptedAt: data.acceptedAt || null,
+                            reviewedAt: data.reviewedAt || null,
+                            reviewedBy: data.reviewedBy || null,
+                            reviewNotes: data.reviewNotes || ''
+                        });
+                    });
+                    callback(exchanges);
+                }, error => {
+                    console.error('Error listening to shift exchanges:', error);
+                });
+        } catch (error) {
+            console.error('Error setting up shift exchanges listener:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get shift exchanges by status
+     */
+    async getShiftExchangesByStatus(status) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Shift Exchange Manager not initialized');
+            return [];
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+            const snapshot = await this.db.collection(collectionName)
+                .where('status', '==', status)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const exchanges = [];
+            snapshot.forEach(doc => {
+                exchanges.push({
+                    id: doc.id,
+                    firestoreId: doc.id,
+                    ...doc.data()
+                });
+            });
+
+            return exchanges;
+        } catch (error) {
+            console.error('Error getting shift exchanges by status:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get shift exchanges for a specific employee
+     */
+    async getShiftExchangesByEmployee(employeeId) {
+        if (!this.isInitialized || !this.db) {
+            console.warn('Firebase Shift Exchange Manager not initialized');
+            return [];
+        }
+
+        try {
+            const collectionName = window.FIREBASE_COLLECTIONS?.shiftExchanges || this.collectionName;
+
+            // Get requests made by employee
+            const requesterSnapshot = await this.db.collection(collectionName)
+                .where('requesterId', '==', employeeId)
+                .get();
+
+            // Get requests where employee is covering
+            const coverSnapshot = await this.db.collection(collectionName)
+                .where('coverEmployeeId', '==', employeeId)
+                .get();
+
+            const exchanges = [];
+            const seenIds = new Set();
+
+            requesterSnapshot.forEach(doc => {
+                if (!seenIds.has(doc.id)) {
+                    seenIds.add(doc.id);
+                    exchanges.push({
+                        id: doc.id,
+                        firestoreId: doc.id,
+                        ...doc.data()
+                    });
+                }
+            });
+
+            coverSnapshot.forEach(doc => {
+                if (!seenIds.has(doc.id)) {
+                    seenIds.add(doc.id);
+                    exchanges.push({
+                        id: doc.id,
+                        firestoreId: doc.id,
+                        ...doc.data()
+                    });
+                }
+            });
+
+            return exchanges;
+        } catch (error) {
+            console.error('Error getting shift exchanges by employee:', error);
+            return [];
+        }
+    }
+}
+
+// Initialize global Firebase Shift Exchange Manager
+const firebaseShiftExchangeManager = new FirebaseShiftExchangeManager();
