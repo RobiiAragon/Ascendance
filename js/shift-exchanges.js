@@ -3,7 +3,7 @@
 // ==========================================
 
 const SHIFT_EXCHANGE_STATUS = {
-    pending: { label: 'Pending Coverage', color: '#f59e0b', icon: 'fa-clock', description: 'Waiting for someone to cover' },
+    pending: { label: 'Looking for Coverage', color: '#f59e0b', icon: 'fa-clock', description: 'Waiting for someone to cover' },
     accepted: { label: 'Coverage Found', color: '#3b82f6', icon: 'fa-user-check', description: 'Someone agreed to cover, awaiting approval' },
     approved: { label: 'Approved', color: '#10b981', icon: 'fa-check-circle', description: 'Manager approved the exchange' },
     rejected: { label: 'Rejected', color: '#ef4444', icon: 'fa-times-circle', description: 'Request was rejected' },
@@ -133,61 +133,61 @@ async function renderShiftExchangesPage() {
 
     mainContent.innerHTML = `
         <div class="page-container">
-            <div class="page-header">
+            <div class="page-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px;">
                 <div class="page-title">
-                    <h1><i class="fas fa-exchange-alt" style="color: #8b5cf6;"></i> Shift Exchanges</h1>
-                    <p class="page-subtitle">Request coverage for your shifts or help cover for others</p>
+                    <h1><i class="fas fa-people-arrows" style="color: #8b5cf6;"></i> Shift Exchanges <span style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin-left: 8px; font-weight: 600; vertical-align: middle;">BETA</span></h1>
+                    <p class="page-subtitle">Request coverage for your shifts or help cover for others <span style="color: var(--text-muted); font-style: italic;">- Feature in testing, full launch coming soon!</span></p>
                 </div>
                 <div class="page-actions">
-                    <button class="btn-primary" onclick="openRequestCoverageModal()">
+                    <button class="btn-primary" onclick="openRequestCoverageModal()" style="white-space: nowrap;">
                         <i class="fas fa-plus"></i> Request Coverage
                     </button>
                 </div>
             </div>
 
             <!-- Stats Cards -->
-            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-clock" style="color: #f59e0b; font-size: 20px;"></i>
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-clock" style="color: #f59e0b; font-size: 18px;"></i>
                         </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${pendingCount}</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">Pending Coverage</div>
+                        <div style="min-width: 0;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${pendingCount}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Looking</div>
                         </div>
                     </div>
                 </div>
-                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-user-check" style="color: #3b82f6; font-size: 20px;"></i>
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-user-check" style="color: #3b82f6; font-size: 18px;"></i>
                         </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${acceptedCount}</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">Awaiting Approval</div>
+                        <div style="min-width: 0;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${acceptedCount}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Pending Approval</div>
                         </div>
                     </div>
                 </div>
-                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 20px;"></i>
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 18px;"></i>
                         </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${approvedCount}</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">Approved</div>
+                        <div style="min-width: 0;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${approvedCount}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Approved</div>
                         </div>
                     </div>
                 </div>
-                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-times-circle" style="color: #ef4444; font-size: 20px;"></i>
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-times-circle" style="color: #ef4444; font-size: 18px;"></i>
                         </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${rejectedCount}</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">Rejected</div>
+                        <div style="min-width: 0;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${rejectedCount}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Rejected</div>
                         </div>
                     </div>
                 </div>
@@ -196,13 +196,13 @@ async function renderShiftExchangesPage() {
             <!-- Filter Tabs -->
             <div class="filter-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
                 <button class="filter-tab ${shiftExchangeFilter === 'all' ? 'active' : ''}" onclick="setShiftExchangeFilter('all')">
-                    All Requests
+                    All
                 </button>
                 <button class="filter-tab ${shiftExchangeFilter === 'pending' ? 'active' : ''}" onclick="setShiftExchangeFilter('pending')">
-                    <i class="fas fa-clock"></i> Pending
+                    <i class="fas fa-clock"></i> Looking
                 </button>
                 <button class="filter-tab ${shiftExchangeFilter === 'accepted' ? 'active' : ''}" onclick="setShiftExchangeFilter('accepted')">
-                    <i class="fas fa-user-check"></i> Awaiting Approval
+                    <i class="fas fa-user-check"></i> Pending Approval
                 </button>
                 <button class="filter-tab ${shiftExchangeFilter === 'approved' ? 'active' : ''}" onclick="setShiftExchangeFilter('approved')">
                     <i class="fas fa-check-circle"></i> Approved
@@ -216,8 +216,8 @@ async function renderShiftExchangesPage() {
             <div class="exchanges-list">
                 ${filteredExchanges.length === 0 ? `
                     <div class="empty-state" style="text-align: center; padding: 60px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
-                        <i class="fas fa-exchange-alt" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
-                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Shift Exchanges</h3>
+                        <i class="fas fa-people-arrows" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Requests</h3>
                         <p style="color: var(--text-muted);">No shift exchange requests found${shiftExchangeFilter !== 'all' ? ' with this filter' : ''}.</p>
                     </div>
                 ` : filteredExchanges.map(exchange => renderShiftExchangeCard(exchange, currentUser, isManager)).join('')}
@@ -264,6 +264,8 @@ async function renderShiftExchangesPage() {
                 justify-content: space-between;
                 align-items: flex-start;
                 margin-bottom: 16px;
+                flex-wrap: wrap;
+                gap: 12px;
             }
             .exchange-status {
                 display: inline-flex;
@@ -273,10 +275,11 @@ async function renderShiftExchangesPage() {
                 border-radius: 20px;
                 font-size: 12px;
                 font-weight: 600;
+                white-space: nowrap;
             }
             .exchange-details {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
                 gap: 16px;
             }
             .detail-item {
@@ -292,6 +295,7 @@ async function renderShiftExchangesPage() {
                 align-items: center;
                 justify-content: center;
                 font-size: 14px;
+                flex-shrink: 0;
             }
             .exchange-actions {
                 display: flex;
@@ -299,6 +303,7 @@ async function renderShiftExchangesPage() {
                 margin-top: 16px;
                 padding-top: 16px;
                 border-top: 1px solid var(--border-color);
+                flex-wrap: wrap;
             }
             .btn-cover {
                 background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -349,6 +354,47 @@ async function renderShiftExchangesPage() {
                 font-size: 14px;
                 font-weight: 500;
             }
+
+            /* Responsive */
+            @media (max-width: 768px) {
+                .stats-grid {
+                    grid-template-columns: repeat(2, 1fr) !important;
+                }
+                .page-header {
+                    flex-direction: column;
+                    align-items: stretch !important;
+                }
+                .page-actions {
+                    width: 100%;
+                }
+                .page-actions button {
+                    width: 100%;
+                    justify-content: center;
+                }
+                .exchange-details {
+                    grid-template-columns: 1fr !important;
+                }
+                .exchange-actions {
+                    flex-direction: column;
+                }
+                .exchange-actions button {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .stats-grid {
+                    grid-template-columns: 1fr !important;
+                }
+                .filter-tabs {
+                    flex-direction: column;
+                }
+                .filter-tab {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
         </style>
     `;
 
@@ -372,16 +418,16 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
             <div class="exchange-header">
                 <div>
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
                             ${exchange.requesterName?.substring(0, 2).toUpperCase() || '??'}
                         </div>
-                        <div>
+                        <div style="min-width: 0;">
                             <div style="font-weight: 600; color: var(--text-primary);">${exchange.requesterName || 'Unknown'}</div>
                             <div style="font-size: 13px; color: var(--text-muted);">${exchange.requesterStore || 'No store'}</div>
                         </div>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     ${exchange.urgency !== 'normal' ? `
                         <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${urgency.color}20; color: ${urgency.color};">
                             <i class="fas ${urgency.icon}"></i> ${urgency.label}
@@ -398,7 +444,7 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
                     <div class="detail-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
                         <i class="fas fa-calendar"></i>
                     </div>
-                    <div>
+                    <div style="min-width: 0;">
                         <div style="font-size: 12px; color: var(--text-muted);">Shift Date</div>
                         <div style="font-weight: 600; color: var(--text-primary);">${formatDateSE(exchange.originalDate)}</div>
                     </div>
@@ -407,7 +453,7 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
                     <div class="detail-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
                         <i class="fas fa-clock"></i>
                     </div>
-                    <div>
+                    <div style="min-width: 0;">
                         <div style="font-size: 12px; color: var(--text-muted);">Shift Time</div>
                         <div style="font-weight: 600; color: var(--text-primary);">${formatTimeSE(exchange.originalStartTime)} - ${formatTimeSE(exchange.originalEndTime)}</div>
                     </div>
@@ -417,7 +463,7 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
                         <div class="detail-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
                             <i class="fas fa-user-check"></i>
                         </div>
-                        <div>
+                        <div style="min-width: 0;">
                             <div style="font-size: 12px; color: var(--text-muted);">Covered By</div>
                             <div style="font-weight: 600; color: var(--text-primary);">${exchange.coverEmployeeName}</div>
                         </div>
@@ -496,7 +542,7 @@ function openRequestCoverageModal() {
 
     modalContent.innerHTML = `
         <div class="modal-header">
-            <h2><i class="fas fa-exchange-alt" style="color: #8b5cf6;"></i> Request Shift Coverage</h2>
+            <h2><i class="fas fa-people-arrows" style="color: #8b5cf6;"></i> Request Shift Coverage</h2>
             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -511,10 +557,10 @@ function openRequestCoverageModal() {
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px; background: var(--bg-main); border-radius: 8px;">
-                <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; flex-shrink: 0;">
                     ${currentUser.name?.substring(0, 2).toUpperCase() || '??'}
                 </div>
-                <div>
+                <div style="min-width: 0;">
                     <div style="font-weight: 600;">${currentUser.name || 'Unknown'}</div>
                     <div style="font-size: 13px; color: var(--text-muted);">${emp?.store || currentUser.store || 'No store'}</div>
                 </div>
@@ -568,6 +614,14 @@ function openRequestCoverageModal() {
             }
             .urgency-option:hover {
                 background: var(--bg-main);
+            }
+            @media (max-width: 480px) {
+                .form-row {
+                    grid-template-columns: 1fr !important;
+                }
+                .urgency-option span {
+                    font-size: 12px;
+                }
             }
         </style>
     `;
