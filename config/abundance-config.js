@@ -197,7 +197,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'incidentlog', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves', 'timeoffrequests', 'shiftexchanges']
+        pages: ['celesteai', 'podmatcher', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'incidentlog', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves', 'timeoffrequests', 'shiftexchanges', 'employeepurchases']
     }
 };
 

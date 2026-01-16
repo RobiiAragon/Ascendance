@@ -2398,11 +2398,13 @@
                             return `
                                 <tr>
                                     <td data-label="">
-                                        ${invoice.photo ? (invoice.fileType === 'pdf' ? `
+                                        ${invoice.photo ? (invoice.fileType === 'pdf' ? (invoice.pdfThumbnail ? `
+                                            <img src="${invoice.pdfThumbnail}" alt="Invoice" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="PDF">
+                                        ` : `
                                             <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="PDF">
                                                 <i class="fas fa-file-pdf" style="font-size: 20px; color: #ef4444;"></i>
                                             </div>
-                                        ` : `
+                                        `) : `
                                             <img src="${invoice.photo}" alt="Invoice" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')">
                                         `) : `
                                             <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
@@ -3331,11 +3333,13 @@
                 return `
                     <tr>
                         <td style="padding: 10px 12px;">
-                            ${invoice.photo ? (invoice.fileType === 'pdf' ? `
+                            ${invoice.photo ? (invoice.fileType === 'pdf' ? (invoice.pdfThumbnail ? `
+                                <img src="${invoice.pdfThumbnail}" alt="Invoice" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="View PDF">
+                            ` : `
                                 <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="View PDF">
                                     <i class="fas fa-file-pdf" style="font-size: 18px; color: #ef4444;"></i>
                                 </div>
-                            ` : `
+                            `) : `
                                 <img src="${invoice.photo}" alt="Invoice" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="View">
                             `) : `
                                 <div style="width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
@@ -3402,11 +3406,13 @@
                 return `
                     <tr>
                         <td data-label="">
-                            ${invoice.photo ? (invoice.fileType === 'pdf' ? `
+                            ${invoice.photo ? (invoice.fileType === 'pdf' ? (invoice.pdfThumbnail ? `
+                                <img src="${invoice.pdfThumbnail}" alt="Invoice" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="Click to view PDF">
+                            ` : `
                                 <div style="width: 50px; height: 50px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="Click to view PDF">
                                     <i class="fas fa-file-pdf" style="font-size: 24px; color: #ef4444;"></i>
                                 </div>
-                            ` : `
+                            `) : `
                                 <img src="${invoice.photo}" alt="Invoice" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer;" onclick="viewInvoice('${invoiceId}')" title="Click to view details">
                             `) : `
                                 <div style="width: 50px; height: 50px; background: var(--bg-tertiary); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
@@ -3716,6 +3722,44 @@
             return select.value || null;
         }
 
+        // Generate thumbnail from PDF file
+        async function generatePdfThumbnail(file) {
+            return new Promise(async (resolve) => {
+                try {
+                    if (typeof pdfjsLib === 'undefined') {
+                        console.warn('PDF.js not loaded, skipping thumbnail generation');
+                        resolve(null);
+                        return;
+                    }
+
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const page = await pdf.getPage(1);
+
+                    // Scale to create a small thumbnail
+                    const scale = 0.5;
+                    const viewport = page.getViewport({ scale });
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    // Convert to base64 JPEG (smaller file size)
+                    const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(thumbnail);
+                } catch (error) {
+                    console.error('Error generating PDF thumbnail:', error);
+                    resolve(null);
+                }
+            });
+        }
+
         async function saveInvoice() {
             const invoiceNumber = document.getElementById('invoice-number').value.trim();
             const vendor = document.getElementById('invoice-vendor').value.trim();
@@ -3754,6 +3798,7 @@
                 let filePath = null;
                 let fileType = null;
                 let fileName = null;
+                let pdfThumbnail = null;
 
                 if (fileInput && fileInput.files && fileInput.files[0]) {
                     const file = fileInput.files[0];
@@ -3780,6 +3825,12 @@
                         const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
                         fileType = isPdf ? 'pdf' : 'image';
                         fileName = file.name;
+
+                        // Generate PDF thumbnail if it's a PDF
+                        if (isPdf) {
+                            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating preview...';
+                            pdfThumbnail = await generatePdfThumbnail(file);
+                        }
 
                         // Upload to Firebase Storage (disable overlay to prevent UI blocking)
                         const uploadResult = await firebaseStorageHelper.uploadDocument(
@@ -3827,7 +3878,7 @@
 
                 if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving invoice...';
 
-                await createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath);
+                await createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, fileUrl, fileType, fileName, filePath, pdfThumbnail);
             } catch (error) {
                 console.error('Error saving invoice:', error);
                 showNotification('Error al guardar el invoice. Por favor verifica todos los campos e intenta de nuevo.', 'error');
@@ -3839,7 +3890,7 @@
             }
         }
 
-        async function createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null) {
+        async function createInvoiceRecord(invoiceNumber, vendor, product, category, categories, store, amount, description, invoiceDate, dueDate, status, paymentAccount, recurring, notes, photo, fileType = null, fileName = null, filePath = null, pdfThumbnail = null) {
             // Create invoice data object
             const invoiceData = {
                 invoiceNumber: invoiceNumber || '',
@@ -3860,7 +3911,8 @@
                 photo: photo,           // Now stores URL instead of base64
                 filePath: filePath,     // Storage path for deletion
                 fileType: fileType,     // 'pdf' or 'image' or null
-                fileName: fileName      // Original filename for PDFs
+                fileName: fileName,     // Original filename for PDFs
+                pdfThumbnail: pdfThumbnail  // Thumbnail image for PDF preview
             };
 
             // Save to Firebase

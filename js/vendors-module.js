@@ -22,6 +22,40 @@
         function renderEmployeePurchases() {
             const dashboard = document.querySelector('.dashboard');
 
+            // Check user role - only managers and admins can view purchase records
+            const currentUser = authManager.getCurrentUser();
+            const userRole = currentUser?.role || 'employee';
+            const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
+
+            // If employee, show only the submission form view
+            if (!isManagerOrAdmin) {
+                dashboard.innerHTML = `
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2 class="section-title">Employee Purchases</h2>
+                            <p class="section-subtitle">Submit your employee purchases</p>
+                        </div>
+                    </div>
+
+                    <!-- Submit Purchase Card -->
+                    <div class="card" style="max-width: 600px; margin: 40px auto; padding: 40px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                <i class="fas fa-shopping-bag" style="font-size: 32px; color: white;"></i>
+                            </div>
+                            <h3 style="margin: 0 0 8px; color: var(--text-primary);">Submit a Purchase</h3>
+                            <p style="margin: 0; color: var(--text-muted);">Record your employee purchase for manager review</p>
+                        </div>
+                        <button class="btn-primary" onclick="openModal('add-employee-purchase')" style="width: 100%; padding: 16px; font-size: 16px;">
+                            <i class="fas fa-plus"></i>
+                            New Purchase
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Manager/Admin view - show full dashboard with records
             // Filter by month
             const monthlyRecords = employeePurchases.filter(r => r.date && r.date.startsWith(employeePurchasesCurrentMonth));
 
