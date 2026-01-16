@@ -8221,6 +8221,13 @@ Return ONLY the JSON object, no additional text.`,
          */
         function filterNavigationByRole() {
             const user = getCurrentUser();
+
+            // If no user, don't filter navigation (show all for debugging or show nothing)
+            if (!user) {
+                console.warn('⚠️ filterNavigationByRole: No user found, skipping navigation filter');
+                return;
+            }
+
             const userRole = user.role || 'employee';
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];
