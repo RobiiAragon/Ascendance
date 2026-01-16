@@ -8228,6 +8228,21 @@ Return ONLY the JSON object, no additional text.`,
                 return;
             }
 
+            // Super admin bypass - carlos@calidevs.com sees everything
+            const userEmail = (user.email || user.authEmail || '').toLowerCase();
+            const isSuperAdmin = userEmail === 'carlos@calidevs.com';
+
+            if (isSuperAdmin) {
+                console.log('👑 Super Admin detected - showing all navigation items');
+                // Show all nav items for super admin
+                document.querySelectorAll('.nav-section a, .nav-section div').forEach(item => {
+                    if (!item.classList.contains('nav-label')) {
+                        item.style.display = '';
+                    }
+                });
+                return;
+            }
+
             const userRole = user.role || 'employee';
             const userPermissions = window.ROLE_PERMISSIONS[userRole] || window.ROLE_PERMISSIONS['employee'];
             const allowedPages = userPermissions.pages || [];

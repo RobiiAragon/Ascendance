@@ -359,10 +359,28 @@ async function renderShiftExchangesPage() {
             @media (max-width: 768px) {
                 .stats-grid {
                     grid-template-columns: repeat(2, 1fr) !important;
+                    gap: 12px !important;
+                }
+                .stat-card {
+                    padding: 12px !important;
+                }
+                .stat-card .stat-icon {
+                    width: 36px !important;
+                    height: 36px !important;
+                }
+                .stat-card .stat-value {
+                    font-size: 20px !important;
                 }
                 .page-header {
                     flex-direction: column;
                     align-items: stretch !important;
+                    gap: 12px !important;
+                }
+                .page-title h1 {
+                    font-size: 20px !important;
+                }
+                .page-subtitle {
+                    font-size: 13px !important;
                 }
                 .page-actions {
                     width: 100%;
@@ -371,8 +389,15 @@ async function renderShiftExchangesPage() {
                     width: 100%;
                     justify-content: center;
                 }
+                .exchange-card {
+                    padding: 16px !important;
+                }
                 .exchange-details {
                     grid-template-columns: 1fr !important;
+                }
+                .exchange-header {
+                    flex-direction: column;
+                    gap: 12px !important;
                 }
                 .exchange-actions {
                     flex-direction: column;
@@ -381,18 +406,58 @@ async function renderShiftExchangesPage() {
                     width: 100%;
                     justify-content: center;
                 }
+                .filter-tabs {
+                    gap: 6px !important;
+                }
+                .filter-tab {
+                    padding: 6px 12px !important;
+                    font-size: 13px !important;
+                }
             }
 
             @media (max-width: 480px) {
                 .stats-grid {
-                    grid-template-columns: 1fr !important;
+                    grid-template-columns: repeat(2, 1fr) !important;
+                    gap: 8px !important;
+                }
+                .stat-card {
+                    padding: 10px !important;
+                }
+                .stat-card > div {
+                    gap: 8px !important;
+                }
+                .stat-card > div > div:first-child {
+                    width: 36px !important;
+                    height: 36px !important;
+                    min-width: 36px !important;
+                }
+                .stat-card > div > div:last-child > div:first-child {
+                    font-size: 18px !important;
                 }
                 .filter-tabs {
-                    flex-direction: column;
+                    display: grid !important;
+                    grid-template-columns: repeat(2, 1fr) !important;
                 }
                 .filter-tab {
                     width: 100%;
                     justify-content: center;
+                    font-size: 12px !important;
+                    padding: 8px 6px !important;
+                }
+                .page-title h1 {
+                    font-size: 18px !important;
+                }
+                .exchange-card {
+                    padding: 14px !important;
+                    margin-bottom: 12px !important;
+                }
+                .detail-item {
+                    gap: 8px !important;
+                }
+                .detail-icon {
+                    width: 32px !important;
+                    height: 32px !important;
+                    font-size: 12px !important;
                 }
             }
         </style>
