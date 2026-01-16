@@ -666,7 +666,7 @@ async function submitCoverageRequest() {
     const emp = employees.find(e => e.id === currentUser.odooEmployeeId || e.firestoreId === currentUser.odooEmployeeId);
 
     const requestData = {
-        requesterId: currentUser.odooEmployeeId || currentUser.odooEmployeeId,
+        requesterId: currentUser.odooEmployeeId || currentUser.id || currentUser.email,
         requesterName: currentUser.name,
         requesterStore: emp?.store || currentUser.store || '',
         originalDate: date,
@@ -903,7 +903,73 @@ async function cancelShiftExchange(exchangeId) {
     }
 }
 
-// Initialize on load
+// Polling interval for badge updates
+let shiftExchangePollingInterval = null;
+
+/**
+ * Start polling for shift exchange updates (badge)
+ */
+function startShiftExchangePolling() {
+    // Clear any existing interval
+    if (shiftExchangePollingInterval) {
+        clearInterval(shiftExchangePollingInterval);
+    }
+
+    // Poll every 30 seconds for badge updates
+    shiftExchangePollingInterval = setInterval(async () => {
+        try {
+            if (typeof firebaseShiftExchangeManager !== 'undefined' && firebaseShiftExchangeManager.isInitialized) {
+                shiftExchanges = await firebaseShiftExchangeManager.loadShiftExchanges();
+                updateShiftExchangeBadge();
+            }
+        } catch (error) {
+            console.error('Error polling shift exchanges:', error);
+        }
+    }, 30000); // 30 seconds
+}
+
+/**
+ * Stop polling for shift exchange updates
+ */
+function stopShiftExchangePolling() {
+    if (shiftExchangePollingInterval) {
+        clearInterval(shiftExchangePollingInterval);
+        shiftExchangePollingInterval = null;
+    }
+}
+
+/**
+ * Initialize shift exchanges after user is authenticated
+ * This is called when the app is ready
+ */
+async function initShiftExchangesForUser() {
+    try {
+        const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        if (!currentUser) {
+            // No user yet, try again later
+            setTimeout(initShiftExchangesForUser, 1000);
+            return;
+        }
+
+        await initializeShiftExchangeManager();
+
+        // Load initial data for badge
+        if (typeof firebaseShiftExchangeManager !== 'undefined' && firebaseShiftExchangeManager.isInitialized) {
+            await loadShiftExchanges();
+            updateShiftExchangeBadge();
+        }
+
+        // Start polling for updates
+        startShiftExchangePolling();
+    } catch (error) {
+        console.error('Error initializing shift exchanges:', error);
+        // Retry after delay
+        setTimeout(initShiftExchangesForUser, 2000);
+    }
+}
+
+// Initialize on load - wait a bit for auth to be ready
 document.addEventListener('DOMContentLoaded', () => {
-    initializeShiftExchangeManager();
+    // Give auth time to initialize, then start checking
+    setTimeout(initShiftExchangesForUser, 1500);
 });
