@@ -1038,3 +1038,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Give auth time to initialize, then start checking
     setTimeout(initShiftExchangesForUser, 1500);
 });
+
+// Expose functions globally for navigation
+window.renderShiftExchangesPage = renderShiftExchangesPage;
+window.openRequestCoverageModal = openRequestCoverageModal;
+window.submitCoverageRequest = submitCoverageRequest;
+window.offerToCover = offerToCover;
+window.approveShiftExchange = approveShiftExchange;
+window.confirmApproveExchange = confirmApproveExchange;
+window.rejectShiftExchange = rejectShiftExchange;
+window.confirmRejectExchange = confirmRejectExchange;
+window.cancelShiftExchange = cancelShiftExchange;
+window.setShiftExchangeFilter = setShiftExchangeFilter;
