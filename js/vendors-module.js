@@ -2080,14 +2080,14 @@ Return ONLY the JSON object, no additional text.`
         }
 
         function getPerceptionEmoji(value) {
-            const icons = {
-                1: '<i class="fas fa-star"></i>',
-                2: '<i class="fas fa-star"></i><i class="fas fa-star"></i>',
-                3: '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>',
-                4: '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>',
-                5: '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>'
+            const labels = {
+                1: 'Very Upset',
+                2: 'Upset',
+                3: 'Neutral',
+                4: 'Satisfied',
+                5: 'Happy'
             };
-            return icons[value] || '<i class="fas fa-question"></i>';
+            return labels[value] || '-';
         }
 
         function getPerceptionLabel(value) {
@@ -6582,23 +6582,23 @@ Return ONLY the JSON object, no additional text.`,
                                 <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">How did the customer feel when leaving the store?</p>
                                 <div id="perception-selector" style="display: flex; justify-content: space-between; gap: 8px;">
                                     <button type="button" class="perception-btn" data-value="1" onclick="selectPerception(1)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
-                                        <div style="font-size: 20px; margin-bottom: 4px; color: #ef4444;"><i class="fas fa-star"></i></div>
+                                        <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #ef4444;">1</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Very Upset</div>
                                     </button>
                                     <button type="button" class="perception-btn" data-value="2" onclick="selectPerception(2)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
-                                        <div style="font-size: 20px; margin-bottom: 4px; color: #f97316;"><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                                        <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #f97316;">2</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Upset</div>
                                     </button>
                                     <button type="button" class="perception-btn" data-value="3" onclick="selectPerception(3)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
-                                        <div style="font-size: 20px; margin-bottom: 4px; color: #eab308;"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                                        <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #eab308;">3</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Neutral</div>
                                     </button>
                                     <button type="button" class="perception-btn" data-value="4" onclick="selectPerception(4)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
-                                        <div style="font-size: 20px; margin-bottom: 4px; color: #22c55e;"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                                        <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #22c55e;">4</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Satisfied</div>
                                     </button>
                                     <button type="button" class="perception-btn" data-value="5" onclick="selectPerception(5)" style="flex: 1; padding: 16px 8px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s;">
-                                        <div style="font-size: 20px; margin-bottom: 4px; color: #10b981;"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                                        <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #10b981;">5</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Happy</div>
                                     </button>
                                 </div>
