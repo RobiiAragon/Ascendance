@@ -6304,18 +6304,10 @@
                         firebaseRecords.forEach(rec => {
                             processedNames.add(rec.employeeName);
                             updatedRecords.push({
-                                id: rec.id || Date.now(),
-                                employeeId: rec.employeeId,
-                                employeeName: rec.employeeName,
-                                employeeRole: rec.employeeRole,
-                                employeeInitials: rec.employeeName?.substring(0, 2).toUpperCase() || '',
-                                store: rec.store,
-                                date: displayDate, // Use display format for local tracking
-                                clockIn: rec.clockIn || null,
-                                lunchStart: rec.lunchStart || null,
-                                lunchEnd: rec.lunchEnd || null,
-                                clockOut: rec.clockOut || null,
-                                notes: rec.notes || ''
+                                ...rec, // Include ALL fields from Firebase record (firestoreId, editHistory, etc.)
+                                id: rec.id || rec.firestoreId || Date.now(),
+                                employeeInitials: rec.employeeInitials || rec.employeeName?.substring(0, 2).toUpperCase() || '',
+                                date: displayDate // Use display format for local tracking
                             });
                         });
 
@@ -6679,9 +6671,14 @@
         // ==========================================
 
         function openEditClockRecordModal(recordId) {
-            const record = clockinAttendanceRecords.find(r => r.id === recordId);
+            // Search by id first, then by firestoreId as fallback
+            let record = clockinAttendanceRecords.find(r => r.id === recordId);
+            if (!record) {
+                record = clockinAttendanceRecords.find(r => r.firestoreId === recordId);
+            }
             if (!record) {
                 showNotification('Record not found', 'error');
+                console.error('Record not found for ID:', recordId, 'Available records:', clockinAttendanceRecords.map(r => ({ id: r.id, firestoreId: r.firestoreId, name: r.employeeName })));
                 return;
             }
 
@@ -6771,9 +6768,14 @@
         }
 
         async function saveClockRecordEdit(recordId) {
-            const record = clockinAttendanceRecords.find(r => r.id === recordId);
+            // Search by id first, then by firestoreId as fallback
+            let record = clockinAttendanceRecords.find(r => r.id === recordId);
+            if (!record) {
+                record = clockinAttendanceRecords.find(r => r.firestoreId === recordId);
+            }
             if (!record) {
                 showNotification('Record not found', 'error');
+                console.error('Save failed - Record not found for ID:', recordId);
                 return;
             }
 
@@ -6833,9 +6835,10 @@
             record.lastEditedAt = new Date().toISOString();
 
             try {
-                // Save to Firebase
+                // Save to Firebase - use firestoreId if available, otherwise use recordId
+                const firebaseDocId = record.firestoreId || recordId;
                 if (typeof firebaseClockInManager !== 'undefined' && firebaseClockInManager.isInitialized) {
-                    await firebaseClockInManager.updateClockRecord(recordId, {
+                    await firebaseClockInManager.updateClockRecord(firebaseDocId, {
                         clockIn: newClockIn,
                         clockOut: newClockOut,
                         lunchStart: newLunchStart,
