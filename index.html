@@ -657,12 +657,24 @@
                 </div>
 
                 <div class="user-menu-container">
-                    <div class="user-menu">
+                    <div class="user-menu" onclick="toggleUserMenu()" style="cursor: pointer;">
                         <div class="user-avatar" id="header-user-avatar">--</div>
                         <div class="user-info">
                             <span class="user-name" id="header-user-name">Loading...</span>
                             <span class="user-role" id="header-user-role">...</span>
                         </div>
+                        <i class="fas fa-chevron-down user-menu-chevron"></i>
+                    </div>
+                    <div class="user-menu-dropdown">
+                        <a href="#" class="user-menu-item" onclick="navigateTo('my-profile'); closeUserMenu(); return false;">
+                            <i class="fas fa-user"></i>
+                            My Profile
+                        </a>
+                        <div class="user-menu-divider"></div>
+                        <a href="#" class="user-menu-item logout" onclick="logout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </a>
                     </div>
                 </div>
             </div>
