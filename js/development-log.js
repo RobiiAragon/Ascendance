@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_018',
+            date: '2026-01-17',
+            title: 'Customer Log Menu Reorganization',
+            description: 'Renamed "Customer Issue Log" to "Customer Log" and moved it from the Security section to the top of the Team section for better accessibility and organization.',
+            category: 'ui',
+            files: ['index.html', 'js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Daniel Barrantes'
+        },
+        {
             id: 'log_017',
             date: '2026-01-16',
             title: 'Shift Exchanges Module Fix - Menu, Render & Responsive',

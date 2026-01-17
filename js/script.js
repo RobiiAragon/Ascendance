@@ -1248,7 +1248,7 @@
                 help: 'Help Center',
                 thieves: 'Banned Customers',
                 invoices: 'Invoices',
-                issues: 'Customer Issue Log',
+                issues: 'Customer Log',
                 vendors: 'Vendors & Suppliers',
                 clockin: 'Clock In/Out',
                 dailysales: 'Daily Sales',
