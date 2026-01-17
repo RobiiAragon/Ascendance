@@ -8254,6 +8254,12 @@ Return ONLY the JSON object, no additional text.`,
                 }
             });
 
+            // Explicitly hide super-admin-nav for non-super-admin users
+            const superAdminNav = document.getElementById('super-admin-nav');
+            if (superAdminNav) {
+                superAdminNav.style.display = 'none';
+            }
+
             // Always show Celeste AI (it's available to all roles if in their permissions)
             if (allowedPages.includes('celesteai')) {
                 const celesteItem = document.querySelector('.nav-item[data-page="celesteai"]');
