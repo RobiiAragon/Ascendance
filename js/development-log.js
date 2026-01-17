@@ -50,6 +50,26 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_020',
+            date: '2026-01-17',
+            title: 'User Menu Logout Dropdown',
+            description: 'Added a clickable dropdown menu to the user profile section in the header. Clicking on the user name/avatar now opens a dropdown with "My Profile" and "Logout" options. This makes the logout option more visible and accessible since users were not finding it in the sidebar.',
+            category: 'ui',
+            files: ['index.html', 'js/vendors-module.js'],
+            developer: 'Carlos',
+            requestedBy: 'Daniel Barrantes'
+        },
+        {
+            id: 'log_019',
+            date: '2026-01-17',
+            title: 'Customer Log - Simplified Rating Display',
+            description: 'Removed emoji faces and star icons from the Customer Log perception ratings. The display now shows simple text labels (Very Upset, Upset, Neutral, Satisfied, Happy) for a cleaner, more professional look. Also changed the default view from gallery (boxes) to table (list) format for better tracking and readability.',
+            category: 'ui',
+            files: ['js/vendors-module.js'],
+            developer: 'Carlos',
+            requestedBy: 'Daniel Barrantes'
+        },
+        {
             id: 'log_018',
             date: '2026-01-17',
             title: 'Customer Log Menu Reorganization',
