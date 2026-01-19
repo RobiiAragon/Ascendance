@@ -8554,3 +8554,497 @@ window.viewChecklistHistory = async function() {
             }
         }
 
+        // =============================================================================
+        // MANAGER VIEW SCHEDULE - For managers/admins only
+        // =============================================================================
+
+        function renderManagerSchedule() {
+            const dashboard = document.querySelector('.dashboard');
+            const weekDates = getWeekDates(currentWeekStart);
+            const weekRangeText = `${weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+            dashboard.innerHTML = `
+                <style>
+                    /* Manager Schedule Specific Styles */
+                    .manager-schedule-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 24px;
+                        flex-wrap: wrap;
+                        gap: 16px;
+                        padding: 20px;
+                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        border-radius: 16px;
+                        border: 1px solid rgba(16, 185, 129, 0.2);
+                    }
+                    .manager-schedule-title h2 {
+                        font-size: 24px;
+                        font-weight: 700;
+                        margin-bottom: 4px;
+                        color: #10b981;
+                    }
+                    .manager-schedule-title h2 i {
+                        color: #10b981;
+                        margin-right: 10px;
+                    }
+                    .manager-schedule-title p {
+                        color: var(--text-muted);
+                        font-size: 14px;
+                    }
+                    .manager-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        color: white;
+                        padding: 4px 12px;
+                        border-radius: 20px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-left: 12px;
+                    }
+                    .manager-controls {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .manager-week-nav {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        background: var(--bg-card);
+                        padding: 6px;
+                        border-radius: 12px;
+                        border: 1px solid rgba(16, 185, 129, 0.3);
+                    }
+                    .manager-nav-btn {
+                        background: transparent;
+                        border: none;
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        color: var(--text-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .manager-nav-btn:hover {
+                        background: #10b981;
+                        color: white;
+                    }
+                    .manager-week-display {
+                        font-size: 15px;
+                        font-weight: 600;
+                        min-width: 180px;
+                        text-align: center;
+                        color: var(--text-primary);
+                    }
+                    .manager-store-select {
+                        background: var(--bg-card);
+                        border: 1px solid rgba(16, 185, 129, 0.3);
+                        border-radius: 10px;
+                        padding: 10px 16px;
+                        color: var(--text-primary);
+                        font-size: 14px;
+                        cursor: pointer;
+                        min-width: 160px;
+                    }
+                    .manager-store-select:focus {
+                        outline: none;
+                        border-color: #10b981;
+                        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+                    }
+
+                    /* Multi-Employee Info Card */
+                    .multi-employee-info {
+                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
+                        border: 1px solid rgba(16, 185, 129, 0.2);
+                        border-radius: 12px;
+                        padding: 16px 20px;
+                        margin-bottom: 20px;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .multi-employee-info i {
+                        font-size: 24px;
+                        color: #10b981;
+                    }
+                    .multi-employee-info-text {
+                        flex: 1;
+                    }
+                    .multi-employee-info-text h4 {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        margin-bottom: 4px;
+                    }
+                    .multi-employee-info-text p {
+                        font-size: 13px;
+                        color: var(--text-muted);
+                        margin: 0;
+                    }
+
+                    /* Manager Schedule Layout */
+                    .manager-schedule-layout {
+                        display: flex;
+                        gap: 20px;
+                    }
+                    .manager-schedule-main {
+                        flex: 1;
+                        min-width: 0;
+                    }
+
+                    /* Mobile Manager Schedule */
+                    @media (max-width: 768px) {
+                        .manager-schedule-header {
+                            flex-direction: column;
+                            align-items: stretch;
+                            padding: 16px;
+                        }
+                        .manager-controls {
+                            flex-direction: column;
+                            align-items: stretch;
+                            gap: 10px;
+                        }
+                        .manager-week-nav {
+                            width: 100%;
+                            justify-content: center;
+                        }
+                        .manager-week-display {
+                            flex: 1;
+                            min-width: auto;
+                        }
+                        .manager-store-select {
+                            width: 100%;
+                        }
+                        .multi-employee-info {
+                            flex-direction: column;
+                            text-align: center;
+                            padding: 14px;
+                        }
+                        .manager-badge {
+                            margin-left: 0;
+                            margin-top: 8px;
+                        }
+                        .manager-schedule-title h2 {
+                            font-size: 20px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: flex-start;
+                        }
+                    }
+                    @media (max-width: 480px) {
+                        .manager-schedule-title h2 {
+                            font-size: 18px;
+                        }
+                        .manager-schedule-title p {
+                            font-size: 12px;
+                        }
+                        .manager-week-display {
+                            font-size: 13px;
+                        }
+                        .manager-nav-btn {
+                            width: 32px;
+                            height: 32px;
+                        }
+                    }
+                </style>
+
+                <div class="manager-schedule-header">
+                    <div class="manager-schedule-title">
+                        <h2>
+                            <i class="fas fa-calendar-check"></i>Manager View Schedule
+                            <span class="manager-badge"><i class="fas fa-shield-alt"></i> Manager Only</span>
+                        </h2>
+                        <p>Full schedule management with multi-employee shifts</p>
+                    </div>
+                    <div class="manager-controls">
+                        <div class="manager-week-nav">
+                            <button class="manager-nav-btn" onclick="changeWeek(-1)" title="Previous week">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="manager-week-display">${weekRangeText}</div>
+                            <button class="manager-nav-btn" onclick="changeWeek(1)" title="Next week">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="manager-nav-btn" onclick="goToToday()" title="Today">
+                                <i class="fas fa-calendar-day"></i>
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="manager-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid rgba(16, 185, 129, 0.3);">
+                                <i class="fas fa-clone"></i>
+                            </button>
+                            <a href="schedule.html" target="_blank" class="manager-nav-btn" title="Share public schedule" style="background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-share-alt"></i>
+                            </a>
+                            <select class="manager-store-select" id="schedule-store-filter" onchange="renderManagerScheduleGrid()">
+                                <option value="all">All Stores</option>
+                                <option value="all-employees">All Employees</option>
+                                <option value="employees">Employees Hours</option>
+                                <option value="Miramar">VSU Miramar</option>
+                                <option value="Morena">VSU Morena</option>
+                                <option value="Kearny Mesa">VSU Kearny Mesa</option>
+                                <option value="Chula Vista">VSU Chula Vista</option>
+                                <option value="North Park">VSU North Park</option>
+                                <option value="Miramar Wine & Liquor">Miramar Wine & Liquor</option>
+                            </select>
+                            <select class="manager-store-select" id="schedule-employee-filter" onchange="renderManagerScheduleGrid()" style="min-width: 180px;">
+                                <option value="">-- By Employee --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="multi-employee-info">
+                    <i class="fas fa-users"></i>
+                    <div class="multi-employee-info-text">
+                        <h4>Multi-Employee Shifts Enabled</h4>
+                        <p>Click on any shift slot and enable "Multi-select" to assign multiple employees to the same shift (e.g., Giselle and Lauren opening Miramar on Friday).</p>
+                    </div>
+                </div>
+
+                <div class="manager-schedule-layout">
+                    <div class="manager-schedule-main">
+                        <div id="schedule-container">
+                            <div style="padding: 60px; text-align: center;">
+                                <div class="loading-spinner"></div>
+                                <p style="color: var(--text-muted); margin-top: 15px;">Loading schedules...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hours-summary-panel" id="hoursSummaryPanel">
+                        <div class="hours-panel-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <h3><i class="fas fa-clock"></i> Hours This Week</h3>
+                            <p id="hoursPanelWeekRange">${weekRangeText}</p>
+                        </div>
+                        <div class="hours-panel-list" id="hoursPanelList">
+                            <div class="hours-panel-empty">
+                                <i class="fas fa-user-clock"></i>
+                                <p>Loading employee hours...</p>
+                            </div>
+                        </div>
+                        <div class="hours-total-row">
+                            <span class="hours-total-label">Total Hours</span>
+                            <span class="hours-total-value" id="hoursTotalValue">0h</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Picker Modal -->
+                <div class="employee-picker-overlay" id="employeePickerOverlay" onmousedown="closeEmployeePicker(event)">
+                    <div class="employee-picker" onclick="event.stopPropagation()">
+                        <div class="employee-picker-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <h3><i class="fas fa-user-plus" style="margin-right: 8px;"></i>Assign Employee(s)</h3>
+                            <button class="employee-picker-close" onclick="closeEmployeePicker()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="employee-picker-search">
+                            <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
+                            <label class="multi-select-toggle" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+                                <input type="checkbox" id="multiSelectToggle" onchange="toggleMultiSelectMode()">
+                                <span style="color: #10b981; font-weight: 600;">Multi-select</span>
+                            </label>
+                        </div>
+                        <div class="employee-picker-list" id="employeePickerList">
+                            <!-- Employees will be loaded here -->
+                        </div>
+                        <div class="employee-picker-footer" id="employeePickerFooter" style="display: none;">
+                            <span id="selectedCount">0 selected</span>
+                            <button class="assign-selected-btn" onclick="assignSelectedEmployees()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <i class="fas fa-check"></i> Assign Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Editor Modal -->
+                <div class="time-editor-overlay" id="timeEditorOverlay" onmousedown="closeTimeEditor(event)">
+                    <div class="time-editor-modal" onclick="event.stopPropagation()">
+                        <div class="time-editor-header">
+                            <h3 id="timeEditorTitle"><i class="fas fa-clock"></i> Edit Shift</h3>
+                            <button class="time-editor-close" onclick="closeTimeEditor()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="time-editor-body">
+                            <div class="time-editor-info" id="timeEditorInfo">
+                                <!-- Employee info will be loaded here -->
+                            </div>
+                            <div class="time-editor-current">
+                                <div class="time-editor-current-label">Current Schedule</div>
+                                <div class="time-editor-current-value" id="timeEditorCurrentValue">9:00a - 5:00p</div>
+                                <div class="time-editor-current-hours" id="timeEditorCurrentHours">8.0 hours</div>
+                            </div>
+                            <div class="time-editor-presets">
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('08:45', '16:00')">
+                                    <div class="time-editor-preset-time">8:45a - 4p</div>
+                                    <div class="time-editor-preset-label">Morning</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('09:45', '16:00')">
+                                    <div class="time-editor-preset-time">9:45a - 4p</div>
+                                    <div class="time-editor-preset-label">Mid AM</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('08:45', '17:00')">
+                                    <div class="time-editor-preset-time">8:45a - 5p</div>
+                                    <div class="time-editor-preset-label">Full Day</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('16:00', '22:30')">
+                                    <div class="time-editor-preset-time">4p - 10:30p</div>
+                                    <div class="time-editor-preset-label">Evening</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('17:00', '23:30')">
+                                    <div class="time-editor-preset-time">5p - 11:30p</div>
+                                    <div class="time-editor-preset-label">Closing</div>
+                                </div>
+                                <div class="time-editor-preset" onclick="setTimeEditorPreset('18:00', '23:30')">
+                                    <div class="time-editor-preset-time">6p - 11:30p</div>
+                                    <div class="time-editor-preset-label">Night</div>
+                                </div>
+                            </div>
+                            <div class="time-editor-slider-section">
+                                <div class="time-editor-slider-label">
+                                    <span>Drag to adjust</span>
+                                </div>
+                                <div class="time-editor-slider-track" id="timeEditorTrack">
+                                    <div class="time-editor-slider-range" id="timeEditorRange">
+                                        <div class="time-editor-handle start" id="timeEditorHandleStart"></div>
+                                        <div class="time-editor-handle end" id="timeEditorHandleEnd"></div>
+                                    </div>
+                                </div>
+                                <div class="time-editor-hours-ruler">
+                                    <span>6am</span>
+                                    <span>9am</span>
+                                    <span>12pm</span>
+                                    <span>3pm</span>
+                                    <span>6pm</span>
+                                    <span>9pm</span>
+                                    <span>12am</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="time-editor-footer">
+                            <button class="time-editor-btn delete" onclick="deleteFromTimeEditor()" title="Remove shift">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
+                            <button class="time-editor-btn save" onclick="saveTimeEditor()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <i class="fas fa-check"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clone Modal -->
+                <div class="clone-modal-overlay" id="cloneModalOverlay" onmousedown="closeCloneModal(event)">
+                    <div class="clone-modal" onclick="event.stopPropagation()">
+                        <div class="clone-modal-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <h3><i class="fas fa-clone"></i> Clone Schedule</h3>
+                            <button class="time-editor-close" onclick="closeCloneModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="clone-modal-body">
+                            <div class="clone-option" onclick="cloneFromPreviousWeek()">
+                                <div class="clone-option-icon" style="color: #10b981;">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <div class="clone-option-info">
+                                    <h4>Clone Previous Week</h4>
+                                    <p>Copy all shifts from last week to this week</p>
+                                </div>
+                            </div>
+                            <div class="clone-option" onclick="cloneToNextWeek()">
+                                <div class="clone-option-icon" style="color: #10b981;">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div class="clone-option-info">
+                                    <h4>Clone to Next Week</h4>
+                                    <p>Copy this week's shifts to next week</p>
+                                </div>
+                            </div>
+                            <div class="clone-option" onclick="clearCurrentWeek()">
+                                <div class="clone-option-icon" style="color: var(--danger);">
+                                    <i class="fas fa-trash-alt"></i>
+                                </div>
+                                <div class="clone-option-info">
+                                    <h4>Clear This Week</h4>
+                                    <p>Remove all shifts from current week</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clone-modal-footer">
+                            <button class="time-editor-btn cancel" onclick="closeCloneModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            loadManagerScheduleData();
+        }
+
+        async function loadManagerScheduleData() {
+            const container = document.getElementById('schedule-container');
+            if (!container) return;
+
+            try {
+                // Make sure employees are loaded first
+                if (employees.length === 0) {
+                    await loadEmployeesFromFirebase();
+                }
+
+                // Populate employee dropdown options
+                populateEmployeeOptions();
+
+                const db = firebase.firestore();
+
+                // Load schedules
+                const schedulesRef = db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules');
+                const snapshot = await schedulesRef.get();
+
+                schedules = [];
+                snapshot.forEach(doc => {
+                    schedules.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Load days off
+                const daysOffRef = db.collection(window.FIREBASE_COLLECTIONS.daysOff || 'daysOff');
+                const daysOffSnapshot = await daysOffRef.get();
+
+                daysOff = [];
+                daysOffSnapshot.forEach(doc => {
+                    daysOff.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderManagerScheduleGrid();
+            } catch (error) {
+                console.error('Error loading schedules:', error);
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
+                        <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Connection Error</h2>
+                        <p style="color: var(--text-muted);">Unable to load schedule data.</p>
+                        <button class="btn-primary" style="margin-top: 20px; background: linear-gradient(135deg, #10b981, #059669);" onclick="loadManagerScheduleData()"><i class="fas fa-sync"></i> Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function renderManagerScheduleGrid() {
+            // Uses the same grid rendering as renderScheduleGrid
+            // This allows reusing all existing schedule functionality
+            renderScheduleGrid();
+
+            // Update hours panel header color for manager view
+            const hoursPanelHeader = document.querySelector('.hours-panel-header');
+            if (hoursPanelHeader) {
+                hoursPanelHeader.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            }
+        }
+

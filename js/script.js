@@ -1244,6 +1244,7 @@
                 announcements: 'Announcements',
                 tasks: 'Tasks & Checklists',
                 schedule: 'Schedule',
+                managerschedule: 'Manager View Schedule',
                 settings: 'Settings',
                 help: 'Help Center',
                 thieves: 'Banned Customers',
@@ -1395,6 +1396,9 @@
                     break;
                 case 'schedule':
                     renderSchedule();
+                    break;
+                case 'managerschedule':
+                    renderManagerSchedule();
                     break;
                 case 'thieves':
                     renderThieves();
