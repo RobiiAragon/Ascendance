@@ -6182,8 +6182,8 @@ window.viewChecklistHistory = async function() {
             updateHoursSummaryPanel();
         }
 
-        // Calculate and render hours summary panel
-        function updateHoursSummaryPanel() {
+        // Calculate and render hours summary panel - now shows both scheduled AND actual hours
+        async function updateHoursSummaryPanel() {
             const panelList = document.getElementById('hoursPanelList');
             const totalValueEl = document.getElementById('hoursTotalValue');
             const weekRangeEl = document.getElementById('hoursPanelWeekRange');
@@ -6197,15 +6197,23 @@ window.viewChecklistHistory = async function() {
                 weekRangeEl.textContent = weekRangeText;
             }
 
-            // Calculate hours for each employee this week
-            const employeeHours = {};
+            // Show loading state
+            panelList.innerHTML = `
+                <div class="hours-panel-empty">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading hours...</p>
+                </div>
+            `;
+
+            // Calculate SCHEDULED hours for each employee this week
+            const employeeScheduledHours = {};
             const employeeHoursPerDay = {}; // Track hours per employee per day to handle overlapping shifts
             const weekDateKeys = weekDates.map(d => formatDateKey(d));
 
             // Get all schedules for this week
             const weekSchedules = schedules.filter(s => weekDateKeys.includes(s.date));
 
-            // Sum up hours per employee, capping at 16 hours per day max
+            // Sum up SCHEDULED hours per employee, capping at 16 hours per day max
             weekSchedules.forEach(schedule => {
                 if (!schedule.employeeId) return;
 
@@ -6224,21 +6232,68 @@ window.viewChecklistHistory = async function() {
                 if (hoursToAdd > 0) {
                     employeeHoursPerDay[dayKey] += hoursToAdd;
 
-                    if (!employeeHours[schedule.employeeId]) {
-                        employeeHours[schedule.employeeId] = 0;
+                    if (!employeeScheduledHours[schedule.employeeId]) {
+                        employeeScheduledHours[schedule.employeeId] = 0;
                     }
-                    employeeHours[schedule.employeeId] += hoursToAdd;
+                    employeeScheduledHours[schedule.employeeId] += hoursToAdd;
                 }
             });
 
-            // Create array of employees with hours, include all active employees
+            // Now calculate ACTUAL hours from clock in/out records
+            const employeeActualMinutes = {};
+            try {
+                // Initialize Firebase Clock In Manager if not already done
+                if (typeof firebaseClockInManager !== 'undefined' && !firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.initialize();
+                }
+
+                // Get clock records for each day of the week
+                for (const date of weekDates) {
+                    const dateKey = formatDateKey(date);
+                    try {
+                        const records = await firebaseClockInManager.loadClockRecordsByDate(dateKey);
+                        records.forEach(record => {
+                            // Find matching employee
+                            const matchingEmp = employees.find(e => {
+                                if (e.firestoreId && e.firestoreId === record.employeeId) return true;
+                                if (e.id && e.id === record.employeeId) return true;
+                                if (e.name && record.employeeName &&
+                                    e.name.toLowerCase().trim() === record.employeeName.toLowerCase().trim()) return true;
+                                return false;
+                            });
+
+                            if (matchingEmp) {
+                                const workedTime = calculateWorkedTimeFromRecord(record);
+                                if (workedTime.totalMinutes > 0) {
+                                    if (!employeeActualMinutes[matchingEmp.id]) {
+                                        employeeActualMinutes[matchingEmp.id] = 0;
+                                    }
+                                    employeeActualMinutes[matchingEmp.id] += workedTime.totalMinutes;
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        // Silently handle errors for individual dates
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not load clock records for hours panel:', err);
+            }
+
+            // Create array of employees with BOTH scheduled and actual hours
             const employeeHoursArray = employees
                 .filter(emp => emp.status === 'active')
-                .map(emp => ({
-                    employee: emp,
-                    hours: employeeHours[emp.id] || 0
-                }))
-                .sort((a, b) => b.hours - a.hours); // Sort by hours descending
+                .map(emp => {
+                    const actualMinutes = employeeActualMinutes[emp.id] || 0;
+                    const actualHours = actualMinutes / 60;
+                    return {
+                        employee: emp,
+                        scheduledHours: employeeScheduledHours[emp.id] || 0,
+                        actualHours: actualHours,
+                        actualMinutes: actualMinutes
+                    };
+                })
+                .sort((a, b) => b.actualHours - a.actualHours); // Sort by actual hours descending
 
             if (employeeHoursArray.length === 0) {
                 panelList.innerHTML = `
@@ -6252,48 +6307,557 @@ window.viewChecklistHistory = async function() {
             }
 
             const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
-            let totalHours = 0;
+            let totalScheduledHours = 0;
+            let totalActualMinutes = 0;
 
             let html = '';
             employeeHoursArray.forEach(item => {
                 const emp = item.employee;
-                const hours = item.hours;
-                totalHours += hours;
+                const scheduledHours = item.scheduledHours;
+                const actualHours = item.actualHours;
+                const actualMinutes = item.actualMinutes;
+                totalScheduledHours += scheduledHours;
+                totalActualMinutes += actualMinutes;
 
                 const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
                 const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
 
-                // Determine badge class based on hours
-                let badgeClass = '';
-                if (hours === 0) {
-                    badgeClass = 'zero';
-                } else if (hours < 20) {
-                    badgeClass = 'low';
-                } else if (hours >= 40) {
-                    badgeClass = 'high';
+                // Format actual hours display
+                const actualHoursInt = Math.floor(actualHours);
+                const actualMins = Math.floor(actualMinutes % 60);
+                let actualDisplay = '-';
+                if (actualMinutes > 0) {
+                    actualDisplay = actualHoursInt > 0 ? `${actualHoursInt}h ${actualMins}m` : `${actualMins}m`;
                 }
 
+                // Determine badge class based on actual hours vs scheduled
+                let badgeClass = '';
+                if (actualMinutes === 0 && scheduledHours === 0) {
+                    badgeClass = 'zero';
+                } else if (actualMinutes > 0 && scheduledHours > 0) {
+                    // Compare actual vs scheduled
+                    const diff = actualHours - scheduledHours;
+                    if (diff >= 0) {
+                        badgeClass = 'high'; // Met or exceeded scheduled
+                    } else {
+                        badgeClass = 'low'; // Under scheduled
+                    }
+                } else if (actualMinutes > 0) {
+                    badgeClass = 'high';
+                } else {
+                    badgeClass = 'zero';
+                }
+
+                // Show scheduled hours if they have any
+                const scheduledDisplay = scheduledHours > 0 ? `${scheduledHours.toFixed(1)}h` : '-';
+
                 html += `
-                    <div class="hours-employee-item">
+                    <div class="hours-employee-item" onclick="openEmployeeTimeCard('${emp.id}')" style="cursor: pointer;" title="Click to view time card">
                         <div class="hours-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
                         <div class="hours-employee-info">
                             <div class="hours-employee-name">${emp.name || 'Unknown'}</div>
                             <div class="hours-employee-store">${emp.store || 'No store'}</div>
                         </div>
-                        <div class="hours-badge ${badgeClass}">${hours.toFixed(1)}h</div>
+                        <div class="hours-badges-container">
+                            <div class="hours-badge ${badgeClass}" title="Actual worked hours">${actualDisplay}</div>
+                            ${scheduledHours > 0 ? `<div class="hours-badge-scheduled" title="Scheduled hours">${scheduledDisplay}</div>` : ''}
+                        </div>
                     </div>
                 `;
             });
 
             panelList.innerHTML = html;
 
+            // Format total actual hours
+            const totalActualHoursInt = Math.floor(totalActualMinutes / 60);
+            const totalActualMinsRemainder = Math.floor(totalActualMinutes % 60);
+            const totalActualDisplay = totalActualMinutes > 0
+                ? (totalActualHoursInt > 0 ? `${totalActualHoursInt}h ${totalActualMinsRemainder}m` : `${totalActualMinsRemainder}m`)
+                : '0h';
+
             if (totalValueEl) {
-                totalValueEl.textContent = `${totalHours.toFixed(1)}h`;
+                totalValueEl.innerHTML = `
+                    <span title="Actual worked">${totalActualDisplay}</span>
+                    ${totalScheduledHours > 0 ? `<span style="font-size: 12px; color: var(--text-muted); display: block;">/ ${totalScheduledHours.toFixed(1)}h sched</span>` : ''}
+                `;
             }
         }
 
         // Expose function globally
         window.updateHoursSummaryPanel = updateHoursSummaryPanel;
+
+        // ==========================================
+        // EMPLOYEE TIME CARD VIEW
+        // ==========================================
+        async function openEmployeeTimeCard(employeeId) {
+            // Only admins and managers can view time cards
+            if (!canEditSchedule()) {
+                showNotification('Only managers and admins can view time cards', 'error');
+                return;
+            }
+
+            const emp = employees.find(e => e.id === employeeId);
+            if (!emp) {
+                showNotification('Employee not found', 'error');
+                return;
+            }
+
+            const weekDates = getWeekDates(currentWeekStart);
+            const weekRangeText = `${weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            const today = formatDateKey(new Date());
+
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'];
+            const colorIndex = emp.name ? emp.name.charCodeAt(0) % colors.length : 0;
+            const initials = emp.name ? emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+            // Get scheduled hours for this employee
+            const employeeSchedules = {};
+            weekDates.forEach(date => {
+                const dateKey = formatDateKey(date);
+                const daySchedules = schedules.filter(s => s.date === dateKey && s.employeeId === employeeId);
+                employeeSchedules[dateKey] = daySchedules;
+            });
+
+            // Get actual clock records for this employee
+            const employeeClockRecords = {};
+            try {
+                if (typeof firebaseClockInManager !== 'undefined' && !firebaseClockInManager.isInitialized) {
+                    await firebaseClockInManager.initialize();
+                }
+
+                for (const date of weekDates) {
+                    const dateKey = formatDateKey(date);
+                    try {
+                        const records = await firebaseClockInManager.loadClockRecordsByDate(dateKey);
+                        const empRecord = records.find(r => {
+                            if (emp.firestoreId && emp.firestoreId === r.employeeId) return true;
+                            if (emp.id && emp.id === r.employeeId) return true;
+                            if (emp.name && r.employeeName &&
+                                emp.name.toLowerCase().trim() === r.employeeName.toLowerCase().trim()) return true;
+                            return false;
+                        });
+                        employeeClockRecords[dateKey] = empRecord || null;
+                    } catch (err) {
+                        employeeClockRecords[dateKey] = null;
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not load clock records for time card:', err);
+            }
+
+            // Calculate totals
+            let totalScheduledMinutes = 0;
+            let totalActualMinutes = 0;
+
+            // Build the time card rows
+            let rowsHtml = '';
+            weekDates.forEach(date => {
+                const dateKey = formatDateKey(date);
+                const isToday = dateKey === today;
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNumber = date.getDate();
+                const daySchedules = employeeSchedules[dateKey] || [];
+                const clockRecord = employeeClockRecords[dateKey];
+
+                // Calculate scheduled time
+                let scheduledStart = '-';
+                let scheduledEnd = '-';
+                let scheduledHours = 0;
+                if (daySchedules.length > 0) {
+                    // Combine all schedules for the day
+                    const starts = daySchedules.map(s => s.startTime || SHIFT_TYPES[s.shiftType]?.defaultStart || '09:00');
+                    const ends = daySchedules.map(s => s.endTime || SHIFT_TYPES[s.shiftType]?.defaultEnd || '17:00');
+                    scheduledStart = formatTimeShort(starts[0]);
+                    scheduledEnd = formatTimeShort(ends[ends.length - 1]);
+                    daySchedules.forEach(s => {
+                        const start = s.startTime || SHIFT_TYPES[s.shiftType]?.defaultStart || '09:00';
+                        const end = s.endTime || SHIFT_TYPES[s.shiftType]?.defaultEnd || '17:00';
+                        scheduledHours += calculateHours(start, end);
+                    });
+                    totalScheduledMinutes += scheduledHours * 60;
+                }
+
+                // Calculate actual time
+                let actualClockIn = '-';
+                let actualClockOut = '-';
+                let actualLunch = '-';
+                let actualHours = 0;
+                let actualMinutes = 0;
+                let inProgress = false;
+
+                if (clockRecord) {
+                    actualClockIn = clockRecord.clockIn || '-';
+                    actualClockOut = clockRecord.clockOut || '-';
+                    inProgress = clockRecord.clockIn && !clockRecord.clockOut;
+
+                    if (clockRecord.lunchStart && clockRecord.lunchEnd) {
+                        actualLunch = `${clockRecord.lunchStart} - ${clockRecord.lunchEnd}`;
+                    } else if (clockRecord.lunchStart) {
+                        actualLunch = `${clockRecord.lunchStart} - (in progress)`;
+                    }
+
+                    const workedTime = calculateWorkedTimeFromRecord(clockRecord);
+                    actualHours = workedTime.hours;
+                    actualMinutes = workedTime.minutes;
+                    totalActualMinutes += workedTime.totalMinutes;
+                }
+
+                // Format actual hours display
+                let actualDisplay = '-';
+                if (inProgress) {
+                    actualDisplay = '<span class="in-progress-badge"><i class="fas fa-clock"></i> Active</span>';
+                } else if (actualHours > 0 || actualMinutes > 0) {
+                    actualDisplay = actualHours > 0 ? `${actualHours}h ${actualMinutes}m` : `${actualMinutes}m`;
+                }
+
+                // Calculate variance
+                let varianceDisplay = '-';
+                let varianceClass = '';
+                if (scheduledHours > 0 && (actualHours > 0 || actualMinutes > 0)) {
+                    const actualTotalMins = actualHours * 60 + actualMinutes;
+                    const scheduledTotalMins = scheduledHours * 60;
+                    const diffMins = actualTotalMins - scheduledTotalMins;
+                    const diffHours = Math.floor(Math.abs(diffMins) / 60);
+                    const diffMinsRemainder = Math.abs(diffMins) % 60;
+
+                    if (diffMins === 0) {
+                        varianceDisplay = 'On time';
+                        varianceClass = 'on-time';
+                    } else if (diffMins > 0) {
+                        varianceDisplay = `+${diffHours > 0 ? diffHours + 'h ' : ''}${diffMinsRemainder}m`;
+                        varianceClass = 'over';
+                    } else {
+                        varianceDisplay = `-${diffHours > 0 ? diffHours + 'h ' : ''}${diffMinsRemainder}m`;
+                        varianceClass = 'under';
+                    }
+                }
+
+                rowsHtml += `
+                    <tr class="${isToday ? 'today-row' : ''}">
+                        <td class="day-cell">
+                            <span class="day-name">${dayName}</span>
+                            <span class="day-number">${dayNumber}</span>
+                        </td>
+                        <td class="time-cell scheduled">${scheduledStart !== '-' ? `${scheduledStart} - ${scheduledEnd}` : '-'}</td>
+                        <td class="time-cell actual">${actualClockIn !== '-' ? `${actualClockIn} - ${actualClockOut}` : '-'}</td>
+                        <td class="time-cell lunch">${actualLunch}</td>
+                        <td class="hours-cell scheduled">${scheduledHours > 0 ? scheduledHours.toFixed(1) + 'h' : '-'}</td>
+                        <td class="hours-cell actual">${actualDisplay}</td>
+                        <td class="variance-cell ${varianceClass}">${varianceDisplay}</td>
+                    </tr>
+                `;
+            });
+
+            // Calculate total hours
+            const totalScheduledHours = totalScheduledMinutes / 60;
+            const totalActualHours = Math.floor(totalActualMinutes / 60);
+            const totalActualMinsRemainder = Math.floor(totalActualMinutes % 60);
+            const totalActualDisplay = totalActualMinutes > 0
+                ? (totalActualHours > 0 ? `${totalActualHours}h ${totalActualMinsRemainder}m` : `${totalActualMinsRemainder}m`)
+                : '-';
+
+            // Calculate total variance
+            let totalVarianceDisplay = '-';
+            let totalVarianceClass = '';
+            if (totalScheduledMinutes > 0 && totalActualMinutes > 0) {
+                const diffMins = totalActualMinutes - totalScheduledMinutes;
+                const diffHours = Math.floor(Math.abs(diffMins) / 60);
+                const diffMinsRemainder = Math.floor(Math.abs(diffMins) % 60);
+
+                if (Math.abs(diffMins) < 5) {
+                    totalVarianceDisplay = 'On time';
+                    totalVarianceClass = 'on-time';
+                } else if (diffMins > 0) {
+                    totalVarianceDisplay = `+${diffHours > 0 ? diffHours + 'h ' : ''}${diffMinsRemainder}m`;
+                    totalVarianceClass = 'over';
+                } else {
+                    totalVarianceDisplay = `-${diffHours > 0 ? diffHours + 'h ' : ''}${diffMinsRemainder}m`;
+                    totalVarianceClass = 'under';
+                }
+            }
+
+            // Create the modal HTML
+            const modalHtml = `
+                <style>
+                    .time-card-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.6);
+                        backdrop-filter: blur(8px);
+                        z-index: 1002;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        animation: fadeIn 0.3s ease;
+                    }
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    .time-card-modal {
+                        background: var(--bg-card);
+                        border-radius: 20px;
+                        width: 95%;
+                        max-width: 900px;
+                        max-height: 90vh;
+                        overflow: hidden;
+                        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+                        animation: slideUp 0.3s ease;
+                    }
+                    @keyframes slideUp {
+                        from { transform: translateY(20px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                    .time-card-header {
+                        padding: 20px 24px;
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .time-card-employee {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                    }
+                    .time-card-avatar {
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: white;
+                        border: 3px solid rgba(255,255,255,0.3);
+                    }
+                    .time-card-employee-info h3 {
+                        color: white;
+                        font-size: 20px;
+                        font-weight: 700;
+                        margin: 0 0 4px 0;
+                    }
+                    .time-card-employee-info p {
+                        color: rgba(255,255,255,0.8);
+                        font-size: 14px;
+                        margin: 0;
+                    }
+                    .time-card-close {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        background: rgba(255,255,255,0.2);
+                        border: none;
+                        cursor: pointer;
+                        color: white;
+                        font-size: 18px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .time-card-close:hover {
+                        background: rgba(255,255,255,0.3);
+                        transform: rotate(90deg);
+                    }
+                    .time-card-body {
+                        padding: 20px;
+                        overflow-y: auto;
+                        max-height: calc(90vh - 200px);
+                    }
+                    .time-card-table-wrapper {
+                        overflow-x: auto;
+                    }
+                    .time-card-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 14px;
+                    }
+                    .time-card-table th {
+                        padding: 12px 10px;
+                        text-align: center;
+                        background: var(--bg-secondary);
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        border-bottom: 2px solid var(--border-color);
+                    }
+                    .time-card-table td {
+                        padding: 12px 10px;
+                        text-align: center;
+                        border-bottom: 1px solid var(--border-color);
+                    }
+                    .time-card-table tr.today-row {
+                        background: rgba(16, 185, 129, 0.08);
+                    }
+                    .time-card-table tr.today-row td {
+                        border-color: rgba(16, 185, 129, 0.2);
+                    }
+                    .time-card-table .day-cell {
+                        text-align: left;
+                        padding-left: 16px;
+                    }
+                    .time-card-table .day-cell .day-name {
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        display: block;
+                    }
+                    .time-card-table .day-cell .day-number {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                    }
+                    .time-card-table .time-cell {
+                        font-size: 13px;
+                        color: var(--text-secondary);
+                    }
+                    .time-card-table .time-cell.scheduled {
+                        color: var(--text-muted);
+                    }
+                    .time-card-table .time-cell.actual {
+                        color: var(--text-primary);
+                        font-weight: 500;
+                    }
+                    .time-card-table .hours-cell {
+                        font-weight: 600;
+                    }
+                    .time-card-table .hours-cell.scheduled {
+                        color: var(--text-muted);
+                    }
+                    .time-card-table .hours-cell.actual {
+                        color: #10b981;
+                    }
+                    .time-card-table .variance-cell {
+                        font-weight: 600;
+                        font-size: 13px;
+                    }
+                    .time-card-table .variance-cell.on-time {
+                        color: #10b981;
+                    }
+                    .time-card-table .variance-cell.over {
+                        color: #3b82f6;
+                    }
+                    .time-card-table .variance-cell.under {
+                        color: #f59e0b;
+                    }
+                    .time-card-table tfoot td {
+                        padding-top: 16px;
+                        font-weight: 700;
+                        background: var(--bg-secondary);
+                        border-top: 2px solid var(--border-color);
+                    }
+                    .in-progress-badge {
+                        background: rgba(245, 158, 11, 0.15);
+                        color: #f59e0b;
+                        padding: 4px 8px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                        animation: pulse-active 2s infinite;
+                    }
+                    @media (max-width: 768px) {
+                        .time-card-modal {
+                            width: 100%;
+                            max-width: none;
+                            height: 100%;
+                            max-height: 100%;
+                            border-radius: 0;
+                        }
+                        .time-card-body {
+                            max-height: calc(100vh - 120px);
+                        }
+                        .time-card-table {
+                            font-size: 12px;
+                        }
+                        .time-card-table th,
+                        .time-card-table td {
+                            padding: 8px 6px;
+                        }
+                        .time-card-employee-info h3 {
+                            font-size: 16px;
+                        }
+                        .time-card-avatar {
+                            width: 44px;
+                            height: 44px;
+                            font-size: 16px;
+                        }
+                    }
+                </style>
+                <div class="time-card-overlay" id="timeCardOverlay" onclick="closeTimeCard(event)">
+                    <div class="time-card-modal" onclick="event.stopPropagation()">
+                        <div class="time-card-header">
+                            <div class="time-card-employee">
+                                <div class="time-card-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                <div class="time-card-employee-info">
+                                    <h3><i class="fas fa-id-card" style="margin-right: 8px;"></i>${emp.name || 'Unknown'}</h3>
+                                    <p>${emp.store || 'No Store'} &bull; ${weekRangeText}</p>
+                                </div>
+                            </div>
+                            <button class="time-card-close" onclick="closeTimeCard()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="time-card-body">
+                            <div class="time-card-table-wrapper">
+                                <table class="time-card-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: left; padding-left: 16px;">Day</th>
+                                            <th>Scheduled</th>
+                                            <th>Actual</th>
+                                            <th>Lunch</th>
+                                            <th>Sched Hrs</th>
+                                            <th>Actual Hrs</th>
+                                            <th>Variance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rowsHtml}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td style="text-align: left; padding-left: 16px;"><strong>TOTAL</strong></td>
+                                            <td>-</td>
+                                            <td>-</td>
+                                            <td>-</td>
+                                            <td class="hours-cell scheduled">${totalScheduledHours > 0 ? totalScheduledHours.toFixed(1) + 'h' : '-'}</td>
+                                            <td class="hours-cell actual">${totalActualDisplay}</td>
+                                            <td class="variance-cell ${totalVarianceClass}">${totalVarianceDisplay}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Append modal to body
+            const modalContainer = document.createElement('div');
+            modalContainer.id = 'timeCardModalContainer';
+            modalContainer.innerHTML = modalHtml;
+            document.body.appendChild(modalContainer);
+        }
+
+        function closeTimeCard(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const container = document.getElementById('timeCardModalContainer');
+            if (container) {
+                container.remove();
+            }
+        }
+
+        // Expose functions globally
+        window.openEmployeeTimeCard = openEmployeeTimeCard;
+        window.closeTimeCard = closeTimeCard;
 
         // Time editor modal functions
         let currentTimeEditorContext = null;
@@ -9913,6 +10477,25 @@ window.viewChecklistHistory = async function() {
                         background: rgba(239, 68, 68, 0.1);
                         color: #ef4444;
                     }
+                    .hours-badges-container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                        gap: 4px;
+                    }
+                    .hours-badge-scheduled {
+                        font-size: 11px;
+                        font-weight: 500;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        background: rgba(148, 163, 184, 0.15);
+                        color: var(--text-muted);
+                        white-space: nowrap;
+                    }
+                    .hours-badge-scheduled::before {
+                        content: 'Sched: ';
+                        font-weight: 400;
+                    }
                     .hours-total-row {
                         padding: 12px 16px;
                         border-top: 1px solid var(--border-color);
@@ -9985,6 +10568,13 @@ window.viewChecklistHistory = async function() {
                         .hours-badge {
                             font-size: 12px;
                             padding: 4px 8px;
+                        }
+                        .hours-badges-container {
+                            gap: 2px;
+                        }
+                        .hours-badge-scheduled {
+                            font-size: 10px;
+                            padding: 2px 4px;
                         }
                         .stores-grid {
                             grid-template-columns: 1fr !important;
@@ -10060,6 +10650,7 @@ window.viewChecklistHistory = async function() {
                         <div class="hours-panel-header" style="background: linear-gradient(135deg, #10b981, #059669);">
                             <h3><i class="fas fa-clock"></i> Hours This Week</h3>
                             <p id="hoursPanelWeekRange">${weekRangeText}</p>
+                            <p style="font-size: 10px; margin-top: 4px; opacity: 0.8;"><i class="fas fa-info-circle"></i> Click employee for Time Card</p>
                         </div>
                         <div class="hours-panel-list" id="hoursPanelList">
                             <div class="hours-panel-empty">
