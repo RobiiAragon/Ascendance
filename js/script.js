@@ -5715,6 +5715,9 @@
                             </div>
                         </div>
                         <div style="display: flex; gap: 12px; align-items: center;">
+                            <select id="attendance-employee-filter" onchange="filterAttendanceByEmployee()" style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px; color: var(--text-primary); font-family: 'Outfit', sans-serif; cursor: pointer; min-width: 180px;">
+                                <option value="">All Employees</option>
+                            </select>
                             <button class="btn-secondary" onclick="exportAttendance()">
                                 <i class="fas fa-download"></i>
                                 Export
@@ -6350,6 +6353,7 @@
                 }
 
                 updateAttendanceStats(dateRecords);
+                populateEmployeeFilterDropdown();
             }, 300);
         }
 
@@ -6669,6 +6673,96 @@
             renderAttendanceTableRows(records);
             updateAttendanceStats(records);
         }
+
+        // Populate employee filter dropdown
+        function populateEmployeeFilterDropdown() {
+            const dropdown = document.getElementById('attendance-employee-filter');
+            if (!dropdown) return;
+
+            // Get unique employees from all records
+            const uniqueEmployees = new Map();
+            clockinAttendanceRecords.forEach(record => {
+                if (record.employeeName && !uniqueEmployees.has(record.employeeName)) {
+                    uniqueEmployees.set(record.employeeName, {
+                        name: record.employeeName,
+                        store: record.store || ''
+                    });
+                }
+            });
+
+            // Also get employees from the employees array if available
+            if (typeof employees !== 'undefined' && employees.length > 0) {
+                employees.forEach(emp => {
+                    if (emp.name && !uniqueEmployees.has(emp.name)) {
+                        uniqueEmployees.set(emp.name, {
+                            name: emp.name,
+                            store: emp.store || emp.assignedStore || ''
+                        });
+                    }
+                });
+            }
+
+            // Sort employees alphabetically
+            const sortedEmployees = Array.from(uniqueEmployees.values()).sort((a, b) =>
+                a.name.localeCompare(b.name)
+            );
+
+            // Preserve current selection
+            const currentSelection = dropdown.value;
+
+            // Build options HTML
+            let html = '<option value="">All Employees</option>';
+            sortedEmployees.forEach(emp => {
+                const storeInfo = emp.store ? ` (${emp.store})` : '';
+                html += `<option value="${emp.name}">${emp.name}${storeInfo}</option>`;
+            });
+
+            dropdown.innerHTML = html;
+
+            // Restore selection if it still exists
+            if (currentSelection && sortedEmployees.some(e => e.name === currentSelection)) {
+                dropdown.value = currentSelection;
+            }
+        }
+
+        // Filter attendance by selected employee
+        window.filterAttendanceByEmployee = function() {
+            const dropdown = document.getElementById('attendance-employee-filter');
+            const selectedEmployee = dropdown?.value || '';
+            const selectedDate = attendanceSelectedDate.toDateString();
+
+            let records = clockinAttendanceRecords.filter(r => r.date === selectedDate);
+
+            // Apply employee filter
+            if (selectedEmployee) {
+                records = records.filter(r => r.employeeName === selectedEmployee);
+            }
+
+            // Also apply search filter if there's a search term
+            const searchInput = document.getElementById('attendanceSearch');
+            const searchTerm = searchInput?.value?.toLowerCase() || '';
+            if (searchTerm) {
+                records = records.filter(r =>
+                    r.employeeName.toLowerCase().includes(searchTerm) ||
+                    r.employeeRole.toLowerCase().includes(searchTerm) ||
+                    r.store.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            const tableContainer = document.getElementById('attendanceTableContainer');
+            const emptyState = document.getElementById('emptyAttendanceState');
+
+            if (records.length === 0) {
+                if (tableContainer) tableContainer.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'flex';
+            } else {
+                if (tableContainer) tableContainer.style.display = 'block';
+                if (emptyState) emptyState.style.display = 'none';
+                renderAttendanceTableRows(records);
+            }
+
+            updateAttendanceStats(records);
+        };
 
         // ==========================================
         // CLOCK RECORD EDITING (Admin/Manager Only)
