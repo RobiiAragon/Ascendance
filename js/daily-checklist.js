@@ -8754,6 +8754,1243 @@ window.viewChecklistHistory = async function() {
                             height: 32px;
                         }
                     }
+
+                    /* Days Grid - Horizontal scroll for week */
+                    .schedule-days-container {
+                        display: flex;
+                        gap: 12px;
+                        overflow-x: auto;
+                        padding-bottom: 12px;
+                        scroll-snap-type: x mandatory;
+                    }
+                    .schedule-days-container::-webkit-scrollbar {
+                        height: 6px;
+                    }
+                    .schedule-days-container::-webkit-scrollbar-track {
+                        background: var(--bg-secondary);
+                        border-radius: 3px;
+                    }
+                    .schedule-days-container::-webkit-scrollbar-thumb {
+                        background: var(--border-color);
+                        border-radius: 3px;
+                    }
+
+                    /* Day Card */
+                    .schedule-day-card {
+                        flex: 0 0 calc(14.28% - 10px);
+                        min-width: 200px;
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        overflow: hidden;
+                        scroll-snap-align: start;
+                        transition: all 0.3s ease;
+                    }
+                    .schedule-day-card:hover {
+                        border-color: #10b981;
+                        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+                    }
+                    .schedule-day-card.today {
+                        border-color: #10b981;
+                        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+                    }
+                    .day-card-header {
+                        padding: 16px;
+                        text-align: center;
+                        border-bottom: 1px solid var(--border-color);
+                        background: var(--bg-secondary);
+                    }
+                    .schedule-day-card.today .day-card-header {
+                        background: linear-gradient(135deg, #10b981, #059669);
+                    }
+                    .schedule-day-card.today .day-card-header * {
+                        color: white !important;
+                    }
+                    .day-card-header .day-name {
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        color: var(--text-muted);
+                        font-weight: 600;
+                    }
+                    .day-card-header .day-number {
+                        font-size: 28px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                        line-height: 1.2;
+                    }
+                    .day-card-body {
+                        padding: 12px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+
+                    /* Shift Slot */
+                    .shift-slot {
+                        border-radius: 12px;
+                        padding: 12px;
+                        transition: all 0.2s;
+                        position: relative;
+                    }
+                    .shift-slot.opening {
+                        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%);
+                        border: 1px solid rgba(245, 158, 11, 0.2);
+                    }
+                    .shift-slot.closing {
+                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        border: 1px solid rgba(16, 185, 129, 0.2);
+                    }
+                    .shift-slot-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 10px;
+                    }
+                    .shift-type-badge {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .shift-slot.opening .shift-type-badge {
+                        color: #f59e0b;
+                    }
+                    .shift-slot.closing .shift-type-badge {
+                        color: #10b981;
+                    }
+                    .shift-time-display {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                        font-weight: 500;
+                    }
+
+                    /* Employee Drop Zone */
+                    .employee-drop-zone {
+                        min-height: 50px;
+                        border: 2px dashed var(--border-color);
+                        border-radius: 10px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        padding: 8px;
+                    }
+                    .employee-drop-zone:hover {
+                        border-color: #10b981;
+                        background: rgba(16, 185, 129, 0.05);
+                    }
+                    .employee-drop-zone.drag-over {
+                        border-color: #10b981;
+                        background: rgba(16, 185, 129, 0.1);
+                        border-style: solid;
+                    }
+                    .employee-drop-zone.empty {
+                        color: var(--text-muted);
+                        font-size: 13px;
+                    }
+                    .employee-drop-zone.empty i {
+                        margin-right: 6px;
+                    }
+
+                    /* Assigned Employee Card */
+                    .assigned-employee {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px 12px;
+                        background: var(--bg-secondary);
+                        border-radius: 10px;
+                        width: 100%;
+                        cursor: grab;
+                        transition: all 0.2s;
+                        position: relative;
+                    }
+                    .assigned-employee:hover {
+                        background: var(--bg-hover);
+                        transform: translateY(-1px);
+                    }
+                    .assigned-employee:active {
+                        cursor: grabbing;
+                    }
+                    .assigned-employee.dragging {
+                        opacity: 0.5;
+                        transform: scale(0.98);
+                    }
+                    .assigned-employee-avatar {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .assigned-employee-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .assigned-employee-name {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .assigned-employee-hours {
+                        font-size: 12px;
+                        color: var(--text-muted);
+                    }
+                    .assigned-employee-remove {
+                        position: absolute;
+                        top: -6px;
+                        right: -6px;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: var(--danger);
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .assigned-employee:hover .assigned-employee-remove {
+                        opacity: 1;
+                    }
+                    .assigned-employee-clone {
+                        position: absolute;
+                        top: -6px;
+                        right: 18px;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: #10b981;
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .assigned-employee:hover .assigned-employee-clone {
+                        opacity: 1;
+                    }
+                    .assigned-employee-clone:hover {
+                        background: #059669;
+                        transform: scale(1.1);
+                    }
+
+                    /* Multi-employee shift slot */
+                    .employee-drop-zone.multi-employee {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        padding: 10px;
+                    }
+                    .employee-drop-zone.multi-employee .assigned-employee {
+                        margin-bottom: 0;
+                    }
+                    .add-more-employee {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 8px;
+                        border: 2px dashed var(--border-color);
+                        border-radius: 8px;
+                        color: var(--text-muted);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-size: 14px;
+                    }
+                    .add-more-employee:hover {
+                        border-color: #10b981;
+                        color: #10b981;
+                        background: var(--bg-hover);
+                    }
+
+                    /* Days Off Section */
+                    .day-off-section {
+                        margin-top: 12px;
+                        border-top: 1px solid var(--border-color);
+                        padding-top: 12px;
+                    }
+                    .day-off-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 12px;
+                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        border-radius: 8px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        border: 1px solid rgba(16, 185, 129, 0.15);
+                    }
+                    .day-off-header:hover {
+                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.08) 100%);
+                        border-color: #10b981;
+                    }
+                    .day-off-employees {
+                        margin-top: 8px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                    }
+                    .day-off-employee-badge {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 6px 10px;
+                        background: var(--bg-secondary);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        position: relative;
+                        transition: all 0.2s;
+                    }
+                    .day-off-employee-badge:hover {
+                        background: var(--bg-hover);
+                    }
+                    .day-off-avatar {
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .day-off-name {
+                        flex: 1;
+                        color: var(--text-primary);
+                        font-weight: 500;
+                        font-size: 12px;
+                    }
+                    .day-off-remove {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 50%;
+                        background: var(--danger);
+                        color: white;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .day-off-employee-badge:hover .day-off-remove {
+                        opacity: 1;
+                    }
+                    .day-off-remove:hover {
+                        background: #dc2626;
+                        transform: scale(1.1);
+                    }
+                    .day-off-empty {
+                        padding: 12px;
+                        text-align: center;
+                        color: var(--text-muted);
+                        font-size: 12px;
+                        font-style: italic;
+                    }
+
+                    /* Employee Picker Modal */
+                    .employee-picker-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.5);
+                        backdrop-filter: blur(4px);
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s;
+                    }
+                    .employee-picker-overlay.active {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .employee-picker {
+                        background: var(--bg-card);
+                        border-radius: 20px;
+                        width: 90%;
+                        max-width: 400px;
+                        max-height: 80vh;
+                        overflow: hidden;
+                        transform: scale(0.9);
+                        transition: transform 0.3s;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    }
+                    .employee-picker-overlay.active .employee-picker {
+                        transform: scale(1);
+                    }
+                    .employee-picker-header {
+                        padding: 20px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .employee-picker-header h3 {
+                        font-size: 18px;
+                        font-weight: 600;
+                    }
+                    .employee-picker-close {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        background: var(--bg-secondary);
+                        border: none;
+                        cursor: pointer;
+                        color: var(--text-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .employee-picker-close:hover {
+                        background: var(--danger);
+                        color: white;
+                    }
+                    .employee-picker-search {
+                        padding: 16px 20px;
+                        border-bottom: 1px solid var(--border-color);
+                    }
+                    .employee-picker-search input {
+                        width: 100%;
+                        padding: 12px 16px;
+                        border-radius: 10px;
+                        border: 1px solid var(--border-color);
+                        background: var(--bg-secondary);
+                        color: var(--text-primary);
+                        font-size: 14px;
+                    }
+                    .employee-picker-search input:focus {
+                        outline: none;
+                        border-color: #10b981;
+                    }
+                    .employee-picker-list {
+                        padding: 12px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                    }
+                    .employee-picker-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 12px;
+                        border-radius: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .employee-picker-item:hover {
+                        background: var(--bg-hover);
+                    }
+                    .employee-picker-avatar {
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: white;
+                    }
+                    .employee-picker-info {
+                        flex: 1;
+                    }
+                    .employee-picker-name {
+                        font-weight: 600;
+                        font-size: 15px;
+                    }
+                    .employee-picker-store {
+                        font-size: 13px;
+                        color: var(--text-muted);
+                    }
+
+                    /* Multi-select toggle */
+                    .multi-select-toggle {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-top: 12px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        color: var(--text-secondary);
+                    }
+                    .multi-select-toggle input[type="checkbox"] {
+                        width: 18px;
+                        height: 18px;
+                        accent-color: #10b981;
+                        cursor: pointer;
+                    }
+                    .employee-picker-footer {
+                        padding: 16px 20px;
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        background: var(--bg-secondary);
+                        border-radius: 0 0 20px 20px;
+                    }
+                    .employee-picker-footer #selectedCount {
+                        font-size: 14px;
+                        color: var(--text-secondary);
+                        font-weight: 500;
+                    }
+                    .assign-selected-btn {
+                        padding: 10px 20px;
+                        background: #10b981;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        transition: all 0.2s;
+                    }
+                    .assign-selected-btn:hover {
+                        background: #059669;
+                        transform: translateY(-1px);
+                    }
+                    .assign-selected-btn:disabled {
+                        background: var(--text-muted);
+                        cursor: not-allowed;
+                        transform: none;
+                    }
+                    .employee-picker-item.multi-select {
+                        position: relative;
+                    }
+                    .employee-picker-item .select-checkbox {
+                        width: 22px;
+                        height: 22px;
+                        border-radius: 6px;
+                        border: 2px solid var(--border-color);
+                        background: var(--bg-primary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    }
+                    .employee-picker-item .select-checkbox i {
+                        display: none;
+                        color: white;
+                        font-size: 12px;
+                    }
+                    .employee-picker-item.selected .select-checkbox {
+                        background: #10b981;
+                        border-color: #10b981;
+                    }
+                    .employee-picker-item.selected .select-checkbox i {
+                        display: block;
+                    }
+
+                    /* Time Editor Modal */
+                    .time-editor-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.6);
+                        backdrop-filter: blur(8px);
+                        z-index: 1001;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s;
+                    }
+                    .time-editor-overlay.active {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .time-editor-modal {
+                        background: var(--bg-card);
+                        border-radius: 24px;
+                        width: 90%;
+                        max-width: 480px;
+                        overflow: hidden;
+                        transform: scale(0.9) translateY(20px);
+                        transition: transform 0.3s;
+                        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+                    }
+                    .time-editor-overlay.active .time-editor-modal {
+                        transform: scale(1) translateY(0);
+                    }
+                    .time-editor-header {
+                        padding: 24px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .time-editor-header h3 {
+                        font-size: 20px;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .time-editor-close {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        background: var(--bg-secondary);
+                        border: none;
+                        cursor: pointer;
+                        color: var(--text-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        transition: all 0.2s;
+                    }
+                    .time-editor-close:hover {
+                        background: var(--danger);
+                        color: white;
+                    }
+                    .time-editor-body {
+                        padding: 24px;
+                    }
+                    .time-editor-info {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                        padding: 16px;
+                        background: var(--bg-secondary);
+                        border-radius: 16px;
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-avatar {
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: white;
+                    }
+                    .time-editor-details h4 {
+                        font-size: 18px;
+                        font-weight: 600;
+                        margin-bottom: 4px;
+                    }
+                    .time-editor-details p {
+                        font-size: 14px;
+                        color: var(--text-muted);
+                    }
+                    .time-editor-current {
+                        text-align: center;
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-current-label {
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        color: var(--text-muted);
+                        margin-bottom: 8px;
+                    }
+                    .time-editor-current-value {
+                        font-size: 32px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                    }
+                    .time-editor-current-hours {
+                        font-size: 14px;
+                        color: #10b981;
+                        margin-top: 4px;
+                    }
+                    .time-editor-slider-section {
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-slider-label {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                        margin-bottom: 12px;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                    .time-editor-slider-track {
+                        position: relative;
+                        height: 56px;
+                        background: var(--bg-secondary);
+                        border-radius: 12px;
+                        border: 2px solid var(--border-color);
+                        overflow: hidden;
+                        margin-bottom: 8px;
+                    }
+                    .time-editor-slider-track:hover {
+                        border-color: #10b981;
+                    }
+                    .time-editor-slider-range {
+                        position: absolute;
+                        top: 4px;
+                        bottom: 4px;
+                        border-radius: 8px;
+                        cursor: grab;
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    }
+                    .time-editor-slider-range:active {
+                        cursor: grabbing;
+                    }
+                    .time-editor-slider-range.opening {
+                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    }
+                    .time-editor-slider-range.closing {
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    }
+                    .time-editor-handle {
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 24px;
+                        height: 44px;
+                        background: white;
+                        border-radius: 8px;
+                        cursor: ew-resize;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: box-shadow 0.2s;
+                    }
+                    .time-editor-handle:hover {
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                    }
+                    .time-editor-handle::after {
+                        content: '';
+                        width: 6px;
+                        height: 20px;
+                        background: linear-gradient(180deg, var(--border-color) 0%, var(--border-color) 33%, transparent 33%, transparent 66%, var(--border-color) 66%);
+                        border-radius: 3px;
+                    }
+                    .time-editor-handle.start {
+                        left: -12px;
+                    }
+                    .time-editor-handle.end {
+                        right: -12px;
+                    }
+                    .time-editor-hours-ruler {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 0 4px;
+                    }
+                    .time-editor-hours-ruler span {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                        font-weight: 500;
+                    }
+                    .time-editor-presets {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 10px;
+                        margin-bottom: 24px;
+                    }
+                    .time-editor-preset {
+                        padding: 12px;
+                        border: 2px solid var(--border-color);
+                        border-radius: 12px;
+                        background: var(--bg-secondary);
+                        cursor: pointer;
+                        text-align: center;
+                        transition: all 0.2s;
+                    }
+                    .time-editor-preset:hover {
+                        border-color: #10b981;
+                        background: rgba(16, 185, 129, 0.1);
+                    }
+                    .time-editor-preset.active {
+                        border-color: #10b981;
+                        background: rgba(16, 185, 129, 0.15);
+                    }
+                    .time-editor-preset-time {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: var(--text-primary);
+                    }
+                    .time-editor-preset-label {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                        margin-top: 2px;
+                    }
+                    .time-editor-footer {
+                        padding: 20px 24px;
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        gap: 12px;
+                    }
+                    .time-editor-btn {
+                        flex: 1;
+                        padding: 14px 20px;
+                        border-radius: 12px;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    }
+                    .time-editor-btn.cancel {
+                        background: var(--bg-secondary);
+                        color: var(--text-secondary);
+                        border: 1px solid var(--border-color);
+                    }
+                    .time-editor-btn.cancel:hover {
+                        background: var(--bg-hover);
+                    }
+                    .time-editor-btn.save {
+                        background: #10b981;
+                        color: white;
+                    }
+                    .time-editor-btn.save:hover {
+                        background: #059669;
+                        transform: translateY(-1px);
+                    }
+                    .time-editor-btn.delete {
+                        background: transparent;
+                        color: var(--danger);
+                        flex: 0;
+                        padding: 14px;
+                    }
+                    .time-editor-btn.delete:hover {
+                        background: rgba(239, 68, 68, 0.1);
+                    }
+
+                    /* Clone Modal */
+                    .clone-modal-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.6);
+                        backdrop-filter: blur(8px);
+                        z-index: 1001;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s;
+                    }
+                    .clone-modal-overlay.active {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .clone-modal {
+                        background: var(--bg-card);
+                        border-radius: 20px;
+                        width: 90%;
+                        max-width: 400px;
+                        overflow: hidden;
+                        transform: scale(0.9);
+                        transition: transform 0.3s;
+                        box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+                    }
+                    .clone-modal-overlay.active .clone-modal {
+                        transform: scale(1);
+                    }
+                    .clone-modal-header {
+                        padding: 20px 24px;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .clone-modal-header h3 {
+                        font-size: 18px;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .clone-modal-body {
+                        padding: 24px;
+                    }
+                    .clone-option {
+                        padding: 16px;
+                        border: 2px solid var(--border-color);
+                        border-radius: 12px;
+                        margin-bottom: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        gap: 14px;
+                    }
+                    .clone-option:hover {
+                        border-color: #10b981;
+                        background: rgba(16, 185, 129, 0.05);
+                    }
+                    .clone-option-icon {
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 10px;
+                        background: var(--bg-secondary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 18px;
+                        color: #10b981;
+                    }
+                    .clone-option-info h4 {
+                        font-size: 15px;
+                        font-weight: 600;
+                        margin-bottom: 2px;
+                    }
+                    .clone-option-info p {
+                        font-size: 13px;
+                        color: var(--text-muted);
+                    }
+                    .clone-modal-footer {
+                        padding: 16px 24px;
+                        border-top: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: flex-end;
+                    }
+
+                    /* All Stores View */
+                    .stores-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                        gap: 20px;
+                        margin-top: 20px;
+                    }
+                    .store-schedule-card {
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        overflow: hidden;
+                    }
+                    .store-schedule-header {
+                        padding: 16px 20px;
+                        background: var(--bg-secondary);
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    }
+                    .store-schedule-header h4 {
+                        font-size: 16px;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .store-schedule-header .store-icon {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 8px;
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 14px;
+                    }
+                    .store-schedule-body {
+                        padding: 12px;
+                    }
+                    .store-day-row {
+                        display: flex;
+                        align-items: stretch;
+                        gap: 8px;
+                        padding: 8px 0;
+                        border-bottom: 1px solid var(--border-color);
+                    }
+                    .store-day-row:last-child {
+                        border-bottom: none;
+                    }
+                    .store-day-label {
+                        width: 60px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: var(--text-muted);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        white-space: nowrap;
+                    }
+                    .store-day-label.today {
+                        color: #10b981;
+                    }
+                    .store-shifts {
+                        flex: 1;
+                        display: flex;
+                        gap: 6px;
+                    }
+                    .store-shift-slot {
+                        flex: 1;
+                        min-height: 40px;
+                        border-radius: 8px;
+                        padding: 6px 8px;
+                        font-size: 11px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .store-shift-slot.opening {
+                        background: rgba(245, 158, 11, 0.1);
+                        border: 1px solid rgba(245, 158, 11, 0.2);
+                    }
+                    .store-shift-slot.closing {
+                        background: rgba(16, 185, 129, 0.1);
+                        border: 1px solid rgba(16, 185, 129, 0.2);
+                    }
+                    .store-shift-slot.empty {
+                        background: var(--bg-secondary);
+                        border: 1px dashed var(--border-color);
+                        align-items: center;
+                        color: var(--text-muted);
+                    }
+                    .store-shift-slot:hover {
+                        transform: scale(1.02);
+                    }
+                    .store-shift-slot.filled {
+                        cursor: grab;
+                        position: relative;
+                    }
+                    .store-shift-slot.filled:active {
+                        cursor: grabbing;
+                    }
+                    .store-shift-name {
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .store-shift-time {
+                        color: var(--text-muted);
+                        font-size: 10px;
+                    }
+
+                    /* Hours Summary Panel for Manager */
+                    .hours-summary-panel {
+                        width: 280px;
+                        flex-shrink: 0;
+                        background: var(--bg-card);
+                        border-radius: 16px;
+                        border: 1px solid var(--border-color);
+                        height: fit-content;
+                        position: sticky;
+                        top: 20px;
+                        max-height: calc(100vh - 200px);
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .hours-panel-header {
+                        padding: 16px 20px;
+                        border-bottom: 1px solid var(--border-color);
+                        background: var(--bg-secondary);
+                    }
+                    .hours-panel-header h3 {
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin: 0;
+                    }
+                    .hours-panel-header p {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.8);
+                        margin: 4px 0 0 0;
+                    }
+                    .hours-panel-list {
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 12px;
+                    }
+                    .hours-employee-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 10px 12px;
+                        border-radius: 10px;
+                        margin-bottom: 6px;
+                        transition: all 0.2s;
+                        background: var(--bg-secondary);
+                        border: 1px solid transparent;
+                    }
+                    .hours-employee-item:hover {
+                        background: var(--bg-hover);
+                        border-color: var(--border-color);
+                    }
+                    .hours-employee-item:last-child {
+                        margin-bottom: 0;
+                    }
+                    .hours-employee-avatar {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: white;
+                        flex-shrink: 0;
+                    }
+                    .hours-employee-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .hours-employee-name {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .hours-employee-store {
+                        font-size: 11px;
+                        color: var(--text-muted);
+                    }
+                    .hours-badge {
+                        font-size: 14px;
+                        font-weight: 700;
+                        padding: 6px 10px;
+                        border-radius: 8px;
+                        background: rgba(16, 185, 129, 0.1);
+                        color: #10b981;
+                        white-space: nowrap;
+                    }
+                    .hours-badge.high {
+                        background: rgba(16, 185, 129, 0.1);
+                        color: #10b981;
+                    }
+                    .hours-badge.low {
+                        background: rgba(245, 158, 11, 0.1);
+                        color: #f59e0b;
+                    }
+                    .hours-badge.zero {
+                        background: rgba(239, 68, 68, 0.1);
+                        color: #ef4444;
+                    }
+                    .hours-total-row {
+                        padding: 12px 16px;
+                        border-top: 1px solid var(--border-color);
+                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .hours-total-label {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-secondary);
+                    }
+                    .hours-total-value {
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: #10b981;
+                    }
+                    .hours-panel-empty {
+                        padding: 40px 20px;
+                        text-align: center;
+                        color: var(--text-muted);
+                    }
+                    .hours-panel-empty i {
+                        font-size: 32px;
+                        margin-bottom: 12px;
+                        opacity: 0.5;
+                    }
+                    .hours-panel-empty p {
+                        font-size: 13px;
+                        margin: 0;
+                    }
+
+                    /* Responsive for Manager Schedule */
+                    @media (max-width: 1024px) {
+                        .manager-schedule-layout {
+                            flex-direction: column;
+                        }
+                        .hours-summary-panel {
+                            width: 100%;
+                            position: relative;
+                            top: 0;
+                            max-height: 400px;
+                            order: -1;
+                            margin-bottom: 16px;
+                        }
+                    }
+                    @media (max-width: 768px) {
+                        .schedule-day-card {
+                            flex: 0 0 280px;
+                            min-width: 280px;
+                        }
+                        .hours-summary-panel {
+                            max-height: 300px;
+                        }
+                        .hours-panel-list {
+                            padding: 8px;
+                        }
+                        .hours-employee-item {
+                            padding: 8px 10px;
+                        }
+                        .hours-employee-avatar {
+                            width: 32px;
+                            height: 32px;
+                            font-size: 11px;
+                        }
+                        .hours-employee-name {
+                            font-size: 12px;
+                        }
+                        .hours-badge {
+                            font-size: 12px;
+                            padding: 4px 8px;
+                        }
+                        .stores-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 16px;
+                        }
+                    }
                 </style>
 
                 <div class="manager-schedule-header">
