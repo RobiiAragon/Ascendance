@@ -6353,7 +6353,10 @@ window.viewChecklistHistory = async function() {
 
                 html += `
                     <div class="hours-employee-item" onclick="openEmployeeTimeCard('${emp.id}')" style="cursor: pointer;" title="Click to view time card">
-                        <div class="hours-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                        ${emp.photo
+                            ? `<div class="hours-employee-avatar" style="background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
+                            : `<div class="hours-employee-avatar" style="background: ${colors[colorIndex]};">${initials}</div>`
+                        }
                         <div class="hours-employee-info">
                             <div class="hours-employee-name">${emp.name || 'Unknown'}</div>
                             <div class="hours-employee-store">${emp.store || 'No store'}</div>
@@ -6795,7 +6798,10 @@ window.viewChecklistHistory = async function() {
                     <div class="time-card-modal" onclick="event.stopPropagation()">
                         <div class="time-card-header">
                             <div class="time-card-employee">
-                                <div class="time-card-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                                ${emp.photo
+                                    ? `<div class="time-card-avatar" style="background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
+                                    : `<div class="time-card-avatar" style="background: ${colors[colorIndex]};">${initials}</div>`
+                                }
                                 <div class="time-card-employee-info">
                                     <h3><i class="fas fa-id-card" style="margin-right: 8px;"></i>${emp.name || 'Unknown'}</h3>
                                     <p>${emp.store || 'No Store'} &bull; ${weekRangeText}</p>
@@ -6924,7 +6930,10 @@ window.viewChecklistHistory = async function() {
                 const dateObj = new Date(schedule.date + 'T12:00:00');
                 const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
                 infoEl.innerHTML = `
-                    <div class="time-editor-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                    ${emp?.photo
+                        ? `<div class="time-editor-avatar" style="background-image: url('${emp.photo}'); background-size: cover; background-position: center;"></div>`
+                        : `<div class="time-editor-avatar" style="background: ${colors[colorIndex]};">${initials}</div>`
+                    }
                     <div class="time-editor-details">
                         <h4>${emp?.name || 'Unknown'}</h4>
                         <p>${dateStr} &bull; ${schedule.store || ''}</p>

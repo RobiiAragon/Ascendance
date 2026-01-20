@@ -354,6 +354,24 @@ async function renderShiftExchangesPage() {
                 font-size: 14px;
                 font-weight: 500;
             }
+            .btn-delete {
+                background: transparent;
+                color: #ef4444;
+                border: 1px solid #ef4444;
+                padding: 8px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                transition: all 0.2s;
+            }
+            .btn-delete:hover {
+                background: #ef4444;
+                color: white;
+            }
 
             /* Responsive */
             @media (max-width: 768px) {
@@ -477,15 +495,28 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
     const canCover = !isRequester && exchange.status === 'pending';
     const canApprove = isManager && exchange.status === 'accepted';
     const canCancel = isRequester && (exchange.status === 'pending' || exchange.status === 'accepted');
+    // Delete: employees can delete their own completed requests, managers can delete any request
+    const isCompleted = ['cancelled', 'rejected', 'approved'].includes(exchange.status);
+    const canDelete = isManager || (isRequester && isCompleted);
+
+    // Find requester employee to get their photo
+    const requesterEmp = typeof employees !== 'undefined' ? employees.find(e =>
+        e.id === exchange.requesterId ||
+        e.firestoreId === exchange.requesterId ||
+        e.odooEmployeeId === exchange.requesterId
+    ) : null;
+    const requesterPhoto = requesterEmp?.photo || null;
+    const requesterInitials = exchange.requesterName?.substring(0, 2).toUpperCase() || '??';
 
     return `
         <div class="exchange-card">
             <div class="exchange-header">
                 <div>
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
-                            ${exchange.requesterName?.substring(0, 2).toUpperCase() || '??'}
-                        </div>
+                        ${requesterPhoto
+                            ? `<div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${requesterPhoto}'); background-size: cover; background-position: center; flex-shrink: 0;"></div>`
+                            : `<div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">${requesterInitials}</div>`
+                        }
                         <div style="min-width: 0;">
                             <div style="font-weight: 600; color: var(--text-primary);">${exchange.requesterName || 'Unknown'}</div>
                             <div style="font-size: 13px; color: var(--text-muted);">${exchange.requesterStore || 'No store'}</div>
@@ -550,7 +581,7 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
                 </div>
             ` : ''}
 
-            ${(canCover || canApprove || canCancel) ? `
+            ${(canCover || canApprove || canCancel || canDelete) ? `
                 <div class="exchange-actions">
                     ${canCover ? `
                         <button class="btn-cover" onclick="offerToCover('${exchange.id}')">
@@ -568,6 +599,11 @@ function renderShiftExchangeCard(exchange, currentUser, isManager) {
                     ${canCancel ? `
                         <button class="btn-cancel" onclick="cancelShiftExchange('${exchange.id}')">
                             <i class="fas fa-ban"></i> Cancel Request
+                        </button>
+                    ` : ''}
+                    ${canDelete ? `
+                        <button class="btn-delete" onclick="deleteShiftExchange('${exchange.id}')">
+                            <i class="fas fa-trash"></i> Delete
                         </button>
                     ` : ''}
                 </div>
@@ -968,6 +1004,54 @@ async function cancelShiftExchange(exchangeId) {
     }
 }
 
+/**
+ * Delete shift exchange request permanently
+ */
+async function deleteShiftExchange(exchangeId) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showNotification('Please log in to delete requests', 'error');
+        return;
+    }
+
+    const exchange = shiftExchanges.find(e => e.id === exchangeId);
+    if (!exchange) {
+        showNotification('Request not found', 'error');
+        return;
+    }
+
+    const isManager = currentUser.role === 'admin' || currentUser.role === 'manager';
+    const isRequester = currentUser.odooEmployeeId === exchange.requesterId;
+    const isCompleted = ['cancelled', 'rejected', 'approved'].includes(exchange.status);
+
+    // Check permissions
+    if (!isManager && !(isRequester && isCompleted)) {
+        showNotification('You do not have permission to delete this request', 'error');
+        return;
+    }
+
+    const confirmed = await showConfirmModal(
+        'Delete Request',
+        'Are you sure you want to permanently delete this shift exchange request?<br><br><strong>This action cannot be undone.</strong>'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const success = await firebaseShiftExchangeManager.deleteShiftExchange(exchangeId);
+
+        if (success) {
+            showNotification('Request deleted successfully', 'success');
+            await renderShiftExchangesPage();
+        } else {
+            showNotification('Failed to delete request', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting request:', error);
+        showNotification('Error deleting request', 'error');
+    }
+}
+
 // Polling interval for badge updates
 let shiftExchangePollingInterval = null;
 
@@ -1049,4 +1133,5 @@ window.confirmApproveExchange = confirmApproveExchange;
 window.rejectShiftExchange = rejectShiftExchange;
 window.confirmRejectExchange = confirmRejectExchange;
 window.cancelShiftExchange = cancelShiftExchange;
+window.deleteShiftExchange = deleteShiftExchange;
 window.setShiftExchangeFilter = setShiftExchangeFilter;
