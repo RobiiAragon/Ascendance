@@ -135,8 +135,8 @@ async function renderShiftExchangesPage() {
         <div class="page-container">
             <div class="page-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px;">
                 <div class="page-title">
-                    <h1><i class="fas fa-people-arrows" style="color: #8b5cf6;"></i> Shift Exchanges <span style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin-left: 8px; font-weight: 600; vertical-align: middle;">BETA</span></h1>
-                    <p class="page-subtitle">Request coverage for your shifts or help cover for others <span style="color: var(--text-muted); font-style: italic;">- Feature in testing, full launch coming soon!</span></p>
+                    <h1><i class="fas fa-people-arrows" style="color: #8b5cf6;"></i> Shift Exchanges</h1>
+                    <p class="page-subtitle">Request coverage for your shifts or help cover for others</p>
                 </div>
                 <div class="page-actions">
                     <button class="btn-primary" onclick="openRequestCoverageModal()" style="white-space: nowrap;">
