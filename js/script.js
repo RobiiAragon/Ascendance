@@ -6715,9 +6715,11 @@
                         weekDays[dayIndex].endTime = schedule.endTime || schedule.shiftEnd || '-';
 
                         // Calculate hours
-                        if (schedule.startTime && schedule.endTime) {
-                            const start = parseTimeToMinutes(schedule.startTime || schedule.shiftStart);
-                            const end = parseTimeToMinutes(schedule.endTime || schedule.shiftEnd);
+                        const scheduleStart = schedule.startTime || schedule.shiftStart;
+                        const scheduleEnd = schedule.endTime || schedule.shiftEnd;
+                        if (scheduleStart && scheduleEnd) {
+                            const start = parseTimeToMinutes(scheduleStart);
+                            const end = parseTimeToMinutes(scheduleEnd);
                             if (start !== null && end !== null) {
                                 let diff = end - start;
                                 if (diff < 0) diff += 24 * 60; // Handle overnight shifts
