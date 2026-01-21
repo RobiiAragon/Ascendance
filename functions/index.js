@@ -17,35 +17,38 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // =============================================================================
-// CONFIGURATION
+// CONFIGURATION (Tokens stored in .env file)
 // =============================================================================
 
-const STORES_CONFIG = {
-    vsu: {
-        key: 'vsu',
-        name: 'Vape Smoke Universe',
-        shortName: 'VSU',
-        storeUrl: 'v-s-u.myshopify.com',
-        accessToken: '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',
-        hasMultipleLocations: true,
-        locations: ['Miramar', 'Chula Vista', 'Morena', 'North Park', 'Kearny Mesa']
-    },
-    loyalvaper: {
-        key: 'loyalvaper',
-        name: 'Loyal Vaper',
-        shortName: 'Loyal Vaper',
-        storeUrl: 'k1xm3v-v0.myshopify.com',
-        accessToken: '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',
-        hasMultipleLocations: false
-    },
-    miramarwine: {
-        key: 'miramarwine',
-        name: 'Miramar Wine & Liquor',
-        shortName: 'Miramar Wine & Liquor',
-        storeUrl: 'a43265-2.myshopify.com',
-        accessToken: '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',
-        hasMultipleLocations: false
-    }
+// Get stores config with tokens from environment variables
+const getStoresConfig = () => {
+    return {
+        vsu: {
+            key: 'vsu',
+            name: 'Vape Smoke Universe',
+            shortName: 'VSU',
+            storeUrl: 'v-s-u.myshopify.com',
+            accessToken: process.env.SHOPIFY_VSU_TOKEN || '',
+            hasMultipleLocations: true,
+            locations: ['Miramar', 'Chula Vista', 'Morena', 'North Park', 'Kearny Mesa']
+        },
+        loyalvaper: {
+            key: 'loyalvaper',
+            name: 'Loyal Vaper',
+            shortName: 'Loyal Vaper',
+            storeUrl: 'k1xm3v-v0.myshopify.com',
+            accessToken: process.env.SHOPIFY_LOYALVAPER_TOKEN || '',
+            hasMultipleLocations: false
+        },
+        miramarwine: {
+            key: 'miramarwine',
+            name: 'Miramar Wine & Liquor',
+            shortName: 'Miramar Wine & Liquor',
+            storeUrl: 'a43265-2.myshopify.com',
+            accessToken: process.env.SHOPIFY_MIRAMARWINE_TOKEN || '',
+            hasMultipleLocations: false
+        }
+    };
 };
 
 const API_VERSION = '2024-01';
@@ -392,6 +395,7 @@ function processOrdersToAnalytics(orders, storeConfig, period, dateRange) {
  * Fetch analytics for a single store
  */
 async function fetchStoreAnalytics(storeKey, period) {
+    const STORES_CONFIG = getStoresConfig();
     const storeConfig = STORES_CONFIG[storeKey];
     if (!storeConfig) {
         throw new Error(`Invalid store key: ${storeKey}`);
@@ -485,6 +489,7 @@ exports.scheduledAnalyticsSync = functions
     .onRun(async (context) => {
         console.log('🌙 Starting nightly analytics sync...');
 
+        const STORES_CONFIG = getStoresConfig();
         const stores = Object.keys(STORES_CONFIG);
         const periods = ['today', 'week', 'month', 'quarter', 'year'];
         const results = { success: [], failed: [] };
@@ -523,6 +528,7 @@ exports.frequentAnalyticsSync = functions
     .onRun(async (context) => {
         console.log('🔄 Starting 6-hour analytics sync...');
 
+        const STORES_CONFIG = getStoresConfig();
         const stores = Object.keys(STORES_CONFIG);
         const periods = ['today', 'week', 'month']; // Only frequent periods
         const results = { success: [], failed: [] };
@@ -570,6 +576,7 @@ exports.manualAnalyticsSync = functions
         console.log(`🔧 Manual sync triggered: store=${storeKey}, period=${period}`);
 
         try {
+            const STORES_CONFIG = getStoresConfig();
             const stores = storeKey === 'all' ? Object.keys(STORES_CONFIG) : [storeKey];
             const results = [];
 
@@ -644,6 +651,7 @@ exports.getAllStoresAnalytics = functions.https.onRequest(async (req, res) => {
     const period = req.query.period || 'month';
 
     try {
+        const STORES_CONFIG = getStoresConfig();
         const stores = Object.keys(STORES_CONFIG);
         const results = { stores: {}, summary: { totalSales: 0, totalOrders: 0, totalTax: 0 } };
 
@@ -704,8 +712,8 @@ exports.podMatcherAnalyze = functions.https.onRequest(async (req, res) => {
             return;
         }
 
-        // OpenAI API Key (store in Firebase config: firebase functions:config:set openai.key="YOUR_KEY")
-        const OPENAI_API_KEY = functions.config().openai?.key;
+        // OpenAI API Key (stored in .env file)
+        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
         if (!OPENAI_API_KEY) {
             console.error('OpenAI API key not configured');
