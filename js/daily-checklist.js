@@ -1340,11 +1340,15 @@ window.viewChecklistHistory = async function() {
             orderStatus: 'all'
         };
 
+        // Inventory grouping state
+        let inventoryGroupBy = 'none';
+
         // Running Low constants
         const RUNNING_LOW_STORES = ['Miramar', 'Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'All Shops'];
         const RUNNING_LOW_URGENCIES = ['Low', 'High Priority', 'Sold Out'];
         const RUNNING_LOW_CATEGORIES = ['Detox', 'Coils/Pods', 'Wraps', 'Disposables', 'Juices', 'Heady', 'Glass', 'Smoke Shop', 'Vape Shop', 'Liquor', 'Cleaning Supplies', 'Office Supplies'];
         const RUNNING_LOW_STATUSES = ['Processing', 'Ordered', 'Not Ordered', 'Received'];
+        const RUNNING_LOW_BRANDS = ['Elf Bar', 'Lost Mary', 'Geek Bar', 'Hyde', 'Breeze', 'SMOK', 'Vaporesso', 'JUUL', 'NJOY', 'Puff Bar', 'Flum', 'Funky Republic', 'RAZ', 'Orion Bar', 'Fume', 'Air Bar', 'Naked 100', 'Juice Head', 'Pachamama', 'Candy King', 'RAW', 'Backwoods', 'Dutch Masters', 'Swisher', 'High Hemp', 'King Palm', 'Elements', 'OCB', 'Zig-Zag'];
 
         async function renderRestockRequests() {
             const dashboard = document.querySelector('.dashboard');
@@ -1362,6 +1366,18 @@ window.viewChecklistHistory = async function() {
                 if (runningLowFilters.orderStatus !== 'all' && r.orderStatus !== runningLowFilters.orderStatus) return false;
                 return true;
             });
+
+            // Apply grouping if selected
+            if (inventoryGroupBy !== 'none') {
+                filteredRequests = filteredRequests.sort((a, b) => {
+                    const aVal = (a[inventoryGroupBy] || 'Unknown').toLowerCase();
+                    const bVal = (b[inventoryGroupBy] || 'Unknown').toLowerCase();
+                    if (aVal < bVal) return -1;
+                    if (aVal > bVal) return 1;
+                    // Secondary sort by date
+                    return new Date(b.requestDate) - new Date(a.requestDate);
+                });
+            }
 
             // Calculate stats
             const totalItems = allRequests.length;
@@ -1460,9 +1476,14 @@ window.viewChecklistHistory = async function() {
                         <h2 class="section-title" style="font-size: 26px; font-weight: 700; margin: 0;">Inventory Management</h2>
                         <p style="color: var(--text-muted); font-size: 14px; margin: 4px 0 0 0;">Track stock levels, categorize items, and monitor order statuses</p>
                     </div>
-                    <button class="btn-primary" onclick="openNewRestockRequestModal()" style="padding: 12px 24px; border-radius: 10px; font-weight: 600;">
-                        <i class="fas fa-plus" style="margin-right: 6px;"></i> New Item
-                    </button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-secondary" onclick="exportInventoryReport()" style="padding: 12px 20px; border-radius: 10px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-file-export"></i> Export Report
+                        </button>
+                        <button class="btn-primary" onclick="openNewRestockRequestModal()" style="padding: 12px 24px; border-radius: 10px; font-weight: 600;">
+                            <i class="fas fa-plus" style="margin-right: 6px;"></i> New Item
+                        </button>
+                    </div>
                 </div>
 
                 <!-- KPI Stats Cards -->
@@ -1531,7 +1552,15 @@ window.viewChecklistHistory = async function() {
                         <option value="all" ${runningLowFilters.orderStatus === 'all' ? 'selected' : ''}>All Statuses</option>
                         ${RUNNING_LOW_STATUSES.map(s => `<option value="${s}" ${runningLowFilters.orderStatus === s ? 'selected' : ''}>${s}</option>`).join('')}
                     </select>
-                    ${hasActiveFilters ? `
+                    <select class="inventory-filter-select" onchange="setInventoryGroupBy(this.value)" style="background: ${inventoryGroupBy !== 'none' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${inventoryGroupBy !== 'none' ? 'white' : 'var(--text-primary)'};">
+                        <option value="none" ${inventoryGroupBy === 'none' ? 'selected' : ''}>No Grouping</option>
+                        <option value="store" ${inventoryGroupBy === 'store' ? 'selected' : ''}>Group by Store</option>
+                        <option value="category" ${inventoryGroupBy === 'category' ? 'selected' : ''}>Group by Category</option>
+                        <option value="brand" ${inventoryGroupBy === 'brand' ? 'selected' : ''}>Group by Brand</option>
+                        <option value="urgency" ${inventoryGroupBy === 'urgency' ? 'selected' : ''}>Group by Urgency</option>
+                        <option value="orderStatus" ${inventoryGroupBy === 'orderStatus' ? 'selected' : ''}>Group by Status</option>
+                    </select>
+                    ${hasActiveFilters || inventoryGroupBy !== 'none' ? `
                         <button onclick="clearRunningLowFilters()" style="padding: 10px 16px; font-size: 13px; border-radius: 8px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
                             <i class="fas fa-redo" style="font-size: 11px;"></i> Clear
                         </button>
@@ -1567,7 +1596,20 @@ window.viewChecklistHistory = async function() {
 
                         <!-- Items -->
                         <div class="inventory-items-container">
-                            ${filteredRequests.map(request => {
+                            ${(() => {
+                                let lastGroup = null;
+                                let output = '';
+                                filteredRequests.forEach((request, idx) => {
+                                    // Add group header if grouping is enabled
+                                    if (inventoryGroupBy !== 'none') {
+                                        const currentGroup = request[inventoryGroupBy] || 'Unknown';
+                                        if (currentGroup !== lastGroup) {
+                                            const groupCount = filteredRequests.filter(r => (r[inventoryGroupBy] || 'Unknown') === currentGroup).length;
+                                            output += '<div style="padding: 12px 20px; background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary)); border-bottom: 2px solid var(--accent-primary); margin-top: ' + (idx === 0 ? '0' : '8px') + ';"><span style="font-weight: 700; font-size: 15px; color: var(--accent-primary);">' + currentGroup + '</span><span style="margin-left: 10px; font-size: 13px; color: var(--text-muted);">(' + groupCount + ' items)</span></div>';
+                                            lastGroup = currentGroup;
+                                        }
+                                    }
+
                                 const reqId = request.firestoreId || request.id;
                                 const storeStyle = storeColors[request.store] || { bg: '#6b7280', text: '#ffffff' };
                                 const catStyle = categoryColors[request.category] || { bg: '#6b7280', text: '#ffffff' };
@@ -1597,7 +1639,7 @@ window.viewChecklistHistory = async function() {
                                     return '<div class="inv-dropdown-item" onclick="event.stopPropagation(); updateInventoryField(\'' + reqId + '\', \'orderStatus\', \'' + s + '\')" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: ' + sc.bg + ';"></span>' + s + '</div>';
                                 }).join('');
 
-                                return `
+                                output += `
                                     <!-- Desktop Row -->
                                     <div class="inventory-table-row" style="font-size: 14px;">
                                         <div style="font-weight: 600; color: var(--text-primary);">${request.productName || request.name || '-'}</div>
@@ -1693,7 +1735,9 @@ window.viewChecklistHistory = async function() {
                                         </div>
                                     </div>
                                 `;
-                            }).join('')}
+                                });
+                                return output;
+                            })()}
                         </div>
                     `}
                 </div>
@@ -1708,8 +1752,65 @@ window.viewChecklistHistory = async function() {
 
         function clearRunningLowFilters() {
             runningLowFilters = { store: 'all', urgency: 'all', category: 'all', orderStatus: 'all' };
+            inventoryGroupBy = 'none';
             renderRestockRequests();
         }
+
+        // Set inventory grouping
+        function setInventoryGroupBy(groupBy) {
+            inventoryGroupBy = groupBy;
+            renderRestockRequests();
+        }
+
+        // Export inventory report to CSV
+        function exportInventoryReport() {
+            const data = restockRequests;
+            if (!data || data.length === 0) {
+                showNotification('No inventory data to export', 'warning');
+                return;
+            }
+
+            // Define CSV headers
+            const headers = ['Item Name', 'Brand', 'Specifics', 'Store', 'Category', 'Urgency', 'Order Status', 'Added By', 'Date', 'Notes'];
+
+            // Convert data to CSV rows
+            const rows = data.map(item => [
+                item.productName || item.name || '',
+                item.brand || '',
+                item.specifics || item.quantity || '',
+                item.store || '',
+                item.category || '',
+                item.urgency || '',
+                item.orderStatus || 'Not Ordered',
+                item.requestedBy || item.addedBy || '',
+                item.requestDate || '',
+                (item.notes || '').replace(/"/g, '""') // Escape quotes
+            ]);
+
+            // Build CSV content
+            let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+            rows.forEach(row => {
+                csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().split('T')[0];
+            link.setAttribute('href', url);
+            link.setAttribute('download', `inventory-report-${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showNotification('Report exported successfully!', 'success');
+        }
+
+        // Export functions to window
+        window.setInventoryGroupBy = setInventoryGroupBy;
+        window.exportInventoryReport = exportInventoryReport;
 
         // Toggle inline dropdown for inventory management
         function toggleInvDropdown(trigger) {

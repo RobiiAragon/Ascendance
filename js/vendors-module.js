@@ -6097,9 +6097,48 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
+                                    <label>Brand</label>
+                                    <select class="form-input" id="new-restock-brand" onchange="toggleCustomBrandInput()">
+                                        <option value="">Select brand...</option>
+                                        <option value="Elf Bar">Elf Bar</option>
+                                        <option value="Lost Mary">Lost Mary</option>
+                                        <option value="Geek Bar">Geek Bar</option>
+                                        <option value="Hyde">Hyde</option>
+                                        <option value="Breeze">Breeze</option>
+                                        <option value="SMOK">SMOK</option>
+                                        <option value="Vaporesso">Vaporesso</option>
+                                        <option value="JUUL">JUUL</option>
+                                        <option value="NJOY">NJOY</option>
+                                        <option value="Puff Bar">Puff Bar</option>
+                                        <option value="Flum">Flum</option>
+                                        <option value="Funky Republic">Funky Republic</option>
+                                        <option value="RAZ">RAZ</option>
+                                        <option value="Orion Bar">Orion Bar</option>
+                                        <option value="Fume">Fume</option>
+                                        <option value="Air Bar">Air Bar</option>
+                                        <option value="Naked 100">Naked 100</option>
+                                        <option value="Juice Head">Juice Head</option>
+                                        <option value="Pachamama">Pachamama</option>
+                                        <option value="Candy King">Candy King</option>
+                                        <option value="RAW">RAW</option>
+                                        <option value="Backwoods">Backwoods</option>
+                                        <option value="Dutch Masters">Dutch Masters</option>
+                                        <option value="Swisher">Swisher</option>
+                                        <option value="High Hemp">High Hemp</option>
+                                        <option value="King Palm">King Palm</option>
+                                        <option value="Elements">Elements</option>
+                                        <option value="OCB">OCB</option>
+                                        <option value="Zig-Zag">Zig-Zag</option>
+                                        <option value="Other">Other (type your own)</option>
+                                    </select>
+                                    <input type="text" class="form-input" id="new-restock-custom-brand" placeholder="Type brand name..." style="display: none; margin-top: 8px;">
+                                </div>
+                                <div class="form-group">
                                     <label>Specifics</label>
                                     <input type="text" class="form-input" id="new-restock-specifics" placeholder="e.g., 375ml, fgh, z.02...">
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Store *</label>
                                     <select class="form-input" id="new-restock-store">
@@ -6114,11 +6153,9 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="All Shops">All Shops</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Category *</label>
-                                    <select class="form-input" id="new-restock-category">
+                                    <select class="form-input" id="new-restock-category" onchange="toggleCustomCategoryInput('new-restock')">
                                         <option value="">Select category...</option>
                                         <option value="Detox">Detox</option>
                                         <option value="Coils/Pods">Coils/Pods</option>
@@ -6132,8 +6169,12 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Liquor">Liquor</option>
                                         <option value="Cleaning Supplies">Cleaning Supplies</option>
                                         <option value="Office Supplies">Office Supplies</option>
+                                        <option value="Other">Other (type your own)</option>
                                     </select>
+                                    <input type="text" class="form-input" id="new-restock-custom-category" placeholder="Type category name..." style="display: none; margin-top: 8px;">
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Urgency</label>
                                     <select class="form-input" id="new-restock-urgency">
@@ -6142,8 +6183,6 @@ Return ONLY the JSON object, no additional text.`
                                         <option value="Sold Out">Sold Out</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Order Status</label>
                                     <select class="form-input" id="new-restock-order-status">
@@ -7859,6 +7898,11 @@ Return ONLY the JSON object, no additional text.`,
                     break;
             }
 
+            // If data is a string containing HTML, use it as direct content
+            if (typeof data === 'string' && data.includes('<')) {
+                content = data;
+            }
+
             modalContent.innerHTML = content;
             modal.classList.add('active');
 
@@ -7887,13 +7931,84 @@ Return ONLY the JSON object, no additional text.`,
             document.getElementById('modal').classList.remove('active');
         }
 
-        function viewEmployee(id) {
+        async function viewEmployee(id) {
             const emp = employees.find(e => e.id === id);
             if (!emp) return;
-            
+
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
-            
+
+            // Get employee's recent attendance data
+            let attendanceTableHTML = '';
+            try {
+                const attendanceData = await getEmployeeRecentAttendance(id);
+                if (attendanceData.records.length > 0) {
+                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    attendanceTableHTML = `
+                        <div class="form-divider"></div>
+                        <h3 class="form-section-title" style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-clock" style="color: var(--accent-primary);"></i>
+                            This Week's Attendance
+                        </h3>
+                        <div style="background: var(--surface-secondary); border-radius: 10px; padding: 12px; border: 1px solid var(--border-color);">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <th style="text-align: left; padding: 6px 4px; color: var(--text-muted); font-weight: 500;">Day</th>
+                                        <th style="text-align: left; padding: 6px 4px; color: var(--text-muted); font-weight: 500;">Scheduled</th>
+                                        <th style="text-align: left; padding: 6px 4px; color: var(--text-muted); font-weight: 500;">Actual</th>
+                                        <th style="text-align: right; padding: 6px 4px; color: var(--text-muted); font-weight: 500;">Sched Hrs</th>
+                                        <th style="text-align: right; padding: 6px 4px; color: var(--text-muted); font-weight: 500;">Actual Hrs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${attendanceData.records.map(day => {
+                                        const isToday = day.isToday;
+                                        const rowStyle = isToday ? 'background: rgba(79, 70, 229, 0.08);' : '';
+                                        return `
+                                            <tr style="${rowStyle}">
+                                                <td style="padding: 6px 4px; font-weight: ${isToday ? '600' : '400'};">
+                                                    ${dayNames[day.dayOfWeek]} ${day.dayNum}
+                                                    ${isToday ? '<span style="color: var(--accent-primary); font-size: 9px;">(Today)</span>' : ''}
+                                                </td>
+                                                <td style="padding: 6px 4px; color: ${day.scheduled ? 'var(--text-primary)' : 'var(--text-muted)'}; font-size: 11px;">
+                                                    ${day.scheduled ? `${day.scheduledStart} - ${day.scheduledEnd}` : '-'}
+                                                </td>
+                                                <td style="padding: 6px 4px; font-size: 11px;">
+                                                    ${day.clockIn ? `
+                                                        <span style="color: #10b981;">${day.clockIn}</span>
+                                                        ${day.clockOut ? `- <span style="color: #ef4444;">${day.clockOut}</span>` : '<span style="color: var(--warning);"> (Active)</span>'}
+                                                    ` : '<span style="color: var(--text-muted);">-</span>'}
+                                                </td>
+                                                <td style="padding: 6px 4px; text-align: right; color: ${day.scheduledHours ? 'var(--text-secondary)' : 'var(--text-muted)'};">
+                                                    ${day.scheduledHours ? day.scheduledHours.toFixed(1) + 'h' : '-'}
+                                                </td>
+                                                <td style="padding: 6px 4px; text-align: right; font-weight: 500; color: ${day.actualHours ? 'var(--success)' : 'var(--text-muted)'};">
+                                                    ${day.actualHours ? day.actualHours.toFixed(1) + 'h' : '-'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                                <tfoot>
+                                    <tr style="border-top: 2px solid var(--border-color);">
+                                        <td colspan="3" style="padding: 8px 4px; font-weight: 600; color: var(--text-primary);">Weekly Total</td>
+                                        <td style="padding: 8px 4px; text-align: right; font-weight: 600; color: var(--text-secondary);">
+                                            ${attendanceData.totalScheduledHours.toFixed(1)}h
+                                        </td>
+                                        <td style="padding: 8px 4px; text-align: right; font-weight: 700; color: var(--accent-primary);">
+                                            ${attendanceData.totalActualHours.toFixed(1)}h
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error loading employee attendance:', err);
+            }
+
             modalContent.innerHTML = `
                 <div class="modal-header">
                     <h2>Employee Profile</h2>
@@ -7935,6 +8050,8 @@ Return ONLY the JSON object, no additional text.`,
                             </div>
                         </div>
 
+                        ${attendanceTableHTML}
+
                         ${emp.paperwork && emp.paperwork.length > 0 ? `
                         <div class="form-divider"></div>
                         <h3 class="form-section-title">Employee Paperwork</h3>
@@ -7966,6 +8083,151 @@ Return ONLY the JSON object, no additional text.`,
                 </div>
             `;
             modal.classList.add('active');
+        }
+
+        // Helper function to get employee's recent attendance data (current week)
+        async function getEmployeeRecentAttendance(employeeId) {
+            const db = firebase.firestore();
+            const today = new Date();
+
+            // Get the start of the week (Sunday)
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            // Build week days array
+            const weekDays = [];
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(startOfWeek);
+                dayDate.setDate(startOfWeek.getDate() + i);
+                weekDays.push({
+                    date: dayDate,
+                    dateStr: dayDate.toDateString(),
+                    dateKey: `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`,
+                    dayOfWeek: i,
+                    dayNum: dayDate.getDate(),
+                    isToday: dayDate.toDateString() === today.toDateString(),
+                    scheduled: false,
+                    scheduledStart: null,
+                    scheduledEnd: null,
+                    scheduledHours: 0,
+                    clockIn: null,
+                    clockOut: null,
+                    actualHours: 0
+                });
+            }
+
+            let totalScheduledHours = 0;
+            let totalActualHours = 0;
+
+            // Format dates for query
+            const startDateKey = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`;
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            const endDateKey = `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
+
+            try {
+                // Get schedules for this employee this week
+                const schedulesRef = db.collection(window.FIREBASE_COLLECTIONS?.schedules || 'schedules');
+                const schedulesSnapshot = await schedulesRef
+                    .where('employeeId', '==', employeeId)
+                    .where('date', '>=', startDateKey)
+                    .where('date', '<=', endDateKey)
+                    .get();
+
+                schedulesSnapshot.forEach(doc => {
+                    const schedule = doc.data();
+                    const dayIndex = weekDays.findIndex(d => d.dateKey === schedule.date);
+                    if (dayIndex !== -1) {
+                        weekDays[dayIndex].scheduled = true;
+                        weekDays[dayIndex].scheduledStart = schedule.startTime || schedule.shiftStart || '-';
+                        weekDays[dayIndex].scheduledEnd = schedule.endTime || schedule.shiftEnd || '-';
+
+                        // Calculate scheduled hours
+                        const start = parseTimeToMinutesHelper(schedule.startTime || schedule.shiftStart);
+                        const end = parseTimeToMinutesHelper(schedule.endTime || schedule.shiftEnd);
+                        if (start !== null && end !== null) {
+                            let diff = end - start;
+                            if (diff < 0) diff += 24 * 60;
+                            weekDays[dayIndex].scheduledHours = diff / 60;
+                            totalScheduledHours += diff / 60;
+                        }
+                    }
+                });
+
+                // Get clock-in records for this employee this week
+                const clockinRef = db.collection(window.FIREBASE_COLLECTIONS?.clockin || 'clockin');
+                const clockinSnapshot = await clockinRef
+                    .where('employeeId', '==', employeeId)
+                    .get();
+
+                clockinSnapshot.forEach(doc => {
+                    const record = doc.data();
+                    // Match by date string
+                    const dayIndex = weekDays.findIndex(d => d.dateStr === record.date);
+                    if (dayIndex !== -1) {
+                        weekDays[dayIndex].clockIn = record.clockIn || null;
+                        weekDays[dayIndex].clockOut = record.clockOut || null;
+
+                        // Calculate actual hours if both clock in and out exist
+                        if (record.clockIn && record.clockOut) {
+                            const start = parseTimeToMinutesHelper(record.clockIn);
+                            const end = parseTimeToMinutesHelper(record.clockOut);
+                            if (start !== null && end !== null) {
+                                let diff = end - start;
+                                if (diff < 0) diff += 24 * 60;
+
+                                // Subtract lunch time if applicable
+                                if (record.lunchStart && record.lunchEnd) {
+                                    const lunchStart = parseTimeToMinutesHelper(record.lunchStart);
+                                    const lunchEnd = parseTimeToMinutesHelper(record.lunchEnd);
+                                    if (lunchStart !== null && lunchEnd !== null) {
+                                        let lunchDiff = lunchEnd - lunchStart;
+                                        if (lunchDiff < 0) lunchDiff += 24 * 60;
+                                        diff -= lunchDiff;
+                                    }
+                                }
+
+                                weekDays[dayIndex].actualHours = diff / 60;
+                                totalActualHours += diff / 60;
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error('Error fetching employee attendance data:', err);
+            }
+
+            return {
+                records: weekDays,
+                totalScheduledHours,
+                totalActualHours
+            };
+        }
+
+        // Helper to parse time string to minutes
+        function parseTimeToMinutesHelper(timeStr) {
+            if (!timeStr) return null;
+            let hours, minutes;
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            const cleaned = timeStr.replace(/[ap]m/gi, '').trim();
+            const parts = cleaned.split(':');
+
+            if (parts.length >= 2) {
+                hours = parseInt(parts[0]);
+                minutes = parseInt(parts[1]);
+            } else {
+                hours = parseInt(cleaned);
+                minutes = 0;
+            }
+
+            if (isNaN(hours)) return null;
+
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+
+            return hours * 60 + (minutes || 0);
         }
 
         // Certification Management Functions
@@ -10680,11 +10942,40 @@ Return ONLY the JSON object, no additional text.`,
             }
         }
 
+        // Toggle custom category input
+        function toggleCustomCategoryInput(prefix) {
+            const categorySelect = document.getElementById(`${prefix}-category`);
+            const customCategoryInput = document.getElementById(`${prefix}-custom-category`);
+            if (categorySelect && customCategoryInput) {
+                if (categorySelect.value === 'Other') {
+                    customCategoryInput.style.display = 'block';
+                    customCategoryInput.focus();
+                } else {
+                    customCategoryInput.style.display = 'none';
+                    customCategoryInput.value = '';
+                }
+            }
+        }
+
         function submitNewRestockRequest() {
             const product = document.getElementById('new-restock-product').value;
             const specifics = document.getElementById('new-restock-specifics')?.value || '';
             const store = document.getElementById('new-restock-store').value;
-            const category = document.getElementById('new-restock-category').value;
+
+            // Get category (check for custom)
+            let category = document.getElementById('new-restock-category').value;
+            const customCategory = document.getElementById('new-restock-custom-category')?.value || '';
+            if (category === 'Other' && customCategory) {
+                category = customCategory;
+            }
+
+            // Get brand (check for custom)
+            let brand = document.getElementById('new-restock-brand')?.value || '';
+            const customBrand = document.getElementById('new-restock-custom-brand')?.value || '';
+            if (brand === 'Other' && customBrand) {
+                brand = customBrand;
+            }
+
             const urgency = document.getElementById('new-restock-urgency')?.value || 'Low';
             const orderStatus = document.getElementById('new-restock-order-status')?.value || 'Not Ordered';
             const requestedByEl = document.getElementById('new-restock-requested-by');
@@ -10700,6 +10991,7 @@ Return ONLY the JSON object, no additional text.`,
             // Create request object with new fields
             const newRequest = {
                 productName: product,
+                brand: brand || '',
                 specifics,
                 store,
                 category,

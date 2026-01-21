@@ -6508,7 +6508,7 @@
             if (totalEl) totalEl.textContent = employees.length;
         }
 
-        function viewAttendanceDetails(recordId) {
+        async function viewAttendanceDetails(recordId) {
             const record = clockinAttendanceRecords.find(r => r.id === recordId);
             if (!record) return;
 
@@ -6516,6 +6516,64 @@
             const modalContent = document.getElementById('modal-content');
             const status = getAttendanceStatus(record);
             const totalHours = calculateAttendanceTotalHours(record);
+
+            // Get the week's schedule for this employee
+            let weeklyScheduleHTML = '';
+            let totalScheduledHours = 0;
+            try {
+                const weekSchedule = await getEmployeeWeekSchedule(record.employeeId, record.date);
+                if (weekSchedule.length > 0) {
+                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    weeklyScheduleHTML = `
+                        <div style="margin-top: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 12px;">
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-calendar-week" style="color: var(--accent-primary);"></i>
+                                This Week's Schedule
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <th style="text-align: left; padding: 8px 4px; color: var(--text-muted); font-weight: 500;">Day</th>
+                                        <th style="text-align: left; padding: 8px 4px; color: var(--text-muted); font-weight: 500;">Scheduled</th>
+                                        <th style="text-align: right; padding: 8px 4px; color: var(--text-muted); font-weight: 500;">Hours</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${weekSchedule.map(day => {
+                                        const isToday = day.dateStr === record.date;
+                                        const rowStyle = isToday ? 'background: rgba(79, 70, 229, 0.1);' : '';
+                                        totalScheduledHours += day.hours || 0;
+                                        return `
+                                            <tr style="${rowStyle}">
+                                                <td style="padding: 8px 4px; font-weight: ${isToday ? '600' : '400'};">
+                                                    ${dayNames[day.dayOfWeek]} ${day.dayNum}
+                                                    ${isToday ? '<span style="color: var(--accent-primary); font-size: 10px; margin-left: 4px;">(Today)</span>' : ''}
+                                                </td>
+                                                <td style="padding: 8px 4px; color: ${day.scheduled ? 'var(--text-primary)' : 'var(--text-muted)'};">
+                                                    ${day.scheduled ? `${day.startTime} - ${day.endTime}` : 'Off'}
+                                                </td>
+                                                <td style="padding: 8px 4px; text-align: right; font-weight: 500; color: ${day.hours ? 'var(--success)' : 'var(--text-muted)'};">
+                                                    ${day.hours ? day.hours.toFixed(1) + 'h' : '-'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                                <tfoot>
+                                    <tr style="border-top: 2px solid var(--border-color);">
+                                        <td colspan="2" style="padding: 10px 4px; font-weight: 600; color: var(--text-primary);">Total Scheduled</td>
+                                        <td style="padding: 10px 4px; text-align: right; font-weight: 700; color: var(--accent-primary); font-size: 15px;">
+                                            ${totalScheduledHours.toFixed(1)}h
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error loading weekly schedule:', err);
+            }
 
             modalContent.innerHTML = `
                 <div class="modal-header">
@@ -6589,6 +6647,8 @@
                             <div style="font-size: 14px; line-height: 1.6; color: var(--text-secondary);">${record.notes}</div>
                         </div>
                     ` : ''}
+
+                    ${weeklyScheduleHTML}
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
@@ -6596,6 +6656,108 @@
             `;
 
             modal.classList.add('active');
+        }
+
+        // Helper function to get employee's weekly schedule
+        async function getEmployeeWeekSchedule(employeeId, currentDateStr) {
+            const db = firebase.firestore();
+            const currentDate = new Date(currentDateStr);
+
+            // Get the start of the week (Sunday)
+            const startOfWeek = new Date(currentDate);
+            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+
+            // Get all days of the week
+            const weekDays = [];
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(startOfWeek);
+                dayDate.setDate(startOfWeek.getDate() + i);
+                weekDays.push({
+                    date: dayDate,
+                    dateStr: dayDate.toDateString(),
+                    dayOfWeek: i,
+                    dayNum: dayDate.getDate(),
+                    scheduled: false,
+                    startTime: null,
+                    endTime: null,
+                    hours: 0
+                });
+            }
+
+            // Format dates for query (YYYY-MM-DD format)
+            const startDateKey = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`;
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            const endDateKey = `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
+
+            try {
+                // Query schedules for this employee in the date range
+                const schedulesRef = db.collection(window.FIREBASE_COLLECTIONS?.schedules || 'schedules');
+                const snapshot = await schedulesRef
+                    .where('employeeId', '==', employeeId)
+                    .where('date', '>=', startDateKey)
+                    .where('date', '<=', endDateKey)
+                    .get();
+
+                snapshot.forEach(doc => {
+                    const schedule = doc.data();
+                    // Find the matching day in our weekDays array
+                    const scheduleDate = new Date(schedule.date + 'T00:00:00');
+                    const dayIndex = weekDays.findIndex(d =>
+                        d.date.getFullYear() === scheduleDate.getFullYear() &&
+                        d.date.getMonth() === scheduleDate.getMonth() &&
+                        d.date.getDate() === scheduleDate.getDate()
+                    );
+
+                    if (dayIndex !== -1) {
+                        weekDays[dayIndex].scheduled = true;
+                        weekDays[dayIndex].startTime = schedule.startTime || schedule.shiftStart || '-';
+                        weekDays[dayIndex].endTime = schedule.endTime || schedule.shiftEnd || '-';
+
+                        // Calculate hours
+                        if (schedule.startTime && schedule.endTime) {
+                            const start = parseTimeToMinutes(schedule.startTime || schedule.shiftStart);
+                            const end = parseTimeToMinutes(schedule.endTime || schedule.shiftEnd);
+                            if (start !== null && end !== null) {
+                                let diff = end - start;
+                                if (diff < 0) diff += 24 * 60; // Handle overnight shifts
+                                weekDays[dayIndex].hours = diff / 60;
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error('Error fetching weekly schedule:', err);
+            }
+
+            return weekDays;
+        }
+
+        // Helper to parse time string to minutes
+        function parseTimeToMinutes(timeStr) {
+            if (!timeStr) return null;
+            // Handle formats like "9:00 AM", "14:00", "9:00a", etc.
+            let hours, minutes;
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            const cleaned = timeStr.replace(/[ap]m/gi, '').trim();
+            const parts = cleaned.split(':');
+
+            if (parts.length >= 2) {
+                hours = parseInt(parts[0]);
+                minutes = parseInt(parts[1]);
+            } else {
+                hours = parseInt(cleaned);
+                minutes = 0;
+            }
+
+            if (isNaN(hours)) return null;
+
+            // Convert to 24-hour format if needed
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+
+            return hours * 60 + (minutes || 0);
         }
 
         function refreshAttendance() {
