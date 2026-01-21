@@ -815,34 +815,35 @@ async function offerToCover(exchangeId) {
         return;
     }
 
-    const confirmed = await showConfirmModal(
-        'Confirm Coverage',
-        `Are you sure you want to cover this shift for ${exchange.requesterName}?<br><br>
+    showConfirmModal({
+        title: 'Confirm Coverage',
+        message: `Are you sure you want to cover this shift for ${exchange.requesterName}?<br><br>
         <strong>Date:</strong> ${formatDateSE(exchange.originalDate)}<br>
         <strong>Time:</strong> ${formatTimeSE(exchange.originalStartTime)} - ${formatTimeSE(exchange.originalEndTime)}<br><br>
-        A manager will need to approve this exchange.`
-    );
+        A manager will need to approve this exchange.`,
+        confirmText: 'Yes, Cover This Shift',
+        type: 'info',
+        onConfirm: async () => {
+            try {
+                const success = await firebaseShiftExchangeManager.updateShiftExchange(exchangeId, {
+                    status: 'accepted',
+                    coverEmployeeId: currentUser.odooEmployeeId,
+                    coverEmployeeName: currentUser.name,
+                    acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-    if (!confirmed) return;
-
-    try {
-        const success = await firebaseShiftExchangeManager.updateShiftExchange(exchangeId, {
-            status: 'accepted',
-            coverEmployeeId: currentUser.odooEmployeeId,
-            coverEmployeeName: currentUser.name,
-            acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        if (success) {
-            showNotification('You have offered to cover this shift! Waiting for manager approval.', 'success');
-            await renderShiftExchangesPage();
-        } else {
-            showNotification('Failed to submit coverage offer', 'error');
+                if (success) {
+                    showNotification('You have offered to cover this shift! Waiting for manager approval.', 'success');
+                    await renderShiftExchangesPage();
+                } else {
+                    showNotification('Failed to submit coverage offer', 'error');
+                }
+            } catch (error) {
+                console.error('Error offering coverage:', error);
+                showNotification('Error submitting coverage offer', 'error');
+            }
         }
-    } catch (error) {
-        console.error('Error offering coverage:', error);
-        showNotification('Error submitting coverage offer', 'error');
-    }
+    });
 }
 
 /**
@@ -980,28 +981,29 @@ async function confirmRejectExchange(exchangeId) {
  * Cancel shift exchange request
  */
 async function cancelShiftExchange(exchangeId) {
-    const confirmed = await showConfirmModal(
-        'Cancel Request',
-        'Are you sure you want to cancel this coverage request?'
-    );
+    showConfirmModal({
+        title: 'Cancel Request',
+        message: 'Are you sure you want to cancel this coverage request?',
+        confirmText: 'Yes, Cancel',
+        type: 'warning',
+        onConfirm: async () => {
+            try {
+                const success = await firebaseShiftExchangeManager.updateShiftExchange(exchangeId, {
+                    status: 'cancelled'
+                });
 
-    if (!confirmed) return;
-
-    try {
-        const success = await firebaseShiftExchangeManager.updateShiftExchange(exchangeId, {
-            status: 'cancelled'
-        });
-
-        if (success) {
-            showNotification('Request cancelled', 'success');
-            await renderShiftExchangesPage();
-        } else {
-            showNotification('Failed to cancel request', 'error');
+                if (success) {
+                    showNotification('Request cancelled', 'success');
+                    await renderShiftExchangesPage();
+                } else {
+                    showNotification('Failed to cancel request', 'error');
+                }
+            } catch (error) {
+                console.error('Error cancelling request:', error);
+                showNotification('Error cancelling request', 'error');
+            }
         }
-    } catch (error) {
-        console.error('Error cancelling request:', error);
-        showNotification('Error cancelling request', 'error');
-    }
+    });
 }
 
 /**
@@ -1030,26 +1032,27 @@ async function deleteShiftExchange(exchangeId) {
         return;
     }
 
-    const confirmed = await showConfirmModal(
-        'Delete Request',
-        'Are you sure you want to permanently delete this shift exchange request?<br><br><strong>This action cannot be undone.</strong>'
-    );
+    showConfirmModal({
+        title: 'Delete Request',
+        message: 'Are you sure you want to permanently delete this shift exchange request?<br><br><strong>This action cannot be undone.</strong>',
+        confirmText: 'Delete',
+        type: 'danger',
+        onConfirm: async () => {
+            try {
+                const success = await firebaseShiftExchangeManager.deleteShiftExchange(exchangeId);
 
-    if (!confirmed) return;
-
-    try {
-        const success = await firebaseShiftExchangeManager.deleteShiftExchange(exchangeId);
-
-        if (success) {
-            showNotification('Request deleted successfully', 'success');
-            await renderShiftExchangesPage();
-        } else {
-            showNotification('Failed to delete request', 'error');
+                if (success) {
+                    showNotification('Request deleted successfully', 'success');
+                    await renderShiftExchangesPage();
+                } else {
+                    showNotification('Failed to delete request', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting request:', error);
+                showNotification('Error deleting request', 'error');
+            }
         }
-    } catch (error) {
-        console.error('Error deleting request:', error);
-        showNotification('Error deleting request', 'error');
-    }
+    });
 }
 
 // Polling interval for badge updates
