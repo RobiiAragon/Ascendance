@@ -50,6 +50,66 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_026',
+            date: '2026-01-21',
+            title: 'Multi-Employee Shift Assignment UI Improvement',
+            description: 'Made the multi-employee shift assignment feature more obvious and user-friendly. The "Multiple Employees" toggle now has a prominent gradient background with an icon, and includes a helpful tip explaining how to assign multiple people (like Jay AND Tiana) to the same shift. Also removed unused Incident Log from the Security menu.',
+            category: 'ui',
+            files: ['js/daily-checklist.js', 'index.html'],
+            developer: 'Carlos',
+            requestedBy: 'Titi'
+        },
+        {
+            id: 'log_025',
+            date: '2026-01-21',
+            title: 'Time Card Edit Buttons & PTO Edit Fix',
+            description: 'Added edit buttons to the weekly employee time card view, allowing managers to edit attendance records directly from the time card modal. Also fixed a bug where approved PTO requests could not be edited - the system now properly handles locked date fields for approved requests while still allowing edits to the request type and notes.',
+            category: 'fix',
+            files: ['js/daily-checklist.js', 'js/pto-system.js'],
+            developer: 'Carlos',
+            requestedBy: 'Titi'
+        },
+        {
+            id: 'log_024',
+            date: '2026-01-21',
+            title: 'Schedule View - Missing Employee Names Fix',
+            description: 'Fixed an issue in the All Stores schedule view where some shift cards were showing only times without employee names. The fix now shows filled slots even when the employee lookup fails, using multiple fallbacks (employee record, schedule.employeeName, or "Unknown") to ensure names are always displayed.',
+            category: 'fix',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Titi'
+        },
+        {
+            id: 'log_023',
+            date: '2026-01-21',
+            title: 'Attendance Edit - Record Not Found Fix',
+            description: 'Fixed the "Record not found" error that occurred when trying to edit attendance records. The issue was caused by type mismatches between string and number IDs. Added robust ID comparison that handles both types, plus a Firebase fallback that loads records directly when not found in the local array.',
+            category: 'fix',
+            files: ['js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Titi'
+        },
+        {
+            id: 'log_022',
+            date: '2026-01-21',
+            title: 'Hours Calculation Fix for Firebase shiftStart/shiftEnd',
+            description: 'Fixed a bug in hours calculation where Firebase schedules using shiftStart/shiftEnd field names were not being properly recognized. The system now checks for both startTime/endTime and shiftStart/shiftEnd field names when calculating scheduled hours.',
+            category: 'fix',
+            files: ['js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Lauren'
+        },
+        {
+            id: 'log_021',
+            date: '2026-01-19',
+            title: 'Attendance Breakdown & Inventory Improvements',
+            description: 'Added detailed attendance breakdown view showing scheduled vs actual hours with variance tracking. Improved inventory module with better product categorization and stock level alerts. Various UI improvements per Lauren\'s requests.',
+            category: 'enhancement',
+            files: ['js/vendors-module.js', 'js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Lauren'
+        },
+        {
             id: 'log_020',
             date: '2026-01-17',
             title: 'User Menu Logout Dropdown',
