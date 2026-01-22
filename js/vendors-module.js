@@ -11782,6 +11782,63 @@ Return ONLY the JSON object, no additional text.`,
             }
         }
 
+        // My Profile Modal
+        function openMyProfileModal() {
+            const user = getCurrentUser();
+            const modal = document.getElementById('myProfileModal');
+            const body = document.getElementById('myProfileBody');
+
+            if (!modal || !body) return;
+
+            const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            const roleLabel = window.ROLE_PERMISSIONS?.[user.role]?.label || user.role || 'Employee';
+
+            body.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 28px; font-weight: 600; color: white;">
+                        ${initials}
+                    </div>
+                    <h3 style="margin: 0 0 5px; font-size: 20px;">${user.name || 'User'}</h3>
+                    <span style="display: inline-block; padding: 4px 12px; background: rgba(139, 92, 246, 0.1); color: var(--accent-primary); border-radius: 20px; font-size: 12px; font-weight: 500;">${roleLabel}</span>
+                </div>
+                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+                        <i class="fas fa-envelope" style="color: var(--text-muted); width: 20px;"></i>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Email</div>
+                            <div style="font-weight: 500;">${user.email || user.authEmail || 'Not set'}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+                        <i class="fas fa-store" style="color: var(--text-muted); width: 20px;"></i>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Store</div>
+                            <div style="font-weight: 500;">${user.store || 'All Stores'}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
+                        <i class="fas fa-id-badge" style="color: var(--text-muted); width: 20px;"></i>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Employee ID</div>
+                            <div style="font-weight: 500;">${user.id || user.firestoreId || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeMyProfileModal() {
+            const modal = document.getElementById('myProfileModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        window.openMyProfileModal = openMyProfileModal;
+        window.closeMyProfileModal = closeMyProfileModal;
+
         // Close user menu when clicking outside
         document.addEventListener('click', function(e) {
             const container = document.querySelector('.user-menu-container');
