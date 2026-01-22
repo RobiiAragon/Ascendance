@@ -6932,15 +6932,41 @@
         // CLOCK RECORD EDITING (Admin/Manager Only)
         // ==========================================
 
-        function openEditClockRecordModal(recordId) {
-            // Search by id first, then by firestoreId as fallback
-            let record = clockinAttendanceRecords.find(r => r.id === recordId);
-            if (!record) {
-                record = clockinAttendanceRecords.find(r => r.firestoreId === recordId);
+        async function openEditClockRecordModal(recordId) {
+            // Search by id first (handle type mismatches), then by firestoreId as fallback
+            const recordIdStr = String(recordId);
+            let record = clockinAttendanceRecords.find(r =>
+                String(r.id) === recordIdStr ||
+                String(r.firestoreId) === recordIdStr ||
+                r.id === recordId ||
+                r.firestoreId === recordId
+            );
+
+            // If not found locally, try loading directly from Firebase
+            if (!record && typeof firebase !== 'undefined' && firebase.firestore) {
+                try {
+                    const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+                    const doc = await firebase.firestore().collection(clockinCollection).doc(recordIdStr).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        record = {
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            ...data,
+                            employeeInitials: data.employeeName?.substring(0, 2).toUpperCase() || '??'
+                        };
+                        // Add to local array for subsequent operations
+                        clockinAttendanceRecords.push(record);
+                        console.log('✅ Record loaded from Firebase:', record.employeeName, record.date);
+                    }
+                } catch (err) {
+                    console.error('Error loading record from Firebase:', err);
+                }
             }
+
             if (!record) {
                 showNotification('Record not found', 'error');
-                console.error('Record not found for ID:', recordId, 'Available records:', clockinAttendanceRecords.map(r => ({ id: r.id, firestoreId: r.firestoreId, name: r.employeeName })));
+                console.error('Record not found for ID:', recordId, 'Type:', typeof recordId, 'Available records:', clockinAttendanceRecords.map(r => ({ id: r.id, idType: typeof r.id, firestoreId: r.firestoreId, name: r.employeeName })));
                 return;
             }
 
@@ -7030,14 +7056,38 @@
         }
 
         async function saveClockRecordEdit(recordId) {
-            // Search by id first, then by firestoreId as fallback
-            let record = clockinAttendanceRecords.find(r => r.id === recordId);
-            if (!record) {
-                record = clockinAttendanceRecords.find(r => r.firestoreId === recordId);
+            // Search by id first (handle type mismatches), then by firestoreId as fallback
+            const recordIdStr = String(recordId);
+            let record = clockinAttendanceRecords.find(r =>
+                String(r.id) === recordIdStr ||
+                String(r.firestoreId) === recordIdStr ||
+                r.id === recordId ||
+                r.firestoreId === recordId
+            );
+
+            // If not found locally, try loading directly from Firebase
+            if (!record && typeof firebase !== 'undefined' && firebase.firestore) {
+                try {
+                    const clockinCollection = window.FIREBASE_COLLECTIONS?.clockin || 'clockin';
+                    const doc = await firebase.firestore().collection(clockinCollection).doc(recordIdStr).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        record = {
+                            id: doc.id,
+                            firestoreId: doc.id,
+                            ...data,
+                            employeeInitials: data.employeeName?.substring(0, 2).toUpperCase() || '??'
+                        };
+                        clockinAttendanceRecords.push(record);
+                    }
+                } catch (err) {
+                    console.error('Error loading record from Firebase for save:', err);
+                }
             }
+
             if (!record) {
                 showNotification('Record not found', 'error');
-                console.error('Save failed - Record not found for ID:', recordId);
+                console.error('Save failed - Record not found for ID:', recordId, 'Type:', typeof recordId);
                 return;
             }
 

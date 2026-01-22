@@ -8168,6 +8168,9 @@ Return ONLY the JSON object, no additional text.`,
                     if (dayIndex !== -1) {
                         weekDays[dayIndex].clockIn = record.clockIn || null;
                         weekDays[dayIndex].clockOut = record.clockOut || null;
+                        weekDays[dayIndex].lunchStart = record.lunchStart || null;
+                        weekDays[dayIndex].lunchEnd = record.lunchEnd || null;
+                        weekDays[dayIndex].recordId = doc.id; // Save Firebase record ID for editing
 
                         // Calculate actual hours if both clock in and out exist
                         if (record.clockIn && record.clockOut) {
