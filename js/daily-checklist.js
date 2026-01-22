@@ -5362,18 +5362,15 @@ window.viewChecklistHistory = async function() {
                         gap: 4px;
                     }
                     .store-shift-employee {
-                        background: linear-gradient(135deg, rgba(249, 250, 251, 0.95), rgba(243, 244, 246, 0.9));
-                        border-radius: 6px;
-                        padding: 4px 8px;
+                        background: transparent;
+                        padding: 2px 8px;
                         padding-right: 48px;
                         cursor: pointer;
                         position: relative;
                         transition: all 0.2s;
-                        border: 1px solid rgba(0,0,0,0.05);
                     }
                     .store-shift-employee:hover {
-                        background: linear-gradient(135deg, #fff, #f9fafb);
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        background: rgba(0,0,0,0.03);
                     }
                     .store-shift-employee .store-shift-clone {
                         position: absolute;
