@@ -50,6 +50,56 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_033',
+            date: '2026-01-21',
+            title: 'My Profile Modal',
+            description: 'Added a My Profile modal that opens when clicking "My Profile" in the user dropdown menu. The modal displays the user\'s initials in a colored avatar, their name, role badge, email, assigned store, and employee ID. Clean modern design with icon labels.',
+            category: 'feature',
+            files: ['index.html', 'js/vendors-module.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_032',
+            date: '2026-01-21',
+            title: 'Add New Turn Button - Orange Color & Remove Cancel',
+            description: 'Changed the "Add New Turn" button in the time editor modal from purple to orange gradient for better visual contrast with the Save button. Removed the Cancel button since the X close button at the top serves the same purpose, reducing UI clutter.',
+            category: 'ui',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_031',
+            date: '2026-01-21',
+            title: 'Multi-Employee Shift Display with Colors',
+            description: 'Enhanced the schedule view to show ALL employees assigned to the same shift slot. Each employee now displays with their name, time range, and a colored left border (based on name hash) to distinguish them. Multiple employees in the same slot get a purple background. Clone and delete buttons properly positioned for each employee entry.',
+            category: 'feature',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Lauren'
+        },
+        {
+            id: 'log_030',
+            date: '2026-01-21',
+            title: 'Schedule Slot UI Cleanup',
+            description: 'Removed unnecessary box borders from individual shift employee entries for a cleaner aesthetic. Fixed clone/delete button overlap by adding proper CSS positioning. Clone button now at right:24px, delete at right:4px with appropriate padding.',
+            category: 'ui',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_029',
+            date: '2026-01-21',
+            title: 'Add New Turn Button Text',
+            description: 'Added visible "Add New Turn" text to the button in the time editor modal. Previously only showed the user-plus icon which wasn\'t clear enough for users.',
+            category: 'ui',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
             id: 'log_028',
             date: '2026-01-21',
             title: 'Add Another Employee Button in Edit Shift Modal',
@@ -369,6 +419,37 @@ async function populateInitialLogs() {
     }
 }
 
+// Sync missing logs to Firebase (adds new entries that don't exist yet)
+async function syncDevelopmentLogs() {
+    const initialLogs = getInitialLogs();
+
+    try {
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            const existingIds = developmentLogs.map(l => l.id);
+            const newLogs = initialLogs.filter(l => !existingIds.includes(l.id));
+
+            if (newLogs.length > 0) {
+                const batch = db.batch();
+                newLogs.forEach(log => {
+                    const docRef = db.collection('developmentLogs').doc(log.id);
+                    batch.set(docRef, {
+                        ...log,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                console.log(`Synced ${newLogs.length} new development logs`);
+                // Reload logs
+                await loadDevelopmentLogs();
+            }
+        }
+    } catch (error) {
+        console.error('Error syncing development logs:', error);
+    }
+}
+window.syncDevelopmentLogs = syncDevelopmentLogs;
+
 // Render Development Log page
 async function renderDevelopmentLog() {
     const dashboard = document.querySelector('.dashboard');
@@ -384,6 +465,7 @@ async function renderDevelopmentLog() {
     `;
 
     await loadDevelopmentLogs();
+    await syncDevelopmentLogs(); // Sync any new entries from code
 
     // Group logs by month
     const logsByMonth = {};
