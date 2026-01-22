@@ -5977,7 +5977,7 @@ window.viewChecklistHistory = async function() {
                             <button class="time-editor-btn delete" onclick="deleteFromTimeEditor()" title="Remove shift">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add another employee to this shift" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
+                            <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add New Turn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
                                 <i class="fas fa-user-plus"></i>
                             </button>
                             <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
@@ -7959,19 +7959,17 @@ window.viewChecklistHistory = async function() {
                                          style="${isMultiple ? 'border-left: 3px solid ' + colors[colorIndex] + ';' : ''}">
                                         <div class="store-shift-name">${firstName}</div>
                                         <div class="store-shift-time">${formatTimeShort(schedule.startTime)}-${formatTimeShort(schedule.endTime)}</div>
+                                        <button class="store-shift-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
+                                            <i class="fas fa-clone"></i>
+                                        </button>
                                         <button class="store-shift-delete" onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')" title="Remove ${firstName}">
-                                            <i class="fas fa-times"></i>
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 `;
                             });
 
-                            // Add button to add more employees
-                            html += `
-                                <button class="store-shift-add-more" onclick="event.stopPropagation(); openEmployeePicker('${dateKey}', '${shiftType}', '${store}')" title="Add another employee">
-                                    <i class="fas fa-user-plus"></i>
-                                </button>
-                            </div>`;
+                            html += `</div>`;
                         } else {
                             html += `
                                 <div class="store-shift-slot empty"
@@ -10986,7 +10984,7 @@ window.viewChecklistHistory = async function() {
                             <button class="time-editor-btn delete" onclick="deleteFromTimeEditor()" title="Remove shift">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add another employee to this shift" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
+                            <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add New Turn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
                                 <i class="fas fa-user-plus"></i>
                             </button>
                             <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
