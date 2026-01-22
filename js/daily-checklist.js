@@ -5987,7 +5987,7 @@ window.viewChecklistHistory = async function() {
                                 <i class="fas fa-trash"></i>
                             </button>
                             <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add New Turn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
-                                <i class="fas fa-user-plus"></i>
+                                <i class="fas fa-user-plus"></i> Add New Turn
                             </button>
                             <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
                             <button class="time-editor-btn save" onclick="saveTimeEditor()">
@@ -10994,7 +10994,7 @@ window.viewChecklistHistory = async function() {
                                 <i class="fas fa-trash"></i>
                             </button>
                             <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add New Turn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
-                                <i class="fas fa-user-plus"></i>
+                                <i class="fas fa-user-plus"></i> Add New Turn
                             </button>
                             <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
                             <button class="time-editor-btn save" onclick="saveTimeEditor()" style="background: linear-gradient(135deg, #10b981, #059669);">
