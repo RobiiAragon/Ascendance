@@ -50,11 +50,21 @@ function getInitialLogs() {
     return [
         // January 2026
         {
-            id: 'log_026',
+            id: 'log_028',
             date: '2026-01-21',
-            title: 'Multi-Employee Shift Assignment UI Improvement',
-            description: 'Made the multi-employee shift assignment feature more obvious and user-friendly. The "Multiple Employees" toggle now has a prominent gradient background with an icon, and includes a helpful tip explaining how to assign multiple people (like Jay AND Tiana) to the same shift. Also removed unused Incident Log from the Security menu.',
-            category: 'ui',
+            title: 'Add Another Employee Button in Edit Shift Modal',
+            description: 'Added a purple "Add Another Employee" button (user-plus icon) to the Edit Shift modal. When editing an existing shift, users can now click this button to open the employee picker and add another person to the same shift slot. This makes it much easier to assign multiple employees to the same shift without having to navigate back to the schedule grid.',
+            category: 'feature',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Titi'
+        },
+        {
+            id: 'log_027',
+            date: '2026-01-21',
+            title: 'Multi-Employee Shift - ADD Instead of REPLACE',
+            description: 'Fixed critical issue where assigning an employee to a shift would REPLACE the existing employee instead of ADDING them. Now clicking on any employee in the picker adds them to the shift, allowing multiple employees per shift. Also added a helpful message: "You can add multiple employees! Just click on each employee you want to assign." Removed unused Incident Log from Security menu.',
+            category: 'fix',
             files: ['js/daily-checklist.js', 'index.html'],
             developer: 'Carlos',
             requestedBy: 'Titi'
