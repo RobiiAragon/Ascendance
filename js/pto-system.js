@@ -434,16 +434,24 @@
 
             const currentUser = getCurrentUser();
             const requestType = document.querySelector('input[name="edit-pto-type"]:checked')?.value;
-            const startDate = document.getElementById('edit-pto-start-date')?.value;
-            const endDate = document.getElementById('edit-pto-end-date')?.value;
             const reason = document.getElementById('edit-pto-reason')?.value?.trim();
 
-            if (!requestType || !startDate || !endDate) {
+            // For approved requests, use existing dates (they're locked)
+            const isApproved = request.status === 'approved';
+            const startDate = isApproved ? request.startDate : document.getElementById('edit-pto-start-date')?.value;
+            const endDate = isApproved ? request.endDate : document.getElementById('edit-pto-end-date')?.value;
+
+            if (!requestType) {
+                showNotification('Please select a request type', 'error');
+                return;
+            }
+
+            if (!isApproved && (!startDate || !endDate)) {
                 showNotification('Please fill in all required fields', 'error');
                 return;
             }
 
-            if (parseLocalDate(endDate) < parseLocalDate(startDate)) {
+            if (!isApproved && parseLocalDate(endDate) < parseLocalDate(startDate)) {
                 showNotification('End date must be after start date', 'error');
                 return;
             }
@@ -451,8 +459,8 @@
             // Track what changed for history
             const changes = [];
             if (request.requestType !== requestType) changes.push(`Type: ${request.requestType} → ${requestType}`);
-            if (request.startDate !== startDate) changes.push(`Start: ${request.startDate} → ${startDate}`);
-            if (request.endDate !== endDate) changes.push(`End: ${request.endDate} → ${endDate}`);
+            if (!isApproved && request.startDate !== startDate) changes.push(`Start: ${request.startDate} → ${startDate}`);
+            if (!isApproved && request.endDate !== endDate) changes.push(`End: ${request.endDate} → ${endDate}`);
             if ((request.reason || '') !== reason) changes.push('Notes updated');
 
             if (changes.length === 0) {
@@ -469,14 +477,20 @@
                     changes: changes.join(', ')
                 };
 
-                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').doc(requestId).update({
+                // Build update object - only include dates if not approved
+                const updateData = {
                     requestType,
-                    startDate,
-                    endDate,
                     reason,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     editHistory: firebase.firestore.FieldValue.arrayUnion(editEntry)
-                });
+                };
+
+                if (!isApproved) {
+                    updateData.startDate = startDate;
+                    updateData.endDate = endDate;
+                }
+
+                await db.collection(window.FIREBASE_COLLECTIONS?.dayOffRequests || 'dayOffRequests').doc(requestId).update(updateData);
 
                 showNotification('Request updated successfully!', 'success');
                 closeModal();

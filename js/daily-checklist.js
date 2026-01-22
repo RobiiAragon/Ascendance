@@ -6636,6 +6636,9 @@ window.viewChecklistHistory = async function() {
                     }
                 }
 
+                // Get the clock record ID for editing
+                const clockRecordId = clockRecord?.id || clockRecord?.firestoreId || null;
+
                 rowsHtml += `
                     <tr class="${isToday ? 'today-row' : ''}">
                         <td class="day-cell">
@@ -6648,6 +6651,13 @@ window.viewChecklistHistory = async function() {
                         <td class="hours-cell scheduled">${scheduledHours > 0 ? scheduledHours.toFixed(1) + 'h' : '-'}</td>
                         <td class="hours-cell actual">${actualDisplay}</td>
                         <td class="variance-cell ${varianceClass}">${varianceDisplay}</td>
+                        <td class="action-cell">
+                            ${clockRecordId ? `
+                                <button class="time-card-edit-btn" onclick="event.stopPropagation(); closeTimeCard(); openEditClockRecordModal('${clockRecordId}')" title="Edit attendance">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : '-'}
+                        </td>
                     </tr>
                 `;
             });
@@ -6849,6 +6859,26 @@ window.viewChecklistHistory = async function() {
                     .time-card-table .variance-cell.under {
                         color: #f59e0b;
                     }
+                    .time-card-table .action-cell {
+                        width: 50px;
+                    }
+                    .time-card-edit-btn {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 8px;
+                        border: none;
+                        background: linear-gradient(135deg, #3b82f6, #6366f1);
+                        color: white;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s ease;
+                    }
+                    .time-card-edit-btn:hover {
+                        transform: scale(1.1);
+                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+                    }
                     .time-card-table tfoot td {
                         padding-top: 16px;
                         font-weight: 700;
@@ -6924,6 +6954,7 @@ window.viewChecklistHistory = async function() {
                                             <th>Sched Hrs</th>
                                             <th>Actual Hrs</th>
                                             <th>Variance</th>
+                                            <th>Edit</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -6938,6 +6969,7 @@ window.viewChecklistHistory = async function() {
                                             <td class="hours-cell scheduled">${totalScheduledHours > 0 ? totalScheduledHours.toFixed(1) + 'h' : '-'}</td>
                                             <td class="hours-cell actual">${totalActualDisplay}</td>
                                             <td class="variance-cell ${totalVarianceClass}">${totalVarianceDisplay}</td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
