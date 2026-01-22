@@ -5842,10 +5842,14 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
-                            <label class="multi-select-toggle">
+                            <label class="multi-select-toggle" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15)); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.3); margin-top: 10px;">
                                 <input type="checkbox" id="multiSelectToggle" onchange="toggleMultiSelectMode()">
-                                <span>Multi-select</span>
+                                <span style="font-weight: 600; color: #6366f1;"><i class="fas fa-users" style="margin-right: 6px;"></i>Multiple Employees</span>
                             </label>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                                <i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 4px;"></i>
+                                Enable "Multiple Employees" to assign Jay AND Tiana to the same shift!
+                            </div>
                         </div>
                         <div class="employee-picker-list" id="employeePickerList">
                             <!-- Employees will be loaded here -->
@@ -10820,10 +10824,14 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
-                            <label class="multi-select-toggle" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+                            <label class="multi-select-toggle" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15)); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); margin-top: 10px;">
                                 <input type="checkbox" id="multiSelectToggle" onchange="toggleMultiSelectMode()">
-                                <span style="color: #10b981; font-weight: 600;">Multi-select</span>
+                                <span style="font-weight: 600; color: #10b981;"><i class="fas fa-users" style="margin-right: 6px;"></i>Multiple Employees</span>
                             </label>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                                <i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 4px;"></i>
+                                Enable to assign multiple people to this shift!
+                            </div>
                         </div>
                         <div class="employee-picker-list" id="employeePickerList">
                             <!-- Employees will be loaded here -->
