@@ -5929,6 +5929,9 @@ window.viewChecklistHistory = async function() {
                             <button class="time-editor-btn delete" onclick="deleteFromTimeEditor()" title="Remove shift">
                                 <i class="fas fa-trash"></i>
                             </button>
+                            <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add another employee to this shift" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
                             <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
                             <button class="time-editor-btn save" onclick="saveTimeEditor()">
                                 <i class="fas fa-check"></i> Save
@@ -7045,7 +7048,9 @@ window.viewChecklistHistory = async function() {
                 scheduleId,
                 startTime: schedule.startTime,
                 endTime: schedule.endTime,
-                shiftType: schedule.shiftType
+                shiftType: schedule.shiftType,
+                date: schedule.date,
+                store: schedule.store
             };
 
             // Update modal content
@@ -7254,6 +7259,22 @@ window.viewChecklistHistory = async function() {
                 showNotification('Error removing shift', 'error');
             }
         }
+
+        // Add another employee to the same shift from the time editor
+        function addAnotherEmployeeFromEditor() {
+            if (!currentTimeEditorContext) return;
+
+            const { date, shiftType, store } = currentTimeEditorContext;
+
+            // Close the time editor
+            closeTimeEditor();
+
+            // Open employee picker for the same shift slot
+            openEmployeePicker(date, shiftType, store || 'all');
+        }
+
+        // Expose to window for onclick handlers
+        window.addAnotherEmployeeFromEditor = addAnotherEmployeeFromEditor;
 
         // All Employees View - Shows all employees with their weekly schedules
         function renderAllEmployeesView(container, weekDates, today) {
@@ -10904,6 +10925,9 @@ window.viewChecklistHistory = async function() {
                         <div class="time-editor-footer">
                             <button class="time-editor-btn delete" onclick="deleteFromTimeEditor()" title="Remove shift">
                                 <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add another employee to this shift" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
+                                <i class="fas fa-user-plus"></i>
                             </button>
                             <button class="time-editor-btn cancel" onclick="closeTimeEditor()">Cancel</button>
                             <button class="time-editor-btn save" onclick="saveTimeEditor()" style="background: linear-gradient(135deg, #10b981, #059669);">
