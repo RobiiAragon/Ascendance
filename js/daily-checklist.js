@@ -5354,6 +5354,54 @@ window.viewChecklistHistory = async function() {
                         color: white;
                     }
 
+                    /* Multi-employee slot styles */
+                    .store-shift-slot.multi-employee {
+                        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.1)) !important;
+                        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+                        padding: 4px;
+                        gap: 4px;
+                    }
+                    .store-shift-employee {
+                        background: rgba(255,255,255,0.9);
+                        border-radius: 6px;
+                        padding: 4px 8px;
+                        cursor: pointer;
+                        position: relative;
+                        transition: all 0.2s;
+                    }
+                    .store-shift-employee:hover {
+                        background: white;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    }
+                    .store-shift-employee .store-shift-delete {
+                        position: absolute;
+                        top: 50%;
+                        right: 4px;
+                        transform: translateY(-50%);
+                        width: 16px;
+                        height: 16px;
+                        font-size: 8px;
+                    }
+                    .store-shift-employee:hover .store-shift-delete {
+                        opacity: 1;
+                    }
+                    .store-shift-add-more {
+                        width: 100%;
+                        padding: 4px;
+                        border: 1px dashed rgba(139, 92, 246, 0.4);
+                        border-radius: 6px;
+                        background: transparent;
+                        color: #8b5cf6;
+                        cursor: pointer;
+                        font-size: 10px;
+                        transition: all 0.2s;
+                        margin-top: 2px;
+                    }
+                    .store-shift-add-more:hover {
+                        background: rgba(139, 92, 246, 0.1);
+                        border-color: #8b5cf6;
+                    }
+
                     /* Days Off Section for All Stores View */
                     .store-days-off-section {
                         padding: 16px;
@@ -7884,34 +7932,46 @@ window.viewChecklistHistory = async function() {
                     `;
 
                     ['opening', 'closing'].forEach(shiftType => {
-                        const schedule = schedules.find(s =>
+                        // Get ALL schedules for this slot (supports multiple employees)
+                        const slotSchedules = schedules.filter(s =>
                             s.date === dateKey &&
                             s.shiftType === shiftType &&
                             s.store === store
                         );
-                        const emp = schedule ? employees.find(e => e.id === schedule.employeeId) : null;
 
-                        if (schedule) {
-                            // Get employee name from employee record, schedule record, or use Unknown
-                            const empName = emp?.name || schedule.employeeName || schedule.employee || 'Unknown';
-                            const firstName = (empName && empName.trim()) ? empName.split(' ')[0] : 'Unknown';
+                        if (slotSchedules.length > 0) {
+                            const isMultiple = slotSchedules.length > 1;
+                            const multiClass = isMultiple ? 'multi-employee' : '';
+
+                            html += `<div class="store-shift-slot ${shiftType} filled ${multiClass}">`;
+
+                            // Render each employee in this slot
+                            slotSchedules.forEach((schedule, idx) => {
+                                const emp = employees.find(e => e.id === schedule.employeeId);
+                                const empName = emp?.name || schedule.employeeName || schedule.employee || 'Unknown';
+                                const firstName = (empName && empName.trim()) ? empName.split(' ')[0] : 'Unknown';
+                                const colors = ['#ef4444', '#f97316', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+                                const colorIndex = empName.charCodeAt(0) % colors.length;
+
+                                html += `
+                                    <div class="store-shift-employee ${idx > 0 ? 'additional' : ''}"
+                                         onclick="openTimeEditor('${schedule.id}')"
+                                         style="${isMultiple ? 'border-left: 3px solid ' + colors[colorIndex] + ';' : ''}">
+                                        <div class="store-shift-name">${firstName}</div>
+                                        <div class="store-shift-time">${formatTimeShort(schedule.startTime)}-${formatTimeShort(schedule.endTime)}</div>
+                                        <button class="store-shift-delete" onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')" title="Remove ${firstName}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                `;
+                            });
+
+                            // Add button to add more employees
                             html += `
-                                <div class="store-shift-slot ${shiftType} filled"
-                                     draggable="true"
-                                     data-schedule-id="${schedule.id}"
-                                     ondragstart="handleEmployeeDragStart(event, '${schedule.id}')"
-                                     ondragend="handleEmployeeDragEnd(event)"
-                                     onclick="openTimeEditor('${schedule.id}')">
-                                    <div class="store-shift-name">${firstName}</div>
-                                    <div class="store-shift-time">${formatTimeShort(schedule.startTime)}-${formatTimeShort(schedule.endTime)}</div>
-                                    <button class="store-shift-clone" onclick="event.stopPropagation(); cloneShift('${schedule.id}')" title="Clone shift">
-                                        <i class="fas fa-clone"></i>
-                                    </button>
-                                    <button class="store-shift-delete" onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')" title="Delete shift">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            `;
+                                <button class="store-shift-add-more" onclick="event.stopPropagation(); openEmployeePicker('${dateKey}', '${shiftType}', '${store}')" title="Add another employee">
+                                    <i class="fas fa-user-plus"></i>
+                                </button>
+                            </div>`;
                         } else {
                             html += `
                                 <div class="store-shift-slot empty"
