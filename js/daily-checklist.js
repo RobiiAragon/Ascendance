@@ -5362,16 +5362,27 @@ window.viewChecklistHistory = async function() {
                         gap: 4px;
                     }
                     .store-shift-employee {
-                        background: rgba(255,255,255,0.9);
+                        background: linear-gradient(135deg, rgba(249, 250, 251, 0.95), rgba(243, 244, 246, 0.9));
                         border-radius: 6px;
                         padding: 4px 8px;
+                        padding-right: 48px;
                         cursor: pointer;
                         position: relative;
                         transition: all 0.2s;
+                        border: 1px solid rgba(0,0,0,0.05);
                     }
                     .store-shift-employee:hover {
-                        background: white;
+                        background: linear-gradient(135deg, #fff, #f9fafb);
                         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    }
+                    .store-shift-employee .store-shift-clone {
+                        position: absolute;
+                        top: 50%;
+                        right: 24px;
+                        transform: translateY(-50%);
+                        width: 16px;
+                        height: 16px;
+                        font-size: 8px;
                     }
                     .store-shift-employee .store-shift-delete {
                         position: absolute;
@@ -5382,6 +5393,7 @@ window.viewChecklistHistory = async function() {
                         height: 16px;
                         font-size: 8px;
                     }
+                    .store-shift-employee:hover .store-shift-clone,
                     .store-shift-employee:hover .store-shift-delete {
                         opacity: 1;
                     }
