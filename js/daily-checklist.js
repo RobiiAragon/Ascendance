@@ -7837,8 +7837,10 @@ window.viewChecklistHistory = async function() {
                         );
                         const emp = schedule ? employees.find(e => e.id === schedule.employeeId) : null;
 
-                        if (schedule && emp) {
-                            const firstName = emp.name?.split(' ')[0] || 'Unknown';
+                        if (schedule) {
+                            // Get employee name from employee record, schedule record, or use Unknown
+                            const empName = emp?.name || schedule.employeeName || schedule.employee || 'Unknown';
+                            const firstName = (empName && empName.trim()) ? empName.split(' ')[0] : 'Unknown';
                             html += `
                                 <div class="store-shift-slot ${shiftType} filled"
                                      draggable="true"
