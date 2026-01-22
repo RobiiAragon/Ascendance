@@ -5842,13 +5842,10 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
-                            <label class="multi-select-toggle" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15)); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.3); margin-top: 10px;">
-                                <input type="checkbox" id="multiSelectToggle" onchange="toggleMultiSelectMode()">
-                                <span style="font-weight: 600; color: #6366f1;"><i class="fas fa-users" style="margin-right: 6px;"></i>Multiple Employees</span>
-                            </label>
-                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
-                                <i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 4px;"></i>
-                                Enable "Multiple Employees" to assign Jay AND Tiana to the same shift!
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                <i class="fas fa-users" style="color: #10b981; margin-right: 6px;"></i>
+                                <strong>You can add multiple employees!</strong><br>
+                                <span style="font-size: 11px; color: var(--text-muted);">Just click on each employee you want to assign to this shift.</span>
                             </div>
                         </div>
                         <div class="employee-picker-list" id="employeePickerList">
@@ -8935,74 +8932,71 @@ window.viewChecklistHistory = async function() {
                 return;
             }
 
-            // Check if there's already a schedule for this slot
-            const existingSchedule = schedules.find(s =>
+            // Check if THIS EMPLOYEE is already scheduled for this slot (to avoid duplicates)
+            const alreadyAssigned = schedules.find(s =>
                 s.date === dateKey &&
                 s.shiftType === shiftType &&
-                s.store === store
+                s.store === store &&
+                s.employeeId === employeeId
             );
+
+            if (alreadyAssigned) {
+                showNotification(`${emp?.name || 'Employee'} is already assigned to this shift`, 'warning');
+                return;
+            }
 
             const currentUser = getCurrentUser();
 
             try {
                 const db = firebase.firestore();
-                let assignedCount = 1;
 
-                if (existingSchedule) {
-                    // Update existing
-                    await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').doc(existingSchedule.id).update({
-                        employeeId,
-                        employeeName: emp?.name || '',
-                        updatedAt: new Date().toISOString()
-                    });
-                    existingSchedule.employeeId = employeeId;
-                    existingSchedule.employeeName = emp?.name || '';
-                } else {
-                    // Create new
-                    const scheduleData = {
-                        employeeId,
-                        employeeName: emp?.name || '',
-                        store,
-                        date: dateKey,
-                        shiftType,
-                        startTime: shiftConfig.defaultStart,
-                        endTime: shiftConfig.defaultEnd,
-                        createdAt: new Date().toISOString(),
-                        createdBy: currentUser?.name || 'Unknown'
-                    };
-                    const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(scheduleData);
-                    schedules.push({ id: docRef.id, ...scheduleData });
+                // Always create a new schedule (allows multiple employees per shift)
+                const scheduleData = {
+                    employeeId,
+                    employeeName: emp?.name || '',
+                    store,
+                    date: dateKey,
+                    shiftType,
+                    startTime: shiftConfig.defaultStart,
+                    endTime: shiftConfig.defaultEnd,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUser?.name || 'Unknown'
+                };
+                const docRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(scheduleData);
+                schedules.push({ id: docRef.id, ...scheduleData });
 
-                    // Auto-assign to closing if opening shift ends at or after 2pm (14:00)
-                    if (shiftType === 'opening' && shiftConfig.defaultEnd >= '14:00') {
-                        const closingExists = schedules.find(s =>
-                            s.date === dateKey &&
-                            s.shiftType === 'closing' &&
-                            s.store === store
-                        );
+                let assignedBoth = false;
 
-                        if (!closingExists) {
-                            const closingConfig = SHIFT_TYPES.closing;
-                            const closingData = {
-                                employeeId,
-                                employeeName: emp?.name || '',
-                                store,
-                                date: dateKey,
-                                shiftType: 'closing',
-                                startTime: closingConfig.defaultStart,
-                                endTime: closingConfig.defaultEnd,
-                                createdAt: new Date().toISOString(),
-                                createdBy: currentUser?.name || 'Unknown',
-                                autoAssigned: true
-                            };
-                            const closingRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(closingData);
-                            schedules.push({ id: closingRef.id, ...closingData });
-                            assignedCount = 2;
-                        }
+                // Auto-assign to closing if opening shift ends at or after 2pm (14:00)
+                if (shiftType === 'opening' && shiftConfig.defaultEnd >= '14:00') {
+                    const closingExistsForThisEmployee = schedules.find(s =>
+                        s.date === dateKey &&
+                        s.shiftType === 'closing' &&
+                        s.store === store &&
+                        s.employeeId === employeeId
+                    );
+
+                    if (!closingExistsForThisEmployee) {
+                        const closingConfig = SHIFT_TYPES.closing;
+                        const closingData = {
+                            employeeId,
+                            employeeName: emp?.name || '',
+                            store,
+                            date: dateKey,
+                            shiftType: 'closing',
+                            startTime: closingConfig.defaultStart,
+                            endTime: closingConfig.defaultEnd,
+                            createdAt: new Date().toISOString(),
+                            createdBy: currentUser?.name || 'Unknown',
+                            autoAssigned: true
+                        };
+                        const closingRef = await db.collection(window.FIREBASE_COLLECTIONS.schedules || 'schedules').add(closingData);
+                        schedules.push({ id: closingRef.id, ...closingData });
+                        assignedBoth = true;
                     }
                 }
 
-                showNotification(assignedCount > 1 ? 'Employee assigned to both shifts!' : 'Employee assigned!', 'success');
+                showNotification(assignedBoth ? 'Employee assigned to both shifts!' : 'Employee assigned!', 'success');
                 closeEmployeePicker();
                 renderScheduleGrid();
             } catch (error) {
@@ -10824,13 +10818,10 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
-                            <label class="multi-select-toggle" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15)); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); margin-top: 10px;">
-                                <input type="checkbox" id="multiSelectToggle" onchange="toggleMultiSelectMode()">
-                                <span style="font-weight: 600; color: #10b981;"><i class="fas fa-users" style="margin-right: 6px;"></i>Multiple Employees</span>
-                            </label>
-                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
-                                <i class="fas fa-lightbulb" style="color: #f59e0b; margin-right: 4px;"></i>
-                                Enable to assign multiple people to this shift!
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                <i class="fas fa-users" style="color: #10b981; margin-right: 6px;"></i>
+                                <strong>You can add multiple employees!</strong><br>
+                                <span style="font-size: 11px; color: var(--text-muted);">Just click on each employee you want to assign to this shift.</span>
                             </div>
                         </div>
                         <div class="employee-picker-list" id="employeePickerList">
