@@ -1370,7 +1370,39 @@ async function saveTransferToFirebase(transfer) {
         // Check if Firebase is available
         if (typeof firebase !== 'undefined' && firebase.firestore) {
             const db = firebase.firestore();
-            await db.collection('transfers').doc(transfer.id).set(transfer);
+
+            // If there's a photo, upload to Storage first
+            let transferData = { ...transfer };
+            if (transfer.photo && transfer.photo.startsWith('data:')) {
+                try {
+                    if (typeof firebase.storage === 'function') {
+                        const storage = firebase.storage();
+                        const photoPath = `transfers/${transfer.id}/photo.jpg`;
+                        const storageRef = storage.ref(photoPath);
+
+                        // Upload base64 photo
+                        await storageRef.putString(transfer.photo, 'data_url');
+                        const photoUrl = await storageRef.getDownloadURL();
+
+                        // Replace base64 with URL
+                        transferData.photo = photoUrl;
+                        transferData.photoPath = photoPath;
+                        console.log('📷 Photo uploaded to Storage:', photoUrl);
+                    } else {
+                        // Storage not available, mark as hasPhoto but don't save base64
+                        transferData.photo = null;
+                        transferData.hasPhoto = true;
+                        console.warn('⚠️ Firebase Storage not available, photo not saved');
+                    }
+                } catch (photoError) {
+                    console.warn('⚠️ Could not upload photo to Storage:', photoError.message);
+                    // Don't save base64 to Firestore (too large)
+                    transferData.photo = null;
+                    transferData.hasPhoto = true;
+                }
+            }
+
+            await db.collection('transfers').doc(transfer.id).set(transferData);
             console.log('✅ Transfer saved to Firebase:', transfer.folio);
         } else {
             console.warn('⚠️ Firebase not available, using localStorage only');
@@ -2202,7 +2234,7 @@ function getUnifiedTransferModalHTML() {
                                 <div style="font-size: 10px; color: var(--text-muted);">Photos, videos, or audio</div>
                             </div>
                             <div style="display: flex; gap: 8px; margin-top: 10px;">
-                                <button onclick="openUnifiedCamera()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 13px; min-height: 48px;">
+                                <button onclick="document.getElementById('unifiedCameraInput').click()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 13px; min-height: 48px;">
                                     <i class="fas fa-camera"></i> Camera
                                 </button>
                                 <button onclick="document.getElementById('unifiedMediaInput').click()" style="flex: 1; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 13px; min-height: 48px;">
