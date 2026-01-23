@@ -2018,14 +2018,14 @@
                 <div class="bottom-grid">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-trophy"></i> Store Performance</h3>
-                            <button class="card-action" onclick="navigateTo('analytics')">Details</button>
+                            <h3 class="card-title"><i class="fas fa-headset"></i> Customer Issues</h3>
+                            <button class="card-action" onclick="navigateTo('issues')">View All</button>
                         </div>
                         <div class="card-body">
-                            <div class="store-performance" id="store-performance-container">
-                                <div style="text-align: center; padding: 40px 20px;">
-                                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--accent-primary);"></i>
-                                    <p style="color: var(--text-muted); margin-top: 12px; font-size: 13px;">Loading store data...</p>
+                            <div id="customer-issues-container">
+                                <div style="text-align: center; padding: 30px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
+                                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
                                 </div>
                             </div>
                         </div>
@@ -2061,12 +2061,13 @@
                         </div>
                         <div class="card-body">
                             <div class="announcement-list">
-                                ${announcements.map(ann => `
+                                ${announcements.slice(0, 4).map(ann => `
                                     <div class="announcement-item">
                                         <div class="announcement-date">${formatDate(ann.date)}</div>
                                         <div class="announcement-text">${ann.content}</div>
                                     </div>
                                 `).join('')}
+                                ${announcements.length === 0 ? '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No announcements yet</p>' : ''}
                             </div>
                         </div>
                     </div>
@@ -2106,14 +2107,14 @@
                         </div>
                     </div>
 
-                    <!-- Sales Goal -->
+                    <!-- PTO Requests -->
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-bullseye"></i> Weekly Sales Goal</h3>
-                            <button class="card-action" onclick="navigateTo('analytics')">Details</button>
+                            <h3 class="card-title"><i class="fas fa-umbrella-beach"></i> PTO Requests</h3>
+                            <button class="card-action" onclick="navigateTo('timeoffrequests')">View All</button>
                         </div>
                         <div class="card-body">
-                            <div id="sales-goal-container">
+                            <div id="pto-requests-container">
                                 <div style="text-align: center; padding: 30px 20px;">
                                     <i class="fas fa-spinner fa-spin" style="font-size: 20px; color: var(--accent-primary);"></i>
                                     <p style="color: var(--text-muted); margin-top: 8px; font-size: 12px;">Loading...</p>
@@ -2169,18 +2170,131 @@
                 </div>
             `;
 
-            // Load monthly revenue from Shopify API (async, updates the card when ready)
-            loadMonthlyRevenueFromShopify();
-
-            // Load store performance from Shopify API (async)
-            loadStorePerformance();
-
-            // Load new dashboard modules
+            // Load dashboard modules
+            loadCustomerIssues();
             loadWorkingNow();
             loadPendingTasks();
-            loadSalesGoal();
+            loadPTORequests();
             loadLowStockAlerts();
             loadRecentActivity();
+        }
+
+        /**
+         * Load customer issues for dashboard
+         */
+        async function loadCustomerIssues() {
+            const container = document.getElementById('customer-issues-container');
+            if (!container) return;
+
+            try {
+                // Get issues from Firebase
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const issuesCollection = window.FIREBASE_COLLECTIONS?.issues || 'issues';
+                    const snapshot = await db.collection(issuesCollection)
+                        .orderBy('incidentDate', 'desc')
+                        .limit(10)
+                        .get();
+
+                    const allIssues = [];
+                    snapshot.forEach(doc => allIssues.push({ id: doc.id, ...doc.data() }));
+
+                    // Filter to show only open/follow-up issues
+                    const pendingIssues = allIssues.filter(i => !i.status || i.status === 'open' || i.status === 'follow-up');
+                    const openCount = allIssues.filter(i => !i.status || i.status === 'open').length;
+                    const followUpCount = allIssues.filter(i => i.status === 'follow-up').length;
+
+                    if (pendingIssues.length === 0) {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                                <i class="fas fa-check-circle" style="font-size: 32px; color: #10b981; margin-bottom: 8px;"></i>
+                                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">All issues resolved!</p>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = `
+                            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                                <div style="flex: 1; text-align: center; padding: 8px; background: #ef444415; border-radius: 8px;">
+                                    <div style="font-size: 20px; font-weight: 700; color: #ef4444;">${openCount}</div>
+                                    <div style="font-size: 10px; color: var(--text-muted);">Open</div>
+                                </div>
+                                <div style="flex: 1; text-align: center; padding: 8px; background: #f59e0b15; border-radius: 8px;">
+                                    <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">${followUpCount}</div>
+                                    <div style="font-size: 10px; color: var(--text-muted);">Follow Up</div>
+                                </div>
+                            </div>
+                            <div style="max-height: 120px; overflow-y: auto;">
+                                ${pendingIssues.slice(0, 3).map(issue => `
+                                    <div onclick="navigateTo('issues')" style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 6px; cursor: pointer;">
+                                        <div style="width: 8px; height: 8px; border-radius: 50%; background: ${issue.status === 'follow-up' ? '#f59e0b' : '#ef4444'};"></div>
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issue.customer}</div>
+                                            <div style="font-size: 10px; color: var(--text-muted);">${issue.store || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading customer issues:', error);
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 12px;">Could not load issues</p>';
+            }
+        }
+
+        /**
+         * Load PTO requests for dashboard
+         */
+        async function loadPTORequests() {
+            const container = document.getElementById('pto-requests-container');
+            if (!container) return;
+
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('ptoRequests')
+                        .where('status', '==', 'pending')
+                        .orderBy('createdAt', 'desc')
+                        .limit(5)
+                        .get();
+
+                    const pendingRequests = [];
+                    snapshot.forEach(doc => pendingRequests.push({ id: doc.id, ...doc.data() }));
+
+                    if (pendingRequests.length === 0) {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                                <i class="fas fa-check-circle" style="font-size: 32px; color: #10b981; margin-bottom: 8px;"></i>
+                                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">No pending requests</p>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 8px; background: #f59e0b15; border-radius: 8px; margin-bottom: 12px;">
+                                <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">${pendingRequests.length}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Pending Approval</div>
+                            </div>
+                            <div style="max-height: 100px; overflow-y: auto;">
+                                ${pendingRequests.slice(0, 3).map(req => `
+                                    <div onclick="navigateTo('timeoffrequests')" style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 6px; cursor: pointer;">
+                                        <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600;">
+                                            ${(req.employeeName || 'NA').substring(0, 2).toUpperCase()}
+                                        </div>
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${req.employeeName || 'Unknown'}</div>
+                                            <div style="font-size: 10px; color: var(--text-muted);">${req.requestType || 'Time Off'}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading PTO requests:', error);
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 12px;">Could not load requests</p>';
+            }
         }
 
         /**
