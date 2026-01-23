@@ -1601,6 +1601,24 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
+                <!-- Store Buttons Row -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button onclick="setRunningLowFilter('store', 'all')" style="padding: 14px 24px; font-size: 14px; font-weight: 600; border-radius: 12px; border: 2px solid ${runningLowFilters.store === 'all' ? '#6366f1' : 'var(--border-color)'}; background: ${runningLowFilters.store === 'all' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.store === 'all' ? 'white' : 'var(--text-primary)'}; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-store"></i> All Stores
+                        <span style="background: ${runningLowFilters.store === 'all' ? 'rgba(255,255,255,0.2)' : 'var(--bg-tertiary)'}; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${allRequests.length}</span>
+                    </button>
+                    ${RUNNING_LOW_STORES.map(store => {
+                        const sc = storeColors[store] || { bg: '#6b7280', text: '#ffffff' };
+                        const count = allRequests.filter(r => r.store === store).length;
+                        const isActive = runningLowFilters.store === store;
+                        return `<button onclick="setRunningLowFilter('store', '${store}')" style="padding: 14px 24px; font-size: 14px; font-weight: 600; border-radius: 12px; border: 2px solid ${isActive ? sc.bg : 'var(--border-color)'}; background: ${isActive ? sc.bg : 'var(--bg-secondary)'}; color: ${isActive ? 'white' : 'var(--text-primary)'}; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; opacity: ${count === 0 ? '0.5' : '1'};">
+                            <span style="width: 12px; height: 12px; border-radius: 50%; background: ${sc.bg}; ${isActive ? 'box-shadow: 0 0 0 2px white;' : ''}"></span>
+                            ${store}
+                            <span style="background: ${isActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-tertiary)'}; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${count}</span>
+                        </button>`;
+                    }).join('')}
+                </div>
+
                 <!-- Search & Sort Row -->
                 <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
                     <div style="position: relative; flex: 1; min-width: 200px; max-width: 400px;">
@@ -1624,14 +1642,15 @@ window.viewChecklistHistory = async function() {
                         <option value="name_desc" ${inventorySortBy === 'name_desc' ? 'selected' : ''}>Name Z-A</option>
                         <option value="store" ${inventorySortBy === 'store' ? 'selected' : ''}>By Store</option>
                     </select>
+                    ${hasActiveFilters || inventoryGroupBy !== 'none' ? `
+                        <button onclick="clearRunningLowFilters()" style="padding: 10px 16px; font-size: 13px; border-radius: 8px; border: none; background: #ef4444; color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                            <i class="fas fa-times" style="font-size: 11px;"></i> Clear All
+                        </button>
+                    ` : ''}
                 </div>
 
                 <!-- Filters Row -->
                 <div class="inventory-filters">
-                    <select class="inventory-filter-select" onchange="setRunningLowFilter('store', this.value)" style="background: ${runningLowFilters.store !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.store !== 'all' ? 'white' : 'var(--text-primary)'};">
-                        <option value="all" ${runningLowFilters.store === 'all' ? 'selected' : ''}>All Stores</option>
-                        ${RUNNING_LOW_STORES.map(store => `<option value="${store}" ${runningLowFilters.store === store ? 'selected' : ''}>${store}</option>`).join('')}
-                    </select>
                     <select class="inventory-filter-select" onchange="setRunningLowFilter('urgency', this.value)" style="background: ${runningLowFilters.urgency !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.urgency !== 'all' ? 'white' : 'var(--text-primary)'};">
                         <option value="all" ${runningLowFilters.urgency === 'all' ? 'selected' : ''}>All Urgency</option>
                         ${RUNNING_LOW_URGENCIES.map(u => `<option value="${u}" ${runningLowFilters.urgency === u ? 'selected' : ''}>${u}</option>`).join('')}
@@ -1652,11 +1671,6 @@ window.viewChecklistHistory = async function() {
                         <option value="urgency" ${inventoryGroupBy === 'urgency' ? 'selected' : ''}>Group by Urgency</option>
                         <option value="orderStatus" ${inventoryGroupBy === 'orderStatus' ? 'selected' : ''}>Group by Status</option>
                     </select>
-                    ${hasActiveFilters || inventoryGroupBy !== 'none' ? `
-                        <button onclick="clearRunningLowFilters()" style="padding: 10px 16px; font-size: 13px; border-radius: 8px; border: none; background: #ef4444; color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
-                            <i class="fas fa-times" style="font-size: 11px;"></i> Clear All
-                        </button>
-                    ` : ''}
                 </div>
 
                 <!-- Inventory Items -->
