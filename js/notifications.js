@@ -678,9 +678,124 @@ navigator.serviceWorker?.addEventListener('message', (event) => {
     }
 });
 
+// Show notification prompt modal after login
+function showNotificationPrompt() {
+    // Don't show if already granted or denied
+    if (Notification.permission !== 'default') return;
+
+    // Don't show if user dismissed it recently (check localStorage)
+    const lastDismissed = localStorage.getItem('notification_prompt_dismissed');
+    if (lastDismissed) {
+        const daysSinceDismissed = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
+        if (daysSinceDismissed < 7) return; // Don't show again for 7 days
+    }
+
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'notification-prompt-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    `;
+
+    overlay.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease;
+        ">
+            <div style="
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #8b5cf6, #6366f1);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 20px;
+            ">
+                <i class="fas fa-bell" style="font-size: 36px; color: white;"></i>
+            </div>
+
+            <h2 style="margin: 0 0 12px; color: #1a1a2e; font-size: 24px;">Activa las Notificaciones</h2>
+
+            <p style="color: #666; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+                Recibe alertas importantes sobre tu horario, recordatorios de clock in/out, y anuncios del equipo.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button onclick="acceptNotificationPrompt()" style="
+                    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+                    color: white;
+                    border: none;
+                    padding: 14px 28px;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: transform 0.2s, box-shadow 0.2s;
+                " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 8px 25px rgba(139,92,246,0.4)';"
+                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                    <i class="fas fa-check" style="margin-right: 8px;"></i>
+                    Activar Notificaciones
+                </button>
+
+                <button onclick="dismissNotificationPrompt()" style="
+                    background: transparent;
+                    color: #888;
+                    border: none;
+                    padding: 12px;
+                    font-size: 14px;
+                    cursor: pointer;
+                ">
+                    Ahora no
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+}
+
+// Accept notification prompt
+async function acceptNotificationPrompt() {
+    const overlay = document.getElementById('notification-prompt-overlay');
+    if (overlay) overlay.remove();
+
+    // Request permission and get token
+    await requestNotificationPermission();
+}
+
+// Dismiss notification prompt
+function dismissNotificationPrompt() {
+    const overlay = document.getElementById('notification-prompt-overlay');
+    if (overlay) overlay.remove();
+
+    // Remember dismissal for 7 days
+    localStorage.setItem('notification_prompt_dismissed', Date.now().toString());
+}
+
 // Expose functions globally
 window.initializeNotifications = initializeNotifications;
 window.requestNotificationPermission = requestNotificationPermission;
+window.showNotificationPrompt = showNotificationPrompt;
+window.acceptNotificationPrompt = acceptNotificationPrompt;
+window.dismissNotificationPrompt = dismissNotificationPrompt;
 window.sendNotificationToUser = sendNotificationToUser;
 window.sendNotificationToRole = sendNotificationToRole;
 window.sendNotificationToStore = sendNotificationToStore;

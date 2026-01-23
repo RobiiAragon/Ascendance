@@ -1194,6 +1194,13 @@
                         store: user.store || 'Unknown'
                     }, 'user', user.userId || user.id);
                     console.log('✅ Login activity logged');
+
+                    // Show notification prompt after login (if not already enabled)
+                    setTimeout(() => {
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            showNotificationPrompt();
+                        }
+                    }, 2000);
                 }
             } catch (error) {
                 console.warn('⚠️ Failed to log login activity:', error);
