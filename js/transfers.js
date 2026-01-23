@@ -2120,7 +2120,7 @@ let unifiedTransferState = {
     items: [],
     activeTab: 'ai', // 'ai' or 'search'
     mediaFiles: [],
-    processedPhotos: [] // Store up to 4 photos for transfer record
+    processedPhotos: [] // Store photo for transfer record (1 photo)
 };
 
 // Open Unified Transfer Modal
@@ -2293,9 +2293,9 @@ function getUnifiedTransferModalHTML() {
                             </div>
                         </div>
 
-                        <!-- Process Button -->
-                        <button id="unifiedProcessBtn" onclick="processUnifiedWithAI()" style="display: none; width: 100%; margin-top: 10px; padding: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; min-height: 48px;">
-                            <i class="fas fa-wand-magic-sparkles"></i> Analyze with AI
+                        <!-- Process Button (Optional AI) -->
+                        <button id="unifiedProcessBtn" onclick="processUnifiedWithAI()" style="display: none; width: 100%; margin-top: 10px; padding: 10px; background: var(--bg-secondary); color: var(--text-secondary); border: 1px dashed var(--border-color); border-radius: 10px; font-weight: 500; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-wand-magic-sparkles"></i> Detect products with AI (optional)
                         </button>
                     </div>
                 </div>
@@ -2466,38 +2466,38 @@ function openUnifiedCamera() {
     document.getElementById('unifiedCameraInput')?.click();
 }
 
-// Process unified media files (max 4 images)
+// Process unified media files (1 photo, replaces previous)
 function processUnifiedMedia(input) {
     const files = Array.from(input.files);
     if (!files.length) return;
 
-    // Count current images
-    const currentImageCount = unifiedTransferState.mediaFiles.filter(m => m.type === 'image').length;
-    const maxImages = 4;
+    // Only take first file
+    const file = files[0];
+    const fileType = file.type.startsWith('image/') ? 'image' :
+                    file.type.startsWith('video/') ? 'video' :
+                    file.type.startsWith('audio/') ? 'audio' : 'unknown';
 
-    files.forEach(file => {
-        const fileType = file.type.startsWith('image/') ? 'image' :
-                        file.type.startsWith('video/') ? 'video' :
-                        file.type.startsWith('audio/') ? 'audio' : 'unknown';
+    // Clear previous media
+    clearUnifiedMedia();
 
-        // Check limit for images
-        if (fileType === 'image') {
-            const imageCount = unifiedTransferState.mediaFiles.filter(m => m.type === 'image').length;
-            if (imageCount >= maxImages) {
-                showTransferToast(`Maximum ${maxImages} photos allowed`, 'warning');
-                return;
-            }
-        }
+    const mediaObj = {
+        file: file,
+        type: fileType,
+        name: file.name,
+        url: URL.createObjectURL(file)
+    };
 
-        const mediaObj = {
-            file: file,
-            type: fileType,
-            name: file.name,
-            url: URL.createObjectURL(file)
-        };
+    unifiedTransferState.mediaFiles.push(mediaObj);
 
-        unifiedTransferState.mediaFiles.push(mediaObj);
-    });
+    // Store photo immediately for transfer record (without needing AI)
+    if (fileType === 'image') {
+        fileToBase64(file).then(base64 => {
+            compressImageForStorage(base64).then(compressed => {
+                unifiedTransferState.processedPhotos = compressed ? [compressed] : [];
+                console.log('📷 Photo ready for upload');
+            });
+        });
+    }
 
     renderUnifiedMediaPreview();
     input.value = '';
