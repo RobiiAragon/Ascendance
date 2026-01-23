@@ -5899,8 +5899,8 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
-                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                                <i class="fas fa-users" style="color: #10b981; margin-right: 6px;"></i>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.1)); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                                <i class="fas fa-users" style="color: var(--accent-primary); margin-right: 6px;"></i>
                                 <strong>You can add multiple employees!</strong><br>
                                 <span style="font-size: 11px; color: var(--text-muted);">Just click on each employee you want to assign to this shift.</span>
                             </div>
@@ -9367,18 +9367,18 @@ window.viewChecklistHistory = async function() {
                         flex-wrap: wrap;
                         gap: 16px;
                         padding: 20px;
-                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%);
                         border-radius: 16px;
-                        border: 1px solid rgba(16, 185, 129, 0.2);
+                        border: 1px solid rgba(99, 102, 241, 0.2);
                     }
                     .manager-schedule-title h2 {
                         font-size: 24px;
                         font-weight: 700;
                         margin-bottom: 4px;
-                        color: #10b981;
+                        color: var(--accent-primary);
                     }
                     .manager-schedule-title h2 i {
-                        color: #10b981;
+                        color: var(--accent-primary);
                         margin-right: 10px;
                     }
                     .manager-schedule-title p {
@@ -9389,7 +9389,7 @@ window.viewChecklistHistory = async function() {
                         display: inline-flex;
                         align-items: center;
                         gap: 6px;
-                        background: linear-gradient(135deg, #10b981, #059669);
+                        background: var(--accent-gradient);
                         color: white;
                         padding: 4px 12px;
                         border-radius: 20px;
@@ -9411,7 +9411,7 @@ window.viewChecklistHistory = async function() {
                         background: var(--bg-card);
                         padding: 6px;
                         border-radius: 12px;
-                        border: 1px solid rgba(16, 185, 129, 0.3);
+                        border: 1px solid rgba(99, 102, 241, 0.3);
                     }
                     .manager-nav-btn {
                         background: transparent;
@@ -9427,7 +9427,7 @@ window.viewChecklistHistory = async function() {
                         transition: all 0.2s;
                     }
                     .manager-nav-btn:hover {
-                        background: #10b981;
+                        background: var(--accent-primary);
                         color: white;
                     }
                     .manager-week-display {
@@ -9439,7 +9439,7 @@ window.viewChecklistHistory = async function() {
                     }
                     .manager-store-select {
                         background: var(--bg-card);
-                        border: 1px solid rgba(16, 185, 129, 0.3);
+                        border: 1px solid rgba(99, 102, 241, 0.3);
                         border-radius: 10px;
                         padding: 10px 16px;
                         color: var(--text-primary);
@@ -9449,14 +9449,14 @@ window.viewChecklistHistory = async function() {
                     }
                     .manager-store-select:focus {
                         outline: none;
-                        border-color: #10b981;
-                        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
                     }
 
                     /* Multi-Employee Info Card */
                     .multi-employee-info {
-                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
-                        border: 1px solid rgba(16, 185, 129, 0.2);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(79, 70, 229, 0.04) 100%);
+                        border: 1px solid rgba(99, 102, 241, 0.2);
                         border-radius: 12px;
                         padding: 16px 20px;
                         margin-bottom: 20px;
@@ -9466,7 +9466,7 @@ window.viewChecklistHistory = async function() {
                     }
                     .multi-employee-info i {
                         font-size: 24px;
-                        color: #10b981;
+                        color: var(--accent-primary);
                     }
                     .multi-employee-info-text {
                         flex: 1;
@@ -9580,12 +9580,12 @@ window.viewChecklistHistory = async function() {
                         transition: all 0.3s ease;
                     }
                     .schedule-day-card:hover {
-                        border-color: #10b981;
-                        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
                     }
                     .schedule-day-card.today {
-                        border-color: #10b981;
-                        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+                        border-color: var(--accent-primary);
+                        box-shadow: 0 0 0 2px var(--accent-glow);
                     }
                     .day-card-header {
                         padding: 16px;
@@ -9594,7 +9594,7 @@ window.viewChecklistHistory = async function() {
                         background: var(--bg-secondary);
                     }
                     .schedule-day-card.today .day-card-header {
-                        background: linear-gradient(135deg, #10b981, #059669);
+                        background: var(--accent-gradient);
                     }
                     .schedule-day-card.today .day-card-header * {
                         color: white !important;
@@ -9631,8 +9631,8 @@ window.viewChecklistHistory = async function() {
                         border: 1px solid rgba(245, 158, 11, 0.2);
                     }
                     .shift-slot.closing {
-                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
-                        border: 1px solid rgba(16, 185, 129, 0.2);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%);
+                        border: 1px solid rgba(99, 102, 241, 0.2);
                     }
                     .shift-slot-header {
                         display: flex;
@@ -9653,7 +9653,7 @@ window.viewChecklistHistory = async function() {
                         color: #f59e0b;
                     }
                     .shift-slot.closing .shift-type-badge {
-                        color: #10b981;
+                        color: #6366f1;
                     }
                     .shift-time-display {
                         font-size: 12px;
@@ -9674,12 +9674,12 @@ window.viewChecklistHistory = async function() {
                         padding: 8px;
                     }
                     .employee-drop-zone:hover {
-                        border-color: #10b981;
-                        background: rgba(16, 185, 129, 0.05);
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.05);
                     }
                     .employee-drop-zone.drag-over {
-                        border-color: #10b981;
-                        background: rgba(16, 185, 129, 0.1);
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.1);
                         border-style: solid;
                     }
                     .employee-drop-zone.empty {
@@ -9770,7 +9770,7 @@ window.viewChecklistHistory = async function() {
                         width: 20px;
                         height: 20px;
                         border-radius: 50%;
-                        background: #10b981;
+                        background: #6366f1;
                         color: white;
                         border: none;
                         cursor: pointer;
@@ -9785,7 +9785,7 @@ window.viewChecklistHistory = async function() {
                         opacity: 1;
                     }
                     .assigned-employee-clone:hover {
-                        background: #059669;
+                        background: #4f46e5;
                         transform: scale(1.1);
                     }
 
@@ -9812,8 +9812,8 @@ window.viewChecklistHistory = async function() {
                         font-size: 14px;
                     }
                     .add-more-employee:hover {
-                        border-color: #10b981;
-                        color: #10b981;
+                        border-color: var(--accent-primary);
+                        color: var(--accent-primary);
                         background: var(--bg-hover);
                     }
 
@@ -9828,18 +9828,18 @@ window.viewChecklistHistory = async function() {
                         align-items: center;
                         gap: 8px;
                         padding: 8px 12px;
-                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(79, 70, 229, 0.05) 100%);
                         border-radius: 8px;
                         font-size: 12px;
                         font-weight: 600;
                         color: var(--text-secondary);
                         cursor: pointer;
                         transition: all 0.2s;
-                        border: 1px solid rgba(16, 185, 129, 0.15);
+                        border: 1px solid rgba(99, 102, 241, 0.15);
                     }
                     .day-off-header:hover {
-                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.08) 100%);
-                        border-color: #10b981;
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(79, 70, 229, 0.08) 100%);
+                        border-color: var(--accent-primary);
                     }
                     .day-off-employees {
                         margin-top: 8px;
@@ -9987,7 +9987,7 @@ window.viewChecklistHistory = async function() {
                     }
                     .employee-picker-search input:focus {
                         outline: none;
-                        border-color: #10b981;
+                        border-color: var(--accent-primary);
                     }
                     .employee-picker-list {
                         padding: 12px;
@@ -10042,7 +10042,7 @@ window.viewChecklistHistory = async function() {
                     .multi-select-toggle input[type="checkbox"] {
                         width: 18px;
                         height: 18px;
-                        accent-color: #10b981;
+                        accent-color: var(--accent-primary);
                         cursor: pointer;
                     }
                     .employee-picker-footer {
@@ -10061,7 +10061,7 @@ window.viewChecklistHistory = async function() {
                     }
                     .assign-selected-btn {
                         padding: 10px 20px;
-                        background: #10b981;
+                        background: #6366f1;
                         color: white;
                         border: none;
                         border-radius: 10px;
@@ -10074,7 +10074,7 @@ window.viewChecklistHistory = async function() {
                         transition: all 0.2s;
                     }
                     .assign-selected-btn:hover {
-                        background: #059669;
+                        background: #4f46e5;
                         transform: translateY(-1px);
                     }
                     .assign-selected-btn:disabled {
@@ -10103,8 +10103,8 @@ window.viewChecklistHistory = async function() {
                         font-size: 12px;
                     }
                     .employee-picker-item.selected .select-checkbox {
-                        background: #10b981;
-                        border-color: #10b981;
+                        background: #6366f1;
+                        border-color: #6366f1;
                     }
                     .employee-picker-item.selected .select-checkbox i {
                         display: block;
@@ -10226,7 +10226,7 @@ window.viewChecklistHistory = async function() {
                     }
                     .time-editor-current-hours {
                         font-size: 14px;
-                        color: #10b981;
+                        color: var(--accent-primary);
                         margin-top: 4px;
                     }
                     .time-editor-slider-section {
@@ -10250,7 +10250,7 @@ window.viewChecklistHistory = async function() {
                         margin-bottom: 8px;
                     }
                     .time-editor-slider-track:hover {
-                        border-color: #10b981;
+                        border-color: var(--accent-primary);
                     }
                     .time-editor-slider-range {
                         position: absolute;
@@ -10258,7 +10258,7 @@ window.viewChecklistHistory = async function() {
                         bottom: 4px;
                         border-radius: 8px;
                         cursor: grab;
-                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
                     }
                     .time-editor-slider-range:active {
                         cursor: grabbing;
@@ -10267,7 +10267,7 @@ window.viewChecklistHistory = async function() {
                         background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
                     }
                     .time-editor-slider-range.closing {
-                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
                     }
                     .time-editor-handle {
                         position: absolute;
@@ -10326,12 +10326,12 @@ window.viewChecklistHistory = async function() {
                         transition: all 0.2s;
                     }
                     .time-editor-preset:hover {
-                        border-color: #10b981;
-                        background: rgba(16, 185, 129, 0.1);
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.1);
                     }
                     .time-editor-preset.active {
-                        border-color: #10b981;
-                        background: rgba(16, 185, 129, 0.15);
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.15);
                     }
                     .time-editor-preset-time {
                         font-size: 14px;
@@ -10372,11 +10372,11 @@ window.viewChecklistHistory = async function() {
                         background: var(--bg-hover);
                     }
                     .time-editor-btn.save {
-                        background: #10b981;
+                        background: #6366f1;
                         color: white;
                     }
                     .time-editor-btn.save:hover {
-                        background: #059669;
+                        background: #4f46e5;
                         transform: translateY(-1px);
                     }
                     .time-editor-btn.delete {
@@ -10452,8 +10452,8 @@ window.viewChecklistHistory = async function() {
                         gap: 14px;
                     }
                     .clone-option:hover {
-                        border-color: #10b981;
-                        background: rgba(16, 185, 129, 0.05);
+                        border-color: var(--accent-primary);
+                        background: rgba(99, 102, 241, 0.05);
                     }
                     .clone-option-icon {
                         width: 44px;
@@ -10464,7 +10464,7 @@ window.viewChecklistHistory = async function() {
                         align-items: center;
                         justify-content: center;
                         font-size: 18px;
-                        color: #10b981;
+                        color: var(--accent-primary);
                     }
                     .clone-option-info h4 {
                         font-size: 15px;
@@ -10514,7 +10514,7 @@ window.viewChecklistHistory = async function() {
                         width: 32px;
                         height: 32px;
                         border-radius: 8px;
-                        background: linear-gradient(135deg, #10b981, #059669);
+                        background: var(--accent-gradient);
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -10545,7 +10545,7 @@ window.viewChecklistHistory = async function() {
                         white-space: nowrap;
                     }
                     .store-day-label.today {
-                        color: #10b981;
+                        color: var(--accent-primary);
                     }
                     .store-shifts {
                         flex: 1;
@@ -10690,13 +10690,13 @@ window.viewChecklistHistory = async function() {
                         font-weight: 700;
                         padding: 6px 10px;
                         border-radius: 8px;
-                        background: rgba(16, 185, 129, 0.1);
-                        color: #10b981;
+                        background: rgba(99, 102, 241, 0.1);
+                        color: #6366f1;
                         white-space: nowrap;
                     }
                     .hours-badge.high {
-                        background: rgba(16, 185, 129, 0.1);
-                        color: #10b981;
+                        background: rgba(99, 102, 241, 0.1);
+                        color: #6366f1;
                     }
                     .hours-badge.low {
                         background: rgba(245, 158, 11, 0.1);
@@ -10728,7 +10728,7 @@ window.viewChecklistHistory = async function() {
                     .hours-total-row {
                         padding: 12px 16px;
                         border-top: 1px solid var(--border-color);
-                        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%);
+                        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(79, 70, 229, 0.05) 100%);
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
@@ -10741,7 +10741,7 @@ window.viewChecklistHistory = async function() {
                     .hours-total-value {
                         font-size: 18px;
                         font-weight: 700;
-                        color: #10b981;
+                        color: var(--accent-primary);
                     }
                     .hours-panel-empty {
                         padding: 40px 20px;
@@ -10834,10 +10834,10 @@ window.viewChecklistHistory = async function() {
                             </button>
                         </div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button class="manager-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid rgba(16, 185, 129, 0.3);">
+                            <button class="manager-nav-btn" onclick="openCloneModal()" title="Clone from previous week" style="background: var(--bg-card); border: 1px solid rgba(99, 102, 241, 0.3);">
                                 <i class="fas fa-clone"></i>
                             </button>
-                            <a href="schedule.html" target="_blank" class="manager-nav-btn" title="Share public schedule" style="background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                            <a href="schedule.html" target="_blank" class="manager-nav-btn" title="Share public schedule" style="background: var(--accent-gradient); color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
                                 <i class="fas fa-share-alt"></i>
                             </a>
                             <select class="manager-store-select" id="schedule-store-filter" onchange="renderManagerScheduleGrid()">
@@ -10876,7 +10876,7 @@ window.viewChecklistHistory = async function() {
                         </div>
                     </div>
                     <div class="hours-summary-panel" id="hoursSummaryPanel">
-                        <div class="hours-panel-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="hours-panel-header" style="background: var(--accent-gradient);">
                             <h3><i class="fas fa-clock"></i> Hours This Week</h3>
                             <p id="hoursPanelWeekRange">${weekRangeText}</p>
                             <p style="font-size: 10px; margin-top: 4px; opacity: 0.8;"><i class="fas fa-info-circle"></i> Click employee for Time Card</p>
@@ -10897,7 +10897,7 @@ window.viewChecklistHistory = async function() {
                 <!-- Employee Picker Modal -->
                 <div class="employee-picker-overlay" id="employeePickerOverlay" onmousedown="closeEmployeePicker(event)">
                     <div class="employee-picker" onclick="event.stopPropagation()">
-                        <div class="employee-picker-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="employee-picker-header" style="background: var(--accent-gradient);">
                             <h3><i class="fas fa-user-plus" style="margin-right: 8px;"></i>Assign Employee(s)</h3>
                             <button class="employee-picker-close" onclick="closeEmployeePicker()">
                                 <i class="fas fa-times"></i>
@@ -10905,8 +10905,8 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-search">
                             <input type="text" id="employeePickerSearch" placeholder="Search employee..." oninput="filterEmployeePicker()">
-                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                                <i class="fas fa-users" style="color: #10b981; margin-right: 6px;"></i>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.1)); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                                <i class="fas fa-users" style="color: var(--accent-primary); margin-right: 6px;"></i>
                                 <strong>You can add multiple employees!</strong><br>
                                 <span style="font-size: 11px; color: var(--text-muted);">Just click on each employee you want to assign to this shift.</span>
                             </div>
@@ -10916,7 +10916,7 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="employee-picker-footer" id="employeePickerFooter" style="display: none;">
                             <span id="selectedCount">0 selected</span>
-                            <button class="assign-selected-btn" onclick="assignSelectedEmployees()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <button class="assign-selected-btn" onclick="assignSelectedEmployees()" style="background: var(--accent-gradient);">
                                 <i class="fas fa-check"></i> Assign Selected
                             </button>
                         </div>
@@ -10995,7 +10995,7 @@ window.viewChecklistHistory = async function() {
                             <button class="time-editor-btn add-employee" onclick="addAnotherEmployeeFromEditor()" title="Add New Turn" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
                                 <i class="fas fa-user-plus"></i> Add New Turn
                             </button>
-                            <button class="time-editor-btn save" onclick="saveTimeEditor()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <button class="time-editor-btn save" onclick="saveTimeEditor()" style="background: var(--accent-gradient);">
                                 <i class="fas fa-check"></i> Save
                             </button>
                         </div>
@@ -11005,7 +11005,7 @@ window.viewChecklistHistory = async function() {
                 <!-- Clone Modal -->
                 <div class="clone-modal-overlay" id="cloneModalOverlay" onmousedown="closeCloneModal(event)">
                     <div class="clone-modal" onclick="event.stopPropagation()">
-                        <div class="clone-modal-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="clone-modal-header" style="background: var(--accent-gradient);">
                             <h3><i class="fas fa-clone"></i> Clone Schedule</h3>
                             <button class="time-editor-close" onclick="closeCloneModal()">
                                 <i class="fas fa-times"></i>
@@ -11013,7 +11013,7 @@ window.viewChecklistHistory = async function() {
                         </div>
                         <div class="clone-modal-body">
                             <div class="clone-option" onclick="cloneFromPreviousWeek()">
-                                <div class="clone-option-icon" style="color: #10b981;">
+                                <div class="clone-option-icon" style="color: var(--accent-primary);">
                                     <i class="fas fa-history"></i>
                                 </div>
                                 <div class="clone-option-info">
@@ -11022,7 +11022,7 @@ window.viewChecklistHistory = async function() {
                                 </div>
                             </div>
                             <div class="clone-option" onclick="cloneToNextWeek()">
-                                <div class="clone-option-icon" style="color: #10b981;">
+                                <div class="clone-option-icon" style="color: var(--accent-primary);">
                                     <i class="fas fa-arrow-right"></i>
                                 </div>
                                 <div class="clone-option-info">
@@ -11090,7 +11090,7 @@ window.viewChecklistHistory = async function() {
                         <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
                         <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Connection Error</h2>
                         <p style="color: var(--text-muted);">Unable to load schedule data.</p>
-                        <button class="btn-primary" style="margin-top: 20px; background: linear-gradient(135deg, #10b981, #059669);" onclick="loadManagerScheduleData()"><i class="fas fa-sync"></i> Retry</button>
+                        <button class="btn-primary" style="margin-top: 20px; background: var(--accent-gradient);" onclick="loadManagerScheduleData()"><i class="fas fa-sync"></i> Retry</button>
                     </div>
                 `;
             }
@@ -11104,7 +11104,7 @@ window.viewChecklistHistory = async function() {
             // Update hours panel header color for manager view
             const hoursPanelHeader = document.querySelector('.hours-panel-header');
             if (hoursPanelHeader) {
-                hoursPanelHeader.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                hoursPanelHeader.style.background = 'var(--accent-gradient)';
             }
         }
 
