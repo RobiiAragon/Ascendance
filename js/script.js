@@ -6407,28 +6407,13 @@
          * @returns {string} HTML for location display
          */
         function getLocationDisplayForRecord(record) {
-            // Check for location data (check inLocation first, then lastLocation)
-            const locationData = record.inLocation || record.lastLocation;
-
-            if (!locationData) {
-                return '<span style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-question-circle"></i> N/A</span>';
-            }
-
-            if (locationData.isWithinGeofence === true) {
-                return `<span style="color: var(--success); font-size: 12px;" title="Distance: ${locationData.distance}m">
-                    <i class="fas fa-map-marker-alt"></i> At store
-                </span>`;
-            } else if (locationData.isWithinGeofence === false) {
-                return `<span style="color: var(--danger); font-size: 12px;" title="Distance: ${locationData.distance}m from store">
-                    <i class="fas fa-exclamation-triangle"></i> Off-site (${locationData.distance}m)
-                </span>`;
-            } else if (locationData.latitude && locationData.longitude) {
-                return `<span style="color: var(--warning); font-size: 12px;" title="Lat: ${locationData.latitude.toFixed(4)}, Lon: ${locationData.longitude.toFixed(4)}">
-                    <i class="fas fa-map-pin"></i> Recorded
+            // Simply show the employee's assigned store
+            if (record.store) {
+                return `<span style="color: var(--text-primary); font-size: 12px;">
+                    <i class="fas fa-store"></i> ${record.store}
                 </span>`;
             }
-
-            return '<span style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-question-circle"></i> Unknown</span>';
+            return '<span style="color: var(--text-muted); font-size: 12px;"><i class="fas fa-question-circle"></i> N/A</span>';
         }
 
         function getAttendanceStatus(record) {
