@@ -508,33 +508,64 @@ async function toggleNotifications() {
 
 // Test notification - sends a local browser notification
 async function testNotification() {
+    console.log('[Test] Starting notification test...');
+    console.log('[Test] Current permission:', Notification.permission);
+
+    // Check permission
+    if (Notification.permission === 'denied') {
+        showNotificationToast('Notificaciones bloqueadas en el navegador. Ve a Configuración para activarlas.', 'error');
+        alert('Las notificaciones están BLOQUEADAS.\n\nPara activarlas:\n1. Click en el candado/icono en la barra de direcciones\n2. Busca "Notificaciones"\n3. Cambia a "Permitir"');
+        return;
+    }
+
     if (Notification.permission !== 'granted') {
+        console.log('[Test] Requesting permission...');
         const permission = await Notification.requestPermission();
+        console.log('[Test] Permission result:', permission);
         if (permission !== 'granted') {
-            showNotificationToast('Primero activa las notificaciones', 'warning');
+            showNotificationToast('Permiso denegado. Activa las notificaciones en tu navegador.', 'warning');
             return;
         }
     }
 
-    // Send local test notification
-    const notification = new Notification('Prueba de Ascendance', {
-        body: 'Las notificaciones están funcionando correctamente!',
-        icon: '/img/AH.png',
-        badge: '/img/AH.png',
-        tag: 'test-notification',
-        vibrate: [200, 100, 200]
-    });
+    try {
+        // Try service worker notification first (more reliable)
+        const registration = await navigator.serviceWorker.ready;
+        console.log('[Test] Service worker ready:', registration);
 
-    notification.onclick = () => {
-        window.focus();
-        notification.close();
-    };
+        await registration.showNotification('Prueba de Ascendance', {
+            body: 'Las notificaciones están funcionando!',
+            icon: '/img/AH.png',
+            badge: '/img/AH.png',
+            tag: 'test-' + Date.now(),
+            vibrate: [200, 100, 200],
+            requireInteraction: false
+        });
 
-    showNotificationToast('Notificación de prueba enviada!', 'success');
+        console.log('[Test] Notification sent via service worker!');
+        showNotificationToast('Notificación enviada! Revisa arriba de tu pantalla.', 'success');
 
-    // Also try to send via FCM if token exists
-    if (notificationsState.token) {
-        console.log('FCM Token exists, notification system ready');
+    } catch (swError) {
+        console.warn('[Test] Service worker failed, trying direct:', swError);
+
+        // Fallback to direct notification
+        try {
+            const notification = new Notification('Prueba de Ascendance', {
+                body: 'Las notificaciones están funcionando!',
+                icon: '/img/AH.png'
+            });
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+
+            console.log('[Test] Direct notification sent!');
+            showNotificationToast('Notificación enviada!', 'success');
+        } catch (directError) {
+            console.error('[Test] Direct notification failed:', directError);
+            showNotificationToast('Error: ' + directError.message, 'error');
+        }
     }
 }
 
