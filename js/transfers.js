@@ -1377,7 +1377,7 @@ async function saveTransferToFirebase(transfer) {
             // Handle multiple photos (up to 4)
             if (transfer.photos && Array.isArray(transfer.photos) && transfer.photos.length > 0) {
                 try {
-                    if (typeof firebase.storage === 'function') {
+                    if (firebase.storage) {
                         const storage = firebase.storage();
                         const photoUrls = [];
                         const photoPaths = [];
@@ -1421,7 +1421,7 @@ async function saveTransferToFirebase(transfer) {
             // Handle legacy single photo field
             if (transfer.photo && typeof transfer.photo === 'string' && transfer.photo.startsWith('data:')) {
                 try {
-                    if (typeof firebase.storage === 'function') {
+                    if (firebase.storage) {
                         const storage = firebase.storage();
                         const photoPath = `transfers/${transfer.id}/photo.jpg`;
                         const storageRef = storage.ref(photoPath);
