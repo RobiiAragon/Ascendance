@@ -732,10 +732,10 @@ function showNotificationPrompt() {
                 <i class="fas fa-bell" style="font-size: 36px; color: white;"></i>
             </div>
 
-            <h2 style="margin: 0 0 12px; color: #1a1a2e; font-size: 24px;">Activa las Notificaciones</h2>
+            <h2 style="margin: 0 0 12px; color: #1a1a2e; font-size: 24px;">Enable Notifications</h2>
 
             <p style="color: #666; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-                Recibe alertas importantes sobre tu horario, recordatorios de clock in/out, y anuncios del equipo.
+                Get important alerts about your schedule, clock in/out reminders, and team announcements.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -752,7 +752,7 @@ function showNotificationPrompt() {
                 " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 8px 25px rgba(139,92,246,0.4)';"
                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
                     <i class="fas fa-check" style="margin-right: 8px;"></i>
-                    Activar Notificaciones
+                    Enable Notifications
                 </button>
 
                 <button onclick="dismissNotificationPrompt()" style="
@@ -763,7 +763,7 @@ function showNotificationPrompt() {
                     font-size: 14px;
                     cursor: pointer;
                 ">
-                    Ahora no
+                    Not now
                 </button>
             </div>
         </div>
