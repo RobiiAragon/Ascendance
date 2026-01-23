@@ -1760,19 +1760,20 @@ Return ONLY the JSON object, no additional text.`
                                 No issues ${currentIssueStatusFilter !== 'all' ? 'with this status' : 'recorded yet'}
                             </div>
                         ` : issuesViewMode === 'table' ? `
-                            <table class="data-table issues-table">
+                            <div style="overflow-x: auto;">
+                            <table class="data-table issues-table" style="min-width: 1100px;">
                                 <thead>
                                     <tr>
-                                        <th>Status</th>
-                                        <th>Date</th>
-                                        <th>Order #</th>
-                                        <th>Store</th>
-                                        <th>Customer</th>
-                                        <th>Phone</th>
-                                        <th>Type</th>
-                                        <th>Description</th>
-                                        <th>Response</th>
-                                        <th style="width: 180px;">Actions</th>
+                                        <th style="min-width: 110px;">Status</th>
+                                        <th style="min-width: 90px;">Date</th>
+                                        <th style="min-width: 70px;">Order #</th>
+                                        <th style="min-width: 90px;">Store</th>
+                                        <th style="min-width: 120px;">Customer</th>
+                                        <th style="min-width: 110px;">Phone</th>
+                                        <th style="min-width: 80px;">Type</th>
+                                        <th style="min-width: 150px;">Description</th>
+                                        <th style="min-width: 80px;">Response</th>
+                                        <th style="min-width: 160px;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1840,6 +1841,7 @@ Return ONLY the JSON object, no additional text.`
                                     `}).join('')}
                                 </tbody>
                             </table>
+                            </div>
                         ` : `
                             <!-- Gallery View -->
                             <div class="issues-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
