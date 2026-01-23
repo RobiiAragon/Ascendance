@@ -506,66 +506,95 @@ async function toggleNotifications() {
     updateNotificationButtonUI();
 }
 
-// Test notification - sends a local browser notification
+// Test notification - sends via FCM Cloud Function for real end-to-end test
 async function testNotification() {
-    console.log('[Test] Starting notification test...');
+    console.log('[Test] Starting FCM notification test...');
     console.log('[Test] Current permission:', Notification.permission);
 
     // Check permission
     if (Notification.permission === 'denied') {
-        showNotificationToast('Notificaciones bloqueadas en el navegador. Ve a Configuración para activarlas.', 'error');
-        alert('Las notificaciones están BLOQUEADAS.\n\nPara activarlas:\n1. Click en el candado/icono en la barra de direcciones\n2. Busca "Notificaciones"\n3. Cambia a "Permitir"');
+        showNotificationToast('Notificaciones bloqueadas. Ve a Configuración del navegador.', 'error');
+        alert('Las notificaciones están BLOQUEADAS.\n\nPara activarlas:\n1. Click en el candado en la barra de direcciones\n2. Busca "Notificaciones"\n3. Cambia a "Permitir"');
         return;
     }
 
     if (Notification.permission !== 'granted') {
         console.log('[Test] Requesting permission...');
         const permission = await Notification.requestPermission();
-        console.log('[Test] Permission result:', permission);
         if (permission !== 'granted') {
-            showNotificationToast('Permiso denegado. Activa las notificaciones en tu navegador.', 'warning');
+            showNotificationToast('Permiso denegado.', 'warning');
             return;
         }
     }
 
     try {
-        // Try service worker notification first (more reliable)
-        const registration = await navigator.serviceWorker.ready;
-        console.log('[Test] Service worker ready:', registration);
+        // Get current user
+        const user = JSON.parse(localStorage.getItem('ascendance_user') || '{}');
+        console.log('[Test] User:', user.name, user.email);
 
-        await registration.showNotification('Prueba de Ascendance', {
-            body: 'Las notificaciones están funcionando!',
-            icon: '/img/AH.png',
-            badge: '/img/AH.png',
-            tag: 'test-' + Date.now(),
-            vibrate: [200, 100, 200],
-            requireInteraction: false
-        });
+        // Ensure we have a token
+        if (!notificationsState.token) {
+            console.log('[Test] No token, getting one...');
+            await initializeNotifications();
+            const token = await getFCMToken();
+            if (token) {
+                await saveUserPushToken(token);
+                console.log('[Test] Token saved:', token.substring(0, 20) + '...');
+            }
+        }
 
-        console.log('[Test] Notification sent via service worker!');
-        showNotificationToast('Notificación enviada! Revisa arriba de tu pantalla.', 'success');
+        // Check if token exists in Firestore
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
 
-    } catch (swError) {
-        console.warn('[Test] Service worker failed, trying direct:', swError);
+            // Verify token is saved
+            const tokenDoc = await db.collection('push_tokens').where('email', '==', user.email).limit(1).get();
+            if (tokenDoc.empty) {
+                console.warn('[Test] No token found for user in Firestore');
+                showNotificationToast('Token no encontrado. Activando notificaciones...', 'warning');
+                await requestNotificationPermission();
+                return;
+            }
 
-        // Fallback to direct notification
-        try {
-            const notification = new Notification('Prueba de Ascendance', {
-                body: 'Las notificaciones están funcionando!',
-                icon: '/img/AH.png'
+            const savedToken = tokenDoc.docs[0].data().token;
+            console.log('[Test] Found token in Firestore:', savedToken.substring(0, 20) + '...');
+
+            // Create test notification in queue (triggers Cloud Function)
+            const notificationDoc = await db.collection('notification_queue').add({
+                type: 'test',
+                targetType: 'specific_user',
+                targetEmail: user.email,
+                notification: {
+                    title: 'Test de Ascendance',
+                    body: 'Si ves esto, FCM funciona correctamente!',
+                    type: 'test',
+                    page: 'dashboard'
+                },
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: user.email
             });
 
-            notification.onclick = () => {
-                window.focus();
-                notification.close();
-            };
+            console.log('[Test] Notification queued:', notificationDoc.id);
+            showNotificationToast('Notificación enviada via FCM. Espera 5-10 segundos...', 'success');
 
-            console.log('[Test] Direct notification sent!');
-            showNotificationToast('Notificación enviada!', 'success');
-        } catch (directError) {
-            console.error('[Test] Direct notification failed:', directError);
-            showNotificationToast('Error: ' + directError.message, 'error');
+            // Also show local notification as backup
+            setTimeout(async () => {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    await registration.showNotification('Test Local - Ascendance', {
+                        body: 'Esta es la notificación local de respaldo',
+                        icon: '/img/AH.png',
+                        tag: 'test-local-' + Date.now()
+                    });
+                } catch (e) {
+                    console.warn('[Test] Local backup failed:', e);
+                }
+            }, 2000);
         }
+    } catch (error) {
+        console.error('[Test] Error:', error);
+        showNotificationToast('Error: ' + error.message, 'error');
     }
 }
 
