@@ -7115,12 +7115,13 @@
             const newLunchStart = convertTo12h(lunchStart24);
             const newLunchEnd = convertTo12h(lunchEnd24);
 
-            // Track changes
+            // Track changes - normalize null/undefined/empty for comparison
+            const normalize = (val) => val || null;
             const changes = [];
-            if (record.clockIn !== newClockIn) changes.push(`Clock In: ${record.clockIn || '-'} → ${newClockIn || '-'}`);
-            if (record.clockOut !== newClockOut) changes.push(`Clock Out: ${record.clockOut || '-'} → ${newClockOut || '-'}`);
-            if (record.lunchStart !== newLunchStart) changes.push(`Lunch Start: ${record.lunchStart || '-'} → ${newLunchStart || '-'}`);
-            if (record.lunchEnd !== newLunchEnd) changes.push(`Lunch End: ${record.lunchEnd || '-'} → ${newLunchEnd || '-'}`);
+            if (normalize(record.clockIn) !== normalize(newClockIn)) changes.push(`Clock In: ${record.clockIn || '-'} → ${newClockIn || '-'}`);
+            if (normalize(record.clockOut) !== normalize(newClockOut)) changes.push(`Clock Out: ${record.clockOut || '-'} → ${newClockOut || '-'}`);
+            if (normalize(record.lunchStart) !== normalize(newLunchStart)) changes.push(`Lunch Start: ${record.lunchStart || '-'} → ${newLunchStart || '-'}`);
+            if (normalize(record.lunchEnd) !== normalize(newLunchEnd)) changes.push(`Lunch End: ${record.lunchEnd || '-'} → ${newLunchEnd || '-'}`);
 
             if (changes.length === 0) {
                 showNotification('No changes detected', 'info');
