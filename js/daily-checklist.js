@@ -1681,14 +1681,19 @@ window.viewChecklistHistory = async function() {
                     </div>
 
                     <!-- Bulk Actions Bar (hidden by default) -->
-                    <div id="bulk-actions-bar" style="display: none; padding: 12px 20px; background: linear-gradient(135deg, var(--accent-primary), #6366f1); color: white; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+                    <div id="bulk-actions-bar" style="display: none; padding: 12px 20px; background: linear-gradient(135deg, var(--accent-primary), #6366f1); color: white; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <span><strong><span id="selected-count">0</span></strong> items selected</span>
-                            <button onclick="clearInventorySelection()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Clear Selection</button>
+                            <button onclick="clearInventorySelection()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Clear</button>
                         </div>
-                        <button onclick="openBulkActionModal()" style="background: white; color: var(--accent-primary); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-edit"></i> Bulk Actions
-                        </button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="openSendTransferModal()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-truck"></i> Send Transfer
+                            </button>
+                            <button onclick="openBulkActionModal()" style="background: white; color: var(--accent-primary); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-edit"></i> Bulk Edit
+                            </button>
+                        </div>
                     </div>
 
                     ${filteredRequests.length === 0 ? `
@@ -1944,6 +1949,179 @@ window.viewChecklistHistory = async function() {
             updateBulkActionsBar();
         }
 
+        // Send Transfer Modal - creates transfers from Running Low items
+        function openSendTransferModal() {
+            const count = selectedInventoryItems.size;
+            if (count === 0) {
+                showNotification('Please select items first', 'warning');
+                return;
+            }
+
+            // Get selected items
+            const selectedItems = restockRequests.filter(r => selectedInventoryItems.has(r.firestoreId || r.id));
+
+            // Check if all items have the same destination store
+            const stores = [...new Set(selectedItems.map(item => item.store))];
+            if (stores.length > 1) {
+                showNotification('Please select items from the same store. You selected items from: ' + stores.join(', '), 'warning');
+                return;
+            }
+
+            const destinationStore = stores[0];
+
+            // Get available source stores (exclude destination)
+            const sourceStores = RUNNING_LOW_STORES.filter(s => s !== destinationStore && s !== 'All Shops');
+
+            const modalHtml = `
+                <div id="send-transfer-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                    <div style="background: var(--bg-card); border-radius: 16px; padding: 24px; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-truck" style="margin-right: 8px; color: #10b981;"></i>Send Transfer</h3>
+                            <button onclick="closeSendTransferModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+                        </div>
+
+                        <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 4px;">Sending to</div>
+                            <div style="font-size: 24px; font-weight: 700;">${destinationStore}</div>
+                            <div style="font-size: 13px; opacity: 0.8; margin-top: 4px;">${count} item${count > 1 ? 's' : ''} selected</div>
+                        </div>
+
+                        <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px; margin-bottom: 20px; max-height: 150px; overflow-y: auto;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Items to transfer:</div>
+                            ${selectedItems.map(item => `
+                                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 13px;">
+                                    <span style="font-weight: 500;">${item.productName || item.name}</span>
+                                    <span style="color: var(--text-muted);">${item.specifics || item.quantity || '-'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">
+                                <i class="fas fa-warehouse" style="margin-right: 6px; color: var(--accent-primary);"></i>From which store? *
+                            </label>
+                            <select id="transfer-source-store" class="form-input" style="width: 100%; padding: 12px; font-size: 14px;">
+                                <option value="">-- Select source store --</option>
+                                ${sourceStores.map(s => '<option value="' + s + '">' + s + '</option>').join('')}
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">
+                                <i class="fas fa-calendar" style="margin-right: 6px; color: var(--accent-primary);"></i>Ship Date
+                            </label>
+                            <input type="date" id="transfer-ship-date" class="form-input" value="${new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 12px; font-size: 14px;">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">
+                                <i class="fas fa-sticky-note" style="margin-right: 6px; color: var(--accent-primary);"></i>Notes (optional)
+                            </label>
+                            <textarea id="transfer-notes" class="form-input" rows="2" placeholder="Any additional notes..." style="width: 100%; padding: 12px; font-size: 14px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 12px;">
+                            <button onclick="closeSendTransferModal()" style="flex: 1; padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent; cursor: pointer; font-weight: 600; font-size: 14px;">Cancel</button>
+                            <button id="create-transfer-btn" onclick="createTransfersFromRunningLow('${destinationStore}')" style="flex: 1; padding: 14px; border-radius: 10px; border: none; background: #10b981; color: white; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fas fa-paper-plane"></i> Create Transfer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function closeSendTransferModal() {
+            const modal = document.getElementById('send-transfer-modal');
+            if (modal) modal.remove();
+        }
+
+        async function createTransfersFromRunningLow(destinationStore) {
+            const sourceStore = document.getElementById('transfer-source-store').value;
+            const shipDate = document.getElementById('transfer-ship-date').value;
+            const notes = document.getElementById('transfer-notes').value.trim();
+
+            if (!sourceStore) {
+                showNotification('Please select a source store', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('create-transfer-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+            try {
+                // Get selected items
+                const selectedItems = restockRequests.filter(r => selectedInventoryItems.has(r.firestoreId || r.id));
+
+                // Get current user
+                const user = getCurrentUser();
+                const sentBy = user ? (user.name || user.email || 'Unknown') : 'Unknown';
+
+                // Generate folio - get existing transfers count
+                let folioNum = 1;
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('transfers').get();
+                    folioNum = snapshot.size + 1;
+                }
+
+                // Create individual transfers for each item
+                const createdTransfers = [];
+                for (const item of selectedItems) {
+                    const folio = 'TR-' + String(folioNum).padStart(4, '0');
+                    folioNum++;
+
+                    const transfer = {
+                        id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+                        folio: folio,
+                        storeOrigin: sourceStore,
+                        storeDestination: destinationStore,
+                        productId: item.firestoreId || item.id,
+                        productName: item.productName || item.name,
+                        productSku: '',
+                        quantity: parseInt(item.specifics) || parseInt(item.quantity) || 1,
+                        shipDate: shipDate,
+                        sentBy: sentBy,
+                        notes: notes ? (notes + ' | From Running Low') : 'From Running Low',
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                        receivedAt: null,
+                        receivedBy: null,
+                        runningLowId: item.firestoreId || item.id // Link back to Running Low
+                    };
+
+                    // Save to Firebase
+                    if (typeof firebase !== 'undefined' && firebase.firestore) {
+                        const db = firebase.firestore();
+                        await db.collection('transfers').doc(transfer.id).set(transfer);
+                    }
+
+                    // Also save to localStorage for transfers module
+                    const localTransfers = JSON.parse(localStorage.getItem('storeTransfers') || '[]');
+                    localTransfers.push(transfer);
+                    localStorage.setItem('storeTransfers', JSON.stringify(localTransfers));
+
+                    createdTransfers.push(transfer);
+                }
+
+                closeSendTransferModal();
+                clearInventorySelection();
+                showNotification(`${createdTransfers.length} transfer${createdTransfers.length > 1 ? 's' : ''} created successfully! Folio: ${createdTransfers.map(t => t.folio).join(', ')}`, 'success');
+
+            } catch (error) {
+                console.error('Error creating transfers:', error);
+                showNotification('Error creating transfers. Please try again.', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Create Transfer';
+                }
+            }
+        }
+
         function openBulkActionModal() {
             const count = selectedInventoryItems.size;
             if (count === 0) return;
@@ -2088,6 +2266,9 @@ window.viewChecklistHistory = async function() {
         window.applyBulkActions = applyBulkActions;
         window.bulkDeleteSelected = bulkDeleteSelected;
         window.clearInventorySelection = clearInventorySelection;
+        window.openSendTransferModal = openSendTransferModal;
+        window.closeSendTransferModal = closeSendTransferModal;
+        window.createTransfersFromRunningLow = createTransfersFromRunningLow;
 
         // Export inventory report to CSV
         function exportInventoryReport() {
