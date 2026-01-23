@@ -1960,17 +1960,12 @@ window.viewChecklistHistory = async function() {
             // Get selected items
             const selectedItems = restockRequests.filter(r => selectedInventoryItems.has(r.firestoreId || r.id));
 
-            // Check if all items have the same destination store
-            const stores = [...new Set(selectedItems.map(item => item.store))];
-            if (stores.length > 1) {
-                showNotification('Please select items from the same store. You selected items from: ' + stores.join(', '), 'warning');
-                return;
-            }
+            // Get all stores for dropdowns (exclude All Shops)
+            const allStores = RUNNING_LOW_STORES.filter(s => s !== 'All Shops');
 
-            const destinationStore = stores[0];
-
-            // Get available source stores (exclude destination)
-            const sourceStores = RUNNING_LOW_STORES.filter(s => s !== destinationStore && s !== 'All Shops');
+            // Pre-select destination if all items are from same store
+            const itemStores = [...new Set(selectedItems.map(item => item.store))];
+            const defaultDestination = itemStores.length === 1 ? itemStores[0] : '';
 
             const modalHtml = `
                 <div id="send-transfer-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -1981,13 +1976,12 @@ window.viewChecklistHistory = async function() {
                         </div>
 
                         <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 4px;">Sending to</div>
-                            <div style="font-size: 24px; font-weight: 700;">${destinationStore}</div>
-                            <div style="font-size: 13px; opacity: 0.8; margin-top: 4px;">${count} item${count > 1 ? 's' : ''} selected</div>
+                            <div style="font-size: 24px; font-weight: 700;">${count} item${count > 1 ? 's' : ''}</div>
+                            <div style="font-size: 13px; opacity: 0.8; margin-top: 4px;">Selected for transfer</div>
                         </div>
 
-                        <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px; margin-bottom: 20px; max-height: 150px; overflow-y: auto;">
-                            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Items to transfer:</div>
+                        <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px; margin-bottom: 20px; max-height: 120px; overflow-y: auto;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Items:</div>
                             ${selectedItems.map(item => `
                                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 13px;">
                                     <span style="font-weight: 500;">${item.productName || item.name}</span>
@@ -1996,14 +1990,29 @@ window.viewChecklistHistory = async function() {
                             `).join('')}
                         </div>
 
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">
-                                <i class="fas fa-warehouse" style="margin-right: 6px; color: var(--accent-primary);"></i>From which store? *
-                            </label>
-                            <select id="transfer-source-store" class="form-input" style="width: 100%; padding: 12px; font-size: 14px;">
-                                <option value="">-- Select source store --</option>
-                                ${sourceStores.map(s => '<option value="' + s + '">' + s + '</option>').join('')}
-                            </select>
+                        <!-- Store Selection -->
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">
+                                    <i class="fas fa-sign-out-alt" style="margin-right: 6px; color: #ef4444;"></i>From *
+                                </label>
+                                <select id="transfer-source-store" class="form-input" style="width: 100%; padding: 12px; font-size: 14px;">
+                                    <option value="">-- Origin --</option>
+                                    ${allStores.map(s => '<option value="' + s + '">' + s + '</option>').join('')}
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; padding-top: 28px;">
+                                <i class="fas fa-arrow-right" style="color: var(--text-muted);"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">
+                                    <i class="fas fa-sign-in-alt" style="margin-right: 6px; color: #10b981;"></i>To *
+                                </label>
+                                <select id="transfer-destination-store" class="form-input" style="width: 100%; padding: 12px; font-size: 14px;">
+                                    <option value="">-- Destination --</option>
+                                    ${allStores.map(s => '<option value="' + s + '"' + (s === defaultDestination ? ' selected' : '') + '>' + s + '</option>').join('')}
+                                </select>
+                            </div>
                         </div>
 
                         <div style="margin-bottom: 16px;">
@@ -2022,7 +2031,7 @@ window.viewChecklistHistory = async function() {
 
                         <div style="display: flex; gap: 12px;">
                             <button onclick="closeSendTransferModal()" style="flex: 1; padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent; cursor: pointer; font-weight: 600; font-size: 14px;">Cancel</button>
-                            <button id="create-transfer-btn" onclick="createTransfersFromRunningLow('${destinationStore}')" style="flex: 1; padding: 14px; border-radius: 10px; border: none; background: #10b981; color: white; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <button id="create-transfer-btn" onclick="createTransfersFromRunningLow()" style="flex: 1; padding: 14px; border-radius: 10px; border: none; background: #10b981; color: white; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <i class="fas fa-paper-plane"></i> Create Transfer
                             </button>
                         </div>
@@ -2038,13 +2047,24 @@ window.viewChecklistHistory = async function() {
             if (modal) modal.remove();
         }
 
-        async function createTransfersFromRunningLow(destinationStore) {
+        async function createTransfersFromRunningLow() {
             const sourceStore = document.getElementById('transfer-source-store').value;
+            const destinationStore = document.getElementById('transfer-destination-store').value;
             const shipDate = document.getElementById('transfer-ship-date').value;
             const notes = document.getElementById('transfer-notes').value.trim();
 
             if (!sourceStore) {
-                showNotification('Please select a source store', 'warning');
+                showNotification('Please select origin store (From)', 'warning');
+                return;
+            }
+
+            if (!destinationStore) {
+                showNotification('Please select destination store (To)', 'warning');
+                return;
+            }
+
+            if (sourceStore === destinationStore) {
+                showNotification('Origin and destination cannot be the same', 'warning');
                 return;
             }
 
