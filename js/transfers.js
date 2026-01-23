@@ -132,10 +132,18 @@ function generateTransferFolio() {
             ? transfersState.transfers
             : JSON.parse(localStorage.getItem('storeTransfers') || '[]');
 
-        const lastFolio = transfers.length > 0
-            ? parseInt(transfers[transfers.length - 1].folio.replace('TR-', ''))
-            : 0;
-        const newNumber = (lastFolio + 1).toString().padStart(4, '0');
+        // Find highest valid folio number from all transfers
+        let maxFolioNum = 0;
+        transfers.forEach(t => {
+            if (t.folio && typeof t.folio === 'string' && t.folio.startsWith('TR-')) {
+                const num = parseInt(t.folio.replace('TR-', ''), 10);
+                if (!isNaN(num) && num > maxFolioNum) {
+                    maxFolioNum = num;
+                }
+            }
+        });
+
+        const newNumber = (maxFolioNum + 1).toString().padStart(4, '0');
         const folio = `TR-${newNumber}`;
         console.log('📋 Generated folio:', folio);
         return folio;
@@ -1795,11 +1803,11 @@ async function processReceiveTransfer(transferId) {
 
     // Get photo if taken
     const photoInput = document.getElementById('receivePhotoInput');
-    let receivePhotoUrl = null;
+    let receivePhotoBase64 = null;
 
     if (photoInput && photoInput.files && photoInput.files[0]) {
-        // Convert to base64 for storage
-        receivePhotoUrl = document.getElementById('receivePhotoImg').src;
+        // Get base64 from preview image
+        receivePhotoBase64 = document.getElementById('receivePhotoImg').src;
     }
 
     // Get current user
@@ -1815,11 +1823,11 @@ async function processReceiveTransfer(transferId) {
     transfer.status = 'received';
     transfer.receivedAt = new Date().toISOString();
     transfer.receivedBy = receivedBy;
-    if (receivePhotoUrl) {
-        transfer.receivePhoto = receivePhotoUrl;
-    }
 
-    // Save to localStorage
+    // Save to localStorage (keep base64 for local)
+    if (receivePhotoBase64) {
+        transfer.receivePhoto = receivePhotoBase64;
+    }
     saveTransfers();
 
     // Try to update in Firebase
@@ -1831,10 +1839,26 @@ async function processReceiveTransfer(transferId) {
                 receivedAt: transfer.receivedAt,
                 receivedBy: transfer.receivedBy
             };
-            // Don't save base64 photo to Firebase (too large), just mark as hasPhoto
-            if (receivePhotoUrl) {
+
+            // Upload receive photo to Firebase Storage
+            if (receivePhotoBase64 && receivePhotoBase64.startsWith('data:') && firebase.storage) {
+                try {
+                    const storage = firebase.storage();
+                    const photoPath = `transfers/${transfer.id}/receive_photo.jpg`;
+                    const storageRef = storage.ref(photoPath);
+                    await storageRef.putString(receivePhotoBase64, 'data_url');
+                    const photoUrl = await storageRef.getDownloadURL();
+                    updateData.receivePhoto = photoUrl;
+                    updateData.receivePhotoPath = photoPath;
+                    console.log('📷 Receive photo uploaded to Storage');
+                } catch (photoErr) {
+                    console.warn('⚠️ Could not upload receive photo:', photoErr.message);
+                    updateData.hasReceivePhoto = true;
+                }
+            } else if (receivePhotoBase64) {
                 updateData.hasReceivePhoto = true;
             }
+
             await db.collection('transfers').doc(transfer.id).update(updateData);
             console.log('✅ Transfer received in Firebase:', transfer.folio);
         }
@@ -2120,7 +2144,8 @@ let unifiedTransferState = {
     items: [],
     activeTab: 'ai', // 'ai' or 'search'
     mediaFiles: [],
-    processedPhotos: [] // Store photo for transfer record (1 photo)
+    processedPhotos: [], // Store photo for transfer record (1 photo)
+    photoProcessing: false // Flag to prevent race condition
 };
 
 // Open Unified Transfer Modal
@@ -2467,7 +2492,7 @@ function openUnifiedCamera() {
 }
 
 // Process unified media files (1 photo, replaces previous)
-function processUnifiedMedia(input) {
+async function processUnifiedMedia(input) {
     const files = Array.from(input.files);
     if (!files.length) return;
 
@@ -2490,13 +2515,19 @@ function processUnifiedMedia(input) {
     unifiedTransferState.mediaFiles.push(mediaObj);
 
     // Store photo immediately for transfer record (without needing AI)
+    // Use await to prevent race condition if user submits quickly
     if (fileType === 'image') {
-        fileToBase64(file).then(base64 => {
-            compressImageForStorage(base64).then(compressed => {
-                unifiedTransferState.processedPhotos = compressed ? [compressed] : [];
-                console.log('📷 Photo ready for upload');
-            });
-        });
+        unifiedTransferState.photoProcessing = true;
+        try {
+            const base64 = await fileToBase64(file);
+            const compressed = await compressImageForStorage(base64);
+            unifiedTransferState.processedPhotos = compressed ? [compressed] : [];
+            console.log('📷 Photo ready for upload');
+        } catch (e) {
+            console.warn('⚠️ Could not process photo:', e);
+            unifiedTransferState.processedPhotos = [];
+        }
+        unifiedTransferState.photoProcessing = false;
     }
 
     renderUnifiedMediaPreview();
@@ -2585,7 +2616,7 @@ function handleUnifiedDragLeave(event) {
     }
 }
 
-function handleUnifiedDrop(event) {
+async function handleUnifiedDrop(event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -2596,20 +2627,40 @@ function handleUnifiedDrop(event) {
     }
 
     const files = Array.from(event.dataTransfer.files);
-    files.forEach(file => {
-        const fileType = file.type.startsWith('image/') ? 'image' :
-                        file.type.startsWith('video/') ? 'video' :
-                        file.type.startsWith('audio/') ? 'audio' : 'unknown';
+    if (!files.length) return;
 
-        if (fileType !== 'unknown') {
-            unifiedTransferState.mediaFiles.push({
-                file: file,
-                type: fileType,
-                name: file.name,
-                url: URL.createObjectURL(file)
-            });
-        }
+    // Only take first file (consistent with camera/gallery behavior)
+    const file = files[0];
+    const fileType = file.type.startsWith('image/') ? 'image' :
+                    file.type.startsWith('video/') ? 'video' :
+                    file.type.startsWith('audio/') ? 'audio' : 'unknown';
+
+    if (fileType === 'unknown') return;
+
+    // Clear previous media
+    clearUnifiedMedia();
+
+    unifiedTransferState.mediaFiles.push({
+        file: file,
+        type: fileType,
+        name: file.name,
+        url: URL.createObjectURL(file)
     });
+
+    // Process photo for storage (same as processUnifiedMedia)
+    if (fileType === 'image') {
+        unifiedTransferState.photoProcessing = true;
+        try {
+            const base64 = await fileToBase64(file);
+            const compressed = await compressImageForStorage(base64);
+            unifiedTransferState.processedPhotos = compressed ? [compressed] : [];
+            console.log('📷 Photo ready for upload (via drop)');
+        } catch (e) {
+            console.warn('⚠️ Could not process dropped photo:', e);
+            unifiedTransferState.processedPhotos = [];
+        }
+        unifiedTransferState.photoProcessing = false;
+    }
 
     renderUnifiedMediaPreview();
 }
