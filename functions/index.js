@@ -827,3 +827,554 @@ If you cannot identify the device, still provide your best guess with confidence
 });
 
 
+// =============================================================================
+// PUSH NOTIFICATIONS - FCM Integration
+// =============================================================================
+
+/**
+ * Process notification queue - triggered when new notification is added
+ * Sends push notifications via FCM and marks as processed
+ * Uses deduplication to prevent duplicate notifications
+ */
+exports.processNotificationQueue = functions.firestore
+    .document('notification_queue/{docId}')
+    .onCreate(async (snap, context) => {
+        const notification = snap.data();
+        const docId = context.params.docId;
+
+        console.log(`📬 Processing notification: ${docId}`, notification.type);
+
+        // Skip if already processed (deduplication)
+        if (notification.status === 'sent' || notification.status === 'processed') {
+            console.log(`⏭️ Notification ${docId} already processed, skipping`);
+            return null;
+        }
+
+        try {
+            const tokens = [];
+            const targetType = notification.type;
+
+            // Get target tokens based on notification type
+            if (targetType === 'single' && notification.targetUserId) {
+                // Single user notification
+                const userTokens = await getTokensForUser(notification.targetUserId);
+                tokens.push(...userTokens);
+            } else if (targetType === 'role' && notification.targetRole) {
+                // Role-based notification (e.g., all employees)
+                const roleTokens = await getTokensForRole(notification.targetRole);
+                tokens.push(...roleTokens);
+            } else if (targetType === 'store' && notification.targetStoreId) {
+                // Store-based notification
+                const storeTokens = await getTokensForStore(notification.targetStoreId);
+                tokens.push(...storeTokens);
+            }
+
+            if (tokens.length === 0) {
+                console.log(`⚠️ No tokens found for notification ${docId}`);
+                await snap.ref.update({
+                    status: 'no_tokens',
+                    processedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                return null;
+            }
+
+            // Prepare FCM message
+            const message = {
+                notification: {
+                    title: notification.notification?.title || 'Ascendance',
+                    body: notification.notification?.body || ''
+                },
+                data: {
+                    type: notification.notification?.type || 'general',
+                    page: notification.notification?.page || 'dashboard',
+                    notificationId: docId,
+                    timestamp: new Date().toISOString()
+                },
+                // Android specific
+                android: {
+                    priority: 'high',
+                    notification: {
+                        sound: 'default',
+                        clickAction: 'FLUTTER_NOTIFICATION_CLICK'
+                    }
+                },
+                // iOS specific
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: 'default',
+                            badge: 1
+                        }
+                    }
+                },
+                // Web specific
+                webpush: {
+                    notification: {
+                        icon: '/img/icon-192.png',
+                        badge: '/img/icon-192.png'
+                    },
+                    fcmOptions: {
+                        link: `https://ascendancehub.com/index.html?page=${notification.notification?.page || 'dashboard'}`
+                    }
+                }
+            };
+
+            // Send to all tokens (batch, max 500 per call)
+            const results = await sendToTokens(tokens, message);
+
+            // Update notification status
+            await snap.ref.update({
+                status: 'sent',
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                tokensSent: results.successCount,
+                tokensFailed: results.failureCount,
+                totalTokens: tokens.length
+            });
+
+            console.log(`✅ Notification ${docId} sent to ${results.successCount}/${tokens.length} devices`);
+
+            // Clean up invalid tokens
+            if (results.failedTokens.length > 0) {
+                await cleanupInvalidTokens(results.failedTokens);
+            }
+
+            return null;
+        } catch (error) {
+            console.error(`❌ Error processing notification ${docId}:`, error);
+            await snap.ref.update({
+                status: 'error',
+                error: error.message,
+                processedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            return null;
+        }
+    });
+
+/**
+ * Process scheduled notifications - runs every minute
+ * Checks for notifications that are due and sends them
+ */
+exports.processScheduledNotifications = functions
+    .runWith({ timeoutSeconds: 60, memory: '256MB' })
+    .pubsub.schedule('* * * * *') // Every minute
+    .timeZone('America/Los_Angeles')
+    .onRun(async (context) => {
+        const now = new Date();
+        console.log(`⏰ Checking scheduled notifications at ${now.toISOString()}`);
+
+        try {
+            // Get pending notifications that are due
+            const snapshot = await db.collection('scheduled_notifications')
+                .where('status', '==', 'pending')
+                .where('scheduledFor', '<=', now.toISOString())
+                .limit(50) // Process max 50 at a time
+                .get();
+
+            if (snapshot.empty) {
+                return null;
+            }
+
+            console.log(`📋 Found ${snapshot.size} scheduled notifications to process`);
+
+            const batch = db.batch();
+            const notificationsToSend = [];
+
+            for (const doc of snapshot.docs) {
+                const data = doc.data();
+
+                // Check if this is a clock-out reminder and user already clocked out
+                if (data.type === 'clockout_reminder') {
+                    const alreadyClockedOut = await checkIfClockedOut(data.employeeId, data.shiftEnd);
+                    if (alreadyClockedOut) {
+                        batch.update(doc.ref, {
+                            status: 'skipped',
+                            reason: 'already_clocked_out',
+                            processedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        continue;
+                    }
+                }
+
+                // Check if this is a clock-in reminder and user already clocked in
+                if (data.type === 'clockin_reminder') {
+                    const alreadyClockedIn = await checkIfClockedIn(data.employeeId, data.shiftStart);
+                    if (alreadyClockedIn) {
+                        batch.update(doc.ref, {
+                            status: 'skipped',
+                            reason: 'already_clocked_in',
+                            processedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        continue;
+                    }
+                }
+
+                // Queue the notification
+                notificationsToSend.push({
+                    docRef: doc.ref,
+                    employeeId: data.employeeId,
+                    notification: data.notification
+                });
+
+                // Mark as processing to prevent duplicate sends
+                batch.update(doc.ref, { status: 'processing' });
+            }
+
+            await batch.commit();
+
+            // Send notifications
+            for (const item of notificationsToSend) {
+                try {
+                    const tokens = await getTokensForUser(item.employeeId);
+
+                    if (tokens.length > 0) {
+                        const message = {
+                            notification: {
+                                title: item.notification.title,
+                                body: item.notification.body
+                            },
+                            data: {
+                                type: item.notification.type,
+                                page: item.notification.page || 'clockin',
+                                timestamp: new Date().toISOString()
+                            },
+                            android: { priority: 'high', notification: { sound: 'default' } },
+                            apns: { payload: { aps: { sound: 'default' } } },
+                            webpush: { notification: { icon: '/img/icon-192.png' } }
+                        };
+
+                        await sendToTokens(tokens, message);
+                        await item.docRef.update({
+                            status: 'sent',
+                            sentAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        console.log(`✅ Sent scheduled notification to employee ${item.employeeId}`);
+                    } else {
+                        await item.docRef.update({
+                            status: 'no_tokens',
+                            processedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                } catch (err) {
+                    console.error(`❌ Failed to send to ${item.employeeId}:`, err);
+                    await item.docRef.update({
+                        status: 'error',
+                        error: err.message
+                    });
+                }
+            }
+
+            return null;
+        } catch (error) {
+            console.error('❌ Error processing scheduled notifications:', error);
+            return null;
+        }
+    });
+
+/**
+ * Send weekly schedule notification - runs every Sunday at 6 PM
+ */
+exports.sendWeeklyScheduleNotification = functions
+    .runWith({ timeoutSeconds: 120, memory: '256MB' })
+    .pubsub.schedule('0 18 * * 0') // Sundays at 6 PM
+    .timeZone('America/Los_Angeles')
+    .onRun(async (context) => {
+        console.log('📅 Sending weekly schedule notifications...');
+
+        try {
+            // Get all employee tokens
+            const tokensSnapshot = await db.collection('push_tokens').get();
+
+            if (tokensSnapshot.empty) {
+                console.log('⚠️ No push tokens found');
+                return null;
+            }
+
+            const tokens = tokensSnapshot.docs.map(doc => doc.data().token).filter(t => t);
+
+            const message = {
+                notification: {
+                    title: 'Weekly Schedule Available',
+                    body: 'Your schedule for this week has been posted. Tap to view your shifts.'
+                },
+                data: {
+                    type: 'schedule',
+                    page: 'schedule',
+                    timestamp: new Date().toISOString()
+                },
+                android: { priority: 'high', notification: { sound: 'default' } },
+                apns: { payload: { aps: { sound: 'default' } } },
+                webpush: {
+                    notification: { icon: '/img/icon-192.png' },
+                    fcmOptions: { link: 'https://ascendancehub.com/index.html?page=schedule' }
+                }
+            };
+
+            const results = await sendToTokens(tokens, message);
+            console.log(`✅ Weekly schedule notification sent to ${results.successCount}/${tokens.length} devices`);
+
+            // Log to Firestore
+            await db.collection('notification_logs').add({
+                type: 'weekly_schedule',
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                successCount: results.successCount,
+                failureCount: results.failureCount,
+                totalTokens: tokens.length
+            });
+
+            return null;
+        } catch (error) {
+            console.error('❌ Error sending weekly schedule notification:', error);
+            return null;
+        }
+    });
+
+/**
+ * HTTP endpoint: Send manual notification (admin only)
+ */
+exports.sendManualNotification = functions.https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+
+    try {
+        const { title, body, targetType, targetId } = req.body;
+
+        if (!title || !body) {
+            res.status(400).json({ error: 'Title and body are required' });
+            return;
+        }
+
+        // Queue the notification
+        const notificationRef = await db.collection('notification_queue').add({
+            type: targetType || 'role',
+            targetRole: targetType === 'role' ? (targetId || 'employee') : null,
+            targetUserId: targetType === 'single' ? targetId : null,
+            targetStoreId: targetType === 'store' ? targetId : null,
+            notification: {
+                title,
+                body,
+                type: 'manual',
+                page: 'announcements'
+            },
+            status: 'pending',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            source: 'manual_api'
+        });
+
+        res.json({
+            success: true,
+            message: 'Notification queued',
+            notificationId: notificationRef.id
+        });
+    } catch (error) {
+        console.error('Error sending manual notification:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// =============================================================================
+// HELPER FUNCTIONS FOR NOTIFICATIONS
+// =============================================================================
+
+/**
+ * Get FCM tokens for a specific user
+ */
+async function getTokensForUser(userId) {
+    const tokens = [];
+
+    // Try to find by odooId first
+    const tokensByOdoo = await db.collection('push_tokens')
+        .where('odooId', '==', userId)
+        .get();
+
+    tokensByOdoo.forEach(doc => {
+        if (doc.data().token) tokens.push(doc.data().token);
+    });
+
+    // Also check employees collection
+    try {
+        const employeeDoc = await db.collection('employees').doc(userId).get();
+        if (employeeDoc.exists && employeeDoc.data().pushToken) {
+            const token = employeeDoc.data().pushToken;
+            if (!tokens.includes(token)) tokens.push(token);
+        }
+    } catch (e) {
+        // Ignore errors
+    }
+
+    return [...new Set(tokens)]; // Remove duplicates
+}
+
+/**
+ * Get FCM tokens for all users with a specific role
+ */
+async function getTokensForRole(role) {
+    const tokens = [];
+
+    // Get tokens from push_tokens collection
+    const snapshot = await db.collection('push_tokens')
+        .where('role', '==', role)
+        .get();
+
+    snapshot.forEach(doc => {
+        if (doc.data().token) tokens.push(doc.data().token);
+    });
+
+    // For 'employee' role, get all tokens (most common case)
+    if (role === 'employee') {
+        const allTokens = await db.collection('push_tokens').get();
+        allTokens.forEach(doc => {
+            if (doc.data().token && !tokens.includes(doc.data().token)) {
+                tokens.push(doc.data().token);
+            }
+        });
+    }
+
+    return [...new Set(tokens)];
+}
+
+/**
+ * Get FCM tokens for users in a specific store
+ */
+async function getTokensForStore(storeId) {
+    const tokens = [];
+
+    const snapshot = await db.collection('push_tokens')
+        .where('storeId', '==', storeId)
+        .get();
+
+    snapshot.forEach(doc => {
+        if (doc.data().token) tokens.push(doc.data().token);
+    });
+
+    return [...new Set(tokens)];
+}
+
+/**
+ * Send FCM message to multiple tokens (handles batching)
+ */
+async function sendToTokens(tokens, message) {
+    if (!tokens || tokens.length === 0) {
+        return { successCount: 0, failureCount: 0, failedTokens: [] };
+    }
+
+    const uniqueTokens = [...new Set(tokens)];
+    let successCount = 0;
+    let failureCount = 0;
+    const failedTokens = [];
+
+    // FCM allows max 500 tokens per multicast
+    const batchSize = 500;
+
+    for (let i = 0; i < uniqueTokens.length; i += batchSize) {
+        const batch = uniqueTokens.slice(i, i + batchSize);
+
+        try {
+            const response = await admin.messaging().sendEachForMulticast({
+                tokens: batch,
+                ...message
+            });
+
+            successCount += response.successCount;
+            failureCount += response.failureCount;
+
+            // Track failed tokens for cleanup
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    const errorCode = resp.error?.code;
+                    // These error codes indicate invalid/expired tokens
+                    if (errorCode === 'messaging/invalid-registration-token' ||
+                        errorCode === 'messaging/registration-token-not-registered') {
+                        failedTokens.push(batch[idx]);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error sending batch:', error);
+            failureCount += batch.length;
+        }
+    }
+
+    return { successCount, failureCount, failedTokens };
+}
+
+/**
+ * Clean up invalid tokens from database
+ */
+async function cleanupInvalidTokens(tokens) {
+    if (!tokens || tokens.length === 0) return;
+
+    const batch = db.batch();
+    let count = 0;
+
+    for (const token of tokens) {
+        try {
+            const snapshot = await db.collection('push_tokens')
+                .where('token', '==', token)
+                .get();
+
+            snapshot.forEach(doc => {
+                batch.delete(doc.ref);
+                count++;
+            });
+        } catch (e) {
+            console.warn('Error finding token to delete:', e);
+        }
+    }
+
+    if (count > 0) {
+        await batch.commit();
+        console.log(`🧹 Cleaned up ${count} invalid tokens`);
+    }
+}
+
+/**
+ * Check if employee already clocked in for the shift
+ */
+async function checkIfClockedIn(employeeId, shiftStart) {
+    try {
+        const shiftDate = new Date(shiftStart).toISOString().split('T')[0];
+
+        const snapshot = await db.collection('clockin')
+            .where('odooId', '==', employeeId)
+            .where('date', '==', shiftDate)
+            .where('type', '==', 'in')
+            .limit(1)
+            .get();
+
+        return !snapshot.empty;
+    } catch (e) {
+        return false; // If error, send notification anyway
+    }
+}
+
+/**
+ * Check if employee already clocked out for the shift
+ */
+async function checkIfClockedOut(employeeId, shiftEnd) {
+    try {
+        const shiftDate = new Date(shiftEnd).toISOString().split('T')[0];
+
+        const snapshot = await db.collection('clockin')
+            .where('odooId', '==', employeeId)
+            .where('date', '==', shiftDate)
+            .where('type', '==', 'out')
+            .limit(1)
+            .get();
+
+        return !snapshot.empty;
+    } catch (e) {
+        return false;
+    }
+}
+
