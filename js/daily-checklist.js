@@ -1343,6 +1343,9 @@ window.viewChecklistHistory = async function() {
         // Inventory grouping state
         let inventoryGroupBy = 'none';
 
+        // Multi-select state for bulk actions
+        let selectedInventoryItems = new Set();
+
         // Running Low constants
         const RUNNING_LOW_STORES = ['Miramar', 'Loyal Vaper', 'MMWL', 'CV', 'NP', 'KM', 'MB', 'All Shops'];
         const RUNNING_LOW_URGENCIES = ['Low', 'High Priority', 'Sold Out'];
@@ -1454,8 +1457,8 @@ window.viewChecklistHistory = async function() {
                     .inv-editable-input { padding: 6px 10px; font-size: 13px; border: 2px solid var(--primary-color); border-radius: 6px; background: var(--bg-card); color: var(--text-primary); width: 100%; outline: none; }
 
                     @media (min-width: 1024px) {
-                        .inventory-table-header { display: grid; grid-template-columns: 2fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 70px; padding: 14px 20px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-                        .inventory-table-row { display: grid !important; grid-template-columns: 2fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 70px; padding: 16px 20px; border-bottom: 1px solid var(--border-color); align-items: center; }
+                        .inventory-table-header { display: grid; grid-template-columns: 40px 2fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 70px; padding: 14px 20px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+                        .inventory-table-row { display: grid !important; grid-template-columns: 40px 2fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 70px; padding: 16px 20px; border-bottom: 1px solid var(--border-color); align-items: center; }
                         .inventory-card { display: none; }
                         .inventory-card-label { display: none; }
                     }
@@ -1574,6 +1577,17 @@ window.viewChecklistHistory = async function() {
                         <span style="font-size: 13px; color: var(--text-muted);">${filteredRequests.length} items</span>
                     </div>
 
+                    <!-- Bulk Actions Bar (hidden by default) -->
+                    <div id="bulk-actions-bar" style="display: none; padding: 12px 20px; background: linear-gradient(135deg, var(--accent-primary), #6366f1); color: white; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span><strong><span id="selected-count">0</span></strong> items selected</span>
+                            <button onclick="clearInventorySelection()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Clear Selection</button>
+                        </div>
+                        <button onclick="openBulkActionModal()" style="background: white; color: var(--accent-primary); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-edit"></i> Bulk Actions
+                        </button>
+                    </div>
+
                     ${filteredRequests.length === 0 ? `
                         <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
                             <i class="fas fa-search" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
@@ -1582,7 +1596,8 @@ window.viewChecklistHistory = async function() {
                         </div>
                     ` : `
                         <!-- Desktop Table Header -->
-                        <div class="inventory-table-header">
+                        <div class="inventory-table-header" style="grid-template-columns: 40px 2fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 70px;">
+                            <div><input type="checkbox" id="select-all-inventory" onchange="toggleSelectAllInventory(this)" style="width: 18px; height: 18px; cursor: pointer;"></div>
                             <div>Item Name</div>
                             <div>Specifics</div>
                             <div>Store</div>
@@ -1642,6 +1657,7 @@ window.viewChecklistHistory = async function() {
                                 output += `
                                     <!-- Desktop Row -->
                                     <div class="inventory-table-row" style="font-size: 14px;">
+                                        <div><input type="checkbox" class="inventory-item-checkbox" data-item-id="${reqId}" onchange="toggleInventoryItemSelect('${reqId}', this)" style="width: 18px; height: 18px; cursor: pointer;"></div>
                                         <div style="font-weight: 600; color: var(--text-primary);">${request.productName || request.name || '-'}</div>
                                         <div class="inv-editable-cell" onclick="makeSpecificsEditable(this, '${reqId}')" style="color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 6px; min-width: 60px;" title="Click to edit">
                                             <span class="specifics-display">${request.specifics || request.quantity || '-'}</span>
@@ -1761,6 +1777,207 @@ window.viewChecklistHistory = async function() {
             inventoryGroupBy = groupBy;
             renderRestockRequests();
         }
+
+        // Multi-select functions for bulk actions
+        function toggleInventoryItemSelect(itemId, checkbox) {
+            if (checkbox.checked) {
+                selectedInventoryItems.add(itemId);
+            } else {
+                selectedInventoryItems.delete(itemId);
+            }
+            updateBulkActionsBar();
+            updateSelectAllCheckbox();
+        }
+
+        function toggleSelectAllInventory(checkbox) {
+            const allCheckboxes = document.querySelectorAll('.inventory-item-checkbox');
+            allCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+                const itemId = cb.dataset.itemId;
+                if (checkbox.checked) {
+                    selectedInventoryItems.add(itemId);
+                } else {
+                    selectedInventoryItems.delete(itemId);
+                }
+            });
+            updateBulkActionsBar();
+        }
+
+        function updateSelectAllCheckbox() {
+            const selectAllCb = document.getElementById('select-all-inventory');
+            const allCheckboxes = document.querySelectorAll('.inventory-item-checkbox');
+            if (selectAllCb && allCheckboxes.length > 0) {
+                const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                const someChecked = Array.from(allCheckboxes).some(cb => cb.checked);
+                selectAllCb.checked = allChecked;
+                selectAllCb.indeterminate = someChecked && !allChecked;
+            }
+        }
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulk-actions-bar');
+            const count = selectedInventoryItems.size;
+            if (bar) {
+                if (count > 0) {
+                    bar.style.display = 'flex';
+                    document.getElementById('selected-count').textContent = count;
+                } else {
+                    bar.style.display = 'none';
+                }
+            }
+        }
+
+        function clearInventorySelection() {
+            selectedInventoryItems.clear();
+            const allCheckboxes = document.querySelectorAll('.inventory-item-checkbox, #select-all-inventory');
+            allCheckboxes.forEach(cb => cb.checked = false);
+            updateBulkActionsBar();
+        }
+
+        function openBulkActionModal() {
+            const count = selectedInventoryItems.size;
+            if (count === 0) return;
+
+            const modalHtml = `
+                <div id="bulk-action-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: var(--bg-card); border-radius: 16px; padding: 24px; max-width: 450px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-layer-group" style="margin-right: 8px; color: var(--accent-primary);"></i>Bulk Actions</h3>
+                            <button onclick="closeBulkActionModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 20px;">${count} item${count > 1 ? 's' : ''} selected</p>
+
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div>
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Change Store</label>
+                                <select id="bulk-store" class="form-input" style="width: 100%;">
+                                    <option value="">-- No change --</option>
+                                    ${RUNNING_LOW_STORES.map(s => '<option value="' + s + '">' + s + '</option>').join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Change Urgency</label>
+                                <select id="bulk-urgency" class="form-input" style="width: 100%;">
+                                    <option value="">-- No change --</option>
+                                    ${RUNNING_LOW_URGENCIES.map(u => '<option value="' + u + '">' + u + '</option>').join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Change Category</label>
+                                <select id="bulk-category" class="form-input" style="width: 100%;">
+                                    <option value="">-- No change --</option>
+                                    ${RUNNING_LOW_CATEGORIES.map(c => '<option value="' + c + '">' + c + '</option>').join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Change Order Status</label>
+                                <select id="bulk-status" class="form-input" style="width: 100%;">
+                                    <option value="">-- No change --</option>
+                                    ${RUNNING_LOW_STATUSES.map(s => '<option value="' + s + '">' + s + '</option>').join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 12px; margin-top: 24px;">
+                            <button onclick="closeBulkActionModal()" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent; cursor: pointer; font-weight: 600;">Cancel</button>
+                            <button onclick="applyBulkActions()" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--accent-primary); color: white; cursor: pointer; font-weight: 600;">Apply Changes</button>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 16px;">
+                            <button onclick="bulkDeleteSelected()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ef4444; background: transparent; color: #ef4444; cursor: pointer; font-weight: 600;">
+                                <i class="fas fa-trash" style="margin-right: 6px;"></i>Delete Selected Items
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function closeBulkActionModal() {
+            const modal = document.getElementById('bulk-action-modal');
+            if (modal) modal.remove();
+        }
+
+        async function applyBulkActions() {
+            const store = document.getElementById('bulk-store').value;
+            const urgency = document.getElementById('bulk-urgency').value;
+            const category = document.getElementById('bulk-category').value;
+            const status = document.getElementById('bulk-status').value;
+
+            if (!store && !urgency && !category && !status) {
+                alert('Please select at least one change to apply');
+                return;
+            }
+
+            const updates = {};
+            if (store) updates.store = store;
+            if (urgency) updates.urgency = urgency;
+            if (category) updates.category = category;
+            if (status) updates.orderStatus = status;
+
+            let successCount = 0;
+            for (const itemId of selectedInventoryItems) {
+                try {
+                    if (firebaseRestockRequestsManager.isInitialized) {
+                        await firebaseRestockRequestsManager.updateRestockRequest(itemId, updates);
+                    }
+                    // Update local array
+                    const localItem = restockRequests.find(r => (r.firestoreId || r.id) === itemId);
+                    if (localItem) {
+                        Object.assign(localItem, updates);
+                    }
+                    successCount++;
+                } catch (error) {
+                    console.error('Error updating item:', itemId, error);
+                }
+            }
+
+            closeBulkActionModal();
+            clearInventorySelection();
+            renderRestockRequests();
+            showNotification(successCount + ' items updated successfully', 'success');
+        }
+
+        async function bulkDeleteSelected() {
+            const count = selectedInventoryItems.size;
+            if (!confirm('Are you sure you want to delete ' + count + ' items? This cannot be undone.')) {
+                return;
+            }
+
+            let successCount = 0;
+            for (const itemId of selectedInventoryItems) {
+                try {
+                    if (firebaseRestockRequestsManager.isInitialized) {
+                        await firebaseRestockRequestsManager.deleteRestockRequest(itemId);
+                    }
+                    // Remove from local array
+                    const idx = restockRequests.findIndex(r => (r.firestoreId || r.id) === itemId);
+                    if (idx !== -1) restockRequests.splice(idx, 1);
+                    successCount++;
+                } catch (error) {
+                    console.error('Error deleting item:', itemId, error);
+                }
+            }
+
+            closeBulkActionModal();
+            clearInventorySelection();
+            renderRestockRequests();
+            showNotification(successCount + ' items deleted', 'success');
+        }
+
+        // Expose bulk action functions globally
+        window.toggleInventoryItemSelect = toggleInventoryItemSelect;
+        window.toggleSelectAllInventory = toggleSelectAllInventory;
+        window.openBulkActionModal = openBulkActionModal;
+        window.closeBulkActionModal = closeBulkActionModal;
+        window.applyBulkActions = applyBulkActions;
+        window.bulkDeleteSelected = bulkDeleteSelected;
+        window.clearInventorySelection = clearInventorySelection;
 
         // Export inventory report to CSV
         function exportInventoryReport() {
