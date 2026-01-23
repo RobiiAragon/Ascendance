@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ascendance Hub | Vape Smoke Universe Management</title>
     <link rel="icon" type="image/x-icon" href="img/AH.ico">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ascendance">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
@@ -689,6 +696,10 @@
                             <i class="fas fa-user"></i>
                             My Profile
                         </a>
+                        <a href="#" class="user-menu-item" id="notificationToggleBtn" onclick="toggleNotifications(); return false;">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationToggleText">Enable Notifications</span>
+                        </a>
                         <div class="user-menu-divider"></div>
                         <a href="#" class="user-menu-item logout" onclick="logout(); return false;">
                             <i class="fas fa-sign-out-alt"></i>
@@ -1013,6 +1024,7 @@
     <script src="js/sales-performance.js?v=1"></script>
     <script src="js/bulk-invoice.js?v=1"></script>
     <script src="js/pod-matcher.js?v=1"></script>
+    <script src="js/notifications.js?v=1"></script>
 
     <!-- Export Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
