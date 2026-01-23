@@ -1384,8 +1384,8 @@ async function saveTransferToFirebase(transfer) {
 
             // Handle multiple photos (up to 4)
             if (transfer.photos && Array.isArray(transfer.photos) && transfer.photos.length > 0) {
-                try {
-                    if (firebase.storage) {
+                if (firebase.storage) {
+                    try {
                         const storage = firebase.storage();
                         const photoUrls = [];
                         const photoPaths = [];
@@ -1394,6 +1394,7 @@ async function saveTransferToFirebase(transfer) {
                             const photo = transfer.photos[i];
                             if (photo && photo.startsWith('data:')) {
                                 const photoPath = `transfers/${transfer.id}/photo_${i + 1}.jpg`;
+                                console.log(`📷 Uploading photo ${i + 1} to:`, photoPath);
                                 const storageRef = storage.ref(photoPath);
 
                                 // Upload base64 photo
@@ -1402,7 +1403,7 @@ async function saveTransferToFirebase(transfer) {
 
                                 photoUrls.push(photoUrl);
                                 photoPaths.push(photoPath);
-                                console.log(`📷 Photo ${i + 1} uploaded to Storage`);
+                                console.log(`📷 Photo ${i + 1} uploaded successfully:`, photoUrl);
                             }
                         }
 
@@ -1411,27 +1412,37 @@ async function saveTransferToFirebase(transfer) {
                         transferData.photoPaths = photoPaths;
                         transferData.photoCount = photoUrls.length;
                         console.log(`📷 ${photoUrls.length} photos uploaded to Storage`);
-                    } else {
-                        // Storage not available
+                        if (typeof showNotification === 'function' && photoUrls.length > 0) {
+                            showNotification(`${photoUrls.length} photo(s) saved!`, 'success');
+                        }
+                    } catch (photoError) {
+                        console.error('❌ Could not upload photos to Storage:', photoError);
+                        if (typeof showNotification === 'function') {
+                            showNotification('Could not save photos: ' + photoError.message, 'error');
+                        }
                         transferData.photos = null;
                         transferData.hasPhotos = true;
                         transferData.photoCount = transfer.photos.length;
-                        console.warn('⚠️ Firebase Storage not available, photos not saved');
                     }
-                } catch (photoError) {
-                    console.warn('⚠️ Could not upload photos to Storage:', photoError.message);
+                } else {
+                    // Storage not available
                     transferData.photos = null;
                     transferData.hasPhotos = true;
                     transferData.photoCount = transfer.photos.length;
+                    console.error('❌ Firebase Storage not available, photos not saved');
+                    if (typeof showNotification === 'function') {
+                        showNotification('Firebase Storage not configured - photos not saved', 'error');
+                    }
                 }
             }
 
             // Handle legacy single photo field
             if (transfer.photo && typeof transfer.photo === 'string' && transfer.photo.startsWith('data:')) {
-                try {
-                    if (firebase.storage) {
+                if (firebase.storage) {
+                    try {
                         const storage = firebase.storage();
                         const photoPath = `transfers/${transfer.id}/photo.jpg`;
+                        console.log('📷 Uploading single photo to:', photoPath);
                         const storageRef = storage.ref(photoPath);
 
                         await storageRef.putString(transfer.photo, 'data_url');
@@ -1439,11 +1450,17 @@ async function saveTransferToFirebase(transfer) {
 
                         transferData.photo = photoUrl;
                         transferData.photoPath = photoPath;
-                    } else {
+                        console.log('📷 Single photo uploaded successfully:', photoUrl);
+                    } catch (photoError) {
+                        console.error('❌ Could not upload photo:', photoError);
+                        if (typeof showNotification === 'function') {
+                            showNotification('Could not save photo: ' + photoError.message, 'error');
+                        }
                         transferData.photo = null;
                         transferData.hasPhoto = true;
                     }
-                } catch (photoError) {
+                } else {
+                    console.error('❌ Firebase Storage not available');
                     transferData.photo = null;
                     transferData.hasPhoto = true;
                 }
@@ -1841,22 +1858,35 @@ async function processReceiveTransfer(transferId) {
             };
 
             // Upload receive photo to Firebase Storage
-            if (receivePhotoBase64 && receivePhotoBase64.startsWith('data:') && firebase.storage) {
-                try {
-                    const storage = firebase.storage();
-                    const photoPath = `transfers/${transfer.id}/receive_photo.jpg`;
-                    const storageRef = storage.ref(photoPath);
-                    await storageRef.putString(receivePhotoBase64, 'data_url');
-                    const photoUrl = await storageRef.getDownloadURL();
-                    updateData.receivePhoto = photoUrl;
-                    updateData.receivePhotoPath = photoPath;
-                    console.log('📷 Receive photo uploaded to Storage');
-                } catch (photoErr) {
-                    console.warn('⚠️ Could not upload receive photo:', photoErr.message);
+            if (receivePhotoBase64 && receivePhotoBase64.startsWith('data:')) {
+                if (firebase.storage) {
+                    try {
+                        const storage = firebase.storage();
+                        const photoPath = `transfers/${transfer.id}/receive_photo.jpg`;
+                        console.log('📷 Uploading photo to:', photoPath);
+                        const storageRef = storage.ref(photoPath);
+                        await storageRef.putString(receivePhotoBase64, 'data_url');
+                        const photoUrl = await storageRef.getDownloadURL();
+                        updateData.receivePhoto = photoUrl;
+                        updateData.receivePhotoPath = photoPath;
+                        console.log('📷 Receive photo uploaded to Storage:', photoUrl);
+                        if (typeof showNotification === 'function') {
+                            showNotification('Photo saved successfully!', 'success');
+                        }
+                    } catch (photoErr) {
+                        console.error('❌ Could not upload receive photo:', photoErr);
+                        if (typeof showNotification === 'function') {
+                            showNotification('Could not save photo: ' + photoErr.message, 'error');
+                        }
+                        updateData.hasReceivePhoto = true;
+                    }
+                } else {
+                    console.error('❌ Firebase Storage not available');
+                    if (typeof showNotification === 'function') {
+                        showNotification('Firebase Storage not configured', 'error');
+                    }
                     updateData.hasReceivePhoto = true;
                 }
-            } else if (receivePhotoBase64) {
-                updateData.hasReceivePhoto = true;
             }
 
             await db.collection('transfers').doc(transfer.id).update(updateData);
