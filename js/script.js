@@ -6032,28 +6032,8 @@
 
             const store = employee.store || 'VSU Miramar';
 
-            // ==========================================
-            // LOCATION CAPTURE
-            // ==========================================
+            // Location tracking disabled - trusting employees
             let locationData = null;
-            try {
-                // Try to get location (non-blocking, won't prevent clock action)
-                const locationResult = await verifyClockLocation(store);
-                if (locationResult && locationResult.location) {
-                    locationData = {
-                        latitude: locationResult.location.latitude,
-                        longitude: locationResult.location.longitude,
-                        accuracy: locationResult.location.accuracy,
-                        isWithinGeofence: locationResult.geofenceResult?.isWithinGeofence || false,
-                        distance: locationResult.geofenceResult?.distance || null,
-                        timestamp: new Date().toISOString()
-                    };
-                    console.log('📍 Location captured:', locationData);
-                }
-            } catch (locError) {
-                console.warn('📍 Could not get location:', locError.message);
-                // Continue without location - don't block clock action
-            }
 
             // Format date as YYYY-MM-DD for consistency (use local date, not UTC)
             const today = new Date();
