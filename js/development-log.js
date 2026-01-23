@@ -260,6 +260,86 @@ function getInitialLogs() {
             requestedBy: 'Carlos'
         },
         {
+            id: 'log_041',
+            date: '2026-01-23',
+            title: 'Cache-Busting and Project Documentation',
+            description: 'Added version numbers to all JS script tags for cache-busting, ensuring users see the latest changes immediately. Created CLAUDE.md file with project instructions and custom rules for AI assistant including: mobile-first development, not breaking existing features, thinking before complex changes, and documenting in Development Log.',
+            category: 'enhancement',
+            files: ['index.html', 'CLAUDE.md'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_040',
+            date: '2026-01-23',
+            title: 'Running Low Bulk Actions',
+            description: 'Added multi-select functionality to the Inventory Management (Running Low) module. Features include: checkbox on each row for individual selection, "Select All" checkbox in header, floating action bar showing selected count, bulk action modal to change Store/Urgency/Category/Order Status for multiple items at once, and bulk delete option. All changes sync to Firebase.',
+            category: 'feature',
+            files: ['js/daily-checklist.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_039',
+            date: '2026-01-23',
+            title: 'Push Notifications System Improvements',
+            description: 'Fixed push notifications by adding missing Firebase Messaging SDK. Added automatic notification permission prompt modal that appears after login asking users to enable notifications. Modal displays in English with "Enable Notifications" and "Not now" options. Remembers dismissal for 7 days. Improved test notification function to properly save FCM token and test full end-to-end flow.',
+            category: 'feature',
+            files: ['index.html', 'js/notifications.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_038',
+            date: '2026-01-23',
+            title: 'Dashboard Redesign',
+            description: 'Redesigned dashboard to show more useful information. Replaced Shopify-dependent Store Performance widget with Customer Issues widget showing open/follow-up counts. Replaced Sales Goal widget with PTO Requests showing pending approvals. Limited Recent Announcements to 4 most recent. Removed Shopify API calls that were not working for non-VSU stores.',
+            category: 'enhancement',
+            files: ['js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_037',
+            date: '2026-01-23',
+            title: 'Customer Log Table Layout Fix',
+            description: 'Fixed overlapping columns in the Customer Log (Order Issues) table. Added minimum widths to all columns and wrapped table in scrollable container for smaller screens. Columns now have proper spacing and text no longer overlaps.',
+            category: 'fix',
+            files: ['js/vendors-module.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_036',
+            date: '2026-01-23',
+            title: 'Attendance Location Column Update',
+            description: 'Changed the Location column in attendance records to show the employee assigned store name (Miramar, Kearny Mesa, etc.) instead of GPS data. Disabled GPS location tracking as it was not being used. Simplified the getLocationDisplayForRecord() function.',
+            category: 'enhancement',
+            files: ['js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_035',
+            date: '2026-01-23',
+            title: 'Clock Edit Bug Fix',
+            description: 'Fixed "No changes detected" error when trying to edit clock in/out times. The issue was comparing null/undefined/empty values inconsistently. Added normalize() helper function to standardize comparison of empty values. Now users can properly edit clock records to add missing clock out times.',
+            category: 'fix',
+            files: ['js/script.js'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
+            id: 'log_034',
+            date: '2026-01-23',
+            title: 'Menu Cleanup and Reorganization',
+            description: 'Hid unused menu items that are not being used: Celeste AI, Sales & Analytics, Best Sellers, Sales Performance, G-conomics. Items are commented out so they can be re-enabled later if needed. Moved Development Log and God Mode options to the bottom of the navigation menu for cleaner organization.',
+            category: 'enhancement',
+            files: ['index.html'],
+            developer: 'Carlos',
+            requestedBy: 'Carlos'
+        },
+        {
             id: 'log_011',
             date: '2026-01-15',
             title: 'Schedule/PTO Integration Fix',

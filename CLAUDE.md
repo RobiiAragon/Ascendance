@@ -33,7 +33,13 @@ This file contains instructions and rules that Claude should follow when working
 - Make components responsive (mobile-first)
 - Use `var(--variable)` CSS variables for theming
 
-## Custom Rules (Add your own below)
+## Custom Rules
 
-<!-- Add your specific rules here -->
+1. **Mobile First** - Always check how changes look on mobile. Test responsive layouts.
+
+2. **Don't Break Existing Features** - Before modifying code, understand what it does. Never remove or change functionality that already works without explicit permission.
+
+3. **Think Before Acting** - For complex changes, take time to analyze the codebase and plan the approach before writing code.
+
+4. **Document in Development Log** - After completing significant changes, add entries to the Development Log (`js/development-log.js`) documenting what was done.
 
