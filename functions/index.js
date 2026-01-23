@@ -910,8 +910,8 @@ exports.processNotificationQueue = functions.firestore
                 // Web specific
                 webpush: {
                     notification: {
-                        icon: '/img/icon-192.png',
-                        badge: '/img/icon-192.png'
+                        icon: '/img/AH.png',
+                        badge: '/img/AH.png'
                     },
                     fcmOptions: {
                         link: `https://ascendancehub.com/index.html?page=${notification.notification?.page || 'dashboard'}`
@@ -1039,7 +1039,7 @@ exports.processScheduledNotifications = functions
                             },
                             android: { priority: 'high', notification: { sound: 'default' } },
                             apns: { payload: { aps: { sound: 'default' } } },
-                            webpush: { notification: { icon: '/img/icon-192.png' } }
+                            webpush: { notification: { icon: '/img/AH.png' } }
                         };
 
                         await sendToTokens(tokens, message);
@@ -1104,7 +1104,7 @@ exports.sendWeeklyScheduleNotification = functions
                 android: { priority: 'high', notification: { sound: 'default' } },
                 apns: { payload: { aps: { sound: 'default' } } },
                 webpush: {
-                    notification: { icon: '/img/icon-192.png' },
+                    notification: { icon: '/img/AH.png' },
                     fcmOptions: { link: 'https://ascendancehub.com/index.html?page=schedule' }
                 }
             };

@@ -202,8 +202,8 @@ function showForegroundNotification(payload) {
     if (Notification.permission === 'granted') {
         const notification = new Notification(title, {
             body: body,
-            icon: '/img/icon-192.png',
-            badge: '/img/icon-192.png',
+            icon: '/img/AH.png',
+            badge: '/img/AH.png',
             tag: payload.data?.tag || 'ascendance-foreground',
             data: payload.data
         });

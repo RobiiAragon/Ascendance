@@ -33,8 +33,8 @@ function initializeFirebase() {
             const notificationTitle = payload.notification?.title || payload.data?.title || 'Ascendance';
             const notificationOptions = {
                 body: payload.notification?.body || payload.data?.body || '',
-                icon: payload.data?.icon || '/img/icon-192.png',
-                badge: '/img/icon-192.png',
+                icon: payload.data?.icon || '/img/AH.png',
+                badge: '/img/AH.png',
                 tag: payload.data?.tag || 'ascendance-notification',
                 data: payload.data || {},
                 vibrate: [200, 100, 200],
