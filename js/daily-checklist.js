@@ -1337,8 +1337,13 @@ window.viewChecklistHistory = async function() {
             store: 'all',
             urgency: 'all',
             category: 'all',
-            orderStatus: 'all'
+            orderStatus: 'all',
+            dateRange: 'all',
+            search: ''
         };
+
+        // Inventory sorting state
+        let inventorySortBy = 'date_desc'; // date_desc, date_asc, name_asc, name_desc, store
 
         // Inventory grouping state
         let inventoryGroupBy = 'none';
@@ -1358,19 +1363,76 @@ window.viewChecklistHistory = async function() {
             const user = getCurrentUser();
             const canEditRequests = user && (user.role === 'administrator' || user.role === 'manager' || user.role === 'admin');
 
-            // Get all requests sorted by date (newest first)
-            let allRequests = [...restockRequests].sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+            // Get all requests
+            let allRequests = [...restockRequests];
 
             // Apply filters
             let filteredRequests = allRequests.filter(r => {
+                // Store filter
                 if (runningLowFilters.store !== 'all' && r.store !== runningLowFilters.store) return false;
+                // Urgency filter
                 if (runningLowFilters.urgency !== 'all' && r.urgency !== runningLowFilters.urgency) return false;
+                // Category filter
                 if (runningLowFilters.category !== 'all' && r.category !== runningLowFilters.category) return false;
+                // Order status filter
                 if (runningLowFilters.orderStatus !== 'all' && r.orderStatus !== runningLowFilters.orderStatus) return false;
+
+                // Date range filter
+                if (runningLowFilters.dateRange !== 'all' && r.requestDate) {
+                    const itemDate = new Date(r.requestDate);
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                    if (runningLowFilters.dateRange === 'today') {
+                        if (itemDate < today) return false;
+                    } else if (runningLowFilters.dateRange === '7days') {
+                        const sevenDaysAgo = new Date(today);
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        if (itemDate < sevenDaysAgo) return false;
+                    } else if (runningLowFilters.dateRange === '30days') {
+                        const thirtyDaysAgo = new Date(today);
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        if (itemDate < thirtyDaysAgo) return false;
+                    } else if (runningLowFilters.dateRange === '3months') {
+                        const threeMonthsAgo = new Date(today);
+                        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                        if (itemDate < threeMonthsAgo) return false;
+                    }
+                }
+
+                // Search filter
+                if (runningLowFilters.search && runningLowFilters.search.trim()) {
+                    const searchLower = runningLowFilters.search.toLowerCase().trim();
+                    const productName = (r.productName || r.name || '').toLowerCase();
+                    const specifics = (r.specifics || r.quantity || '').toLowerCase();
+                    const brand = (r.brand || '').toLowerCase();
+                    if (!productName.includes(searchLower) && !specifics.includes(searchLower) && !brand.includes(searchLower)) {
+                        return false;
+                    }
+                }
+
                 return true;
             });
 
-            // Apply grouping if selected
+            // Apply sorting
+            filteredRequests.sort((a, b) => {
+                if (inventorySortBy === 'date_desc') {
+                    return new Date(b.requestDate) - new Date(a.requestDate);
+                } else if (inventorySortBy === 'date_asc') {
+                    return new Date(a.requestDate) - new Date(b.requestDate);
+                } else if (inventorySortBy === 'name_asc') {
+                    return (a.productName || a.name || '').localeCompare(b.productName || b.name || '');
+                } else if (inventorySortBy === 'name_desc') {
+                    return (b.productName || b.name || '').localeCompare(a.productName || a.name || '');
+                } else if (inventorySortBy === 'store') {
+                    const storeCompare = (a.store || '').localeCompare(b.store || '');
+                    if (storeCompare !== 0) return storeCompare;
+                    return new Date(b.requestDate) - new Date(a.requestDate);
+                }
+                return new Date(b.requestDate) - new Date(a.requestDate);
+            });
+
+            // Apply grouping if selected (re-sort by group first)
             if (inventoryGroupBy !== 'none') {
                 filteredRequests = filteredRequests.sort((a, b) => {
                     const aVal = (a[inventoryGroupBy] || 'Unknown').toLowerCase();
@@ -1390,7 +1452,9 @@ window.viewChecklistHistory = async function() {
 
             // Check if any filter is active
             const hasActiveFilters = runningLowFilters.store !== 'all' || runningLowFilters.urgency !== 'all' ||
-                                    runningLowFilters.category !== 'all' || runningLowFilters.orderStatus !== 'all';
+                                    runningLowFilters.category !== 'all' || runningLowFilters.orderStatus !== 'all' ||
+                                    runningLowFilters.dateRange !== 'all' || runningLowFilters.search.trim() !== '' ||
+                                    inventorySortBy !== 'date_desc';
 
             // Color mappings for stores, categories, urgency, and status
             const storeColors = {
@@ -1537,21 +1601,46 @@ window.viewChecklistHistory = async function() {
                     </div>
                 </div>
 
+                <!-- Search & Sort Row -->
+                <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                    <div style="position: relative; flex: 1; min-width: 200px; max-width: 400px;">
+                        <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;"></i>
+                        <input type="text" id="inventory-search" placeholder="Search by name, brand, or specifics..."
+                            value="${runningLowFilters.search}"
+                            oninput="setRunningLowFilter('search', this.value)"
+                            style="width: 100%; padding: 12px 14px 12px 42px; font-size: 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                    </div>
+                    <select class="inventory-filter-select" onchange="setRunningLowFilter('dateRange', this.value)" style="background: ${runningLowFilters.dateRange !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.dateRange !== 'all' ? 'white' : 'var(--text-primary)'};">
+                        <option value="all" ${runningLowFilters.dateRange === 'all' ? 'selected' : ''}>All Time</option>
+                        <option value="today" ${runningLowFilters.dateRange === 'today' ? 'selected' : ''}>Today</option>
+                        <option value="7days" ${runningLowFilters.dateRange === '7days' ? 'selected' : ''}>Last 7 Days</option>
+                        <option value="30days" ${runningLowFilters.dateRange === '30days' ? 'selected' : ''}>Last 30 Days</option>
+                        <option value="3months" ${runningLowFilters.dateRange === '3months' ? 'selected' : ''}>Last 3 Months</option>
+                    </select>
+                    <select class="inventory-filter-select" onchange="setInventorySortBy(this.value)">
+                        <option value="date_desc" ${inventorySortBy === 'date_desc' ? 'selected' : ''}>Newest First</option>
+                        <option value="date_asc" ${inventorySortBy === 'date_asc' ? 'selected' : ''}>Oldest First</option>
+                        <option value="name_asc" ${inventorySortBy === 'name_asc' ? 'selected' : ''}>Name A-Z</option>
+                        <option value="name_desc" ${inventorySortBy === 'name_desc' ? 'selected' : ''}>Name Z-A</option>
+                        <option value="store" ${inventorySortBy === 'store' ? 'selected' : ''}>By Store</option>
+                    </select>
+                </div>
+
                 <!-- Filters Row -->
                 <div class="inventory-filters">
-                    <select class="inventory-filter-select" onchange="setRunningLowFilter('store', this.value)">
+                    <select class="inventory-filter-select" onchange="setRunningLowFilter('store', this.value)" style="background: ${runningLowFilters.store !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.store !== 'all' ? 'white' : 'var(--text-primary)'};">
                         <option value="all" ${runningLowFilters.store === 'all' ? 'selected' : ''}>All Stores</option>
                         ${RUNNING_LOW_STORES.map(store => `<option value="${store}" ${runningLowFilters.store === store ? 'selected' : ''}>${store}</option>`).join('')}
                     </select>
-                    <select class="inventory-filter-select" onchange="setRunningLowFilter('urgency', this.value)">
+                    <select class="inventory-filter-select" onchange="setRunningLowFilter('urgency', this.value)" style="background: ${runningLowFilters.urgency !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.urgency !== 'all' ? 'white' : 'var(--text-primary)'};">
                         <option value="all" ${runningLowFilters.urgency === 'all' ? 'selected' : ''}>All Urgency</option>
                         ${RUNNING_LOW_URGENCIES.map(u => `<option value="${u}" ${runningLowFilters.urgency === u ? 'selected' : ''}>${u}</option>`).join('')}
                     </select>
-                    <select class="inventory-filter-select" onchange="setRunningLowFilter('category', this.value)">
+                    <select class="inventory-filter-select" onchange="setRunningLowFilter('category', this.value)" style="background: ${runningLowFilters.category !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.category !== 'all' ? 'white' : 'var(--text-primary)'};">
                         <option value="all" ${runningLowFilters.category === 'all' ? 'selected' : ''}>All Categories</option>
                         ${RUNNING_LOW_CATEGORIES.map(c => `<option value="${c}" ${runningLowFilters.category === c ? 'selected' : ''}>${c}</option>`).join('')}
                     </select>
-                    <select class="inventory-filter-select" onchange="setRunningLowFilter('orderStatus', this.value)">
+                    <select class="inventory-filter-select" onchange="setRunningLowFilter('orderStatus', this.value)" style="background: ${runningLowFilters.orderStatus !== 'all' ? 'var(--accent-primary)' : 'var(--bg-secondary)'}; color: ${runningLowFilters.orderStatus !== 'all' ? 'white' : 'var(--text-primary)'};">
                         <option value="all" ${runningLowFilters.orderStatus === 'all' ? 'selected' : ''}>All Statuses</option>
                         ${RUNNING_LOW_STATUSES.map(s => `<option value="${s}" ${runningLowFilters.orderStatus === s ? 'selected' : ''}>${s}</option>`).join('')}
                     </select>
@@ -1564,8 +1653,8 @@ window.viewChecklistHistory = async function() {
                         <option value="orderStatus" ${inventoryGroupBy === 'orderStatus' ? 'selected' : ''}>Group by Status</option>
                     </select>
                     ${hasActiveFilters || inventoryGroupBy !== 'none' ? `
-                        <button onclick="clearRunningLowFilters()" style="padding: 10px 16px; font-size: 13px; border-radius: 8px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
-                            <i class="fas fa-redo" style="font-size: 11px;"></i> Clear
+                        <button onclick="clearRunningLowFilters()" style="padding: 10px 16px; font-size: 13px; border-radius: 8px; border: none; background: #ef4444; color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                            <i class="fas fa-times" style="font-size: 11px;"></i> Clear All
                         </button>
                     ` : ''}
                 </div>
@@ -1767,14 +1856,21 @@ window.viewChecklistHistory = async function() {
         }
 
         function clearRunningLowFilters() {
-            runningLowFilters = { store: 'all', urgency: 'all', category: 'all', orderStatus: 'all' };
+            runningLowFilters = { store: 'all', urgency: 'all', category: 'all', orderStatus: 'all', dateRange: 'all', search: '' };
             inventoryGroupBy = 'none';
+            inventorySortBy = 'date_desc';
             renderRestockRequests();
         }
 
         // Set inventory grouping
         function setInventoryGroupBy(groupBy) {
             inventoryGroupBy = groupBy;
+            renderRestockRequests();
+        }
+
+        // Set inventory sorting
+        function setInventorySortBy(sortBy) {
+            inventorySortBy = sortBy;
             renderRestockRequests();
         }
 
@@ -2027,6 +2123,9 @@ window.viewChecklistHistory = async function() {
 
         // Export functions to window
         window.setInventoryGroupBy = setInventoryGroupBy;
+        window.setInventorySortBy = setInventorySortBy;
+        window.setRunningLowFilter = setRunningLowFilter;
+        window.clearRunningLowFilters = clearRunningLowFilters;
         window.exportInventoryReport = exportInventoryReport;
 
         // Toggle inline dropdown for inventory management
