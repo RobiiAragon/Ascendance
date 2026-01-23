@@ -10569,8 +10569,8 @@ window.viewChecklistHistory = async function() {
                         border: 1px solid rgba(245, 158, 11, 0.2);
                     }
                     .store-shift-slot.closing {
-                        background: rgba(16, 185, 129, 0.1);
-                        border: 1px solid rgba(16, 185, 129, 0.2);
+                        background: rgba(99, 102, 241, 0.1);
+                        border: 1px solid rgba(99, 102, 241, 0.2);
                     }
                     .store-shift-slot.empty {
                         background: var(--bg-secondary);
@@ -10598,6 +10598,112 @@ window.viewChecklistHistory = async function() {
                     .store-shift-time {
                         color: var(--text-muted);
                         font-size: 10px;
+                    }
+                    .store-shift-clone {
+                        position: absolute;
+                        top: 2px;
+                        right: 2px;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        background: rgba(255,255,255,0.9);
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        color: var(--accent-primary);
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .store-shift-slot:hover .store-shift-clone {
+                        opacity: 1;
+                    }
+                    .store-shift-clone:hover {
+                        background: var(--accent-primary);
+                        color: white;
+                    }
+                    .store-shift-delete {
+                        position: absolute;
+                        top: 2px;
+                        right: 22px;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        background: rgba(255,255,255,0.9);
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        color: #ef4444;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .store-shift-slot:hover .store-shift-delete {
+                        opacity: 1;
+                    }
+                    .store-shift-delete:hover {
+                        background: #ef4444;
+                        color: white;
+                    }
+                    /* Multi-employee slot styles */
+                    .store-shift-slot.multi-employee {
+                        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.1)) !important;
+                        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+                        padding: 4px;
+                        gap: 4px;
+                    }
+                    .store-shift-employee {
+                        background: transparent;
+                        padding: 2px 8px;
+                        padding-right: 48px;
+                        cursor: pointer;
+                        position: relative;
+                        transition: all 0.2s;
+                    }
+                    .store-shift-employee:hover {
+                        background: rgba(0,0,0,0.03);
+                    }
+                    .store-shift-employee .store-shift-clone {
+                        position: absolute;
+                        top: 50%;
+                        right: 24px;
+                        transform: translateY(-50%);
+                        width: 16px;
+                        height: 16px;
+                        font-size: 8px;
+                    }
+                    .store-shift-employee .store-shift-delete {
+                        position: absolute;
+                        top: 50%;
+                        right: 4px;
+                        transform: translateY(-50%);
+                        width: 16px;
+                        height: 16px;
+                        font-size: 8px;
+                    }
+                    .store-shift-employee:hover .store-shift-clone,
+                    .store-shift-employee:hover .store-shift-delete {
+                        opacity: 1;
+                    }
+                    .store-shift-add-more {
+                        width: 100%;
+                        padding: 4px;
+                        border: 1px dashed rgba(139, 92, 246, 0.4);
+                        border-radius: 6px;
+                        background: transparent;
+                        color: #8b5cf6;
+                        cursor: pointer;
+                        font-size: 10px;
+                        transition: all 0.2s;
+                        margin-top: 2px;
+                    }
+                    .store-shift-add-more:hover {
+                        background: rgba(139, 92, 246, 0.1);
+                        border-color: #8b5cf6;
                     }
 
                     /* Hours Summary Panel for Manager */
