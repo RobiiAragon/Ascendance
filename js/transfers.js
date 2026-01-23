@@ -1371,32 +1371,71 @@ async function saveTransferToFirebase(transfer) {
         if (typeof firebase !== 'undefined' && firebase.firestore) {
             const db = firebase.firestore();
 
-            // If there's a photo, upload to Storage first
+            // Prepare transfer data
             let transferData = { ...transfer };
-            if (transfer.photo && transfer.photo.startsWith('data:')) {
+
+            // Handle multiple photos (up to 4)
+            if (transfer.photos && Array.isArray(transfer.photos) && transfer.photos.length > 0) {
+                try {
+                    if (typeof firebase.storage === 'function') {
+                        const storage = firebase.storage();
+                        const photoUrls = [];
+                        const photoPaths = [];
+
+                        for (let i = 0; i < transfer.photos.length; i++) {
+                            const photo = transfer.photos[i];
+                            if (photo && photo.startsWith('data:')) {
+                                const photoPath = `transfers/${transfer.id}/photo_${i + 1}.jpg`;
+                                const storageRef = storage.ref(photoPath);
+
+                                // Upload base64 photo
+                                await storageRef.putString(photo, 'data_url');
+                                const photoUrl = await storageRef.getDownloadURL();
+
+                                photoUrls.push(photoUrl);
+                                photoPaths.push(photoPath);
+                                console.log(`📷 Photo ${i + 1} uploaded to Storage`);
+                            }
+                        }
+
+                        // Replace base64 array with URLs
+                        transferData.photos = photoUrls;
+                        transferData.photoPaths = photoPaths;
+                        transferData.photoCount = photoUrls.length;
+                        console.log(`📷 ${photoUrls.length} photos uploaded to Storage`);
+                    } else {
+                        // Storage not available
+                        transferData.photos = null;
+                        transferData.hasPhotos = true;
+                        transferData.photoCount = transfer.photos.length;
+                        console.warn('⚠️ Firebase Storage not available, photos not saved');
+                    }
+                } catch (photoError) {
+                    console.warn('⚠️ Could not upload photos to Storage:', photoError.message);
+                    transferData.photos = null;
+                    transferData.hasPhotos = true;
+                    transferData.photoCount = transfer.photos.length;
+                }
+            }
+
+            // Handle legacy single photo field
+            if (transfer.photo && typeof transfer.photo === 'string' && transfer.photo.startsWith('data:')) {
                 try {
                     if (typeof firebase.storage === 'function') {
                         const storage = firebase.storage();
                         const photoPath = `transfers/${transfer.id}/photo.jpg`;
                         const storageRef = storage.ref(photoPath);
 
-                        // Upload base64 photo
                         await storageRef.putString(transfer.photo, 'data_url');
                         const photoUrl = await storageRef.getDownloadURL();
 
-                        // Replace base64 with URL
                         transferData.photo = photoUrl;
                         transferData.photoPath = photoPath;
-                        console.log('📷 Photo uploaded to Storage:', photoUrl);
                     } else {
-                        // Storage not available, mark as hasPhoto but don't save base64
                         transferData.photo = null;
                         transferData.hasPhoto = true;
-                        console.warn('⚠️ Firebase Storage not available, photo not saved');
                     }
                 } catch (photoError) {
-                    console.warn('⚠️ Could not upload photo to Storage:', photoError.message);
-                    // Don't save base64 to Firestore (too large)
                     transferData.photo = null;
                     transferData.hasPhoto = true;
                 }
@@ -1579,7 +1618,18 @@ function viewTransferDetails(transferId) {
             </div>
         ` : ''}
 
-        ${transfer.photo ? `
+        ${transfer.photos && transfer.photos.length > 0 ? `
+            <div class="order-detail-section">
+                <h3>Photos (${transfer.photos.length})</h3>
+                <div style="display: grid; grid-template-columns: repeat(${Math.min(transfer.photos.length, 2)}, 1fr); gap: 8px;">
+                    ${transfer.photos.map((photo, idx) => `
+                        <div style="border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 1;">
+                            <img src="${photo}" alt="Transfer photo ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : transfer.photo ? `
             <div class="order-detail-section">
                 <h3>Photo</h3>
                 <div style="border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
@@ -2070,7 +2120,7 @@ let unifiedTransferState = {
     items: [],
     activeTab: 'ai', // 'ai' or 'search'
     mediaFiles: [],
-    processedPhoto: null
+    processedPhotos: [] // Store up to 4 photos for transfer record
 };
 
 // Open Unified Transfer Modal
@@ -2088,7 +2138,7 @@ function openUnifiedTransferModal() {
     // Reset state
     unifiedTransferState.items = [];
     unifiedTransferState.mediaFiles = [];
-    unifiedTransferState.processedPhoto = null;
+    unifiedTransferState.processedPhotos = [];
     unifiedTransferState.activeTab = 'ai';
 
     // Reset form fields
@@ -2416,15 +2466,28 @@ function openUnifiedCamera() {
     document.getElementById('unifiedCameraInput')?.click();
 }
 
-// Process unified media files
+// Process unified media files (max 4 images)
 function processUnifiedMedia(input) {
     const files = Array.from(input.files);
     if (!files.length) return;
+
+    // Count current images
+    const currentImageCount = unifiedTransferState.mediaFiles.filter(m => m.type === 'image').length;
+    const maxImages = 4;
 
     files.forEach(file => {
         const fileType = file.type.startsWith('image/') ? 'image' :
                         file.type.startsWith('video/') ? 'video' :
                         file.type.startsWith('audio/') ? 'audio' : 'unknown';
+
+        // Check limit for images
+        if (fileType === 'image') {
+            const imageCount = unifiedTransferState.mediaFiles.filter(m => m.type === 'image').length;
+            if (imageCount >= maxImages) {
+                showTransferToast(`Maximum ${maxImages} photos allowed`, 'warning');
+                return;
+            }
+        }
 
         const mediaObj = {
             file: file,
@@ -2565,14 +2628,23 @@ async function processUnifiedWithAI() {
     if (processBtn) processBtn.style.display = 'none';
 
     try {
-        // Store processed photo before clearing
-        if (unifiedTransferState.mediaFiles.length > 0) {
-            const firstImage = unifiedTransferState.mediaFiles.find(m => m.type === 'image');
-            if (firstImage) {
-                const base64 = await fileToBase64(firstImage.file);
-                unifiedTransferState.processedPhoto = base64;
+        // Store all images (up to 4) before clearing
+        const images = unifiedTransferState.mediaFiles.filter(m => m.type === 'image').slice(0, 4);
+        unifiedTransferState.processedPhotos = [];
+
+        for (const image of images) {
+            try {
+                const base64 = await fileToBase64(image.file);
+                const compressed = await compressImageForStorage(base64);
+                if (compressed) {
+                    unifiedTransferState.processedPhotos.push(compressed);
+                }
+            } catch (e) {
+                console.warn('Could not process image:', e);
             }
         }
+
+        console.log(`📷 Processed ${unifiedTransferState.processedPhotos.length} photos for storage`);
 
         // Use existing AI processing function
         aiTransferState.mediaFiles = unifiedTransferState.mediaFiles.map(m => ({...m}));
@@ -2904,7 +2976,7 @@ async function createUnifiedTransfer() {
             createdAt: new Date().toISOString(),
             receivedAt: null,
             receivedBy: null,
-            photo: unifiedTransferState.processedPhoto || null
+            photos: unifiedTransferState.processedPhotos.length > 0 ? unifiedTransferState.processedPhotos : null
         };
 
         // Add to state
