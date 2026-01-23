@@ -506,6 +506,38 @@ async function toggleNotifications() {
     updateNotificationButtonUI();
 }
 
+// Test notification - sends a local browser notification
+async function testNotification() {
+    if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            showNotificationToast('Primero activa las notificaciones', 'warning');
+            return;
+        }
+    }
+
+    // Send local test notification
+    const notification = new Notification('Prueba de Ascendance', {
+        body: 'Las notificaciones están funcionando correctamente!',
+        icon: '/img/AH.png',
+        badge: '/img/AH.png',
+        tag: 'test-notification',
+        vibrate: [200, 100, 200]
+    });
+
+    notification.onclick = () => {
+        window.focus();
+        notification.close();
+    };
+
+    showNotificationToast('Notificación de prueba enviada!', 'success');
+
+    // Also try to send via FCM if token exists
+    if (notificationsState.token) {
+        console.log('FCM Token exists, notification system ready');
+    }
+}
+
 // Update notification button in user menu
 function updateNotificationButtonUI() {
     const btn = document.getElementById('notificationToggleBtn');
@@ -582,3 +614,4 @@ window.renderNotificationButton = renderNotificationButton;
 window.toggleNotifications = toggleNotifications;
 window.showNotificationToast = showNotificationToast;
 window.updateNotificationButtonUI = updateNotificationButtonUI;
+window.testNotification = testNotification;
