@@ -547,17 +547,36 @@ async function testNotification() {
         if (typeof firebase !== 'undefined' && firebase.firestore) {
             const db = firebase.firestore();
 
-            // Verify token is saved
-            const tokenDoc = await db.collection('push_tokens').where('email', '==', user.email).limit(1).get();
-            if (tokenDoc.empty) {
-                console.warn('[Test] No token found for user in Firestore');
-                showNotificationToast('Token no encontrado. Activando notificaciones...', 'warning');
-                await requestNotificationPermission();
+            // First, make sure we have a valid token
+            let currentToken = notificationsState.token;
+            if (!currentToken) {
+                console.log('[Test] Getting new FCM token...');
+                currentToken = await getFCMToken();
+            }
+
+            if (!currentToken) {
+                console.error('[Test] Could not get FCM token');
+                showNotificationToast('Error obteniendo token FCM. Revisa la consola.', 'error');
                 return;
             }
 
-            const savedToken = tokenDoc.docs[0].data().token;
-            console.log('[Test] Found token in Firestore:', savedToken.substring(0, 20) + '...');
+            console.log('[Test] Current token:', currentToken.substring(0, 30) + '...');
+
+            // Save token to Firestore
+            console.log('[Test] Saving token to Firestore...');
+            await db.collection('push_tokens').doc(currentToken.substring(0, 50)).set({
+                token: currentToken,
+                odooId: user.odooId || user.id || null,
+                name: user.name || 'Unknown',
+                email: user.email || null,
+                role: user.role || 'employee',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                platform: /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios' :
+                         /Android/.test(navigator.userAgent) ? 'android' : 'web'
+            }, { merge: true });
+            console.log('[Test] Token saved!');
+
+            const savedToken = currentToken;
 
             // Create test notification in queue (triggers Cloud Function)
             const notificationDoc = await db.collection('notification_queue').add({
