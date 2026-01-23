@@ -1190,7 +1190,7 @@
             const allowedPages = userPermissions.pages || [];
 
             // Special bypass for super admin pages (carlos@calidevs.com only)
-            const superAdminPages = ['superadmin', 'devlog'];
+            const superAdminPages = ['superadmin'];
             const userEmail = (user.email || user.authEmail || '').toLowerCase();
             const isSuperAdmin = userEmail === 'carlos@calidevs.com';
 

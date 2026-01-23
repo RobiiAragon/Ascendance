@@ -452,14 +452,16 @@
         <nav class="nav-section">
             <!-- SUPER ADMIN - Only visible for carlos@calidevs.com -->
             <div id="super-admin-nav" style="display: none;">
-                <div class="nav-label" style="color: #ef4444; font-weight: 700;">Developer Mode</div>
+                <div class="nav-label" style="color: #ef4444; font-weight: 700;">God Mode</div>
                 <a href="#" class="nav-item" data-page="superadmin" onclick="window.navigateTo && window.navigateTo('superadmin'); return false;" style="background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(185,28,28,0.2)); border: 1px solid rgba(239,68,68,0.4);">
                     <span class="nav-icon"><i class="fas fa-crown" style="color: gold;"></i></span> <span style="color: #ef4444; font-weight: 600;">God Mode</span>
                 </a>
-                <a href="#" class="nav-item" data-page="devlog" onclick="window.navigateTo && window.navigateTo('devlog'); return false;" style="background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(99,102,241,0.4);">
-                    <span class="nav-icon"><i class="fas fa-code" style="color: #6366f1;"></i></span> <span style="color: #6366f1; font-weight: 600;">Development</span>
-                </a>
             </div>
+
+            <!-- DEVELOPMENT LOG - Visible to admin/manager -->
+            <a href="#" class="nav-item" data-page="devlog" onclick="window.navigateTo && window.navigateTo('devlog'); return false;" style="background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(99,102,241,0.4);">
+                <span class="nav-icon"><i class="fas fa-code" style="color: #6366f1;"></i></span> <span style="color: #6366f1; font-weight: 600;">Development Log</span>
+            </a>
 
             <!-- PRINCIPAL -->
             <div class="nav-label">Principal</div>
