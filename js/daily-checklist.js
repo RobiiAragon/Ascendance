@@ -307,6 +307,21 @@ async function saveChecklistCompletion(taskId, store, shift, photoUrl = null) {
         const docRef = await db.collection('checklistCompletions').add(completion);
         completion.id = docRef.id;
         checklistData.completions.push(completion);
+
+        // Log activity
+        if (typeof logActivity === 'function') {
+            const taskName = checklistData.tasks.find(t => t.id === taskId)?.task || taskId;
+            await logActivity('checklist_complete', {
+                message: `Completed task: ${taskName}`,
+                taskId: taskId,
+                taskName: taskName,
+                shift: shift,
+                store: store,
+                date: checklistSelectedDate,
+                realTimestamp: new Date().toISOString()
+            }, 'checklist', docRef.id);
+        }
+
         return true;
     } catch (error) {
         console.error('Error saving completion:', error);
@@ -318,8 +333,27 @@ async function saveChecklistCompletion(taskId, store, shift, photoUrl = null) {
 async function removeChecklistCompletion(completionId) {
     try {
         const db = firebase.firestore();
+
+        // Get completion info before deleting for logging
+        const completionToRemove = checklistData.completions.find(c => c.id === completionId);
+        const taskName = completionToRemove ? (checklistData.tasks.find(t => t.id === completionToRemove.taskId)?.task || completionToRemove.taskId) : 'Unknown';
+
         await db.collection('checklistCompletions').doc(completionId).delete();
         checklistData.completions = checklistData.completions.filter(c => c.id !== completionId);
+
+        // Log activity
+        if (typeof logActivity === 'function' && completionToRemove) {
+            await logActivity('checklist_uncomplete', {
+                message: `Uncompleted task: ${taskName}`,
+                taskId: completionToRemove.taskId,
+                taskName: taskName,
+                shift: completionToRemove.shift,
+                store: completionToRemove.store,
+                date: completionToRemove.date,
+                realTimestamp: new Date().toISOString()
+            }, 'checklist', completionId);
+        }
+
         return true;
     } catch (error) {
         console.error('Error removing completion:', error);

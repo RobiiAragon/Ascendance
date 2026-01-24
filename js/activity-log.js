@@ -156,6 +156,8 @@ async function renderActivityLog() {
                     <option value="inventory">Inventory</option>
                     <option value="restock">Restocks</option>
                     <option value="transfer">Transfers</option>
+                    <option value="checklist_complete">Checklist - Completed</option>
+                    <option value="checklist_uncomplete">Checklist - Uncompleted</option>
                 </select>
                 <select class="filter-select" id="activity-user-filter" onchange="filterActivityLogs()">
                     <option value="">All Users</option>
@@ -278,7 +280,9 @@ function renderActivityTable(logs) {
             'invoice': '<i class="fas fa-file-invoice-dollar" style="color: #84cc16;"></i>',
             'inventory': '<i class="fas fa-boxes" style="color: #a855f7;"></i>',
             'restock': '<i class="fas fa-truck-loading" style="color: #14b8a6;"></i>',
-            'transfer': '<i class="fas fa-exchange-alt" style="color: #6366f1;"></i>'
+            'transfer': '<i class="fas fa-exchange-alt" style="color: #6366f1;"></i>',
+            'checklist_complete': '<i class="fas fa-check-circle" style="color: #10b981;"></i>',
+            'checklist_uncomplete': '<i class="fas fa-times-circle" style="color: #ef4444;"></i>'
         };
         return icons[type] || '<i class="fas fa-circle" style="color: var(--text-muted);"></i>';
     };
@@ -299,7 +303,9 @@ function renderActivityTable(logs) {
             'invoice': 'Invoice',
             'inventory': 'Inventory',
             'restock': 'Restock',
-            'transfer': 'Transfer'
+            'transfer': 'Transfer',
+            'checklist_complete': 'Task Completed',
+            'checklist_uncomplete': 'Task Uncompleted'
         };
         return labels[type] || type;
     };

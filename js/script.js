@@ -14,7 +14,9 @@
             INVOICE: 'invoice',
             INVENTORY: 'inventory',
             RESTOCK: 'restock',
-            TRANSFER: 'transfer'
+            TRANSFER: 'transfer',
+            CHECKLIST_COMPLETE: 'checklist_complete',
+            CHECKLIST_UNCOMPLETE: 'checklist_uncomplete'
         };
 
         // Page/View System
