@@ -285,24 +285,9 @@ function renderMainView() {
                 </div>
             </div>
 
-            <!-- Stats Summary -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: #10b981;">${stats.completed}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Completed</div>
-                </div>
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: var(--text-muted);">${stats.pending}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Pending</div>
-                </div>
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: #ef4444;">${stats.missed}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Missed</div>
-                </div>
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: ${shiftConfig.color};">${shiftConfig.deadlineLabel}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Deadline</div>
-                </div>
+            <!-- Store Cards Grid - FIRST -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                ${INVENTORY_STORES.map(store => renderStoreCard(store)).join('')}
             </div>
 
             <!-- Current Task Banner -->
@@ -335,12 +320,24 @@ function renderMainView() {
                 </div>
             `}
 
-            <!-- Store Cards Grid -->
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">
-                Store Status
-            </h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                ${INVENTORY_STORES.map(store => renderStoreCard(store)).join('')}
+            <!-- Stats Summary -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: #10b981;">${stats.completed}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Completed</div>
+                </div>
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: var(--text-muted);">${stats.pending}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Pending</div>
+                </div>
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: #ef4444;">${stats.missed}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Missed</div>
+                </div>
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: ${shiftConfig.color};">${shiftConfig.deadlineLabel}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Deadline</div>
+                </div>
             </div>
 
             <!-- Active Tasks List (Admin/Manager only) -->
