@@ -186,13 +186,31 @@
             const date = document.getElementById('emp-purchase-date').value;
             const items = document.getElementById('emp-purchase-items').value.trim();
             const amount = parseFloat(document.getElementById('emp-purchase-amount').value) || 0;
+            const approvedBy = document.getElementById('emp-purchase-approved-by').value;
+            const paid = document.getElementById('emp-purchase-paid').checked;
+            const receiptInput = document.getElementById('emp-purchase-receipt');
 
-            if (!employeeId || !store || !date || !amount) {
-                alert('Please fill in all required fields');
+            if (!employeeId || !store || !date || !amount || !approvedBy) {
+                alert('Please fill in all required fields (Employee, Store, Date, Amount, Approved By)');
                 return;
             }
 
             const emp = employees.find(e => e.id === employeeId || e.firestoreId === employeeId);
+
+            // Upload receipt if provided
+            let receiptUrl = null;
+            if (receiptInput && receiptInput.files && receiptInput.files[0]) {
+                try {
+                    const file = receiptInput.files[0];
+                    const fileName = `employee-purchases/${Date.now()}_${file.name}`;
+                    const storageRef = firebase.storage().ref(fileName);
+                    await storageRef.put(file);
+                    receiptUrl = await storageRef.getDownloadURL();
+                } catch (uploadError) {
+                    console.error('Error uploading receipt:', uploadError);
+                    // Continue without receipt
+                }
+            }
 
             const purchaseData = {
                 employeeId,
@@ -201,6 +219,9 @@
                 date,
                 items,
                 amount,
+                approvedBy,
+                paid,
+                receiptUrl,
                 createdAt: new Date().toISOString(),
                 createdBy: authManager.getCurrentUser()?.name || 'Unknown'
             };
@@ -218,6 +239,36 @@
                 console.error('Error saving employee purchase:', error);
                 alert('Error saving purchase. Please try again.');
             }
+        }
+
+        // Preview receipt image
+        function previewPurchaseReceipt(input) {
+            const preview = document.getElementById('emp-purchase-receipt-preview');
+            const img = document.getElementById('emp-purchase-receipt-img');
+            const nameSpan = document.getElementById('emp-purchase-receipt-name');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                nameSpan.textContent = file.name;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Clear receipt
+        function clearPurchaseReceipt() {
+            const input = document.getElementById('emp-purchase-receipt');
+            const preview = document.getElementById('emp-purchase-receipt-preview');
+            const nameSpan = document.getElementById('emp-purchase-receipt-name');
+
+            input.value = '';
+            preview.style.display = 'none';
+            nameSpan.textContent = 'No file selected';
         }
 
         async function deleteEmployeePurchase(purchaseId) {
@@ -244,6 +295,8 @@
         window.saveEmployeePurchase = saveEmployeePurchase;
         window.deleteEmployeePurchase = deleteEmployeePurchase;
         window.loadEmployeePurchases = loadEmployeePurchases;
+        window.previewPurchaseReceipt = previewPurchaseReceipt;
+        window.clearPurchaseReceipt = clearPurchaseReceipt;
 
         // Cash Out Functions
         function renderCashOut() {
@@ -7609,6 +7662,40 @@ Return ONLY the JSON object, no additional text.`,
                             <div class="form-group">
                                 <label>Items Purchased</label>
                                 <textarea class="form-input" id="emp-purchase-items" rows="2" placeholder="List of items purchased..."></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Approved By *</label>
+                                    <select class="form-input" id="emp-purchase-approved-by">
+                                        <option value="">Select manager...</option>
+                                        <option value="Robert">Robert</option>
+                                        <option value="Mauricio">Mauricio</option>
+                                        <option value="Omar">Omar</option>
+                                        <option value="Mario">Mario</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="display: flex; align-items: center; gap: 12px; padding-top: 28px;">
+                                    <label style="margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="emp-purchase-paid" style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-weight: 600;">Paid</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Receipt Photo</label>
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <input type="file" id="emp-purchase-receipt" accept="image/*" style="display: none;" onchange="previewPurchaseReceipt(this)">
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('emp-purchase-receipt').click()" style="flex-shrink: 0;">
+                                        <i class="fas fa-camera"></i> Upload Receipt
+                                    </button>
+                                    <span id="emp-purchase-receipt-name" style="font-size: 13px; color: var(--text-muted);">No file selected</span>
+                                </div>
+                                <div id="emp-purchase-receipt-preview" style="margin-top: 12px; display: none;">
+                                    <img id="emp-purchase-receipt-img" src="" alt="Receipt preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <button type="button" onclick="clearPurchaseReceipt()" style="margin-left: 8px; background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px;">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
