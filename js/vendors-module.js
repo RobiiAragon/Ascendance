@@ -1707,18 +1707,18 @@ Return ONLY the JSON object, no additional text.`
                     </div>
                 </div>
 
-                <!-- Customer Response Chart -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header issues-card-header" style="flex-wrap: wrap; gap: 12px;">
-                        <div>
+                <!-- Order Issues List -->
+                <div class="card">
+                    <div class="card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
                             <h3 class="card-title">
-                                <i class="fas fa-comments"></i>
-                                Customer Response
+                                <i class="fas fa-clipboard-list"></i>
+                                ${currentIssueStatusFilter === 'all' ? 'Order Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Order Issues'}
                             </h3>
-                            <span style="font-size: 13px; color: var(--text-muted);">How customers felt when leaving</span>
+                            <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
-                            <select id="issue-store-filter" class="form-input" onchange="filterIssuesByStore(this.value)" style="width: 200px; padding: 8px 12px; font-size: 13px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <select id="issue-store-filter" class="form-input" onchange="filterIssuesByStore(this.value)" style="width: 180px; padding: 8px 12px; font-size: 13px;">
                                 <option value="all" ${currentIssueStoreFilter === 'all' ? 'selected' : ''}>All Stores</option>
                                 <option value="Miramar" ${currentIssueStoreFilter === 'Miramar' ? 'selected' : ''}>VSU Miramar</option>
                                 <option value="Morena" ${currentIssueStoreFilter === 'Morena' ? 'selected' : ''}>VSU Morena</option>
@@ -1727,30 +1727,14 @@ Return ONLY the JSON object, no additional text.`
                                 <option value="North Park" ${currentIssueStoreFilter === 'North Park' ? 'selected' : ''}>VSU North Park</option>
                                 <option value="Miramar Wine & Liquor" ${currentIssueStoreFilter === 'Miramar Wine & Liquor' ? 'selected' : ''}>Miramar Wine & Liquor</option>
                             </select>
-                        </div>
-                    </div>
-                    <div class="card-body issues-perception-chart">
-                        ${renderPerceptionGanttChart()}
-                    </div>
-                </div>
-
-                <!-- Order Issues List -->
-                <div class="card">
-                    <div class="card-header" style="justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <h3 class="card-title">
-                                <i class="fas fa-clipboard-list"></i>
-                                ${currentIssueStatusFilter === 'all' ? 'Order Issues' : issueStatusConfig[currentIssueStatusFilter]?.label || 'Order Issues'}
-                            </h3>
-                            <span class="badge" style="background: var(--accent-primary);">${sortedIssues.length} ${sortedIssues.length === 1 ? 'Issue' : 'Issues'}</span>
-                        </div>
-                        <div class="view-toggle" style="display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;">
-                            <button class="view-toggle-btn ${issuesViewMode === 'gallery' ? 'active' : ''}" onclick="toggleIssuesView('gallery')" title="Gallery View">
-                                <i class="fas fa-th-large"></i>
-                            </button>
-                            <button class="view-toggle-btn ${issuesViewMode === 'table' ? 'active' : ''}" onclick="toggleIssuesView('table')" title="Table View">
-                                <i class="fas fa-list"></i>
-                            </button>
+                            <div class="view-toggle" style="display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;">
+                                <button class="view-toggle-btn ${issuesViewMode === 'gallery' ? 'active' : ''}" onclick="toggleIssuesView('gallery')" title="Gallery View">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button class="view-toggle-btn ${issuesViewMode === 'table' ? 'active' : ''}" onclick="toggleIssuesView('table')" title="Table View">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body" style="padding: ${issuesViewMode === 'gallery' ? '20px' : '0'};">
@@ -1761,19 +1745,18 @@ Return ONLY the JSON object, no additional text.`
                             </div>
                         ` : issuesViewMode === 'table' ? `
                             <div style="overflow-x: auto;">
-                            <table class="data-table issues-table" style="min-width: 1100px;">
+                            <table class="data-table issues-table" style="min-width: 950px;">
                                 <thead>
                                     <tr>
-                                        <th style="min-width: 110px;">Status</th>
-                                        <th style="min-width: 90px;">Date</th>
-                                        <th style="min-width: 70px;">Order #</th>
-                                        <th style="min-width: 90px;">Store</th>
-                                        <th style="min-width: 120px;">Customer</th>
-                                        <th style="min-width: 110px;">Phone</th>
-                                        <th style="min-width: 80px;">Type</th>
-                                        <th style="min-width: 150px;">Description</th>
-                                        <th style="min-width: 80px;">Response</th>
-                                        <th style="min-width: 160px;">Actions</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Order #</th>
+                                        <th>Store</th>
+                                        <th>Customer</th>
+                                        <th>Phone</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1809,9 +1792,6 @@ Return ONLY the JSON object, no additional text.`
                                                 </span>
                                             </td>
                                             <td data-label="Description" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${issue.description || '-'}</td>
-                                            <td data-label="Response" style="text-align: center; font-size: 24px;">
-                                                ${issue.perception ? getPerceptionEmoji(issue.perception) : '-'}
-                                            </td>
                                             <td data-label="Actions" onclick="event.stopPropagation()">
                                                 <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                                                     ${status !== 'follow-up' ? `

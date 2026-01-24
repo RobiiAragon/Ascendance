@@ -7285,19 +7285,19 @@
 .issues-table td:nth-child(1) { width: 130px; } /* Status */
 
 .issues-table th:nth-child(2),
-.issues-table td:nth-child(2) { width: 95px; } /* Date */
+.issues-table td:nth-child(2) { width: 100px; } /* Date */
 
 .issues-table th:nth-child(3),
-.issues-table td:nth-child(3) { width: 75px; } /* Order # */
+.issues-table td:nth-child(3) { width: 80px; } /* Order # */
 
 .issues-table th:nth-child(4),
 .issues-table td:nth-child(4) { width: 100px; } /* Store */
 
 .issues-table th:nth-child(5),
-.issues-table td:nth-child(5) { width: 130px; } /* Customer */
+.issues-table td:nth-child(5) { width: 140px; } /* Customer */
 
 .issues-table th:nth-child(6),
-.issues-table td:nth-child(6) { width: 130px; } /* Phone */
+.issues-table td:nth-child(6) { width: 140px; } /* Phone */
 
 .issues-table th:nth-child(7),
 .issues-table td:nth-child(7) { width: 90px; } /* Type */
@@ -7306,10 +7306,7 @@
 .issues-table td:nth-child(8) { width: auto; } /* Description - takes remaining space */
 
 .issues-table th:nth-child(9),
-.issues-table td:nth-child(9) { width: 80px; text-align: center; } /* Response */
-
-.issues-table th:nth-child(10),
-.issues-table td:nth-child(10) { width: 140px; } /* Actions */
+.issues-table td:nth-child(9) { width: 140px; } /* Actions */
 
 /* Ensure content doesn't overflow */
 .issues-table td {
