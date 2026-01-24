@@ -9463,12 +9463,38 @@ window.viewChecklistHistory = async function() {
                 }
             });
 
-            // Sort: employees without time off first, then those with time off
+            // Check for employees already assigned to ANOTHER store on this date
+            const employeesAtOtherStore = new Map();
+            const currentStore = currentPickerContext.storeFilter;
+            if (currentStore && currentStore !== 'all') {
+                filteredEmployees.forEach(emp => {
+                    // Find if this employee has a schedule on this date at a DIFFERENT store
+                    const otherStoreSchedule = schedules.find(s =>
+                        s.date === currentPickerContext.dateKey &&
+                        (s.employeeId === emp.id || s.employeeId === emp.firestoreId) &&
+                        s.store !== currentStore
+                    );
+                    if (otherStoreSchedule) {
+                        employeesAtOtherStore.set(emp.id, otherStoreSchedule.store);
+                    }
+                });
+            }
+
+            // Sort: available employees first, then time off, then those at other stores
             filteredEmployees.sort((a, b) => {
                 const aHasTimeOff = employeesWithTimeOff.has(a.id);
                 const bHasTimeOff = employeesWithTimeOff.has(b.id);
+                const aAtOtherStore = employeesAtOtherStore.has(a.id);
+                const bAtOtherStore = employeesAtOtherStore.has(b.id);
+
+                // Employees at other stores go last
+                if (aAtOtherStore && !bAtOtherStore) return 1;
+                if (!aAtOtherStore && bAtOtherStore) return -1;
+
+                // Then employees with time off
                 if (aHasTimeOff && !bHasTimeOff) return 1;
                 if (!aHasTimeOff && bHasTimeOff) return -1;
+
                 return (a.name || '').localeCompare(b.name || '');
             });
 
@@ -9479,32 +9505,52 @@ window.viewChecklistHistory = async function() {
                 const timeOffRequest = employeesWithTimeOff.get(emp.id);
                 const hasTimeOff = !!timeOffRequest;
                 const timeOffType = timeOffRequest ? (PTO_REQUEST_TYPES[timeOffRequest.requestType]?.label || 'Time Off') : '';
+                const otherStore = employeesAtOtherStore.get(emp.id);
+                const isAtOtherStore = !!otherStore;
+
+                // Determine styles based on conflicts
+                let itemStyle = '';
+                let statusInfo = emp.store || '';
+                let nameIcon = '';
+                let isDisabled = false;
+
+                if (isAtOtherStore) {
+                    // Employee already assigned to another store - show in RED
+                    itemStyle = 'opacity: 0.6; border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.08);';
+                    statusInfo = `<span style="color: #ef4444; font-weight: 600;"><i class="fas fa-store"></i> Already at ${otherStore}</span>`;
+                    nameIcon = ` <i class="fas fa-ban" style="color: #ef4444; font-size: 11px;" title="Already scheduled at ${otherStore}"></i>`;
+                    isDisabled = true;
+                } else if (hasTimeOff) {
+                    itemStyle = 'opacity: 0.7; border-left: 3px solid #f59e0b;';
+                    statusInfo = `<span style="color: #f59e0b; font-weight: 500;"><i class="fas fa-calendar-times"></i> ${timeOffType}</span>`;
+                    nameIcon = ` <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 11px;" title="${timeOffType} approved"></i>`;
+                }
 
                 if (multiSelectMode) {
                     return `
-                        <div class="employee-picker-item multi-select ${isSelected ? 'selected' : ''} ${hasTimeOff ? 'has-time-off' : ''}"
+                        <div class="employee-picker-item multi-select ${isSelected ? 'selected' : ''} ${hasTimeOff ? 'has-time-off' : ''} ${isAtOtherStore ? 'at-other-store' : ''}"
                              data-employee-id="${emp.id}"
-                             onclick="toggleEmployeeSelection('${emp.id}')"
-                             style="${hasTimeOff ? 'opacity: 0.7; border-left: 3px solid #f59e0b;' : ''}">
+                             onclick="${isDisabled ? 'showNotification(\'This employee is already scheduled at ' + otherStore + '\', \'error\')' : `toggleEmployeeSelection('${emp.id}')`}"
+                             style="${itemStyle}">
                             <div class="select-checkbox">
                                 <i class="fas fa-check"></i>
                             </div>
-                            <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                            <div class="employee-picker-avatar" style="background: ${isAtOtherStore ? '#ef4444' : colors[colorIndex]};">${initials}</div>
                             <div class="employee-picker-info">
-                                <div class="employee-picker-name">${emp.name}${hasTimeOff ? ` <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 11px;" title="${timeOffType} approved"></i>` : ''}</div>
-                                <div class="employee-picker-store">${hasTimeOff ? `<span style="color: #f59e0b; font-weight: 500;"><i class="fas fa-calendar-times"></i> ${timeOffType}</span>` : (emp.store || '')}</div>
+                                <div class="employee-picker-name">${emp.name}${nameIcon}</div>
+                                <div class="employee-picker-store">${statusInfo}</div>
                             </div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="employee-picker-item ${hasTimeOff ? 'has-time-off' : ''}"
-                             onclick="${hasTimeOff ? `confirmAssignWithTimeOff('${emp.id}', '${timeOffType}')` : `assignEmployee('${emp.id}')`}"
-                             style="${hasTimeOff ? 'opacity: 0.7; border-left: 3px solid #f59e0b;' : ''}">
-                            <div class="employee-picker-avatar" style="background: ${colors[colorIndex]};">${initials}</div>
+                        <div class="employee-picker-item ${hasTimeOff ? 'has-time-off' : ''} ${isAtOtherStore ? 'at-other-store' : ''}"
+                             onclick="${isDisabled ? `showNotification('This employee is already scheduled at ${otherStore}', 'error')` : (hasTimeOff ? `confirmAssignWithTimeOff('${emp.id}', '${timeOffType}')` : `assignEmployee('${emp.id}')`)}"
+                             style="${itemStyle}; ${isDisabled ? 'cursor: not-allowed;' : ''}">
+                            <div class="employee-picker-avatar" style="background: ${isAtOtherStore ? '#ef4444' : colors[colorIndex]};">${initials}</div>
                             <div class="employee-picker-info">
-                                <div class="employee-picker-name">${emp.name}${hasTimeOff ? ` <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 11px;" title="${timeOffType} approved"></i>` : ''}</div>
-                                <div class="employee-picker-store">${hasTimeOff ? `<span style="color: #f59e0b; font-weight: 500;"><i class="fas fa-calendar-times"></i> ${timeOffType}</span>` : (emp.store || '')}</div>
+                                <div class="employee-picker-name">${emp.name}${nameIcon}</div>
+                                <div class="employee-picker-store">${statusInfo}</div>
                             </div>
                         </div>
                     `;
