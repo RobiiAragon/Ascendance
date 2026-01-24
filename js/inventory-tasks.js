@@ -225,12 +225,34 @@ function renderMainView() {
     const shiftConfig = INVENTORY_SHIFTS[inventoryTasksCurrentShift];
 
     dashboard.innerHTML = `
-        <div style="padding: 24px; max-width: 1200px; margin: 0 auto;">
+        <style>
+            .inv-tasks-container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+            .inv-tasks-header h1 { font-size: 32px; }
+            .inv-stores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+            .inv-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+            .inv-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+
+            @media (max-width: 768px) {
+                .inv-tasks-container { padding: 16px; }
+                .inv-tasks-header h1 { font-size: 24px; }
+                .inv-stores-grid { grid-template-columns: 1fr; }
+                .inv-stats-grid { grid-template-columns: repeat(2, 1fr); }
+                .inv-controls { flex-direction: column; align-items: stretch; }
+                .inv-shift-toggle { width: 100%; justify-content: center; }
+                .inv-date-nav { justify-content: center; }
+            }
+
+            @media (max-width: 480px) {
+                .inv-tasks-container { padding: 12px; }
+                .inv-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            }
+        </style>
+        <div class="inv-tasks-container">
 
             <!-- Header -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+            <div class="inv-tasks-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
                 <div>
-                    <h1 style="font-size: 32px; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    <h1 style="font-weight: 800; margin: 0; color: var(--text-primary);">
                         Inventory Tasks
                     </h1>
                     <p style="color: var(--text-muted); margin-top: 8px; font-size: 15px;">
@@ -253,10 +275,10 @@ function renderMainView() {
 
             <!-- Date & Shift Controls -->
             <div class="card" style="margin-bottom: 24px; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div class="inv-controls">
 
                     <!-- Date Navigation -->
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="inv-date-nav" style="display: flex; align-items: center; gap: 12px;">
                         <button onclick="inventoryTasksPrevDay()"
                                 style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border-color);
                                        background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center;
@@ -294,7 +316,7 @@ function renderMainView() {
                     </div>
 
                     <!-- Shift Toggle -->
-                    <div style="display: flex; background: var(--bg-secondary); border-radius: 12px; padding: 4px;">
+                    <div class="inv-shift-toggle" style="display: flex; background: var(--bg-secondary); border-radius: 12px; padding: 4px;">
                         <button onclick="switchInventoryShift('opening')"
                                 style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
                                        font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
@@ -314,7 +336,7 @@ function renderMainView() {
             </div>
 
             <!-- Store Cards Grid - FIRST -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="inv-stores-grid" style="margin-bottom: 24px;">
                 ${INVENTORY_STORES.map(store => renderStoreCard(store)).join('')}
             </div>
 
@@ -349,22 +371,22 @@ function renderMainView() {
             `}
 
             <!-- Stats Summary -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: #10b981;">${stats.completed}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Completed</div>
+            <div class="inv-stats-grid" style="margin-bottom: 24px;">
+                <div class="card" style="padding: 16px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 800; color: #10b981;">${stats.completed}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Completed</div>
                 </div>
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: var(--text-muted);">${stats.pending}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Pending</div>
+                <div class="card" style="padding: 16px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 800; color: var(--text-muted);">${stats.pending}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Pending</div>
                 </div>
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: #ef4444;">${stats.missed}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Missed</div>
+                <div class="card" style="padding: 16px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 800; color: #ef4444;">${stats.missed}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Missed</div>
                 </div>
-                <div class="card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 800; color: ${shiftConfig.color};">${shiftConfig.deadlineLabel}</div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Deadline</div>
+                <div class="card" style="padding: 16px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 800; color: ${shiftConfig.color};">${shiftConfig.deadlineLabel}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Deadline</div>
                 </div>
             </div>
 
@@ -673,6 +695,12 @@ window.openCreateInventoryTaskModal = function() {
     if (!modal) return;
 
     modal.innerHTML = `
+        <style>
+            .inv-modal-stores-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            @media (max-width: 500px) {
+                .inv-modal-stores-grid { grid-template-columns: 1fr; }
+            }
+        </style>
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
                 <h2 style="display: flex; align-items: center; gap: 10px; font-size: 18px;">
@@ -748,7 +776,7 @@ window.openCreateInventoryTaskModal = function() {
                     <label style="font-weight: 600; margin-bottom: 10px; display: block; font-size: 14px;">
                         Assign to Stores <span style="color: #ef4444;">*</span>
                     </label>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <div class="inv-modal-stores-grid">
                         ${INVENTORY_STORES.map(store => `
                             <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px;
                                           border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;

@@ -90,7 +90,9 @@ window.FIREBASE_COLLECTIONS = {
     passwords: 'passwords',     // Firestore collection for password manager
     settings: 'settings',       // Firestore collection for app settings (store locations, geofence config, etc.)
     jobApplications: 'job_applications', // Firestore collection for HR job applications
-    shiftExchanges: 'shiftExchanges' // Firestore collection for shift exchange requests
+    shiftExchanges: 'shiftExchanges', // Firestore collection for shift exchange requests
+    inventoryTasks: 'inventoryTasks', // Firestore collection for inventory task definitions
+    inventoryCompletions: 'inventoryCompletions' // Firestore collection for inventory task completions
 };
 
 // Store Locations for Geofencing (Clock In/Out)
