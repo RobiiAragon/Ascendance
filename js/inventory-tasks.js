@@ -20,15 +20,15 @@ let inventoryTasksCurrentShift = 'opening';
 let inventoryTasksCurrentView = 'main'; // 'main' or 'detail'
 let inventoryTasksSelectedStore = null;
 
-// Store configuration
+// Store configuration with unique icons and colors
 const INVENTORY_STORES = [
-    { id: 'Miramar', name: 'MIRAMAR VSU', shortName: 'MIRAMAR' },
-    { id: 'Kearny Mesa', name: 'KEARNY MESA', shortName: 'KEARNY MESA' },
-    { id: 'Chula Vista', name: 'CHULA VISTA', shortName: 'CHULA VISTA' },
-    { id: 'North Park', name: 'NORTH PARK', shortName: 'NORTH PARK' },
-    { id: 'Morena', name: 'MORENA BLVD', shortName: 'MORENA BLVD' },
-    { id: 'Loyal Vaper', name: 'LOYAL VSU', shortName: 'LOYAL VSU' },
-    { id: 'Miramar Wine & Liquor', name: 'MMWL', shortName: 'MMWL' }
+    { id: 'Miramar', name: 'VSU Miramar', shortName: 'Miramar', icon: 'fa-jet-fighter', color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' },
+    { id: 'Kearny Mesa', name: 'VSU Kearny Mesa', shortName: 'Kearny Mesa', icon: 'fa-utensils', color: '#f97316', gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
+    { id: 'Chula Vista', name: 'VSU Chula Vista', shortName: 'Chula Vista', icon: 'fa-leaf', color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
+    { id: 'North Park', name: 'VSU North Park', shortName: 'North Park', icon: 'fa-tree-city', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' },
+    { id: 'Morena', name: 'VSU Morena', shortName: 'Morena', icon: 'fa-water', color: '#06b6d4', gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)' },
+    { id: 'Loyal Vaper', name: 'Loyal Vaper', shortName: 'Loyal Vaper', icon: 'fa-crown', color: '#eab308', gradient: 'linear-gradient(135deg, #eab308, #ca8a04)' },
+    { id: 'Miramar Wine & Liquor', name: 'Miramar Wine & Liquor', shortName: 'MMWL', icon: 'fa-wine-bottle', color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899, #db2777)' }
 ];
 
 // Shift configuration
@@ -37,13 +37,17 @@ const INVENTORY_SHIFTS = {
         name: 'AM Shift',
         icon: 'fa-sun',
         color: '#f59e0b',
-        deadline: '14:00'
+        bgColor: 'rgba(245, 158, 11, 0.1)',
+        deadline: '14:00',
+        deadlineLabel: '2:00 PM'
     },
     closing: {
         name: 'PM Shift',
         icon: 'fa-moon',
         color: '#8b5cf6',
-        deadline: '21:00'
+        bgColor: 'rgba(139, 92, 246, 0.1)',
+        deadline: '21:00',
+        deadlineLabel: '9:00 PM'
     }
 };
 
@@ -52,12 +56,8 @@ const INVENTORY_SHIFTS = {
 // ============================================
 async function initializeInventoryTasks() {
     console.log('[InventoryTasks] Initializing module...');
-
-    // Load data from Firebase
     await loadInventoryTasks();
     await loadInventoryCompletions();
-
-    // Render the module
     renderInventoryTasksModule();
 }
 
@@ -70,18 +70,12 @@ async function loadInventoryTasks() {
             console.error('[InventoryTasks] Firebase not initialized');
             return;
         }
-
         const db = firebase.firestore();
         const snapshot = await db.collection('inventoryTasks')
             .where('active', '==', true)
             .orderBy('createdAt', 'desc')
             .get();
-
-        inventoryTasksData.tasks = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
+        inventoryTasksData.tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log(`[InventoryTasks] Loaded ${inventoryTasksData.tasks.length} tasks`);
     } catch (error) {
         console.error('[InventoryTasks] Error loading tasks:', error);
@@ -91,22 +85,13 @@ async function loadInventoryTasks() {
 
 async function loadInventoryCompletions() {
     try {
-        if (typeof firebase === 'undefined' || !firebase.firestore) {
-            console.error('[InventoryTasks] Firebase not initialized');
-            return;
-        }
-
+        if (typeof firebase === 'undefined' || !firebase.firestore) return;
         const db = firebase.firestore();
         const snapshot = await db.collection('inventoryCompletions')
             .where('date', '==', inventoryTasksSelectedDate)
             .get();
-
-        inventoryTasksData.completions = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
-        console.log(`[InventoryTasks] Loaded ${inventoryTasksData.completions.length} completions for ${inventoryTasksSelectedDate}`);
+        inventoryTasksData.completions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`[InventoryTasks] Loaded ${inventoryTasksData.completions.length} completions`);
     } catch (error) {
         console.error('[InventoryTasks] Error loading completions:', error);
         inventoryTasksData.completions = [];
@@ -119,37 +104,26 @@ async function loadInventoryCompletions() {
 function getTasksForShift(shift) {
     const today = inventoryTasksSelectedDate;
     return inventoryTasksData.tasks.filter(task => {
-        // Check shift
         if (task.shift !== shift) return false;
-
-        // Check duration
         if (task.duration === 'one-time' && task.createdDate !== today) return false;
-
         return true;
     });
 }
 
 function getStoreCompletion(store, shift, taskId) {
     return inventoryTasksData.completions.find(c =>
-        c.store === store &&
-        c.shift === shift &&
-        c.taskId === taskId &&
-        c.date === inventoryTasksSelectedDate
+        c.store === store && c.shift === shift && c.taskId === taskId && c.date === inventoryTasksSelectedDate
     );
 }
 
 function getStoreStatus(store, shift) {
     const tasks = getTasksForShift(shift);
-    if (tasks.length === 0) return 'no-tasks';
+    if (tasks.length === 0) return { status: 'no-tasks', completed: 0, total: 0 };
 
-    const completedCount = tasks.filter(task => {
-        const completion = getStoreCompletion(store, shift, task.id);
-        return completion !== undefined;
-    }).length;
+    const completedCount = tasks.filter(task => getStoreCompletion(store, shift, task.id)).length;
 
-    if (completedCount === tasks.length) return 'completed';
+    if (completedCount === tasks.length) return { status: 'completed', completed: completedCount, total: tasks.length };
 
-    // Check if past deadline
     const now = new Date();
     const shiftConfig = INVENTORY_SHIFTS[shift];
     const [deadlineHour, deadlineMin] = shiftConfig.deadline.split(':').map(Number);
@@ -158,16 +132,26 @@ function getStoreStatus(store, shift) {
 
     const isToday = inventoryTasksSelectedDate === new Date().toISOString().split('T')[0];
     if (isToday && now > deadline && completedCount < tasks.length) {
-        return 'missed';
+        return { status: 'missed', completed: completedCount, total: tasks.length };
     }
 
-    return 'pending';
+    return { status: 'pending', completed: completedCount, total: tasks.length };
+}
+
+function getOverallStats(shift) {
+    let completed = 0, pending = 0, missed = 0;
+    INVENTORY_STORES.forEach(store => {
+        const { status } = getStoreStatus(store.id, shift);
+        if (status === 'completed') completed++;
+        else if (status === 'missed') missed++;
+        else if (status === 'pending') pending++;
+    });
+    return { completed, pending, missed, total: INVENTORY_STORES.length };
 }
 
 function canManageInventoryTasks() {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (!user) return false;
-    return user.role === 'admin' || user.role === 'manager';
+    return user && (user.role === 'admin' || user.role === 'manager');
 }
 
 function formatTime(timestamp) {
@@ -176,9 +160,14 @@ function formatTime(timestamp) {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function formatDate(dateString) {
+function formatDateShort(dateString) {
     const date = new Date(dateString + 'T12:00:00');
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function formatDateLong(dateString) {
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 // ============================================
@@ -196,141 +185,197 @@ function renderInventoryTasksModule() {
 }
 
 // ============================================
-// MAIN VIEW (Store Grid)
+// MAIN VIEW
 // ============================================
 function renderMainView() {
     const dashboard = document.querySelector('.dashboard');
     const canManage = canManageInventoryTasks();
     const isToday = inventoryTasksSelectedDate === new Date().toISOString().split('T')[0];
-
-    // Get tasks for current shift
     const shiftTasks = getTasksForShift(inventoryTasksCurrentShift);
-    const currentTask = shiftTasks[0]; // Show first task in header
+    const currentTask = shiftTasks[0];
+    const stats = getOverallStats(inventoryTasksCurrentShift);
+    const shiftConfig = INVENTORY_SHIFTS[inventoryTasksCurrentShift];
 
     dashboard.innerHTML = `
-        <div style="padding: 24px; max-width: 1400px; margin: 0 auto;">
+        <div style="padding: 24px; max-width: 1200px; margin: 0 auto;">
+
             <!-- Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
                 <div>
-                    <h1 style="font-size: 28px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 12px;">
-                        <i class="fas fa-clipboard-check" style="color: #7c3aed;"></i>
+                    <h1 style="font-size: 32px; font-weight: 800; margin: 0; color: var(--text-primary);">
                         Inventory Tasks
                     </h1>
-                    <p style="color: var(--text-muted); margin-top: 4px;">Daily inventory counts by store and shift</p>
+                    <p style="color: var(--text-muted); margin-top: 8px; font-size: 15px;">
+                        Track daily inventory counts across all stores
+                    </p>
                 </div>
 
-                <div style="display: flex; gap: 12px; align-items: center;">
+                ${canManage ? `
+                    <button onclick="openCreateInventoryTaskModal()"
+                            style="background: var(--accent-primary); color: white; border: none; padding: 14px 24px;
+                                   border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 14px;
+                                   display: flex; align-items: center; gap: 10px; transition: all 0.2s;
+                                   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(99, 102, 241, 0.35)';"
+                            onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.25)';">
+                        <i class="fas fa-plus"></i> New Task
+                    </button>
+                ` : ''}
+            </div>
+
+            <!-- Date & Shift Controls -->
+            <div class="card" style="margin-bottom: 24px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+
                     <!-- Date Navigation -->
-                    <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); padding: 8px 16px; border-radius: 12px;">
-                        <button onclick="inventoryTasksPrevDay()" style="background: none; border: none; cursor: pointer; padding: 4px 8px; color: var(--text-secondary);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button onclick="inventoryTasksPrevDay()"
+                                style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border-color);
+                                       background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center;
+                                       justify-content: center; color: var(--text-secondary); transition: all 0.2s;"
+                                onmouseover="this.style.background='var(--bg-tertiary)'"
+                                onmouseout="this.style.background='var(--bg-secondary)'">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <span style="font-weight: 600; min-width: 180px; text-align: center;">
-                            ${formatDate(inventoryTasksSelectedDate)}
-                        </span>
-                        <button onclick="inventoryTasksNextDay()" style="background: none; border: none; cursor: pointer; padding: 4px 8px; color: var(--text-secondary);">
+
+                        <div style="text-align: center; min-width: 160px;">
+                            <div style="font-weight: 700; font-size: 16px; color: var(--text-primary);">
+                                ${formatDateShort(inventoryTasksSelectedDate)}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted);">
+                                ${isToday ? 'Today' : formatDateLong(inventoryTasksSelectedDate).split(',')[0]}
+                            </div>
+                        </div>
+
+                        <button onclick="inventoryTasksNextDay()"
+                                style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border-color);
+                                       background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center;
+                                       justify-content: center; color: var(--text-secondary); transition: all 0.2s;"
+                                onmouseover="this.style.background='var(--bg-tertiary)'"
+                                onmouseout="this.style.background='var(--bg-secondary)'">
                             <i class="fas fa-chevron-right"></i>
                         </button>
+
                         ${!isToday ? `
-                            <button onclick="inventoryTasksGoToToday()" style="background: var(--accent-primary); color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; margin-left: 8px;">
+                            <button onclick="inventoryTasksGoToToday()"
+                                    style="padding: 8px 16px; border-radius: 8px; border: none; background: var(--accent-primary);
+                                           color: white; cursor: pointer; font-size: 13px; font-weight: 600; margin-left: 8px;">
                                 Today
                             </button>
                         ` : ''}
                     </div>
 
-                    ${canManage ? `
-                        <button onclick="openCreateInventoryTaskModal()" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">
-                            <i class="fas fa-plus"></i> Create Task
+                    <!-- Shift Toggle -->
+                    <div style="display: flex; background: var(--bg-secondary); border-radius: 12px; padding: 4px;">
+                        <button onclick="switchInventoryShift('opening')"
+                                style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+                                       font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+                                       background: ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'transparent'};
+                                       color: ${inventoryTasksCurrentShift === 'opening' ? 'white' : 'var(--text-secondary)'};">
+                            <i class="fas fa-sun"></i> AM
                         </button>
-                    ` : ''}
+                        <button onclick="switchInventoryShift('closing')"
+                                style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+                                       font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+                                       background: ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'transparent'};
+                                       color: ${inventoryTasksCurrentShift === 'closing' ? 'white' : 'var(--text-secondary)'};">
+                            <i class="fas fa-moon"></i> PM
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Today's Task Info -->
+            <!-- Stats Summary -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: #10b981;">${stats.completed}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Completed</div>
+                </div>
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: var(--text-muted);">${stats.pending}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Pending</div>
+                </div>
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: #ef4444;">${stats.missed}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Missed</div>
+                </div>
+                <div class="card" style="padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: ${shiftConfig.color};">${shiftConfig.deadlineLabel}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Deadline</div>
+                </div>
+            </div>
+
+            <!-- Current Task Banner -->
             ${currentTask ? `
-                <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(124, 58, 237, 0.3);">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <span style="background: #7c3aed; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                            ${INVENTORY_SHIFTS[inventoryTasksCurrentShift].name.toUpperCase()}
+                <div class="card" style="margin-bottom: 24px; padding: 24px; border-left: 4px solid ${shiftConfig.color};">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <span style="background: ${shiftConfig.color}; color: white; padding: 4px 10px; border-radius: 6px;
+                                     font-size: 11px; font-weight: 700; text-transform: uppercase;">
+                            ${shiftConfig.name} Task
                         </span>
-                        <span style="color: var(--text-muted); font-size: 14px;">
-                            Deadline: ${INVENTORY_SHIFTS[inventoryTasksCurrentShift].deadline.replace(':', ':')}
-                            ${inventoryTasksCurrentShift === 'opening' ? 'PM' : 'PM'}
-                        </span>
+                        ${currentTask.duration === 'one-time' ? `
+                            <span style="background: #f59e0b; color: white; padding: 4px 10px; border-radius: 6px;
+                                         font-size: 11px; font-weight: 700;">TODAY ONLY</span>
+                        ` : ''}
                     </div>
-                    <h2 style="font-size: 24px; font-weight: 700; color: white; margin: 0 0 8px 0;">
-                        Today: ${currentTask.category}
+                    <h2 style="font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: var(--text-primary);">
+                        ${currentTask.category}
                     </h2>
-                    <p style="color: #a5b4fc; margin: 0; font-size: 15px;">
-                        ${currentTask.description}
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 14px; line-height: 1.5;">
+                        ${currentTask.description || 'Count all items in this category'}
                     </p>
                 </div>
             ` : `
-                <div style="background: var(--bg-secondary); border-radius: 16px; padding: 32px; margin-bottom: 24px; text-align: center; border: 2px dashed var(--border-color);">
-                    <i class="fas fa-clipboard-list" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
-                    <h3 style="color: var(--text-secondary); margin: 0 0 8px 0;">No tasks for ${INVENTORY_SHIFTS[inventoryTasksCurrentShift].name}</h3>
-                    <p style="color: var(--text-muted); margin: 0;">
-                        ${canManage ? 'Click "Create Task" to add an inventory task for this shift.' : 'No inventory tasks have been assigned for this shift.'}
+                <div class="card" style="margin-bottom: 24px; padding: 40px; text-align: center; border: 2px dashed var(--border-color); background: transparent;">
+                    <i class="fas fa-clipboard-list" style="font-size: 40px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                    <h3 style="color: var(--text-secondary); margin: 0 0 8px 0; font-size: 16px;">No Tasks for ${shiftConfig.name}</h3>
+                    <p style="color: var(--text-muted); margin: 0; font-size: 13px;">
+                        ${canManage ? 'Create a new task to get started' : 'Check back later for assigned tasks'}
                     </p>
                 </div>
             `}
 
-            <!-- Shift Toggle -->
-            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                <button onclick="switchInventoryShift('opening')"
-                        style="flex: 1; padding: 16px; border-radius: 12px; border: 3px solid ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'var(--border-color)'};
-                               background: ${inventoryTasksCurrentShift === 'opening' ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'};
-                               cursor: pointer; transition: all 0.2s;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                        <i class="fas fa-sun" style="font-size: 24px; color: ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'var(--text-muted)'};"></i>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 700; color: ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'var(--text-primary)'};">AM SHIFT</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">09:00 - 14:00</div>
-                        </div>
-                    </div>
-                </button>
-                <button onclick="switchInventoryShift('closing')"
-                        style="flex: 1; padding: 16px; border-radius: 12px; border: 3px solid ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'var(--border-color)'};
-                               background: ${inventoryTasksCurrentShift === 'closing' ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-secondary)'};
-                               cursor: pointer; transition: all 0.2s;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                        <i class="fas fa-moon" style="font-size: 24px; color: ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'var(--text-muted)'};"></i>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 700; color: ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'var(--text-primary)'};">PM SHIFT</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">14:00 - 22:00</div>
-                        </div>
-                    </div>
-                </button>
-            </div>
-
-            <!-- Store Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+            <!-- Store Cards Grid -->
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">
+                Store Status
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                 ${INVENTORY_STORES.map(store => renderStoreCard(store)).join('')}
             </div>
 
-            <!-- Task List for Admins -->
+            <!-- Active Tasks List (Admin/Manager only) -->
             ${canManage && shiftTasks.length > 0 ? `
                 <div style="margin-top: 32px;">
-                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-list" style="color: var(--accent-primary);"></i>
-                        Active Tasks for ${INVENTORY_SHIFTS[inventoryTasksCurrentShift].name}
+                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">
+                        Manage Tasks
                     </h3>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        ${shiftTasks.map(task => `
-                            <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-weight: 600; margin-bottom: 4px;">${task.category}</div>
-                                    <div style="font-size: 13px; color: var(--text-muted);">${task.description}</div>
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                                        ${task.duration === 'one-time' ? '<span style="color: #f59e0b;">One-time</span>' : '<span style="color: #10b981;">Recurring</span>'}
-                                        &bull; Created by ${task.createdBy || 'Unknown'}
+                    <div class="card" style="overflow: hidden;">
+                        ${shiftTasks.map((task, idx) => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+                                        ${idx > 0 ? 'border-top: 1px solid var(--border-color);' : ''}">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                        ${task.category}
+                                    </div>
+                                    <div style="font-size: 13px; color: var(--text-muted);">
+                                        ${task.description || 'No description'}
+                                    </div>
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 12px;">
+                                        <span>${task.duration === 'one-time' ? '<i class="fas fa-calendar-day" style="color: #f59e0b;"></i> One-time' : '<i class="fas fa-sync" style="color: #10b981;"></i> Recurring'}</span>
+                                        <span><i class="fas fa-user"></i> ${task.createdBy || 'Unknown'}</span>
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 8px;">
-                                    <button onclick="editInventoryTask('${task.id}')" style="background: none; border: none; cursor: pointer; padding: 8px; color: var(--text-muted);" title="Edit">
+                                    <button onclick="editInventoryTask('${task.id}')"
+                                            style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-color);
+                                                   background: var(--bg-secondary); cursor: pointer; color: var(--text-muted);"
+                                            title="Edit">
                                         <i class="fas fa-pen"></i>
                                     </button>
-                                    <button onclick="deleteInventoryTask('${task.id}')" style="background: none; border: none; cursor: pointer; padding: 8px; color: #ef4444;" title="Delete">
+                                    <button onclick="deleteInventoryTask('${task.id}')"
+                                            style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-color);
+                                                   background: var(--bg-secondary); cursor: pointer; color: #ef4444;"
+                                            title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -344,62 +389,59 @@ function renderMainView() {
 }
 
 function renderStoreCard(store) {
-    const status = getStoreStatus(store.id, inventoryTasksCurrentShift);
-    const amStatus = getStoreStatus(store.id, 'opening');
-    const pmStatus = getStoreStatus(store.id, 'closing');
+    const { status, completed, total } = getStoreStatus(store.id, inventoryTasksCurrentShift);
+    const hasTasksForShift = total > 0;
 
-    // Status styling
-    let statusIcon = '';
-    let statusColor = '#7c3aed';
-    let bgGradient = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
+    // Status badge
+    let statusBadge = '';
+    let statusStyle = '';
 
     if (status === 'completed') {
-        statusIcon = '<i class="fas fa-check" style="font-size: 48px; color: #86efac; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>';
-        bgGradient = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
+        statusBadge = `<span style="background: #10b981; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+            <i class="fas fa-check"></i> Done
+        </span>`;
+        statusStyle = 'border-left: 4px solid #10b981;';
     } else if (status === 'missed') {
-        statusIcon = '<i class="fas fa-times" style="font-size: 48px; color: #fca5a5; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>';
-        bgGradient = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
-    } else if (status === 'no-tasks') {
-        statusIcon = '';
+        statusBadge = `<span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+            <i class="fas fa-times"></i> Missed
+        </span>`;
+        statusStyle = 'border-left: 4px solid #ef4444;';
+    } else if (status === 'pending' && hasTasksForShift) {
+        statusBadge = `<span style="background: var(--bg-tertiary); color: var(--text-secondary); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+            ${completed}/${total} Done
+        </span>`;
+        statusStyle = 'border-left: 4px solid var(--border-color);';
+    } else {
+        statusBadge = `<span style="background: var(--bg-tertiary); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+            No Tasks
+        </span>`;
+        statusStyle = 'border-left: 4px solid var(--border-color); opacity: 0.7;';
     }
 
-    // Status dot helper
-    const getStatusDot = (s) => {
-        if (s === 'completed') return '<span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>';
-        if (s === 'missed') return '<span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span>';
-        return '<span style="width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); opacity: 0.5;"></span>';
-    };
-
     return `
-        <div onclick="openStoreDetail('${store.id}')"
-             style="background: ${bgGradient}; border-radius: 20px; padding: 24px; cursor: pointer;
-                    transition: all 0.3s; min-height: 160px; display: flex; flex-direction: column;
-                    justify-content: space-between; position: relative; overflow: hidden;
-                    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);"
-             onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 12px 30px rgba(124, 58, 237, 0.4)';"
-             onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 20px rgba(124, 58, 237, 0.3)';">
+        <div onclick="openStoreDetail('${store.id}')" class="card"
+             style="padding: 0; cursor: pointer; transition: all 0.2s; overflow: hidden; ${statusStyle}"
+             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';"
+             onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
 
-            <!-- Status Icon -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.9;">
-                ${statusIcon}
-            </div>
+            <div style="padding: 20px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <!-- Store Icon -->
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: ${store.gradient};
+                                display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas ${store.icon}" style="color: white; font-size: 20px;"></i>
+                    </div>
 
-            <!-- Store Name -->
-            <div style="position: relative; z-index: 1;">
-                <div style="font-weight: 800; font-size: 16px; color: white; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                    ${store.shortName}
-                </div>
-            </div>
+                    <!-- Store Info -->
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">
+                            ${store.shortName}
+                        </div>
+                        ${statusBadge}
+                    </div>
 
-            <!-- Shift Status Indicators -->
-            <div style="display: flex; justify-content: center; gap: 16px; position: relative; z-index: 1;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="font-size: 11px; color: rgba(255,255,255,0.8);">AM</span>
-                    ${getStatusDot(amStatus)}
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="font-size: 11px; color: rgba(255,255,255,0.8);">PM</span>
-                    ${getStatusDot(pmStatus)}
+                    <!-- Arrow -->
+                    <i class="fas fa-chevron-right" style="color: var(--text-muted); font-size: 14px;"></i>
                 </div>
             </div>
         </div>
@@ -416,47 +458,54 @@ function renderStoreDetailView() {
 
     const shiftTasks = getTasksForShift(inventoryTasksCurrentShift);
     const shiftConfig = INVENTORY_SHIFTS[inventoryTasksCurrentShift];
-    const isToday = inventoryTasksSelectedDate === new Date().toISOString().split('T')[0];
 
     dashboard.innerHTML = `
-        <div style="padding: 24px; max-width: 800px; margin: 0 auto;">
-            <!-- Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div style="padding: 24px; max-width: 700px; margin: 0 auto;">
+
+            <!-- Back Button & Header -->
+            <div style="margin-bottom: 24px;">
+                <button onclick="backToMainView()"
+                        style="background: none; border: none; cursor: pointer; color: var(--text-muted);
+                               font-size: 14px; padding: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"
+                        onmouseover="this.style.color='var(--text-primary)'"
+                        onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fas fa-arrow-left"></i> Back to all stores
+                </button>
+
                 <div style="display: flex; align-items: center; gap: 16px;">
-                    <button onclick="backToMainView()" style="background: var(--bg-secondary); border: none; padding: 12px; border-radius: 12px; cursor: pointer; color: var(--text-primary);">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
+                    <div style="width: 56px; height: 56px; border-radius: 14px; background: ${store.gradient};
+                                display: flex; align-items: center; justify-content: center;">
+                        <i class="fas ${store.icon}" style="color: white; font-size: 24px;"></i>
+                    </div>
                     <div>
-                        <h1 style="font-size: 24px; font-weight: 800; margin: 0;">
+                        <h1 style="font-size: 24px; font-weight: 800; margin: 0; color: var(--text-primary);">
                             ${store.name}
                         </h1>
-                        <p style="color: var(--text-muted); margin-top: 4px;">Inventory Count</p>
+                        <p style="color: var(--text-muted); margin: 4px 0 0 0; font-size: 14px;">
+                            ${formatDateLong(inventoryTasksSelectedDate)}
+                        </p>
                     </div>
-                </div>
-
-                <!-- Date -->
-                <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); padding: 8px 16px; border-radius: 12px;">
-                    <i class="fas fa-calendar"></i>
-                    <span style="font-weight: 600;">${formatDate(inventoryTasksSelectedDate)}</span>
                 </div>
             </div>
 
             <!-- Shift Toggle -->
-            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                <button onclick="switchInventoryShift('opening'); renderStoreDetailView();"
-                        style="flex: 1; padding: 16px; border-radius: 12px; border: 3px solid ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'var(--border-color)'};
-                               background: ${inventoryTasksCurrentShift === 'opening' ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'};
-                               cursor: pointer; transition: all 0.2s;">
-                    <i class="fas fa-sun" style="color: ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'var(--text-muted)'}; margin-right: 8px;"></i>
-                    <span style="font-weight: 600; color: ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'var(--text-primary)'};">AM Shift</span>
-                </button>
-                <button onclick="switchInventoryShift('closing'); renderStoreDetailView();"
-                        style="flex: 1; padding: 16px; border-radius: 12px; border: 3px solid ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'var(--border-color)'};
-                               background: ${inventoryTasksCurrentShift === 'closing' ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-secondary)'};
-                               cursor: pointer; transition: all 0.2s;">
-                    <i class="fas fa-moon" style="color: ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'var(--text-muted)'}; margin-right: 8px;"></i>
-                    <span style="font-weight: 600; color: ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'var(--text-primary)'};">PM Shift</span>
-                </button>
+            <div class="card" style="padding: 6px; margin-bottom: 24px;">
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="switchInventoryShift('opening'); renderStoreDetailView();"
+                            style="flex: 1; padding: 14px; border-radius: 10px; border: none; cursor: pointer;
+                                   font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px;
+                                   background: ${inventoryTasksCurrentShift === 'opening' ? '#f59e0b' : 'transparent'};
+                                   color: ${inventoryTasksCurrentShift === 'opening' ? 'white' : 'var(--text-secondary)'};">
+                        <i class="fas fa-sun"></i> AM Shift
+                    </button>
+                    <button onclick="switchInventoryShift('closing'); renderStoreDetailView();"
+                            style="flex: 1; padding: 14px; border-radius: 10px; border: none; cursor: pointer;
+                                   font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px;
+                                   background: ${inventoryTasksCurrentShift === 'closing' ? '#8b5cf6' : 'transparent'};
+                                   color: ${inventoryTasksCurrentShift === 'closing' ? 'white' : 'var(--text-secondary)'};">
+                        <i class="fas fa-moon"></i> PM Shift
+                    </button>
+                </div>
             </div>
 
             <!-- Tasks -->
@@ -465,62 +514,72 @@ function renderStoreDetailView() {
                 const isCompleted = !!completion;
 
                 return `
-                    <div style="background: var(--bg-secondary); border-radius: 16px; padding: 24px; margin-bottom: 16px; border-left: 4px solid ${isCompleted ? '#10b981' : shiftConfig.color};">
+                    <div class="card" style="margin-bottom: 16px; padding: 24px; ${isCompleted ? 'border: 2px solid #10b981;' : ''}">
+
                         <!-- Task Header -->
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
                             <div>
-                                <h3 style="font-size: 20px; font-weight: 700; margin: 0 0 8px 0;">${task.category}</h3>
-                                <p style="color: var(--text-muted); margin: 0;">${task.description}</p>
+                                <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-primary);">
+                                    ${task.category}
+                                </h3>
+                                <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+                                    ${task.description || 'Count all items in this category'}
+                                </p>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 12px; color: var(--text-muted);">Deadline</div>
-                                <div style="font-weight: 600; color: ${shiftConfig.color};">${shiftConfig.deadline.replace(':', ':')} ${inventoryTasksCurrentShift === 'opening' ? 'PM' : 'PM'}</div>
+                            <div style="text-align: right; flex-shrink: 0; margin-left: 16px;">
+                                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Deadline
+                                </div>
+                                <div style="font-weight: 700; color: ${shiftConfig.color}; font-size: 15px;">
+                                    ${shiftConfig.deadlineLabel}
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Instructions -->
-                        <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                            <div style="font-size: 13px; color: var(--text-secondary);">
-                                <i class="fas fa-info-circle" style="margin-right: 8px; color: var(--accent-primary);"></i>
-                                Count all items in this category and mark complete when done. Report any discrepancies to your manager.
-                            </div>
-                        </div>
-
-                        <!-- Completion Status / Button -->
+                        <!-- Completion Status -->
                         ${isCompleted ? `
-                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.1); border-radius: 12px; padding: 16px;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 48px; height: 48px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-check" style="color: white; font-size: 20px;"></i>
+                            <div style="background: rgba(16, 185, 129, 0.1); border-radius: 12px; padding: 16px;
+                                        display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 14px;">
+                                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #10b981;
+                                                display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-check" style="color: white; font-size: 18px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #10b981;">Completed</div>
+                                        <div style="font-weight: 600; color: #10b981; font-size: 14px;">Completed</div>
                                         <div style="font-size: 13px; color: var(--text-muted);">
-                                            ${completion.completedBy} &bull; ${formatTime(completion.completedAt)}
+                                            by ${completion.completedBy} at ${formatTime(completion.completedAt)}
                                         </div>
                                     </div>
                                 </div>
                                 <button onclick="undoInventoryCompletion('${completion.id}', '${task.id}')"
-                                        style="background: none; border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                                    <i class="fas fa-undo"></i> Undo
+                                        style="background: transparent; border: 1px solid #10b981; color: #10b981;
+                                               padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                                    Undo
                                 </button>
                             </div>
                         ` : `
                             <button onclick="markInventoryComplete('${task.id}', '${store.id}')"
-                                    style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none;
-                                           padding: 16px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px;
-                                           display: flex; align-items: center; justify-content: center; gap: 8px;
-                                           box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                                    style="width: 100%; background: #10b981; color: white; border: none; padding: 16px;
+                                           border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 15px;
+                                           display: flex; align-items: center; justify-content: center; gap: 10px;
+                                           transition: all 0.2s;"
+                                    onmouseover="this.style.background='#059669'"
+                                    onmouseout="this.style.background='#10b981'">
                                 <i class="fas fa-check-circle"></i> Mark as Completed
                             </button>
                         `}
                     </div>
                 `;
             }).join('') : `
-                <div style="background: var(--bg-secondary); border-radius: 16px; padding: 48px; text-align: center;">
-                    <i class="fas fa-clipboard-list" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
-                    <h3 style="color: var(--text-secondary); margin: 0 0 8px 0;">No Tasks Assigned</h3>
-                    <p style="color: var(--text-muted); margin: 0;">There are no inventory tasks for the ${shiftConfig.name} today.</p>
+                <div class="card" style="padding: 48px; text-align: center;">
+                    <i class="fas fa-clipboard-check" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                    <h3 style="color: var(--text-secondary); margin: 0 0 8px 0; font-size: 16px;">
+                        No Tasks for ${shiftConfig.name}
+                    </h3>
+                    <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+                        There are no inventory tasks assigned for this shift.
+                    </p>
                 </div>
             `}
         </div>
@@ -579,70 +638,72 @@ window.openCreateInventoryTaskModal = function() {
     if (!modal) return;
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
-                <h2 style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-plus-circle" style="color: #7c3aed;"></i>
-                    Create Inventory Task
+                <h2 style="display: flex; align-items: center; gap: 10px; font-size: 18px;">
+                    <i class="fas fa-plus-circle" style="color: var(--accent-primary);"></i>
+                    New Inventory Task
                 </h2>
                 <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body">
-                <!-- Category Name -->
+            <div class="modal-body" style="padding: 24px;">
+
                 <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Category Name *</label>
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 14px;">
+                        Category Name <span style="color: #ef4444;">*</span>
+                    </label>
                     <input type="text" class="form-input" id="inv-task-category"
                            placeholder="e.g., Herbal Vaporizers" style="width: 100%;">
                 </div>
 
-                <!-- Description -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Description (brands/items to count)</label>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 14px;">
+                        Description <span style="color: var(--text-muted); font-weight: 400;">(optional)</span>
+                    </label>
                     <textarea class="form-input" id="inv-task-description" rows="3"
-                              placeholder="e.g., Pax, Storz & Bickel, Puffco, Focus V, Yocan, Lookah" style="width: 100%; resize: vertical;"></textarea>
+                              placeholder="e.g., Pax, Storz & Bickel, Puffco, Focus V, Yocan"
+                              style="width: 100%; resize: vertical;"></textarea>
                 </div>
 
-                <!-- Shift Selection -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Shift *</label>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 10px; display: block; font-size: 14px;">Shift</label>
                     <div style="display: flex; gap: 12px;">
                         <label style="flex: 1; cursor: pointer;">
                             <input type="radio" name="inv-task-shift" value="opening" checked style="display: none;">
-                            <div class="shift-option" style="padding: 16px; border: 2px solid #f59e0b; border-radius: 12px; background: rgba(245, 158, 11, 0.1); text-align: center; transition: all 0.2s;">
-                                <i class="fas fa-sun" style="font-size: 24px; color: #f59e0b; margin-bottom: 8px; display: block;"></i>
-                                <div style="font-weight: 600;">AM Shift</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Opening</div>
+                            <div class="shift-option" style="padding: 14px; border: 2px solid #f59e0b; border-radius: 10px;
+                                        background: rgba(245, 158, 11, 0.1); text-align: center;">
+                                <i class="fas fa-sun" style="font-size: 20px; color: #f59e0b; margin-bottom: 6px; display: block;"></i>
+                                <div style="font-weight: 600; font-size: 13px;">AM Shift</div>
                             </div>
                         </label>
                         <label style="flex: 1; cursor: pointer;">
                             <input type="radio" name="inv-task-shift" value="closing" style="display: none;">
-                            <div class="shift-option" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
-                                <i class="fas fa-moon" style="font-size: 24px; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
-                                <div style="font-weight: 600;">PM Shift</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Closing</div>
+                            <div class="shift-option" style="padding: 14px; border: 2px solid var(--border-color); border-radius: 10px;
+                                        background: var(--bg-secondary); text-align: center;">
+                                <i class="fas fa-moon" style="font-size: 20px; color: var(--text-muted); margin-bottom: 6px; display: block;"></i>
+                                <div style="font-weight: 600; font-size: 13px;">PM Shift</div>
                             </div>
                         </label>
                     </div>
                 </div>
 
-                <!-- Duration -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Duration *</label>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 10px; display: block; font-size: 14px;">Duration</label>
                     <div style="display: flex; gap: 12px;">
                         <label style="flex: 1; cursor: pointer;">
                             <input type="radio" name="inv-task-duration" value="recurring" checked style="display: none;">
-                            <div class="duration-option" style="padding: 16px; border: 2px solid var(--accent-primary); border-radius: 12px; background: rgba(99, 102, 241, 0.1); text-align: center; transition: all 0.2s;">
-                                <i class="fas fa-infinity" style="font-size: 24px; color: var(--accent-primary); margin-bottom: 8px; display: block;"></i>
-                                <div style="font-weight: 600;">Daily</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Recurring</div>
+                            <div class="duration-option" style="padding: 14px; border: 2px solid var(--accent-primary); border-radius: 10px;
+                                        background: rgba(99, 102, 241, 0.1); text-align: center;">
+                                <i class="fas fa-sync" style="font-size: 20px; color: var(--accent-primary); margin-bottom: 6px; display: block;"></i>
+                                <div style="font-weight: 600; font-size: 13px;">Recurring</div>
                             </div>
                         </label>
                         <label style="flex: 1; cursor: pointer;">
                             <input type="radio" name="inv-task-duration" value="one-time" style="display: none;">
-                            <div class="duration-option" style="padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); text-align: center; transition: all 0.2s;">
-                                <i class="fas fa-calendar-day" style="font-size: 24px; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
-                                <div style="font-weight: 600;">One-time</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Today only</div>
+                            <div class="duration-option" style="padding: 14px; border: 2px solid var(--border-color); border-radius: 10px;
+                                        background: var(--bg-secondary); text-align: center;">
+                                <i class="fas fa-calendar-day" style="font-size: 20px; color: var(--text-muted); margin-bottom: 6px; display: block;"></i>
+                                <div style="font-weight: 600; font-size: 13px;">Today Only</div>
                             </div>
                         </label>
                     </div>
@@ -650,7 +711,7 @@ window.openCreateInventoryTaskModal = function() {
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn-primary" onclick="saveInventoryTask()" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+                <button class="btn-primary" onclick="saveInventoryTask()">
                     <i class="fas fa-plus"></i> Create Task
                 </button>
             </div>
@@ -658,13 +719,10 @@ window.openCreateInventoryTaskModal = function() {
     `;
 
     modal.classList.add('active');
-
-    // Add event listeners for radio buttons
     setupModalRadioListeners();
 };
 
 function setupModalRadioListeners() {
-    // Shift options
     document.querySelectorAll('input[name="inv-task-shift"]').forEach(radio => {
         radio.addEventListener('change', function() {
             document.querySelectorAll('input[name="inv-task-shift"]').forEach(r => {
@@ -683,7 +741,6 @@ function setupModalRadioListeners() {
         });
     });
 
-    // Duration options
     document.querySelectorAll('input[name="inv-task-duration"]').forEach(radio => {
         radio.addEventListener('change', function() {
             document.querySelectorAll('input[name="inv-task-duration"]').forEach(r => {
@@ -712,9 +769,7 @@ window.saveInventoryTask = async function() {
     const duration = document.querySelector('input[name="inv-task-duration"]:checked')?.value;
 
     if (!category) {
-        if (typeof showNotification === 'function') {
-            showNotification('Please enter a category name', 'error');
-        }
+        if (typeof showNotification === 'function') showNotification('Please enter a category name', 'error');
         return;
     }
 
@@ -735,56 +790,39 @@ window.saveInventoryTask = async function() {
         };
 
         const docRef = await db.collection('inventoryTasks').add(taskData);
-        console.log('[InventoryTasks] Task created:', docRef.id);
-
-        // Add to local data
         taskData.id = docRef.id;
         inventoryTasksData.tasks.unshift(taskData);
 
-        // Log activity
         if (typeof logActivity === 'function') {
             await logActivity('inventory_task_create', {
                 message: `Created inventory task: ${category}`,
                 taskId: docRef.id,
-                category: category,
-                shift: shift
+                category,
+                shift
             }, 'inventory', docRef.id);
         }
 
         if (typeof closeModal === 'function') closeModal();
-        if (typeof showNotification === 'function') {
-            showNotification('Inventory task created successfully!', 'success');
-        }
-
+        if (typeof showNotification === 'function') showNotification('Task created successfully!', 'success');
         renderInventoryTasksModule();
     } catch (error) {
         console.error('[InventoryTasks] Error saving task:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error creating task. Please try again.', 'error');
-        }
+        if (typeof showNotification === 'function') showNotification('Error creating task', 'error');
     }
 };
 
 window.deleteInventoryTask = async function(taskId) {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    if (!confirm('Delete this task?')) return;
 
     try {
         const db = firebase.firestore();
         await db.collection('inventoryTasks').doc(taskId).update({ active: false });
-
-        // Remove from local data
         inventoryTasksData.tasks = inventoryTasksData.tasks.filter(t => t.id !== taskId);
-
-        if (typeof showNotification === 'function') {
-            showNotification('Task deleted successfully', 'success');
-        }
-
+        if (typeof showNotification === 'function') showNotification('Task deleted', 'success');
         renderInventoryTasksModule();
     } catch (error) {
         console.error('[InventoryTasks] Error deleting task:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error deleting task', 'error');
-        }
+        if (typeof showNotification === 'function') showNotification('Error deleting task', 'error');
     }
 };
 
@@ -796,47 +834,44 @@ window.editInventoryTask = function(taskId) {
     if (!modal) return;
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
-                <h2 style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-pen" style="color: #7c3aed;"></i>
-                    Edit Inventory Task
+                <h2 style="display: flex; align-items: center; gap: 10px; font-size: 18px;">
+                    <i class="fas fa-pen" style="color: var(--accent-primary);"></i>
+                    Edit Task
                 </h2>
                 <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding: 24px;">
                 <input type="hidden" id="edit-inv-task-id" value="${taskId}">
 
-                <!-- Category Name -->
                 <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Category Name *</label>
-                    <input type="text" class="form-input" id="edit-inv-task-category"
-                           value="${task.category}" style="width: 100%;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 14px;">Category Name</label>
+                    <input type="text" class="form-input" id="edit-inv-task-category" value="${task.category}" style="width: 100%;">
                 </div>
 
-                <!-- Description -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Description</label>
-                    <textarea class="form-input" id="edit-inv-task-description" rows="3"
-                              style="width: 100%; resize: vertical;">${task.description || ''}</textarea>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 14px;">Description</label>
+                    <textarea class="form-input" id="edit-inv-task-description" rows="3" style="width: 100%;">${task.description || ''}</textarea>
                 </div>
 
-                <!-- Shift Selection -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Shift *</label>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 10px; display: block; font-size: 14px;">Shift</label>
                     <div style="display: flex; gap: 12px;">
                         <label style="flex: 1; cursor: pointer;">
                             <input type="radio" name="edit-inv-task-shift" value="opening" ${task.shift === 'opening' ? 'checked' : ''} style="display: none;">
-                            <div class="shift-option" style="padding: 16px; border: 2px solid ${task.shift === 'opening' ? '#f59e0b' : 'var(--border-color)'}; border-radius: 12px; background: ${task.shift === 'opening' ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s;">
-                                <i class="fas fa-sun" style="font-size: 24px; color: ${task.shift === 'opening' ? '#f59e0b' : 'var(--text-muted)'}; margin-bottom: 8px; display: block;"></i>
-                                <div style="font-weight: 600;">AM Shift</div>
+                            <div class="shift-option" style="padding: 14px; border: 2px solid ${task.shift === 'opening' ? '#f59e0b' : 'var(--border-color)'};
+                                        border-radius: 10px; background: ${task.shift === 'opening' ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)'}; text-align: center;">
+                                <i class="fas fa-sun" style="font-size: 20px; color: ${task.shift === 'opening' ? '#f59e0b' : 'var(--text-muted)'}; margin-bottom: 6px; display: block;"></i>
+                                <div style="font-weight: 600; font-size: 13px;">AM Shift</div>
                             </div>
                         </label>
                         <label style="flex: 1; cursor: pointer;">
                             <input type="radio" name="edit-inv-task-shift" value="closing" ${task.shift === 'closing' ? 'checked' : ''} style="display: none;">
-                            <div class="shift-option" style="padding: 16px; border: 2px solid ${task.shift === 'closing' ? '#8b5cf6' : 'var(--border-color)'}; border-radius: 12px; background: ${task.shift === 'closing' ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-secondary)'}; text-align: center; transition: all 0.2s;">
-                                <i class="fas fa-moon" style="font-size: 24px; color: ${task.shift === 'closing' ? '#8b5cf6' : 'var(--text-muted)'}; margin-bottom: 8px; display: block;"></i>
-                                <div style="font-weight: 600;">PM Shift</div>
+                            <div class="shift-option" style="padding: 14px; border: 2px solid ${task.shift === 'closing' ? '#8b5cf6' : 'var(--border-color)'};
+                                        border-radius: 10px; background: ${task.shift === 'closing' ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-secondary)'}; text-align: center;">
+                                <i class="fas fa-moon" style="font-size: 20px; color: ${task.shift === 'closing' ? '#8b5cf6' : 'var(--text-muted)'}; margin-bottom: 6px; display: block;"></i>
+                                <div style="font-weight: 600; font-size: 13px;">PM Shift</div>
                             </div>
                         </label>
                     </div>
@@ -844,8 +879,8 @@ window.editInventoryTask = function(taskId) {
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn-primary" onclick="updateInventoryTask()" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
-                    <i class="fas fa-save"></i> Save Changes
+                <button class="btn-primary" onclick="updateInventoryTask()">
+                    <i class="fas fa-save"></i> Save
                 </button>
             </div>
         </div>
@@ -853,7 +888,6 @@ window.editInventoryTask = function(taskId) {
 
     modal.classList.add('active');
 
-    // Setup radio listeners
     document.querySelectorAll('input[name="edit-inv-task-shift"]').forEach(radio => {
         radio.addEventListener('change', function() {
             document.querySelectorAll('input[name="edit-inv-task-shift"]').forEach(r => {
@@ -880,44 +914,28 @@ window.updateInventoryTask = async function() {
     const shift = document.querySelector('input[name="edit-inv-task-shift"]:checked')?.value;
 
     if (!taskId || !category) {
-        if (typeof showNotification === 'function') {
-            showNotification('Please enter a category name', 'error');
-        }
+        if (typeof showNotification === 'function') showNotification('Please enter a category name', 'error');
         return;
     }
 
     try {
         const db = firebase.firestore();
-
         await db.collection('inventoryTasks').doc(taskId).update({
-            category,
-            description: description || '',
-            shift,
+            category, description: description || '', shift,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Update local data
-        const taskIndex = inventoryTasksData.tasks.findIndex(t => t.id === taskId);
-        if (taskIndex >= 0) {
-            inventoryTasksData.tasks[taskIndex] = {
-                ...inventoryTasksData.tasks[taskIndex],
-                category,
-                description,
-                shift
-            };
+        const idx = inventoryTasksData.tasks.findIndex(t => t.id === taskId);
+        if (idx >= 0) {
+            inventoryTasksData.tasks[idx] = { ...inventoryTasksData.tasks[idx], category, description, shift };
         }
 
         if (typeof closeModal === 'function') closeModal();
-        if (typeof showNotification === 'function') {
-            showNotification('Task updated successfully!', 'success');
-        }
-
+        if (typeof showNotification === 'function') showNotification('Task updated!', 'success');
         renderInventoryTasksModule();
     } catch (error) {
         console.error('[InventoryTasks] Error updating task:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error updating task', 'error');
-        }
+        if (typeof showNotification === 'function') showNotification('Error updating task', 'error');
     }
 };
 
@@ -927,44 +945,29 @@ window.markInventoryComplete = async function(taskId, storeId) {
         const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
 
         const completionData = {
-            taskId,
-            store: storeId,
-            shift: inventoryTasksCurrentShift,
-            date: inventoryTasksSelectedDate,
-            completedBy: user?.name || 'Unknown',
+            taskId, store: storeId, shift: inventoryTasksCurrentShift,
+            date: inventoryTasksSelectedDate, completedBy: user?.name || 'Unknown',
             completedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         const docRef = await db.collection('inventoryCompletions').add(completionData);
-        console.log('[InventoryTasks] Completion saved:', docRef.id);
-
-        // Add to local data
         completionData.id = docRef.id;
         completionData.completedAt = new Date();
         inventoryTasksData.completions.push(completionData);
 
-        // Log activity
         if (typeof logActivity === 'function') {
             const task = inventoryTasksData.tasks.find(t => t.id === taskId);
             await logActivity('inventory_complete', {
                 message: `Completed inventory: ${task?.category || taskId} at ${storeId}`,
-                taskId: taskId,
-                store: storeId,
-                shift: inventoryTasksCurrentShift,
-                date: inventoryTasksSelectedDate
+                taskId, store: storeId, shift: inventoryTasksCurrentShift, date: inventoryTasksSelectedDate
             }, 'inventory', docRef.id);
         }
 
-        if (typeof showNotification === 'function') {
-            showNotification('Inventory count marked as complete!', 'success');
-        }
-
+        if (typeof showNotification === 'function') showNotification('Marked as complete!', 'success');
         renderStoreDetailView();
     } catch (error) {
-        console.error('[InventoryTasks] Error marking complete:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error saving completion', 'error');
-        }
+        console.error('[InventoryTasks] Error:', error);
+        if (typeof showNotification === 'function') showNotification('Error saving', 'error');
     }
 };
 
@@ -972,20 +975,12 @@ window.undoInventoryCompletion = async function(completionId, taskId) {
     try {
         const db = firebase.firestore();
         await db.collection('inventoryCompletions').doc(completionId).delete();
-
-        // Remove from local data
         inventoryTasksData.completions = inventoryTasksData.completions.filter(c => c.id !== completionId);
-
-        if (typeof showNotification === 'function') {
-            showNotification('Completion undone', 'info');
-        }
-
+        if (typeof showNotification === 'function') showNotification('Undone', 'info');
         renderStoreDetailView();
     } catch (error) {
-        console.error('[InventoryTasks] Error undoing completion:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error undoing completion', 'error');
-        }
+        console.error('[InventoryTasks] Error:', error);
+        if (typeof showNotification === 'function') showNotification('Error', 'error');
     }
 };
 
