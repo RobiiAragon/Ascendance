@@ -1038,7 +1038,7 @@ window.switchChecklistShift = function(shift) {
 
 // Open add task modal
 window.openAddTaskModal = function(shift) {
-    openModal('add-checklist-task', { shift });
+    openModal('add-checklist-task', { shift, selectedDate: checklistSelectedDate });
 }
 
 // Add task from modal

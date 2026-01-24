@@ -5333,6 +5333,8 @@ Return ONLY the JSON object, no additional text.`
                             ${isMidshift ? (() => {
                                 // Calculate dates for each day of the current week
                                 const today = new Date();
+                                // Use the selected date from checklist (the day user is viewing)
+                                const selectedDate = data?.selectedDate ? new Date(data.selectedDate + 'T12:00:00') : today;
                                 const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
                                 const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
                                 const monday = new Date(today);
@@ -5346,13 +5348,14 @@ Return ONLY the JSON object, no additional text.`
                                         short: day.substring(0, 3),
                                         date: date.getDate(),
                                         month: date.toLocaleDateString('en-US', { month: 'short' }),
-                                        isToday: date.toDateString() === today.toDateString()
+                                        isToday: date.toDateString() === today.toDateString(),
+                                        isSelected: date.toDateString() === selectedDate.toDateString()
                                     };
                                 });
 
-                                // Find today's index to pre-select it
-                                const todayIdx = weekDays.findIndex(d => d.isToday);
-                                const defaultIdx = todayIdx >= 0 ? todayIdx : 0;
+                                // Pre-select the day the user is viewing, not today
+                                const selectedIdx = weekDays.findIndex(d => d.isSelected);
+                                const defaultIdx = selectedIdx >= 0 ? selectedIdx : (weekDays.findIndex(d => d.isToday) >= 0 ? weekDays.findIndex(d => d.isToday) : 0);
 
                                 return `
                                 <div class="form-group" style="margin-top: 16px;">
