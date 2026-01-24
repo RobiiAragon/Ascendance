@@ -585,6 +585,25 @@ function renderStoreDetailView() {
                             </div>
                         </div>
 
+                        <!-- Items/Brands to Count -->
+                        ${task.items && task.items.length > 0 ? `
+                            <div style="background: var(--bg-secondary); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;
+                                            letter-spacing: 0.5px; margin-bottom: 12px;">
+                                    <i class="fas fa-list-check" style="margin-right: 6px;"></i> Items to Count
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${task.items.map(item => `
+                                        <span style="background: var(--bg-primary); border: 1px solid var(--border-color);
+                                                     padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+                                                     color: var(--text-primary);">
+                                            ${item}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
                         <!-- Completion Status -->
                         ${isCompleted ? `
                             <div style="background: rgba(16, 185, 129, 0.1); border-radius: 12px; padding: 16px;
@@ -723,9 +742,22 @@ window.openCreateInventoryTaskModal = function() {
                     <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 14px;">
                         Description <span style="color: var(--text-muted); font-weight: 400;">(optional)</span>
                     </label>
-                    <textarea class="form-input" id="inv-task-description" rows="3"
-                              placeholder="e.g., Pax, Storz & Bickel, Puffco, Focus V, Yocan"
-                              style="width: 100%; resize: vertical;"></textarea>
+                    <input type="text" class="form-input" id="inv-task-description"
+                           placeholder="e.g., Count all portable vaporizers"
+                           style="width: 100%;">
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 14px;">
+                        <i class="fas fa-tags" style="color: var(--accent-primary); margin-right: 6px;"></i>
+                        Items/Brands to Count <span style="color: var(--text-muted); font-weight: 400;">(optional)</span>
+                    </label>
+                    <textarea class="form-input" id="inv-task-items" rows="3"
+                              placeholder="Enter each item on a new line, e.g.:&#10;Pax&#10;Storz & Bickel&#10;Puffco&#10;Focus V"
+                              style="width: 100%; resize: vertical; font-family: inherit;"></textarea>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                        <i class="fas fa-info-circle"></i> One item per line. These will appear as tags for employees.
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 20px;">
@@ -889,8 +921,12 @@ function setupModalRadioListeners() {
 window.saveInventoryTask = async function() {
     const category = document.getElementById('inv-task-category')?.value?.trim();
     const description = document.getElementById('inv-task-description')?.value?.trim();
+    const itemsText = document.getElementById('inv-task-items')?.value?.trim();
     const shift = document.querySelector('input[name="inv-task-shift"]:checked')?.value;
     const duration = document.querySelector('input[name="inv-task-duration"]:checked')?.value;
+
+    // Parse items (one per line, filter empty lines)
+    const items = itemsText ? itemsText.split('\n').map(i => i.trim()).filter(i => i.length > 0) : [];
 
     // Get selected stores
     const selectedStores = Array.from(document.querySelectorAll('input[name="inv-task-stores"]:checked')).map(cb => cb.value);
@@ -912,6 +948,7 @@ window.saveInventoryTask = async function() {
         const taskData = {
             category,
             description: description || '',
+            items: items,
             shift: shift || 'opening',
             duration: duration || 'recurring',
             stores: selectedStores,
