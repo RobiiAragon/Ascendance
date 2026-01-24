@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_034',
+            date: '2026-01-24',
+            title: 'Inventory Tasks Module',
+            description: 'New module for daily inventory count tasks. Admins/managers can create inventory tasks by category (e.g., Herbal Vaporizers, Disposables) and assign them to AM or PM shifts. All stores see a grid view showing completion status with green checks for completed, red X for missed, and pending indicators. Employees click their store to view task details and mark as complete. Features include date navigation, recurring vs one-time tasks, activity logging, and Firebase integration for real-time sync across all stores.',
+            category: 'feature',
+            files: ['js/inventory-tasks.js', 'index.html', 'js/script.js', 'config/abundance-config.js'],
+            developer: 'Carlos',
+            requestedBy: 'Lauren'
+        },
+        {
             id: 'log_033',
             date: '2026-01-21',
             title: 'My Profile Modal',

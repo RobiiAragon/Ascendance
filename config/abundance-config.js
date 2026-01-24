@@ -169,7 +169,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Full system access',
         color: '#ef4444', // Red
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'salesperformance', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'managerschedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs', 'activitylog', 'thechamps', 'timeoffrequests', 'devlog', 'shiftexchanges']
+        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'training', 'licenses', 'leases', 'analytics', 'salesperformance', 'newstuff', 'restock', 'supplies', 'dailychecklist', 'abundancecloud', 'transfers', 'stores', 'announcements', 'tasks', 'schedule', 'managerschedule', 'settings', 'help', 'thieves', 'invoices', 'issues', 'vendors', 'clockin', 'dailysales', 'cashout', 'gconomics', 'treasury', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'labels', 'hrapplications', 'glabs', 'activitylog', 'thechamps', 'timeoffrequests', 'devlog', 'shiftexchanges', 'inventorytasks']
     },
     'manager': {
         // Action Permissions
@@ -183,7 +183,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Can manage employees and view reports',
         color: '#f59e0b', // Amber
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'managerschedule', 'labels', 'hrapplications', 'glabs', 'thechamps', 'thieves', 'timeoffrequests', 'devlog', 'shiftexchanges']
+        pages: ['celesteai', 'podmatcher', 'dashboard', 'employees', 'licenses', 'leases', 'analytics', 'invoices', 'vendors', 'cashout', 'treasury', 'announcements', 'clockin', 'restock', 'supplies', 'dailychecklist', 'transfers', 'change', 'customercare', 'employeepurchases', 'incidentlog', 'gforce', 'passwords', 'projectanalytics', 'issues', 'schedule', 'managerschedule', 'labels', 'hrapplications', 'glabs', 'thechamps', 'thieves', 'timeoffrequests', 'devlog', 'shiftexchanges', 'inventorytasks']
     },
     'employee': {
         // Action Permissions
@@ -197,7 +197,7 @@ window.ROLE_PERMISSIONS = {
         description: 'Limited access',
         color: '#3b82f6', // Blue
         // Page Access Permissions
-        pages: ['celesteai', 'podmatcher', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'incidentlog', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves', 'timeoffrequests', 'shiftexchanges', 'employeepurchases', 'restock']
+        pages: ['celesteai', 'podmatcher', 'clockin', 'newstuff', 'abundancecloud', 'transfers', 'announcements', 'schedule', 'help', 'training', 'supplies', 'dailychecklist', 'change', 'incidentlog', 'gforce', 'projectanalytics', 'labels', 'treasury', 'glabs', 'thechamps', 'issues', 'thieves', 'timeoffrequests', 'shiftexchanges', 'employeepurchases', 'restock', 'inventorytasks']
     }
 };
 

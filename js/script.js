@@ -1272,7 +1272,8 @@
                 supplies: 'Supplies',
                 dailychecklist: 'Daily Checklist',
                 labels: 'Barcode Labels',
-                celesteai: 'Celeste AI'
+                celesteai: 'Celeste AI',
+                inventorytasks: 'Inventory Tasks'
             };
             document.querySelector('.page-title').textContent = titles[page] || 'Dashboard';
 
@@ -1505,6 +1506,14 @@
                     break;
                 case 'shiftexchanges':
                     renderShiftExchangesPage();
+                    break;
+                case 'inventorytasks':
+                    if (typeof initializeInventoryTasks === 'function') {
+                        initializeInventoryTasks();
+                    } else {
+                        console.error('Inventory Tasks module not loaded');
+                        render404(page);
+                    }
                     break;
                 default:
                     render404(page);
