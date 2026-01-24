@@ -531,7 +531,7 @@ window.renderDailyChecklist = async function() {
     // Get completion percentage for a store and shift
     const getCompletionPercentage = (store, shift) => {
         const tasks = getTasksForShift(shift);
-        if (tasks.length === 0) return 100;
+        if (tasks.length === 0) return 0;
         const completed = tasks.filter(t => isTaskCompleted(t.id, store, shift)).length;
         return Math.round((completed / tasks.length) * 100);
     };
@@ -985,7 +985,7 @@ function updateStoreProgressCards() {
     stores.forEach(store => {
         const getCompletionPct = (targetStore, shift) => {
             const tasks = checklistData.tasks.filter(t => t.shift === shift);
-            if (tasks.length === 0) return 100;
+            if (tasks.length === 0) return 0;
             const completed = tasks.filter(t => {
                 return checklistData.completions.find(c =>
                     c.taskId === t.id &&
