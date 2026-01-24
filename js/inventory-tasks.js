@@ -19,6 +19,7 @@ let inventoryTasksSelectedDate = new Date().toISOString().split('T')[0];
 let inventoryTasksCurrentShift = 'opening';
 let inventoryTasksCurrentView = 'main'; // 'main' or 'detail'
 let inventoryTasksSelectedStore = null;
+let inventoryCheckedItems = {}; // Track checked items per task: { taskId: ['item1', 'item2'] }
 
 // Store configuration with unique icons and colors
 const INVENTORY_STORES = [
@@ -585,21 +586,41 @@ function renderStoreDetailView() {
                             </div>
                         </div>
 
-                        <!-- Items/Brands to Count -->
+                        <!-- Items/Brands Checklist -->
                         ${task.items && task.items.length > 0 ? `
                             <div style="background: var(--bg-secondary); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
-                                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;
-                                            letter-spacing: 0.5px; margin-bottom: 12px;">
-                                    <i class="fas fa-list-check" style="margin-right: 6px;"></i> Items to Count
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;
+                                                letter-spacing: 0.5px;">
+                                        <i class="fas fa-list-check" style="margin-right: 6px;"></i> Items to Count
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        <span id="checked-count-${task.id}">0</span>/${task.items.length} checked
+                                    </div>
                                 </div>
-                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                    ${task.items.map(item => `
-                                        <span style="background: var(--bg-primary); border: 1px solid var(--border-color);
-                                                     padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
-                                                     color: var(--text-primary);">
-                                            ${item}
-                                        </span>
-                                    `).join('')}
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    ${task.items.map((item, idx) => {
+                                        const isChecked = isCompleted && completion.checkedItems && completion.checkedItems.includes(item);
+                                        return `
+                                            <label style="display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+                                                          background: var(--bg-primary); border: 1px solid var(--border-color);
+                                                          border-radius: 8px; cursor: ${isCompleted ? 'default' : 'pointer'}; transition: all 0.2s;
+                                                          ${isChecked ? 'border-color: #10b981; background: rgba(16, 185, 129, 0.05);' : ''}"
+                                                   ${!isCompleted ? `onclick="toggleInventoryItem('${task.id}', '${item.replace(/'/g, "\\'")}', this)"` : ''}>
+                                                <div style="width: 22px; height: 22px; border-radius: 6px; border: 2px solid ${isChecked ? '#10b981' : 'var(--border-color)'};
+                                                            background: ${isChecked ? '#10b981' : 'transparent'}; display: flex; align-items: center;
+                                                            justify-content: center; transition: all 0.2s; flex-shrink: 0;"
+                                                     class="item-checkbox" data-task="${task.id}" data-item="${item}">
+                                                    ${isChecked ? '<i class="fas fa-check" style="color: white; font-size: 12px;"></i>' : ''}
+                                                </div>
+                                                <span style="font-size: 14px; font-weight: 500; color: var(--text-primary);
+                                                             ${isChecked ? 'text-decoration: line-through; opacity: 0.7;' : ''}"
+                                                      class="item-label">
+                                                    ${item}
+                                                </span>
+                                            </label>
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>
                         ` : ''}
@@ -698,6 +719,47 @@ window.inventoryTasksNextDay = async function() {
     inventoryTasksSelectedDate = date.toISOString().split('T')[0];
     await loadInventoryCompletions();
     renderInventoryTasksModule();
+};
+
+// Toggle item checkbox in inventory checklist
+window.toggleInventoryItem = function(taskId, item, labelEl) {
+    // Initialize array for this task if not exists
+    if (!inventoryCheckedItems[taskId]) {
+        inventoryCheckedItems[taskId] = [];
+    }
+
+    const items = inventoryCheckedItems[taskId];
+    const idx = items.indexOf(item);
+    const checkbox = labelEl.querySelector('.item-checkbox');
+    const label = labelEl.querySelector('.item-label');
+
+    if (idx === -1) {
+        // Add item
+        items.push(item);
+        checkbox.style.borderColor = '#10b981';
+        checkbox.style.background = '#10b981';
+        checkbox.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 12px;"></i>';
+        label.style.textDecoration = 'line-through';
+        label.style.opacity = '0.7';
+        labelEl.style.borderColor = '#10b981';
+        labelEl.style.background = 'rgba(16, 185, 129, 0.05)';
+    } else {
+        // Remove item
+        items.splice(idx, 1);
+        checkbox.style.borderColor = 'var(--border-color)';
+        checkbox.style.background = 'transparent';
+        checkbox.innerHTML = '';
+        label.style.textDecoration = 'none';
+        label.style.opacity = '1';
+        labelEl.style.borderColor = 'var(--border-color)';
+        labelEl.style.background = 'var(--bg-primary)';
+    }
+
+    // Update counter
+    const counter = document.getElementById(`checked-count-${taskId}`);
+    if (counter) {
+        counter.textContent = items.length;
+    }
 };
 
 window.inventoryTasksGoToToday = async function() {
@@ -1113,10 +1175,14 @@ window.markInventoryComplete = async function(taskId, storeId) {
         const db = firebase.firestore();
         const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
 
+        // Get checked items for this task
+        const checkedItems = inventoryCheckedItems[taskId] || [];
+
         const completionData = {
             taskId, store: storeId, shift: inventoryTasksCurrentShift,
             date: inventoryTasksSelectedDate, completedBy: user?.name || 'Unknown',
-            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            checkedItems: checkedItems // Save which items were checked
         };
 
         const docRef = await db.collection('inventoryCompletions').add(completionData);
@@ -1124,11 +1190,15 @@ window.markInventoryComplete = async function(taskId, storeId) {
         completionData.completedAt = new Date();
         inventoryTasksData.completions.push(completionData);
 
+        // Clear checked items for this task after saving
+        delete inventoryCheckedItems[taskId];
+
         if (typeof logActivity === 'function') {
             const task = inventoryTasksData.tasks.find(t => t.id === taskId);
             await logActivity('inventory_complete', {
                 message: `Completed inventory: ${task?.category || taskId} at ${storeId}`,
-                taskId, store: storeId, shift: inventoryTasksCurrentShift, date: inventoryTasksSelectedDate
+                taskId, store: storeId, shift: inventoryTasksCurrentShift, date: inventoryTasksSelectedDate,
+                checkedItems: checkedItems.length
             }, 'inventory', docRef.id);
         }
 
