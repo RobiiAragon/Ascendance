@@ -11,7 +11,7 @@ const ABUNDANCE_CONFIG = window.ABUNDANCE_CONFIG || {
     shopifyUrl: 'k1xm3v-v0',
     shopifyAdminUrl: 'https://admin.shopify.com/store/k1xm3v-v0',
     shopifyDomain: 'k1xm3v-v0.myshopify.com',
-    shopifyAccessToken: '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',
+    shopifyAccessToken: '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',
     storeName: 'Loyal Vaper',
     organizationName: 'Loyal VSU',
     features: {
@@ -30,7 +30,7 @@ const LOYAL_VAPER_CONFIG = {
     name: ABUNDANCE_CONFIG.storeName || 'Loyal Vaper',
     shortName: 'Loyal Vaper',
     storeUrl: ABUNDANCE_CONFIG.shopifyDomain || 'k1xm3v-v0.myshopify.com',
-    accessToken: ABUNDANCE_CONFIG.shopifyAccessToken || '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',
+    accessToken: ABUNDANCE_CONFIG.shopifyAccessToken || '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',
     hasMultipleLocations: false
 };
 

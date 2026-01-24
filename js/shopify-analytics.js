@@ -22,7 +22,7 @@ const STORES_CONFIG = {
         name: 'Loyal Vaper',
         shortName: 'Loyal Vaper',
         storeUrl: 'k1xm3v-v0.myshopify.com',
-        accessToken: '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',
+        accessToken: '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',
         hasMultipleLocations: false
     },
     miramarwine: {
@@ -30,7 +30,7 @@ const STORES_CONFIG = {
         name: 'Miramar Wine & Liquor',
         shortName: 'Miramar Wine & Liquor',
         storeUrl: 'a43265-2.myshopify.com',
-        accessToken: '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',
+        accessToken: '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',
         hasMultipleLocations: false
     }
 };
