@@ -604,9 +604,17 @@ function renderStoreDetailView() {
                     <h3 style="color: var(--text-secondary); margin: 0 0 8px 0; font-size: 16px;">
                         No Tasks for ${shiftConfig.name}
                     </h3>
-                    <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+                    <p style="color: var(--text-muted); margin: 0 0 20px 0; font-size: 14px;">
                         There are no inventory tasks assigned for this shift.
                     </p>
+                    ${canManageInventoryTasks() ? `
+                        <button onclick="openCreateInventoryTaskModalForStore('${store.id}')"
+                                style="background: var(--accent-primary); color: white; border: none; padding: 12px 24px;
+                                       border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px;
+                                       display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-plus"></i> Create Task for ${store.shortName}
+                        </button>
+                    ` : ''}
                 </div>
             `}
         </div>
@@ -794,6 +802,20 @@ window.selectAllStores = function() {
         cb.checked = true;
         updateStoreCheckboxStyle(cb);
     });
+};
+
+window.openCreateInventoryTaskModalForStore = function(storeId) {
+    // Open the regular modal first
+    openCreateInventoryTaskModal();
+
+    // Then pre-select just this store after a small delay to ensure DOM is ready
+    setTimeout(() => {
+        const checkbox = document.querySelector(`input[name="inv-task-stores"][value="${storeId}"]`);
+        if (checkbox) {
+            checkbox.checked = true;
+            updateStoreCheckboxStyle(checkbox);
+        }
+    }, 50);
 };
 
 function setupModalRadioListeners() {
