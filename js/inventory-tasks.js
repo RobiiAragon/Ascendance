@@ -101,13 +101,23 @@ async function loadInventoryCompletions() {
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-function getTasksForShift(shift) {
+function getTasksForShift(shift, storeId = null) {
     const today = inventoryTasksSelectedDate;
     return inventoryTasksData.tasks.filter(task => {
         if (task.shift !== shift) return false;
         if (task.duration === 'one-time' && task.createdDate !== today) return false;
+        // Filter by store if specified
+        if (storeId) {
+            if (task.stores === 'all') return true;
+            if (Array.isArray(task.stores) && task.stores.includes(storeId)) return true;
+            return false;
+        }
         return true;
     });
+}
+
+function getTasksForStore(storeId, shift) {
+    return getTasksForShift(shift, storeId);
 }
 
 function getStoreCompletion(store, shift, taskId) {
@@ -117,7 +127,8 @@ function getStoreCompletion(store, shift, taskId) {
 }
 
 function getStoreStatus(store, shift) {
-    const tasks = getTasksForShift(shift);
+    // Get tasks assigned to this specific store
+    const tasks = getTasksForStore(store, shift);
     if (tasks.length === 0) return { status: 'no-tasks', completed: 0, total: 0 };
 
     const completedCount = tasks.filter(task => getStoreCompletion(store, shift, task.id)).length;
@@ -168,6 +179,23 @@ function formatDateShort(dateString) {
 function formatDateLong(dateString) {
     const date = new Date(dateString + 'T12:00:00');
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function formatTaskStores(stores) {
+    if (stores === 'all') return 'All Stores';
+    if (!Array.isArray(stores)) return 'Unknown';
+    if (stores.length === INVENTORY_STORES.length) return 'All Stores';
+    if (stores.length === 1) {
+        const store = INVENTORY_STORES.find(s => s.id === stores[0]);
+        return store ? store.shortName : stores[0];
+    }
+    if (stores.length <= 3) {
+        return stores.map(id => {
+            const store = INVENTORY_STORES.find(s => s.id === id);
+            return store ? store.shortName : id;
+        }).join(', ');
+    }
+    return `${stores.length} stores`;
 }
 
 // ============================================
@@ -357,8 +385,9 @@ function renderMainView() {
                                     <div style="font-size: 13px; color: var(--text-muted);">
                                         ${task.description || 'No description'}
                                     </div>
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 12px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 12px;">
                                         <span>${task.duration === 'one-time' ? '<i class="fas fa-calendar-day" style="color: #f59e0b;"></i> One-time' : '<i class="fas fa-sync" style="color: #10b981;"></i> Recurring'}</span>
+                                        <span><i class="fas fa-store"></i> ${formatTaskStores(task.stores)}</span>
                                         <span><i class="fas fa-user"></i> ${task.createdBy || 'Unknown'}</span>
                                     </div>
                                 </div>
@@ -453,7 +482,8 @@ function renderStoreDetailView() {
     const store = INVENTORY_STORES.find(s => s.id === inventoryTasksSelectedStore);
     if (!store) return;
 
-    const shiftTasks = getTasksForShift(inventoryTasksCurrentShift);
+    // Get tasks specific to this store
+    const shiftTasks = getTasksForStore(store.id, inventoryTasksCurrentShift);
     const shiftConfig = INVENTORY_SHIFTS[inventoryTasksCurrentShift];
 
     dashboard.innerHTML = `
@@ -705,6 +735,35 @@ window.openCreateInventoryTaskModal = function() {
                         </label>
                     </div>
                 </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 10px; display: block; font-size: 14px;">
+                        Assign to Stores <span style="color: #ef4444;">*</span>
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        ${INVENTORY_STORES.map(store => `
+                            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+                                          border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;
+                                          transition: all 0.2s;" class="store-checkbox-label"
+                                   onmouseover="this.style.background='var(--bg-tertiary)'"
+                                   onmouseout="if(!this.querySelector('input').checked) this.style.background='transparent'">
+                                <input type="checkbox" name="inv-task-stores" value="${store.id}"
+                                       style="width: 18px; height: 18px; accent-color: ${store.color};"
+                                       onchange="updateStoreCheckboxStyle(this)">
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: ${store.gradient};
+                                            display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fas ${store.icon}" style="color: white; font-size: 12px;"></i>
+                                </div>
+                                <span style="font-size: 13px; font-weight: 500;">${store.shortName}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <button type="button" onclick="selectAllStores()"
+                            style="margin-top: 10px; background: none; border: none; color: var(--accent-primary);
+                                   cursor: pointer; font-size: 13px; font-weight: 500; padding: 0;">
+                        <i class="fas fa-check-double"></i> Select All
+                    </button>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -717,6 +776,24 @@ window.openCreateInventoryTaskModal = function() {
 
     modal.classList.add('active');
     setupModalRadioListeners();
+};
+
+window.updateStoreCheckboxStyle = function(checkbox) {
+    const label = checkbox.closest('.store-checkbox-label');
+    if (checkbox.checked) {
+        label.style.background = 'var(--bg-tertiary)';
+        label.style.borderColor = 'var(--accent-primary)';
+    } else {
+        label.style.background = 'transparent';
+        label.style.borderColor = 'var(--border-color)';
+    }
+};
+
+window.selectAllStores = function() {
+    document.querySelectorAll('input[name="inv-task-stores"]').forEach(cb => {
+        cb.checked = true;
+        updateStoreCheckboxStyle(cb);
+    });
 };
 
 function setupModalRadioListeners() {
@@ -765,8 +842,16 @@ window.saveInventoryTask = async function() {
     const shift = document.querySelector('input[name="inv-task-shift"]:checked')?.value;
     const duration = document.querySelector('input[name="inv-task-duration"]:checked')?.value;
 
+    // Get selected stores
+    const selectedStores = Array.from(document.querySelectorAll('input[name="inv-task-stores"]:checked')).map(cb => cb.value);
+
     if (!category) {
         if (typeof showNotification === 'function') showNotification('Please enter a category name', 'error');
+        return;
+    }
+
+    if (selectedStores.length === 0) {
+        if (typeof showNotification === 'function') showNotification('Please select at least one store', 'error');
         return;
     }
 
@@ -779,7 +864,7 @@ window.saveInventoryTask = async function() {
             description: description || '',
             shift: shift || 'opening',
             duration: duration || 'recurring',
-            stores: 'all',
+            stores: selectedStores,
             active: true,
             createdDate: inventoryTasksSelectedDate,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
