@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_035',
+            date: '2026-01-25',
+            title: 'Publish Schedule Notification Button',
+            description: 'Added a notification bell button to the Schedule module that allows managers to send push notifications to all employees when the weekly schedule is ready. Button shows in the schedule header next to Clone and Share buttons. Clicking it shows a confirmation dialog with the week range, then sends a push notification to all employees with the title "Schedule Ready" and a message indicating the week range. Uses the existing notification system (sendNotificationToAll).',
+            category: 'feature',
+            files: ['js/daily-checklist.js', 'index.html'],
+            developer: 'Claude',
+            requestedBy: 'User'
+        },
+        {
             id: 'log_034',
             date: '2026-01-24',
             title: 'Inventory Tasks Module',

@@ -6408,6 +6408,9 @@ window.viewChecklistHistory = async function() {
                             <a href="schedule.html" target="_blank" class="week-nav-btn" title="Share public schedule" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
                                 <i class="fas fa-share-alt"></i>
                             </a>
+                            <button class="week-nav-btn" onclick="publishScheduleNotification()" title="Notify employees that schedule is ready" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                                <i class="fas fa-bell"></i>
+                            </button>
                             <select class="store-filter-select" id="schedule-store-filter" onchange="renderScheduleGrid()">
                                 <option value="all">All Stores</option>
                                 <option value="all-employees">All Employees</option>
@@ -6633,6 +6636,54 @@ window.viewChecklistHistory = async function() {
 
             employeeSelect.innerHTML = optionsHtml;
         }
+
+        // Publish schedule notification - notify all employees that the schedule is ready
+        async function publishScheduleNotification() {
+            // Get the week range for the notification message
+            const weekStart = new Date(currentScheduleWeek);
+            const weekEnd = new Date(currentScheduleWeek);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+
+            const formatDate = (date) => {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            };
+
+            const weekRangeText = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+
+            if (!confirm(`Send push notification to all employees that the schedule for ${weekRangeText} is ready?`)) {
+                return;
+            }
+
+            try {
+                // Check if sendNotificationToAll function exists
+                if (typeof sendNotificationToAll !== 'function') {
+                    showToast('Notification system not available', 'error');
+                    console.error('[Schedule] sendNotificationToAll function not found');
+                    return;
+                }
+
+                const notification = {
+                    title: 'Schedule Ready',
+                    body: `The schedule for ${weekRangeText} is now available. Tap to view your shifts.`,
+                    type: 'schedule',
+                    page: 'schedule'
+                };
+
+                const result = await sendNotificationToAll(notification);
+
+                if (result) {
+                    showToast('Notification sent to all employees', 'success');
+                    console.log('[Schedule] Schedule notification sent successfully');
+                } else {
+                    showToast('Failed to send notification', 'error');
+                    console.error('[Schedule] Failed to send schedule notification');
+                }
+            } catch (error) {
+                console.error('[Schedule] Error sending notification:', error);
+                showToast('Error sending notification', 'error');
+            }
+        }
+        window.publishScheduleNotification = publishScheduleNotification;
 
         async function loadScheduleData() {
             const container = document.getElementById('schedule-container');
