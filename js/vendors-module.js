@@ -10318,7 +10318,7 @@ Return ONLY the JSON object, no additional text.`,
                         if (typeof sendNotificationToAll === 'function') {
                             try {
                                 await sendNotificationToAll({
-                                    title: 'New Announcement',
+                                    title: 'Nuevo Anuncio',
                                     body: title,
                                     type: 'announcement',
                                     page: 'announcements'
@@ -10393,7 +10393,7 @@ Return ONLY the JSON object, no additional text.`,
                         if (typeof sendNotificationToAll === 'function') {
                             try {
                                 await sendNotificationToAll({
-                                    title: 'New Announcement',
+                                    title: 'Nuevo Anuncio',
                                     body: title,
                                     type: 'announcement',
                                     page: 'announcements'

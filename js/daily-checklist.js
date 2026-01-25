@@ -6663,8 +6663,8 @@ window.viewChecklistHistory = async function() {
                 }
 
                 const notification = {
-                    title: 'Schedule Ready',
-                    body: `The schedule for ${weekRangeText} is now available. Tap to view your shifts.`,
+                    title: 'Horario Listo',
+                    body: `El horario para ${weekRangeText} ya está disponible. Toca para ver tus turnos.`,
                     type: 'schedule',
                     page: 'schedule'
                 };
