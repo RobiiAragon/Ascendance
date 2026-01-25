@@ -10313,6 +10313,22 @@ Return ONLY the JSON object, no additional text.`,
                                 targetStores: targetStores
                             }, 'announcement', docId);
                         }
+
+                        // Send push notification to all employees
+                        if (typeof sendNotificationToAll === 'function') {
+                            try {
+                                await sendNotificationToAll({
+                                    title: 'New Announcement',
+                                    body: title,
+                                    type: 'announcement',
+                                    page: 'announcements'
+                                });
+                                console.log('[Announcements] Push notification sent for new announcement');
+                            } catch (notifError) {
+                                console.error('[Announcements] Error sending push notification:', notifError);
+                            }
+                        }
+
                         // Reload announcements from Firebase
                         const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (updatedAnnouncements && updatedAnnouncements.length > 0) {
@@ -10372,6 +10388,22 @@ Return ONLY the JSON object, no additional text.`,
                                 targetStores: 'all'
                             }, 'announcement', docId);
                         }
+
+                        // Send push notification to all employees
+                        if (typeof sendNotificationToAll === 'function') {
+                            try {
+                                await sendNotificationToAll({
+                                    title: 'New Announcement',
+                                    body: title,
+                                    type: 'announcement',
+                                    page: 'announcements'
+                                });
+                                console.log('[Announcements] Push notification sent for new announcement');
+                            } catch (notifError) {
+                                console.error('[Announcements] Error sending push notification:', notifError);
+                            }
+                        }
+
                         // Reload announcements from Firebase
                         const updatedAnnouncements = await firebaseAnnouncementsManager.loadAnnouncements();
                         if (updatedAnnouncements && updatedAnnouncements.length > 0) {

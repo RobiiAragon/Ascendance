@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_036',
+            date: '2026-01-25',
+            title: 'Announcement Push Notifications',
+            description: 'Added automatic push notifications when a new announcement is posted. All employees receive a notification with title "New Announcement" and the announcement title as the body. Works from both the inline announcement form and the modal form.',
+            category: 'feature',
+            files: ['js/vendors-module.js', 'index.html'],
+            developer: 'Claude',
+            requestedBy: 'User'
+        },
+        {
             id: 'log_035',
             date: '2026-01-25',
             title: 'Publish Schedule Notification Button',
