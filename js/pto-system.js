@@ -37,9 +37,9 @@
 
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modal-content');
-            // Minimum date is 30 days from today
+            // Minimum date is 15 days from today
             const minDate = new Date();
-            minDate.setDate(minDate.getDate() + 30);
+            minDate.setDate(minDate.getDate() + 15);
             const minDateStr = minDate.toISOString().split('T')[0];
 
             modalContent.innerHTML = `
@@ -52,8 +52,8 @@
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 18px;"></i>
                             <div>
-                                <div style="font-weight: 600; color: #f59e0b;">30-Day Advance Notice Required</div>
-                                <div style="font-size: 13px; color: var(--text-secondary);">Time off requests must be submitted at least 30 days in advance.</div>
+                                <div style="font-weight: 600; color: #f59e0b;">15-Day Advance Notice Required</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Time off requests must be submitted at least 15 days in advance.</div>
                             </div>
                         </div>
                     </div>
@@ -558,9 +558,9 @@
                 r.requestedBy === currentUser?.name
             );
 
-            // Calculate min date (30 days from now)
+            // Calculate min date (15 days from now)
             const minDate = new Date();
-            minDate.setDate(minDate.getDate() + 30);
+            minDate.setDate(minDate.getDate() + 15);
             const minDateStr = minDate.toISOString().split('T')[0];
 
             dashboard.innerHTML = `
@@ -586,7 +586,7 @@
                         </h3>
                         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
                             <i class="fas fa-info-circle" style="color: #f59e0b;"></i>
-                            Requests must be submitted at least <strong>30 days in advance</strong>
+                            Requests must be submitted at least <strong>15 days in advance</strong>
                         </p>
 
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
@@ -720,14 +720,14 @@
                 return;
             }
 
-            // Validate 30 days in advance
+            // Validate 15 days in advance
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const startDateObj = parseLocalDate(startDate);
             const daysDiff = Math.ceil((startDateObj - today) / (1000 * 60 * 60 * 24));
 
-            if (daysDiff < 30) {
-                showNotification('Requests must be submitted at least 30 days in advance', 'warning');
+            if (daysDiff < 15) {
+                showNotification('Requests must be submitted at least 15 days in advance', 'warning');
                 return;
             }
 
