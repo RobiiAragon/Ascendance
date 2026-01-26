@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_037',
+            date: '2026-01-25',
+            title: 'Allow Different Shift Assignments at Different Stores',
+            description: 'Fixed the employee picker in the Schedule module to allow assigning an employee to different shifts at different stores on the same day. Previously, if an employee was scheduled at Store A, they would show in red with "Already at Store A" and could not be assigned to any other store. Now the system distinguishes between: (1) Same shift conflict (blocked - shown in red) - cannot work Opening at two stores simultaneously, and (2) Different shift (allowed with confirmation - shown in blue) - can work Opening at Store A and Closing at Store B. When clicking an employee who works a different shift at another store, a confirmation dialog asks "Do you want to also assign them to [shift] here?"',
+            category: 'fix',
+            files: ['js/daily-checklist.js', 'index.html'],
+            developer: 'Claude',
+            requestedBy: 'User'
+        },
+        {
             id: 'log_036',
             date: '2026-01-25',
             title: 'Announcement Push Notifications',

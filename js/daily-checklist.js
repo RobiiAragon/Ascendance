@@ -9551,6 +9551,7 @@ window.viewChecklistHistory = async function() {
             // Check for employees already assigned to ANOTHER store on this date
             const employeesAtOtherStore = new Map();
             const currentStore = currentPickerContext.storeFilter;
+            const currentShiftType = currentPickerContext.shiftType;
             if (currentStore && currentStore !== 'all') {
                 filteredEmployees.forEach(emp => {
                     // Find if this employee has a schedule on this date at a DIFFERENT store
@@ -9560,7 +9561,12 @@ window.viewChecklistHistory = async function() {
                         s.store !== currentStore
                     );
                     if (otherStoreSchedule) {
-                        employeesAtOtherStore.set(emp.id, otherStoreSchedule.store);
+                        // Store both the store name and whether it's the same shift type
+                        employeesAtOtherStore.set(emp.id, {
+                            store: otherStoreSchedule.store,
+                            shiftType: otherStoreSchedule.shiftType,
+                            isSameShift: otherStoreSchedule.shiftType === currentShiftType
+                        });
                     }
                 });
             }
@@ -9590,8 +9596,11 @@ window.viewChecklistHistory = async function() {
                 const timeOffRequest = employeesWithTimeOff.get(emp.id);
                 const hasTimeOff = !!timeOffRequest;
                 const timeOffType = timeOffRequest ? (PTO_REQUEST_TYPES[timeOffRequest.requestType]?.label || 'Time Off') : '';
-                const otherStore = employeesAtOtherStore.get(emp.id);
-                const isAtOtherStore = !!otherStore;
+                const otherStoreInfo = employeesAtOtherStore.get(emp.id);
+                const isAtOtherStore = !!otherStoreInfo;
+                const otherStore = otherStoreInfo?.store || '';
+                const isSameShiftConflict = otherStoreInfo?.isSameShift || false;
+                const otherShiftName = otherStoreInfo?.shiftType ? (SHIFT_TYPES[otherStoreInfo.shiftType]?.name || otherStoreInfo.shiftType) : '';
 
                 // Determine styles based on conflicts
                 let itemStyle = '';
@@ -9599,28 +9608,37 @@ window.viewChecklistHistory = async function() {
                 let nameIcon = '';
                 let isDisabled = false;
 
-                if (isAtOtherStore) {
-                    // Employee already assigned to another store - show in RED
+                if (isAtOtherStore && isSameShiftConflict) {
+                    // Employee assigned to SAME shift at another store - BLOCKED (real conflict)
                     itemStyle = 'opacity: 0.6; border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.08);';
-                    statusInfo = `<span style="color: #ef4444; font-weight: 600;"><i class="fas fa-store"></i> Already at ${otherStore}</span>`;
-                    nameIcon = ` <i class="fas fa-ban" style="color: #ef4444; font-size: 11px;" title="Already scheduled at ${otherStore}"></i>`;
+                    statusInfo = `<span style="color: #ef4444; font-weight: 600;"><i class="fas fa-store"></i> Already at ${otherStore} (${otherShiftName})</span>`;
+                    nameIcon = ` <i class="fas fa-ban" style="color: #ef4444; font-size: 11px;" title="Already scheduled at ${otherStore} for same shift"></i>`;
                     isDisabled = true;
+                } else if (isAtOtherStore && !isSameShiftConflict) {
+                    // Employee assigned to DIFFERENT shift at another store - ALLOWED with warning
+                    itemStyle = 'opacity: 0.85; border-left: 3px solid #3b82f6; background: rgba(59, 130, 246, 0.08);';
+                    statusInfo = `<span style="color: #3b82f6; font-weight: 500;"><i class="fas fa-store"></i> ${otherShiftName} at ${otherStore}</span>`;
+                    nameIcon = ` <i class="fas fa-info-circle" style="color: #3b82f6; font-size: 11px;" title="Working ${otherShiftName} at ${otherStore}"></i>`;
+                    // NOT disabled - can be assigned to different shift
                 } else if (hasTimeOff) {
                     itemStyle = 'opacity: 0.7; border-left: 3px solid #f59e0b;';
                     statusInfo = `<span style="color: #f59e0b; font-weight: 500;"><i class="fas fa-calendar-times"></i> ${timeOffType}</span>`;
                     nameIcon = ` <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 11px;" title="${timeOffType} approved"></i>`;
                 }
 
+                // Determine avatar color based on conflict status
+                const avatarColor = isSameShiftConflict ? '#ef4444' : (isAtOtherStore && !isSameShiftConflict ? '#3b82f6' : colors[colorIndex]);
+
                 if (multiSelectMode) {
                     return `
                         <div class="employee-picker-item multi-select ${isSelected ? 'selected' : ''} ${hasTimeOff ? 'has-time-off' : ''} ${isAtOtherStore ? 'at-other-store' : ''}"
                              data-employee-id="${emp.id}"
-                             onclick="${isDisabled ? 'showNotification(\'This employee is already scheduled at ' + otherStore + '\', \'error\')' : `toggleEmployeeSelection('${emp.id}')`}"
+                             onclick="${isDisabled ? 'showNotification(\'This employee is already scheduled at ' + otherStore + ' for the same shift\', \'error\')' : `toggleEmployeeSelection('${emp.id}')`}"
                              style="${itemStyle}">
                             <div class="select-checkbox">
                                 <i class="fas fa-check"></i>
                             </div>
-                            <div class="employee-picker-avatar" style="background: ${isAtOtherStore ? '#ef4444' : colors[colorIndex]};">${initials}</div>
+                            <div class="employee-picker-avatar" style="background: ${avatarColor};">${initials}</div>
                             <div class="employee-picker-info">
                                 <div class="employee-picker-name">${emp.name}${nameIcon}</div>
                                 <div class="employee-picker-store">${statusInfo}</div>
@@ -9628,11 +9646,24 @@ window.viewChecklistHistory = async function() {
                         </div>
                     `;
                 } else {
+                    // Determine onclick action based on conflict status
+                    let onclickAction;
+                    if (isDisabled) {
+                        onclickAction = `showNotification('This employee is already scheduled at ${otherStore} for the same shift', 'error')`;
+                    } else if (isAtOtherStore && !isSameShiftConflict) {
+                        // Different shift at other store - show confirmation
+                        onclickAction = `confirmAssignAtOtherStore('${emp.id}', '${otherStore}', '${otherShiftName}')`;
+                    } else if (hasTimeOff) {
+                        onclickAction = `confirmAssignWithTimeOff('${emp.id}', '${timeOffType}')`;
+                    } else {
+                        onclickAction = `assignEmployee('${emp.id}')`;
+                    }
+
                     return `
                         <div class="employee-picker-item ${hasTimeOff ? 'has-time-off' : ''} ${isAtOtherStore ? 'at-other-store' : ''}"
-                             onclick="${isDisabled ? `showNotification('This employee is already scheduled at ${otherStore}', 'error')` : (hasTimeOff ? `confirmAssignWithTimeOff('${emp.id}', '${timeOffType}')` : `assignEmployee('${emp.id}')`)}"
+                             onclick="${onclickAction}"
                              style="${itemStyle}; ${isDisabled ? 'cursor: not-allowed;' : ''}">
-                            <div class="employee-picker-avatar" style="background: ${isAtOtherStore ? '#ef4444' : colors[colorIndex]};">${initials}</div>
+                            <div class="employee-picker-avatar" style="background: ${avatarColor};">${initials}</div>
                             <div class="employee-picker-info">
                                 <div class="employee-picker-name">${emp.name}${nameIcon}</div>
                                 <div class="employee-picker-store">${statusInfo}</div>
@@ -9661,6 +9692,26 @@ window.viewChecklistHistory = async function() {
 
         // Make function globally accessible
         window.confirmAssignWithTimeOff = confirmAssignWithTimeOff;
+
+        // Show confirmation dialog when assigning employee who works different shift at another store
+        function confirmAssignAtOtherStore(employeeId, otherStore, otherShiftName) {
+            const emp = employees.find(e => e.id === employeeId);
+            const empName = emp?.name || 'This employee';
+            const currentShiftName = currentPickerContext?.shiftType ? (SHIFT_TYPES[currentPickerContext.shiftType]?.name || currentPickerContext.shiftType) : 'this shift';
+
+            showConfirmModal({
+                title: 'Multiple Store Assignment',
+                message: `${empName} is already working ${otherShiftName} at ${otherStore}. Do you want to also assign them to ${currentShiftName} here?`,
+                confirmText: 'Yes, Assign',
+                type: 'info',
+                onConfirm: () => {
+                    assignEmployee(employeeId);
+                }
+            });
+        }
+
+        // Make function globally accessible
+        window.confirmAssignAtOtherStore = confirmAssignAtOtherStore;
 
         async function assignEmployee(employeeId) {
             if (!currentPickerContext) return;
