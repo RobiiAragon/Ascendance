@@ -7229,6 +7229,15 @@ window.viewChecklistHistory = async function() {
             let totalScheduledMinutes = 0;
             let totalActualMinutes = 0;
 
+            // Initialize export data
+            currentTimeCardData = {
+                employeeName: emp.name || 'Unknown',
+                store: emp.store || 'No Store',
+                weekRange: weekRangeText,
+                rows: [],
+                totals: {}
+            };
+
             // Build the time card rows
             let rowsHtml = '';
             weekDates.forEach(date => {
@@ -7336,6 +7345,22 @@ window.viewChecklistHistory = async function() {
                         </td>
                     </tr>
                 `;
+
+                // Store row data for export (clean text without HTML)
+                const actualHrsText = (actualHours > 0 || actualMinutes > 0)
+                    ? (actualHours > 0 ? `${actualHours}h ${actualMinutes}m` : `${actualMinutes}m`)
+                    : (inProgress ? 'Active' : '-');
+
+                currentTimeCardData.rows.push({
+                    dayName: dayName,
+                    date: `${date.toLocaleDateString('en-US', { month: 'short' })} ${dayNumber}`,
+                    scheduled: scheduledStart !== '-' ? `${scheduledStart} - ${scheduledEnd}` : '-',
+                    actual: actualClockIn !== '-' ? `${actualClockIn} - ${actualClockOut}` : '-',
+                    lunch: actualLunch,
+                    schedHrs: scheduledHours > 0 ? scheduledHours.toFixed(1) + 'h' : '-',
+                    actualHrs: actualHrsText,
+                    variance: varianceDisplay
+                });
             });
 
             // Calculate total hours
@@ -7365,6 +7390,13 @@ window.viewChecklistHistory = async function() {
                     totalVarianceClass = 'under';
                 }
             }
+
+            // Store totals for export
+            currentTimeCardData.totals = {
+                scheduledHrs: totalScheduledHours > 0 ? totalScheduledHours.toFixed(1) + 'h' : '-',
+                actualHrs: totalActualDisplay,
+                variance: totalVarianceDisplay
+            };
 
             // Create the modal HTML
             const modalHtml = `
@@ -7614,9 +7646,14 @@ window.viewChecklistHistory = async function() {
                                     <p>${emp.store || 'No Store'} &bull; ${weekRangeText}</p>
                                 </div>
                             </div>
-                            <button class="time-card-close" onclick="closeTimeCard()">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="time-card-export-btn" onclick="exportEmployeeTimeCard()" title="Export to CSV" style="width: 36px; height: 36px; border-radius: 8px; border: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="time-card-close" onclick="closeTimeCard()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="time-card-body">
                             <div class="time-card-table-wrapper">
@@ -7670,9 +7707,53 @@ window.viewChecklistHistory = async function() {
             }
         }
 
+        // Store current time card data for export
+        let currentTimeCardData = null;
+
+        // Export employee time card to CSV
+        function exportEmployeeTimeCard() {
+            if (!currentTimeCardData) {
+                showNotification('No data to export', 'error');
+                return;
+            }
+
+            const { employeeName, store, weekRange, rows, totals } = currentTimeCardData;
+
+            // Build CSV content
+            let csv = 'Employee Time Card Export\n';
+            csv += `Employee,${employeeName}\n`;
+            csv += `Store,${store}\n`;
+            csv += `Week,${weekRange}\n`;
+            csv += '\n';
+            csv += 'Day,Date,Scheduled,Actual,Lunch,Sched Hrs,Actual Hrs,Variance\n';
+
+            rows.forEach(row => {
+                csv += `${row.dayName},${row.date},${row.scheduled},${row.actual},${row.lunch},${row.schedHrs},${row.actualHrs},${row.variance}\n`;
+            });
+
+            csv += '\n';
+            csv += `TOTAL,,,,,${totals.scheduledHrs},${totals.actualHrs},${totals.variance}\n`;
+
+            // Create and download file
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const fileName = `TimeCard_${employeeName.replace(/\s+/g, '_')}_${weekRange.replace(/\s+/g, '_').replace(/,/g, '')}.csv`;
+
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+
+            showNotification('Time card exported!', 'success');
+        }
+
         // Expose functions globally
         window.openEmployeeTimeCard = openEmployeeTimeCard;
         window.closeTimeCard = closeTimeCard;
+        window.exportEmployeeTimeCard = exportEmployeeTimeCard;
 
         // Time editor modal functions
         let currentTimeEditorContext = null;

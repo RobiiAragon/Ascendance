@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_039',
+            date: '2026-01-25',
+            title: 'Export Time Card to CSV',
+            description: 'Added an export button (green download icon) to the Employee Time Card modal. Clicking the button downloads a CSV file with the employee name, store, week range, and a table with all days showing scheduled times, actual times, lunch, hours, and variance. File is named TimeCard_EmployeeName_WeekRange.csv.',
+            category: 'feature',
+            files: ['js/daily-checklist.js', 'index.html'],
+            developer: 'Claude',
+            requestedBy: 'User'
+        },
+        {
             id: 'log_038',
             date: '2026-01-25',
             title: 'PTO Advance Notice Changed to 15 Days',
