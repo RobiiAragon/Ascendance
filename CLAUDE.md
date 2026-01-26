@@ -15,7 +15,7 @@ This file contains instructions and rules that Claude should follow when working
 - Always increment version numbers in index.html after modifying JS files (e.g., `script.js?v=81` -> `script.js?v=82`)
 - All user-facing text should be in **English**
 - Make push after completing changes
-- Document significant changes in the Development Log (`js/development-log.js`)
+- Document all changes in the Development Log (`js/development-log.js`)
 
 ### Code Style
 - Use modern JavaScript (ES6+)
