@@ -50,6 +50,16 @@ function getInitialLogs() {
     return [
         // January 2026
         {
+            id: 'log_038',
+            date: '2026-01-25',
+            title: 'PTO Advance Notice Changed to 15 Days',
+            description: 'Changed the minimum advance notice period for time off requests from 30 days to 15 days. Updated the form text, calendar minimum date, and validation logic.',
+            category: 'enhancement',
+            files: ['js/pto-system.js', 'index.html'],
+            developer: 'Claude',
+            requestedBy: 'Daniel Barrantes'
+        },
+        {
             id: 'log_037',
             date: '2026-01-25',
             title: 'Allow Different Shift Assignments at Different Stores',
